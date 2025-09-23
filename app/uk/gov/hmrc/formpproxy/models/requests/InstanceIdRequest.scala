@@ -14,22 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.controllers
+package uk.gov.hmrc.formpproxy.models.requests
 
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
-import play.api.http.Status
-import play.api.test.Helpers._
-import play.api.test.{FakeRequest, Helpers}
+import play.api.libs.json.{Json, OFormat}
 
-class MicroserviceHelloWorldControllerSpec
-  extends AnyWordSpec
-     with Matchers:
-
-  private val fakeRequest = FakeRequest("GET", "/")
-  private val controller  = new MicroserviceHelloWorldController(Helpers.stubControllerComponents())
-
-  "GET /" should:
-    "return 200" in:
-      val result = controller.hello()(fakeRequest)
-      status(result) shouldBe Status.OK
+final case class InstanceIdRequest(instanceId: String)
+object InstanceIdRequest {
+  implicit val format: OFormat[InstanceIdRequest] = Json.format[InstanceIdRequest]
+}
