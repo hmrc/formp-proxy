@@ -40,20 +40,24 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
     Future {
       db.withConnection { conn =>
         val cs = conn.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }")
-        cs.setString(1, instanceId)
-        cs.registerOutParameter(2, OracleTypes.CURSOR)
-        cs.registerOutParameter(3, OracleTypes.CURSOR)
-        cs.execute()
+        try {
+          cs.setString(1, instanceId)
+          cs.registerOutParameter(2, OracleTypes.CURSOR)
+          cs.registerOutParameter(3, OracleTypes.CURSOR)
+          cs.execute()
 
-        val rsScheme = cs.getObject(2, classOf[ResultSet])
-        try () finally if (rsScheme != null) rsScheme.close()
+          val rsScheme = cs.getObject(2, classOf[ResultSet])
+          try () finally if (rsScheme != null) rsScheme.close()
 
-        val rsMonthly = cs.getObject(3, classOf[ResultSet])
-        val returns =
-          try collectMonthlyReturns(rsMonthly)
-          finally if (rsMonthly != null) rsMonthly.close()
+          val rsMonthly = cs.getObject(3, classOf[ResultSet])
+          val returns =
+            try collectMonthlyReturns(rsMonthly)
+            finally if (rsMonthly != null) rsMonthly.close()
 
-        UserMonthlyReturns(returns)
+          UserMonthlyReturns(returns)
+      } finally {
+        cs.close()
+        }
       }
     }
   }
