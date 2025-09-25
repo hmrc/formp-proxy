@@ -38,7 +38,7 @@ final class CisFormpRepositorySpec
       val rsScheme = mock(classOf[ResultSet])
       val rsMonthly = mock(classOf[ResultSet])
 
-      when(db.withConnection(anyArg[(java.sql.Connection) => Any])).thenAnswer { inv =>
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
       }
       when(conn.prepareCall(anyArg[String])).thenReturn(cs)
@@ -52,7 +52,7 @@ final class CisFormpRepositorySpec
       when(rsMonthly.getInt("tax_month")).thenReturn(1)
       when(rsMonthly.getString("status")).thenReturn("Submitted")
       when(rsMonthly.getTimestamp("last_update")).thenReturn(Timestamp.valueOf("2025-01-31 12:34:56"))
-      when(rsMonthly.getLong("superseded_by")).thenReturn(0L);
+      when(rsMonthly.getLong("superseded_by")).thenReturn(0L)
       when(rsMonthly.wasNull()).thenReturn(true)
 
       val repo = new CisFormpRepository(db)
@@ -83,7 +83,7 @@ final class CisFormpRepositorySpec
       val cs = mock(classOf[CallableStatement])
       val rsMonthly = mock(classOf[ResultSet])
 
-      when(db.withConnection(anyArg[(java.sql.Connection) => Any])).thenAnswer { inv =>
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
       }
       when(conn.prepareCall(anyArg[String])).thenReturn(cs)
