@@ -16,16 +16,23 @@
 
 package uk.gov.hmrc.formpproxy
 
+import play.api.inject.{Binding, Module as AppModule}
 import play.api.{Configuration, Environment}
-import play.api.inject.{Binding, Module => AppModule}
-
-import java.time.Clock
+import uk.gov.hmrc.formpproxy.actions.{AuthAction, DefaultAuthAction}
+import uk.gov.hmrc.formpproxy.repositories.{CisFormpRepository, CisMonthlyReturnSource}
+import uk.gov.hmrc.formpproxy.utils.CisFormpStub
 
 class Module extends AppModule:
 
   override def bindings(
-    environment  : Environment,
-    configuration: Configuration
-  ): Seq[Binding[_]] =
-    bind[Clock].toInstance(Clock.systemDefaultZone) :: // inject if current time needs to be controlled in unit tests
-    Nil
+                         environment: Environment,
+                         configuration: Configuration
+                       ): Seq[Binding[_]] =
+    lazy val cisFormpStubbed = configuration.get[Boolean]("feature-switch.cis-formp-stubbed")
+
+    lazy val cisDatasource = if (cisFormpStubbed) classOf[CisFormpStub] else classOf[CisFormpRepository]
+
+    List(
+      bind[AuthAction].to(classOf[DefaultAuthAction]),
+      bind[CisMonthlyReturnSource].to(cisDatasource)
+    )

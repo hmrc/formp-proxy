@@ -14,19 +14,21 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.controllers
+package uk.gov.hmrc.formpproxy.utils
 
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import play.api.Logging
+import uk.gov.hmrc.formpproxy.repositories.CisMonthlyReturnSource
+import uk.gov.hmrc.formpproxy.models.{MonthlyReturn, UserMonthlyReturns}
 
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.Future
 
-@Singleton()
-class MicroserviceHelloWorldController @Inject()(
-  cc: ControllerComponents
-) extends BackendController(cc):
+@Singleton
+class CisFormpStub @Inject()(stubUtils: StubUtils) extends CisMonthlyReturnSource with Logging {
 
-  val hello: Action[AnyContent] =
-    Action:
-      implicit request =>
-        Ok("Hello world")
+  private[this] val stubData = stubUtils
+
+  def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns] =
+    val monthlyReturns: Seq[MonthlyReturn] = Seq(1, 2, 3).map(stubData.generateMonthlyReturns)
+    Future.successful(UserMonthlyReturns(monthlyReturns))
+}
