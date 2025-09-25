@@ -31,7 +31,7 @@ class MonthlyReturnControllerIntegrationSpec
     with IntegrationPatience
     with ApplicationWithWiremock {
 
-  private val endpoint = "/monthly-returns" 
+  private val endpoint = "/monthly-returns"
 
   private def postJson(uri: String, body: JsValue): WSResponse =
     post(uri, body).futureValue

@@ -46,9 +46,9 @@ class MonthlyReturnController @Inject()(
               "errors"  -> JsError.toJson(errs)
             ))
           ),
-        in =>
+        instanceIdRequest =>
           service
-            .getAllMonthlyReturns(in.instanceId)
+            .getAllMonthlyReturns(instanceIdRequest.instanceId)
             .map { (payload: UserMonthlyReturns) => Ok(Json.toJson(payload)) }
             .recover {
               case u: UpstreamErrorResponse =>
