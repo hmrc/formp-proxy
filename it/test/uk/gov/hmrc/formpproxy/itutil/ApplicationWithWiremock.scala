@@ -24,10 +24,12 @@ import play.api.http.HeaderNames as PlayHeaders
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsValue
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
-import play.api.libs.ws.{WSClient, WSResponse}
-import uk.gov.hmrc.http.HeaderNames
+import uk.gov.hmrc.http.{HeaderCarrier, HeaderNames, HttpResponse}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.StringContextOps
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 
 trait ApplicationWithWiremock
@@ -42,7 +44,7 @@ trait ApplicationWithWiremock
     Map[String, Any](
       "microservice.services.auth.host" -> WireMockConstants.stubHost,
       "microservice.services.auth.port" -> WireMockConstants.stubPort,
-      "feature-switch.cis-formp-stubbed"      -> true
+      "feature-switch.cis-formp-stubbed" -> true
     )
   }
 
@@ -50,7 +52,9 @@ trait ApplicationWithWiremock
     .configure(extraConfig)
     .build()
 
-  lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
+  lazy val httpClientV2: HttpClientV2 = app.injector.instanceOf[HttpClientV2]
+  implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
   override protected def beforeAll(): Unit =
     wireMock.start()
@@ -66,16 +70,25 @@ trait ApplicationWithWiremock
 
   val baseUrl: String = s"http://localhost:$port/formp-proxy"
 
-  protected def get(uri: String): Future[WSResponse] =
-    wsClient.url(s"$baseUrl$uri")
-      .withHttpHeaders(PlayHeaders.AUTHORIZATION -> "Bearer it-token", HeaderNames.xSessionId -> "sessionId")
-      .get()
+  private val commonHeaders: Seq[(String, String)] =
+    Seq(
+      PlayHeaders.AUTHORIZATION -> "Bearer it-token",
+      HeaderNames.xSessionId -> "sessionId"
+    )
 
-  protected def post(uri: String, body: JsValue): Future[WSResponse] =
-    wsClient.url(s"$baseUrl$uri")
-      .withHttpHeaders(
-        PlayHeaders.AUTHORIZATION -> "Bearer it-token",
-        HeaderNames.xSessionId -> "sessionId",
-        "Accept" -> "application/json",
-        "Content-Type" -> "application/json")
-      .post[JsValue](body)
+  protected def get(uri: String): Future[HttpResponse] =
+    httpClientV2
+      .get(url"$baseUrl/$uri")
+      .setHeader(commonHeaders*)
+      .execute[HttpResponse]
+
+  protected def post(uri: String, body: JsValue): Future[HttpResponse] =
+    httpClientV2.post(url"$baseUrl/$uri")
+      .setHeader(
+        commonHeaders ++ Seq(
+          "Accept"       -> "application/json",
+          "Content-Type" -> "application/json"
+        )*
+      )
+      .withBody(body)
+      .execute[HttpResponse]

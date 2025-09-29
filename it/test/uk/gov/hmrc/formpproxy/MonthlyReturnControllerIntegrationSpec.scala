@@ -20,9 +20,9 @@ import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, AuthStub}
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
-import play.api.http.Status._
+import play.api.http.Status.*
 import play.api.libs.json.{JsValue, Json}
-import play.api.libs.ws.WSResponse
+import uk.gov.hmrc.http.HttpResponse
 
 class MonthlyReturnControllerIntegrationSpec
   extends AnyWordSpec
@@ -31,9 +31,9 @@ class MonthlyReturnControllerIntegrationSpec
     with IntegrationPatience
     with ApplicationWithWiremock {
 
-  private val endpoint = "/monthly-returns"
+  private val endpoint = "monthly-returns"
 
-  private def postJson(uri: String, body: JsValue): WSResponse =
+  private def postJson(uri: String, body: JsValue): HttpResponse =
     post(uri, body).futureValue
 
   "POST /formp-proxy/monthly-returns" should {
@@ -50,7 +50,7 @@ class MonthlyReturnControllerIntegrationSpec
     "return 400 when JSON is missing required fields" in {
       AuthStub.authorised()
 
-      val res1 = postJson(endpoint, Json.obj()) // empty body
+      val res1 = postJson(endpoint, Json.obj())
       res1.status mustBe BAD_REQUEST
       (res1.json \ "message").as[String].toLowerCase must include("invalid json")
     }
