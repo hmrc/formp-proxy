@@ -30,5 +30,30 @@ class CisFormpStub @Inject()(stubUtils: StubUtils) extends CisMonthlyReturnSourc
 
   def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns] =
     val monthlyReturns: Seq[MonthlyReturn] = Seq(1, 2, 3).map(stubData.generateMonthlyReturns)
-    Future.successful(UserMonthlyReturns(monthlyReturns))
+    Future.successful(UserMonthlyReturns(monthlyReturns, None))
+
+  def createMonthlyReturn(instanceId: String, taxYear: Int, taxMonth: Int, nilReturnIndicator: String): Future[Unit] =
+    logger.info(s"[Stub] createMonthlyReturn($instanceId,$taxYear,$taxMonth,$nilReturnIndicator)")
+    Future.successful(())
+
+  def updateSchemeVersion(instanceId: String, version: Int): Future[Int] =
+    logger.info(s"[Stub] updateSchemeVersion($instanceId,$version)")
+    Future.successful(version + 1)
+
+  def updateMonthlyReturn(
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int,
+    amendment: String,
+    decEmpStatusConsidered: Option[String],
+    decAllSubsVerified: Option[String],
+    decInformationCorrect: Option[String],
+    decNoMoreSubPayments: Option[String],
+    decNilReturnNoPayments: Option[String],
+    nilReturnIndicator: String,
+    status: String,
+    version: Int
+  ): Future[Int] =
+    logger.info(s"[Stub] updateMonthlyReturn($instanceId,$taxYear,$taxMonth,...) version=$version")
+    Future.successful(version)
 }

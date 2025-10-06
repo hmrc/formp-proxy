@@ -29,6 +29,22 @@ import uk.gov.hmrc.formpproxy.models.{MonthlyReturn, UserMonthlyReturns}
 
 trait CisMonthlyReturnSource {
   def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns]
+  def createMonthlyReturn(instanceId: String, taxYear: Int, taxMonth: Int, nilReturnIndicator: String): Future[Unit]
+  def updateSchemeVersion(instanceId: String, version: Int): Future[Int] // returns new version out param
+  def updateMonthlyReturn(
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int,
+    amendment: String,
+    decEmpStatusConsidered: Option[String],
+    decAllSubsVerified: Option[String],
+    decInformationCorrect: Option[String],
+    decNoMoreSubPayments: Option[String],
+    decNilReturnNoPayments: Option[String],
+    nilReturnIndicator: String,
+    status: String,
+    version: Int
+  ): Future[Int]
 }
 
 @Singleton
@@ -47,14 +63,16 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
           cs.execute()
 
           val rsScheme = cs.getObject(2, classOf[ResultSet])
-          try () finally if (rsScheme != null) rsScheme.close()
+          val schemeVersion: Option[Int] =
+            try if (rsScheme != null && rsScheme.next()) Option(rsScheme.getInt("version")) else None
+            finally if (rsScheme != null) rsScheme.close()
 
           val rsMonthly = cs.getObject(3, classOf[ResultSet])
           val returns =
             try collectMonthlyReturns(rsMonthly)
             finally if (rsMonthly != null) rsMonthly.close()
 
-          UserMonthlyReturns(returns)
+          UserMonthlyReturns(returns, schemeVersion)
       } finally {
         cs.close()
         }
@@ -83,4 +101,65 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
       )
       collectMonthlyReturns(rs, acc :+ mr)
     }
+
+  override def createMonthlyReturn(instanceId: String, taxYear: Int, taxMonth: Int, nilReturnIndicator: String): Future[Unit] = Future {
+    db.withConnection { conn =>
+      val cs = conn.prepareCall("{ call monthly_return_procs_2016.Create_Monthly_Return(?, ?, ?, ?) }")
+      try {
+        cs.setString(1, instanceId)
+        cs.setInt(2, taxYear)
+        cs.setInt(3, taxMonth)
+        cs.setString(4, nilReturnIndicator)
+        cs.execute()
+        ()
+      } finally cs.close()
+    }
+  }
+
+  override def updateSchemeVersion(instanceId: String, version: Int): Future[Int] = Future {
+    db.withConnection { conn =>
+      val cs = conn.prepareCall("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }")
+      try {
+        cs.setString(1, instanceId)
+        cs.setInt(2, version)
+        cs.execute()
+        cs.getInt(2) // p_version out param with new version
+      } finally cs.close()
+    }
+  }
+
+  override def updateMonthlyReturn(
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int,
+    amendment: String,
+    decEmpStatusConsidered: Option[String],
+    decAllSubsVerified: Option[String],
+    decInformationCorrect: Option[String],
+    decNoMoreSubPayments: Option[String],
+    decNilReturnNoPayments: Option[String],
+    nilReturnIndicator: String,
+    status: String,
+    version: Int
+  ): Future[Int] = Future {
+    db.withConnection { conn =>
+      val cs = conn.prepareCall("{ call MONTHLY_RETURNS_PROCS_2016.Update_monthly_return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+      try {
+        cs.setString(1, instanceId)
+        cs.setInt(2, taxYear)
+        cs.setInt(3, taxMonth)
+        cs.setString(4, amendment)
+        cs.setString(5, decEmpStatusConsidered.orNull)
+        cs.setString(6, decAllSubsVerified.orNull)
+        cs.setString(7, decInformationCorrect.orNull)
+        cs.setString(8, decNoMoreSubPayments.orNull)
+        cs.setString(9, decNilReturnNoPayments.orNull)
+        cs.setString(10, nilReturnIndicator)
+        cs.setString(11, status)
+        cs.setInt(12, version)
+        cs.execute()
+        cs.getInt(12) // p_version out param with new version
+      } finally cs.close()
+    }
+  }
 }

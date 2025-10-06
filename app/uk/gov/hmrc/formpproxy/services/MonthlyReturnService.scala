@@ -18,6 +18,7 @@ package uk.gov.hmrc.formpproxy.services
 
 import uk.gov.hmrc.formpproxy.repositories.CisMonthlyReturnSource
 import uk.gov.hmrc.formpproxy.models.UserMonthlyReturns
+import uk.gov.hmrc.formpproxy.models.UserMonthlyReturns
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
@@ -27,4 +28,39 @@ class MonthlyReturnService @Inject()(repo: CisMonthlyReturnSource)() {
 
   def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns] =
     repo.getAllMonthlyReturns(instanceId)
+
+  def createMonthlyReturn(instanceId: String, taxYear: Int, taxMonth: Int, nilReturnIndicator: String): Future[Unit] =
+    repo.createMonthlyReturn(instanceId, taxYear, taxMonth, nilReturnIndicator)
+
+  def updateSchemeVersion(instanceId: String, version: Int): Future[Int] =
+    repo.updateSchemeVersion(instanceId, version)
+
+  def updateMonthlyReturn(
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int,
+    amendment: String,
+    decEmpStatusConsidered: Option[String],
+    decAllSubsVerified: Option[String],
+    decInformationCorrect: Option[String],
+    decNoMoreSubPayments: Option[String],
+    decNilReturnNoPayments: Option[String],
+    nilReturnIndicator: String,
+    status: String,
+    version: Int
+  ): Future[Int] =
+    repo.updateMonthlyReturn(
+      instanceId,
+      taxYear,
+      taxMonth,
+      amendment,
+      decEmpStatusConsidered,
+      decAllSubsVerified,
+      decInformationCorrect,
+      decNoMoreSubPayments,
+      decNilReturnNoPayments,
+      nilReturnIndicator,
+      status,
+      version
+    )
 }

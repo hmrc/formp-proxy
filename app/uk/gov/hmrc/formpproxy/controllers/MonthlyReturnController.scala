@@ -59,4 +59,39 @@ class MonthlyReturnController @Inject()(
             }
       )
     }
+
+  def createMonthlyReturn: Action[JsValue] = authorise.async(parse.json) { implicit request =>
+    val body = request.body
+    val instanceId = (body \ "instanceId").head.as[String]
+    val taxYear    = (body \ "taxYear").head.as[Int]
+    val taxMonth   = (body \ "taxMonth").head.as[Int]
+    val nil        = (body \ "nilReturnIndicator").head.as[String]
+    service.createMonthlyReturn(instanceId, taxYear, taxMonth, nil)
+      .map(_ => NoContent)
+  }
+
+  def updateSchemeVersion: Action[JsValue] = authorise.async(parse.json) { implicit request =>
+    val instanceId = (request.body \ "instanceId").head.as[String]
+    val version    = (request.body \ "version").head.as[Int]
+    service.updateSchemeVersion(instanceId, version).map(v => Ok(Json.obj("version" -> v)))
+  }
+
+  def updateMonthlyReturn: Action[JsValue] = authorise.async(parse.json) { implicit request =>
+    val b = request.body
+    def optStr(name: String): Option[String] = (b \ name).toOption.flatMap(_.asOpt[String])
+    service.updateMonthlyReturn(
+      instanceId = (b \ "instanceId").head.as[String],
+      taxYear    = (b \ "taxYear").head.as[Int],
+      taxMonth   = (b \ "taxMonth").head.as[Int],
+      amendment  = (b \ "amendment").head.as[String],
+      decEmpStatusConsidered = optStr("decEmpStatusConsidered"),
+      decAllSubsVerified     = optStr("decAllSubsVerified"),
+      decInformationCorrect  = optStr("decInformationCorrect"),
+      decNoMoreSubPayments   = optStr("decNoMoreSubPayments"),
+      decNilReturnNoPayments = optStr("decNilReturnNoPayments"),
+      nilReturnIndicator     = (b \ "nilReturnIndicator").head.as[String],
+      status                 = (b \ "status").head.as[String],
+      version                = (b \ "version").head.as[Int]
+    ).map(v => Ok(Json.obj("version" -> v)))
+  }
 }
