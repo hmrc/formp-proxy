@@ -62,36 +62,36 @@ class MonthlyReturnController @Inject()(
 
   def createMonthlyReturn: Action[JsValue] = authorise.async(parse.json) { implicit request =>
     val body = request.body
-    val instanceId = (body \ "instanceId").head.as[String]
-    val taxYear    = (body \ "taxYear").head.as[Int]
-    val taxMonth   = (body \ "taxMonth").head.as[Int]
-    val nil        = (body \ "nilReturnIndicator").head.as[String]
+    val instanceId = (body \ "instanceId").as[String]
+    val taxYear    = (body \ "taxYear").as[Int]
+    val taxMonth   = (body \ "taxMonth").as[Int]
+    val nil        = (body \ "nilReturnIndicator").as[String]
     service.createMonthlyReturn(instanceId, taxYear, taxMonth, nil)
       .map(_ => NoContent)
   }
 
   def updateSchemeVersion: Action[JsValue] = authorise.async(parse.json) { implicit request =>
-    val instanceId = (request.body \ "instanceId").head.as[String]
-    val version    = (request.body \ "version").head.as[Int]
+    val instanceId = (request.body \ "instanceId").as[String]
+    val version    = (request.body \ "version").as[Int]
     service.updateSchemeVersion(instanceId, version).map(v => Ok(Json.obj("version" -> v)))
   }
 
   def updateMonthlyReturn: Action[JsValue] = authorise.async(parse.json) { implicit request =>
     val b = request.body
-    def optStr(name: String): Option[String] = (b \ name).toOption.flatMap(_.asOpt[String])
+    def optStr(name: String): Option[String] = (b \ name).asOpt[String]
     service.updateMonthlyReturn(
-      instanceId = (b \ "instanceId").head.as[String],
-      taxYear    = (b \ "taxYear").head.as[Int],
-      taxMonth   = (b \ "taxMonth").head.as[Int],
-      amendment  = (b \ "amendment").head.as[String],
+      instanceId = (b \ "instanceId").as[String],
+      taxYear    = (b \ "taxYear").as[Int],
+      taxMonth   = (b \ "taxMonth").as[Int],
+      amendment  = (b \ "amendment").as[String],
       decEmpStatusConsidered = optStr("decEmpStatusConsidered"),
       decAllSubsVerified     = optStr("decAllSubsVerified"),
       decInformationCorrect  = optStr("decInformationCorrect"),
       decNoMoreSubPayments   = optStr("decNoMoreSubPayments"),
       decNilReturnNoPayments = optStr("decNilReturnNoPayments"),
-      nilReturnIndicator     = (b \ "nilReturnIndicator").head.as[String],
-      status                 = (b \ "status").head.as[String],
-      version                = (b \ "version").head.as[Int]
+      nilReturnIndicator     = (b \ "nilReturnIndicator").as[String],
+      status                 = (b \ "status").as[String],
+      version                = (b \ "version").as[Int]
     ).map(v => Ok(Json.obj("version" -> v)))
   }
 }
