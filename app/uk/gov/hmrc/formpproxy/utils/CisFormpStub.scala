@@ -32,28 +32,30 @@ class CisFormpStub @Inject()(stubUtils: StubUtils) extends CisMonthlyReturnSourc
     val monthlyReturns: Seq[MonthlyReturn] = Seq(1, 2, 3).map(stubData.generateMonthlyReturns)
     Future.successful(UserMonthlyReturns(monthlyReturns, None))
 
-  def createMonthlyReturn(instanceId: String, taxYear: Int, taxMonth: Int, nilReturnIndicator: String): Future[Unit] =
-    logger.info(s"[Stub] createMonthlyReturn($instanceId,$taxYear,$taxMonth,$nilReturnIndicator)")
-    Future.successful(())
-
-  def updateSchemeVersion(instanceId: String, version: Int): Future[Int] =
-    logger.info(s"[Stub] updateSchemeVersion($instanceId,$version)")
-    Future.successful(version + 1)
-
-  def updateMonthlyReturn(
+  def createNilMonthlyReturn(
     instanceId: String,
     taxYear: Int,
     taxMonth: Int,
-    amendment: String,
     decEmpStatusConsidered: Option[String],
-    decAllSubsVerified: Option[String],
-    decInformationCorrect: Option[String],
-    decNoMoreSubPayments: Option[String],
-    decNilReturnNoPayments: Option[String],
-    nilReturnIndicator: String,
-    status: String,
-    version: Int
-  ): Future[Int] =
-    logger.info(s"[Stub] updateMonthlyReturn($instanceId,$taxYear,$taxMonth,...) version=$version")
-    Future.successful(version)
+    decInformationCorrect: Option[String]
+  ): Future[MonthlyReturn] = {
+    logger.info(s"[Stub] createNilMonthlyReturn($instanceId,$taxYear,$taxMonth,...)")
+    Future.successful(
+      MonthlyReturn(
+        monthlyReturnId = 12345L,
+        taxYear = taxYear,
+        taxMonth = taxMonth,
+        nilReturnIndicator = Some("Y"),
+        decEmpStatusConsidered = decEmpStatusConsidered,
+        decAllSubsVerified = Some("Y"),
+        decInformationCorrect = decInformationCorrect,
+        decNoMoreSubPayments = Some("Y"),
+        decNilReturnNoPayments = Some("Y"),
+        status = Some("STARTED"),
+        lastUpdate = Some(java.time.LocalDateTime.now()),
+        amendment = Some("N"),
+        supersededBy = None
+      )
+    )
+  }
 }

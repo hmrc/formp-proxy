@@ -1,6 +1,4 @@
 # microservice specific routes
 
 POST       /monthly-returns                                        uk.gov.hmrc.formpproxy.controllers.MonthlyReturnController.retrieveMonthlyReturns
-POST       /monthly-return/create                                   uk.gov.hmrc.formpproxy.controllers.MonthlyReturnController.createMonthlyReturn
-POST       /scheme/update-version                                    uk.gov.hmrc.formpproxy.controllers.MonthlyReturnController.updateSchemeVersion
-POST       /monthly-return/update                                   uk.gov.hmrc.formpproxy.controllers.MonthlyReturnController.updateMonthlyReturn
+POST       /monthly-return/nil                                      uk.gov.hmrc.formpproxy.controllers.MonthlyReturnController.createNilMonthlyReturn

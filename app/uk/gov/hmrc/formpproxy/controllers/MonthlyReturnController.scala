@@ -60,38 +60,23 @@ class MonthlyReturnController @Inject()(
       )
     }
 
-  def createMonthlyReturn: Action[JsValue] = authorise.async(parse.json) { implicit request =>
-    val body = request.body
-    val instanceId = (body \ "instanceId").as[String]
-    val taxYear    = (body \ "taxYear").as[Int]
-    val taxMonth   = (body \ "taxMonth").as[Int]
-    val nil        = (body \ "nilReturnIndicator").as[String]
-    service.createMonthlyReturn(instanceId, taxYear, taxMonth, nil)
-      .map(_ => NoContent)
-  }
 
-  def updateSchemeVersion: Action[JsValue] = authorise.async(parse.json) { implicit request =>
-    val instanceId = (request.body \ "instanceId").as[String]
-    val version    = (request.body \ "version").as[Int]
-    service.updateSchemeVersion(instanceId, version).map(v => Ok(Json.obj("version" -> v)))
-  }
-
-  def updateMonthlyReturn: Action[JsValue] = authorise.async(parse.json) { implicit request =>
+  def createNilMonthlyReturn: Action[JsValue] = authorise.async(parse.json) { implicit request =>
     val b = request.body
-    def optStr(name: String): Option[String] = (b \ name).asOpt[String]
-    service.updateMonthlyReturn(
-      instanceId = (b \ "instanceId").as[String],
-      taxYear    = (b \ "taxYear").as[Int],
-      taxMonth   = (b \ "taxMonth").as[Int],
-      amendment  = (b \ "amendment").as[String],
-      decEmpStatusConsidered = optStr("decEmpStatusConsidered"),
-      decAllSubsVerified     = optStr("decAllSubsVerified"),
-      decInformationCorrect  = optStr("decInformationCorrect"),
-      decNoMoreSubPayments   = optStr("decNoMoreSubPayments"),
-      decNilReturnNoPayments = optStr("decNilReturnNoPayments"),
-      nilReturnIndicator     = (b \ "nilReturnIndicator").as[String],
-      status                 = (b \ "status").as[String],
-      version                = (b \ "version").as[Int]
-    ).map(v => Ok(Json.obj("version" -> v)))
+    val instanceId = (b \ "instanceId").as[String]
+    val taxYear = (b \ "taxYear").as[Int]
+    val taxMonth = (b \ "taxMonth").as[Int]
+    val decEmpStatusConsidered = (b \ "decEmpStatusConsidered").asOpt[String]
+    val decInformationCorrect = (b \ "decInformationCorrect").asOpt[String]
+    
+    service.createNilMonthlyReturn(instanceId, taxYear, taxMonth, decEmpStatusConsidered, decInformationCorrect)
+      .map(monthlyReturn => Ok(Json.toJson(monthlyReturn)))
+      .recover {
+        case u: UpstreamErrorResponse =>
+          Status(u.statusCode)(Json.obj("message" -> u.message))
+        case t: Throwable =>
+          logger.error("[createNilMonthlyReturn] failed", t)
+          InternalServerError(Json.obj("message" -> "Unexpected error"))
+      }
   }
 }
