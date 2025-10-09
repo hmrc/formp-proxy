@@ -109,6 +109,79 @@ class MonthlyReturnControllerSpec
     }
   }
 
+  "MonthlyReturnController createNilMonthlyReturn" - {
+
+    "returns 200 with MonthlyReturn when service succeeds (happy path)" in new Setup {
+      val created: MonthlyReturn =
+        MonthlyReturn(
+          monthlyReturnId = 77777L,
+          taxYear = 2025,
+          taxMonth = 2,
+          nilReturnIndicator = Some("Y"),
+          decEmpStatusConsidered = None,
+          decAllSubsVerified = Some("Y"),
+          decInformationCorrect = Some("Y"),
+          decNoMoreSubPayments = Some("Y"),
+          decNilReturnNoPayments = Some("Y"),
+          status = Some("STARTED"),
+          lastUpdate = Some(LocalDateTime.parse("2025-01-01T00:00:00")),
+          amendment = Some("N"),
+          supersededBy = None
+        )
+
+      when(
+        mockService.createNilMonthlyReturn(
+          eqTo("abc-123"),
+          eqTo(2025),
+          eqTo(2),
+          eqTo(None),
+          eqTo(Some("confirmed"))
+        )
+      ).thenReturn(Future.successful(created))
+
+      val req: FakeRequest[JsValue] =
+        FakeRequest(POST, "/formp-proxy/monthly-return/nil")
+          .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
+          .withBody(Json.obj(
+            "instanceId" -> "abc-123",
+            "taxYear" -> 2025,
+            "taxMonth" -> 2,
+            "decInformationCorrect" -> "confirmed"
+          ))
+
+      val res: Future[Result] = controller.createNilMonthlyReturn(req)
+
+      status(res) mustBe OK
+      contentType(res) mustBe Some(JSON)
+      contentAsJson(res) mustBe Json.toJson(created)
+
+      verify(mockService).createNilMonthlyReturn(eqTo("abc-123"), eqTo(2025), eqTo(2), eqTo(None), eqTo(Some("confirmed")))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "propagates UpstreamErrorResponse (status & message)" in new Setup {
+      val err = UpstreamErrorResponse("formp failed", BAD_GATEWAY, BAD_GATEWAY)
+      when(
+        mockService.createNilMonthlyReturn(eqTo("abc-123"), eqTo(2025), eqTo(2), eqTo(None), eqTo(Some("confirmed")))
+      ).thenReturn(Future.failed(err))
+
+      val req: FakeRequest[JsValue] =
+        FakeRequest(POST, "/formp-proxy/monthly-return/nil")
+          .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
+          .withBody(Json.obj(
+            "instanceId" -> "abc-123",
+            "taxYear" -> 2025,
+            "taxMonth" -> 2,
+            "decInformationCorrect" -> "confirmed"
+          ))
+
+      val res: Future[Result] = controller.createNilMonthlyReturn(req)
+
+      status(res) mustBe BAD_GATEWAY
+      (contentAsJson(res) \ "message").as[String] must include("formp failed")
+    }
+  }
+
   private trait Setup {
     implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.global
     private val cc: ControllerComponents = stubControllerComponents()
