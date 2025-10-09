@@ -21,14 +21,18 @@ import oracle.jdbc.OracleTypes
 import javax.inject.{Inject, Singleton}
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
+import uk.gov.hmrc.formpproxy.models.requests.{CreateAndTrackSubmissionRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.models.responses.CreateAndTrackSubmissionResponse
 
 import scala.concurrent.{ExecutionContext, Future}
-import java.sql.ResultSet
+import java.sql.{Connection, ResultSet, Timestamp, Types}
 import scala.annotation.tailrec
 import uk.gov.hmrc.formpproxy.models.{MonthlyReturn, UserMonthlyReturns}
 
 trait CisMonthlyReturnSource {
   def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns]
+  def createAndTrackSubmission(request: CreateAndTrackSubmissionRequest): Future[CreateAndTrackSubmissionResponse]
+  def updateMonthlyReturnSubmission(request: UpdateSubmissionRequest): Future[Unit]
 }
 
 @Singleton
@@ -83,4 +87,187 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
       )
       collectMonthlyReturns(rs, acc :+ mr)
     }
+
+
+  override def createAndTrackSubmission(request: CreateAndTrackSubmissionRequest): Future[CreateAndTrackSubmissionResponse] = Future {
+    db.withTransaction { conn =>
+      val schemeId = getSchemeId(conn, request.instanceId)
+      val monthlyReturnId = getMonthlyReturnId(conn, schemeId, request.taxYear, request.taxMonth)
+
+      val submissionId = callCreateSubmission(
+        conn,
+        instanceId = request.instanceId,
+        submissionType = "MONTHLY_RETURN",
+        activeObjectId = monthlyReturnId,
+        hmrcMarkGenerated = request.hmrcMarkGenerated,
+        hmrcMarkGgis = null,
+        emailRecipient = request.emailRecipient.orNull,
+        agentId = request.agentId.orNull,
+        submittableStatus = "PENDING" // to be discussed
+      )
+
+      callTrackSubmission(
+        conn,
+        schemeId = schemeId,
+        taxYear = request.taxYear,
+        taxMonth = request.taxMonth,
+        subcontractorCount = request.subcontractorCount.getOrElse(0),
+        totalPaymentsMade = request.totalPaymentsMade.getOrElse(BigDecimal(0)),
+        totalTaxDeducted = request.totalTaxDeducted.getOrElse(BigDecimal(0))
+      )
+
+      CreateAndTrackSubmissionResponse(submissionId = submissionId, monthlyReturnId = monthlyReturnId)
+    }
+  }
+
+  override def updateMonthlyReturnSubmission(request: UpdateSubmissionRequest): Future[Unit] = Future {
+    db.withConnection { conn =>
+      val schemeId = getSchemeId(conn, request.instanceId)
+      val monthlyReturnId = getMonthlyReturnId(conn, schemeId, request.taxYear, request.taxMonth)
+
+      callUpdateMonthlyReturnSubmission(
+        conn,
+        submissionType = "MONTHLY_RETURN",
+        activeObjectId = monthlyReturnId,
+        hmrcMarkGenerated = request.hmrcMarkGenerated,
+        hmrcMarkGgis = request.hmrcMarkGgis.orNull,
+        emailRecipient = request.emailRecipient.orNull,
+        submissionRequestDate = request.submissionRequestDate.map(Timestamp.from).orNull,
+        acceptedTime = request.acceptedTime.orNull,
+        agentId = request.agentId.orNull,
+        submittableStatus = request.submittableStatus,
+        govtalkErrorCode = request.govtalkErrorCode.orNull,
+        govtalkErrorType = request.govtalkErrorType.orNull,
+        govtalkErrorMessage = request.govtalkErrorMessage.orNull,
+        instanceId = request.instanceId,
+        taxYear = request.taxYear,
+        taxMonth = request.taxMonth,
+        amendment = request.amendment.orNull
+      )
+      ()
+    }
+  }
+
+  private val SqlGetSchemeId =
+    "select scheme_id from scheme where instance_id = ?"
+
+  private def getSchemeId(conn: Connection, instanceId: String): Long = {
+    val statement = conn.prepareStatement(SqlGetSchemeId)
+    try {
+      statement.setString(1, instanceId)
+      val rs = statement.executeQuery()
+      try {
+        if (!rs.next()) throw new RuntimeException(s"No SCHEME row for instance_id=$instanceId")
+        rs.getLong(1)
+      } finally rs.close()
+    } finally statement.close()
+  }
+
+  private val SqlGetMonthlyReturnId =
+    "select monthly_return_id from monthly_return " +
+    "where scheme_id = ? and tax_year = ? and tax_month = ?"
+
+  private def getMonthlyReturnId(conn: Connection, schemeId: Long, taxYear: Int, taxMonth: Int): Long = {
+    val statement = conn.prepareStatement(SqlGetMonthlyReturnId)
+    try {
+      statement.setLong(1, schemeId)
+      statement.setInt(2, taxYear)
+      statement.setInt(3, taxMonth)
+      val rs = statement.executeQuery()
+      try {
+        if (!rs.next()) throw new RuntimeException(s"No MONTHLY_RETURN for scheme=$schemeId year=$taxYear, month=$taxMonth")
+        rs.getLong(1)
+      } finally rs.close()
+    } finally statement.close()
+  }
+
+  private def callCreateSubmission(
+    conn: Connection,
+    instanceId: String,
+    submissionType: String,
+    activeObjectId: Long,
+    hmrcMarkGenerated: String,
+    hmrcMarkGgis: String,
+    emailRecipient: String,
+    agentId: String,
+    submittableStatus: String
+  ): Long = {
+    val cs = conn.prepareCall("{ call SUBMISSION_PROCS.Create_Submission(?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+    try {
+      cs.setString(1, instanceId)
+      cs.setString(2, submissionType)
+      cs.setLong(3, activeObjectId)
+      cs.setString(4, hmrcMarkGenerated)
+      cs.setString(5, hmrcMarkGgis)
+      cs.setString(6, emailRecipient)
+      cs.setString(7, agentId)
+      cs.setString(8, submittableStatus)
+      cs.registerOutParameter(9, Types.NUMERIC)
+      cs.execute()
+      cs.getLong(9)
+    } finally cs.close()
+  }
+
+  private def callTrackSubmission(
+    conn: Connection,
+    schemeId: Long,
+    taxYear: Int,
+    taxMonth: Int,
+    subcontractorCount: Int,
+    totalPaymentsMade: BigDecimal,
+    totalTaxDeducted: BigDecimal
+  ): Unit = {
+    val cs = conn.prepareCall("{ call HONESTY_DECLARATION_PROCS.TRACK_SUBMISSIONS(?, ?, ?, ?, ?, ?) }")
+    try {
+      cs.setLong(1, schemeId)
+      cs.setInt(2,  taxYear)
+      cs.setInt(3,  taxMonth)
+      cs.setInt(4,  subcontractorCount)
+      cs.setBigDecimal(5, totalPaymentsMade.bigDecimal)
+      cs.setBigDecimal(6, totalTaxDeducted.bigDecimal)
+      cs.execute()
+    } finally cs.close()
+  }
+
+  private def callUpdateMonthlyReturnSubmission(
+    conn: Connection,
+    submissionType: String,
+    activeObjectId: Long,
+    hmrcMarkGenerated: String,
+    hmrcMarkGgis: String,
+    emailRecipient: String,
+    submissionRequestDate: Timestamp,
+    acceptedTime: String,
+    agentId: String,
+    submittableStatus: String,
+    govtalkErrorCode: String,
+    govtalkErrorType: String,
+    govtalkErrorMessage: String,
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int,
+    amendment: String
+  ): Unit = {
+    val cs = conn.prepareCall("{ call SUBMISSION_PROCS_2016.UPDATE_MR_SUBMISSION(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+    try {
+      cs.setString(1, submissionType)
+      cs.setLong(2, activeObjectId)
+      cs.setString(3, hmrcMarkGenerated)
+      cs.setString(4, hmrcMarkGgis)
+      cs.setString(5, emailRecipient)
+      cs.setTimestamp(6, submissionRequestDate)
+      cs.setString(7, acceptedTime)
+      cs.setString(8, agentId)
+      cs.setString(9, submittableStatus)
+      cs.setString(10, govtalkErrorCode)
+      cs.setString(11, govtalkErrorType)
+      cs.setString(12, govtalkErrorMessage)
+      cs.setString(13, instanceId)
+      cs.setInt(14, taxYear)
+      cs.setInt(15, taxMonth)
+      cs.setString(16, amendment)
+      cs.execute()
+    } finally cs.close()
+  }
+
 }

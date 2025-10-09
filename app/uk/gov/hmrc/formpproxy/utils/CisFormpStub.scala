@@ -19,6 +19,8 @@ package uk.gov.hmrc.formpproxy.utils
 import play.api.Logging
 import uk.gov.hmrc.formpproxy.repositories.CisMonthlyReturnSource
 import uk.gov.hmrc.formpproxy.models.{MonthlyReturn, UserMonthlyReturns}
+import uk.gov.hmrc.formpproxy.models.requests.{CreateAndTrackSubmissionRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.models.responses.CreateAndTrackSubmissionResponse
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
@@ -28,7 +30,19 @@ class CisFormpStub @Inject()(stubUtils: StubUtils) extends CisMonthlyReturnSourc
 
   private[this] val stubData = stubUtils
 
-  def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns] =
+  override def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns] = {
+    logger.info(s"[Stub] getAllMonthlyReturns(instanceId=$instanceId) -> returning Jan, Feb, Mar 2025")
     val monthlyReturns: Seq[MonthlyReturn] = Seq(1, 2, 3).map(stubData.generateMonthlyReturns)
     Future.successful(UserMonthlyReturns(monthlyReturns))
+  }
+
+  override def createAndTrackSubmission(req: CreateAndTrackSubmissionRequest): Future[CreateAndTrackSubmissionResponse] = {
+    logger.info(s"[Stub] createAndTrackSubmission(${req.instanceId}, ${req.taxYear}, ${req.taxMonth})")
+    Future.successful(CreateAndTrackSubmissionResponse(submissionId = 90001L, monthlyReturnId = 70001L))
+  }
+
+  override def updateMonthlyReturnSubmission(req: UpdateSubmissionRequest): Future[Unit] = {
+    logger.info(s"[Stub] updateMrSubmission(${req.instanceId}, ${req.taxYear}, ${req.taxMonth}, status=${req.submittableStatus})")
+    Future.successful(())
+  }  
 }
