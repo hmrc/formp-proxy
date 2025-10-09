@@ -36,7 +36,7 @@ class MonthlyReturnSubmissionController @Inject()(
   extends BackendController(cc) with Logging {
   
   def createAndTrackSubmission(): Action[JsValue] =
-    Action.async(parse.json) { implicit request =>
+    authorise.async(parse.json) { implicit request =>
       request.body.validate[CreateAndTrackSubmissionRequest].fold(
         errs => Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
         body =>
@@ -50,7 +50,7 @@ class MonthlyReturnSubmissionController @Inject()(
     }
     
   def updateSubmission(): Action[JsValue] =
-    Action.async(parse.json) { implicit request =>
+    authorise.async(parse.json) { implicit request =>
       request.body.validate[UpdateSubmissionRequest].fold(
         errs => Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
         body =>
