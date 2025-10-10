@@ -158,15 +158,35 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
             cs3.execute()
             
             conn.commit()
+            
+            val generatedMonthlyReturnId: Long = {
+              val cs4 = conn.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }")
+              try {
+                cs4.setString(1, instanceId)
+                cs4.registerOutParameter(2, OracleTypes.CURSOR)
+                cs4.registerOutParameter(3, OracleTypes.CURSOR)
+                cs4.execute()
+                
+                val rsMonthly = cs4.getObject(3, classOf[ResultSet])
+                try {
+                  if (rsMonthly != null && rsMonthly.next()) {
+                    rsMonthly.getLong("MONTHLY_RETURN_ID")
+                  } else {
+                    0L
+                  }
+                } finally if (rsMonthly != null) rsMonthly.close()
+              } finally cs4.close()
+            }
+            
             MonthlyReturn(
-              monthlyReturnId = 0L,
+              monthlyReturnId = generatedMonthlyReturnId,
               taxYear = taxYear,
               taxMonth = taxMonth,
               nilReturnIndicator = Some("Y"),
-              decEmpStatusConsidered = decEmpStatusConsidered,
+              decEmpStatusConsidered = Some(mapInactivityRequest(decEmpStatusConsidered)),
               decAllSubsVerified = Some("Y"),
-              decInformationCorrect = decInformationCorrect,
-              decNoMoreSubPayments = Some("Y"),
+              decInformationCorrect = Some(mapDeclaration(decInformationCorrect)),
+              decNoMoreSubPayments = Some(mapInactivityRequest(decEmpStatusConsidered)),
               decNilReturnNoPayments = Some("Y"),
               status = Some("STARTED"),
               lastUpdate = Some(java.time.LocalDateTime.now()),
