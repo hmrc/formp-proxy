@@ -59,4 +59,24 @@ class MonthlyReturnController @Inject()(
             }
       )
     }
+
+
+  def createNilMonthlyReturn: Action[JsValue] = authorise.async(parse.json) { implicit request =>
+    val b = request.body
+    val instanceId = (b \ "instanceId").as[String]
+    val taxYear = (b \ "taxYear").as[Int]
+    val taxMonth = (b \ "taxMonth").as[Int]
+    val decEmpStatusConsidered = (b \ "decEmpStatusConsidered").asOpt[String]
+    val decInformationCorrect = (b \ "decInformationCorrect").asOpt[String]
+    
+    service.createNilMonthlyReturn(instanceId, taxYear, taxMonth, decEmpStatusConsidered, decInformationCorrect)
+      .map(monthlyReturn => Ok(Json.toJson(monthlyReturn)))
+      .recover {
+        case u: UpstreamErrorResponse =>
+          Status(u.statusCode)(Json.obj("message" -> u.message))
+        case t: Throwable =>
+          logger.error("[createNilMonthlyReturn] failed", t)
+          InternalServerError(Json.obj("message" -> "Unexpected error"))
+      }
+  }
 }

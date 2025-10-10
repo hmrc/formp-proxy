@@ -17,7 +17,7 @@
 package uk.gov.hmrc.formpproxy.services
 
 import uk.gov.hmrc.formpproxy.repositories.CisMonthlyReturnSource
-import uk.gov.hmrc.formpproxy.models.UserMonthlyReturns
+import uk.gov.hmrc.formpproxy.models.{MonthlyReturn, UserMonthlyReturns}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
@@ -27,4 +27,13 @@ class MonthlyReturnService @Inject()(repo: CisMonthlyReturnSource)() {
 
   def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns] =
     repo.getAllMonthlyReturns(instanceId)
+
+  def createNilMonthlyReturn(
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int,
+    decEmpStatusConsidered: Option[String],
+    decInformationCorrect: Option[String]
+  ): Future[MonthlyReturn] =
+    repo.createNilMonthlyReturn(instanceId, taxYear, taxMonth, decEmpStatusConsidered, decInformationCorrect)
 }

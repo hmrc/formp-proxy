@@ -29,6 +29,13 @@ import uk.gov.hmrc.formpproxy.models.{MonthlyReturn, UserMonthlyReturns}
 
 trait CisMonthlyReturnSource {
   def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns]
+  def createNilMonthlyReturn(
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int,
+    decEmpStatusConsidered: Option[String],
+    decInformationCorrect: Option[String]
+  ): Future[MonthlyReturn]
 }
 
 @Singleton
@@ -47,14 +54,16 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
           cs.execute()
 
           val rsScheme = cs.getObject(2, classOf[ResultSet])
-          try () finally if (rsScheme != null) rsScheme.close()
+          val schemeVersion: Option[Int] =
+            try if (rsScheme != null && rsScheme.next()) Option(rsScheme.getInt("version")) else None
+            finally if (rsScheme != null) rsScheme.close()
 
           val rsMonthly = cs.getObject(3, classOf[ResultSet])
           val returns =
             try collectMonthlyReturns(rsMonthly)
             finally if (rsMonthly != null) rsMonthly.close()
 
-          UserMonthlyReturns(returns)
+          UserMonthlyReturns(returns, schemeVersion)
       } finally {
         cs.close()
         }
@@ -83,4 +92,128 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
       )
       collectMonthlyReturns(rs, acc :+ mr)
     }
+
+
+  override def createNilMonthlyReturn(
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int,
+    decEmpStatusConsidered: Option[String],
+    decInformationCorrect: Option[String]
+  ): Future[MonthlyReturn] = Future {
+    db.withConnection { conn =>
+      conn.setAutoCommit(false)
+      try {
+        val currentVersion: Int = {
+          val cs0 = conn.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }")
+          try {
+            cs0.setString(1, instanceId)
+            cs0.registerOutParameter(2, OracleTypes.CURSOR)
+            cs0.registerOutParameter(3, OracleTypes.CURSOR)
+            cs0.execute()
+
+            val rsScheme = cs0.getObject(2, classOf[ResultSet])
+            val version = try if (rsScheme != null && rsScheme.next()) rsScheme.getInt("version") else 1
+            finally if (rsScheme != null) rsScheme.close()
+            
+            val rsMonthly = cs0.getObject(3, classOf[ResultSet])
+            try if (rsMonthly != null) rsMonthly.close()
+            catch { case _: Exception => () }
+            
+            version
+          } finally cs0.close()
+        }
+
+        val cs1 = conn.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }")
+        try {
+          cs1.setString(1, instanceId)
+          cs1.setInt(2, taxYear)
+          cs1.setInt(3, taxMonth)
+          cs1.setString(4, "Y")
+          cs1.execute()
+        } finally cs1.close()
+
+        val cs2 = conn.prepareCall("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }")
+        try {
+          cs2.setString(1, instanceId)
+          cs2.setInt(2, currentVersion)
+          cs2.registerOutParameter(2, java.sql.Types.INTEGER)
+          cs2.execute()
+          val newVersion = cs2.getInt(2)
+          
+          val cs3 = conn.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Update_monthly_return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+          try {
+            cs3.setString(1, instanceId)
+            cs3.setInt(2, taxYear)
+            cs3.setInt(3, taxMonth)
+            cs3.setString(4, "N")
+            cs3.setString(5, mapInactivityRequest(decEmpStatusConsidered))
+            cs3.setString(6, "Y")
+            cs3.setString(7, mapDeclaration(decInformationCorrect))
+            cs3.setString(8, mapInactivityRequest(decEmpStatusConsidered))
+            cs3.setString(9, "Y")
+            cs3.setString(10, "Y")
+            cs3.setString(11, "STARTED")
+            cs3.setInt(12, newVersion)
+            cs3.execute()
+            
+            conn.commit()
+            
+            val generatedMonthlyReturnId: Long = {
+              val cs4 = conn.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }")
+              try {
+                cs4.setString(1, instanceId)
+                cs4.registerOutParameter(2, OracleTypes.CURSOR)
+                cs4.registerOutParameter(3, OracleTypes.CURSOR)
+                cs4.execute()
+                
+                val rsMonthly = cs4.getObject(3, classOf[ResultSet])
+                try {
+                  if (rsMonthly != null && rsMonthly.next()) {
+                    rsMonthly.getLong("MONTHLY_RETURN_ID")
+                  } else {
+                    0L
+                  }
+                } finally if (rsMonthly != null) rsMonthly.close()
+              } finally cs4.close()
+            }
+            
+            MonthlyReturn(
+              monthlyReturnId = generatedMonthlyReturnId,
+              taxYear = taxYear,
+              taxMonth = taxMonth,
+              nilReturnIndicator = Some("Y"),
+              decEmpStatusConsidered = Some(mapInactivityRequest(decEmpStatusConsidered)),
+              decAllSubsVerified = Some("Y"),
+              decInformationCorrect = Some(mapDeclaration(decInformationCorrect)),
+              decNoMoreSubPayments = Some(mapInactivityRequest(decEmpStatusConsidered)),
+              decNilReturnNoPayments = Some("Y"),
+              status = Some("STARTED"),
+              lastUpdate = Some(java.time.LocalDateTime.now()),
+              amendment = Some("N"),
+              supersededBy = None
+            )
+          } finally cs3.close()
+        } finally cs2.close()
+      } catch {
+        case e: Exception =>
+          conn.rollback()
+          throw e
+      } finally {
+        conn.setAutoCommit(true)
+      }
+    }
+  }
+
+  private def mapInactivityRequest(value: Option[String]): String = value match {
+    case Some("option1") => "Y"
+    case Some("option2") => "N"
+    case _ => null
+  }
+
+  private def mapDeclaration(value: Option[String]): String = value match {
+    case Some("confirmed") => "Y"
+    case Some("Set(confirmed)") => "Y"
+    case _ => null
+  }
 }

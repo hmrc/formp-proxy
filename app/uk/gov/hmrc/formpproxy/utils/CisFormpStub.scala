@@ -30,5 +30,32 @@ class CisFormpStub @Inject()(stubUtils: StubUtils) extends CisMonthlyReturnSourc
 
   def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns] =
     val monthlyReturns: Seq[MonthlyReturn] = Seq(1, 2, 3).map(stubData.generateMonthlyReturns)
-    Future.successful(UserMonthlyReturns(monthlyReturns))
+    Future.successful(UserMonthlyReturns(monthlyReturns, None))
+
+  def createNilMonthlyReturn(
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int,
+    decEmpStatusConsidered: Option[String],
+    decInformationCorrect: Option[String]
+  ): Future[MonthlyReturn] = {
+    logger.info(s"[Stub] createNilMonthlyReturn($instanceId,$taxYear,$taxMonth,...)")
+    Future.successful(
+      MonthlyReturn(
+        monthlyReturnId = 12345L,
+        taxYear = taxYear,
+        taxMonth = taxMonth,
+        nilReturnIndicator = Some("Y"),
+        decEmpStatusConsidered = decEmpStatusConsidered,
+        decAllSubsVerified = Some("Y"),
+        decInformationCorrect = decInformationCorrect,
+        decNoMoreSubPayments = Some("Y"),
+        decNilReturnNoPayments = Some("Y"),
+        status = Some("STARTED"),
+        lastUpdate = Some(java.time.LocalDateTime.now()),
+        amendment = Some("N"),
+        supersededBy = None
+      )
+    )
+  }
 }

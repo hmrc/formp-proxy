@@ -99,4 +99,43 @@ final class MonthlyReturnServiceSpec
       verifyNoMoreInteractions(c.repo)
     }
   }
+
+  "MonthlyReturnService createNilMonthlyReturn" - {
+
+    "delegates to repo and returns MonthlyReturn (happy path)" in {
+      val c = Ctx()
+      val created = mkReturn(77777L, 2)
+
+      when(
+        c.repo.createNilMonthlyReturn(
+          eqTo(c.id),
+          eqTo(2025),
+          eqTo(2),
+          eqTo(None),
+          eqTo(Some("confirmed"))
+        )
+      ).thenReturn(Future.successful(created))
+
+      val out = c.service.createNilMonthlyReturn(c.id, 2025, 2, None, Some("confirmed")).futureValue
+      out mustBe created
+
+      verify(c.repo).createNilMonthlyReturn(eqTo(c.id), eqTo(2025), eqTo(2), eqTo(None), eqTo(Some("confirmed")))
+      verifyNoMoreInteractions(c.repo)
+    }
+
+    "propagates failures from the repository" in {
+      val c = Ctx()
+      val boom = new RuntimeException("db failed")
+
+      when(
+        c.repo.createNilMonthlyReturn(eqTo(c.id), eqTo(2025), eqTo(2), eqTo(None), eqTo(Some("confirmed")))
+      ).thenReturn(Future.failed(boom))
+
+      val ex = c.service.createNilMonthlyReturn(c.id, 2025, 2, None, Some("confirmed")).failed.futureValue
+      ex mustBe boom
+
+      verify(c.repo).createNilMonthlyReturn(eqTo(c.id), eqTo(2025), eqTo(2), eqTo(None), eqTo(Some("confirmed")))
+      verifyNoMoreInteractions(c.repo)
+    }
+  }
 }
