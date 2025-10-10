@@ -150,7 +150,7 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
             cs3.setString(5, mapInactivityRequest(decEmpStatusConsidered))
             cs3.setString(6, "Y")
             cs3.setString(7, mapDeclaration(decInformationCorrect))
-            cs3.setString(8, "Y")
+            cs3.setString(8, mapInactivityRequest(decEmpStatusConsidered))
             cs3.setString(9, "Y")
             cs3.setString(10, "Y")
             cs3.setString(11, "STARTED")
@@ -193,6 +193,7 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
 
   private def mapDeclaration(value: Option[String]): String = value match {
     case Some("confirmed") => "Y"
+    case Some("Set(confirmed)") => "Y"
     case _ => null
   }
 }
