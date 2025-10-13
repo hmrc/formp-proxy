@@ -17,10 +17,15 @@
 package uk.gov.hmrc.formpproxy.utils
 
 import play.api.Logging
+import uk.gov.hmrc.formpproxy.models.requests.CreateNilMonthlyReturnRequest
+import uk.gov.hmrc.formpproxy.models.response.CreateNilMonthlyReturnResponse
 import uk.gov.hmrc.formpproxy.repositories.CisMonthlyReturnSource
 import uk.gov.hmrc.formpproxy.models.{MonthlyReturn, UserMonthlyReturns}
 
+import java.time.LocalDateTime
+import java.util.concurrent.atomic.AtomicLong
 import javax.inject.{Inject, Singleton}
+import scala.collection.concurrent.TrieMap
 import scala.concurrent.Future
 
 @Singleton
@@ -28,34 +33,50 @@ class CisFormpStub @Inject()(stubUtils: StubUtils) extends CisMonthlyReturnSourc
 
   private[this] val stubData = stubUtils
 
+  private val idSeq = new AtomicLong(1000L)
+  private val schemeVersions = TrieMap.empty[String, Long]
+  private val storedReturns = TrieMap.empty[(String, Int, Int), MonthlyReturn]
+
   def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns] =
     val monthlyReturns: Seq[MonthlyReturn] = Seq(1, 2, 3).map(stubData.generateMonthlyReturns)
-    Future.successful(UserMonthlyReturns(monthlyReturns, None))
+    Future.successful(UserMonthlyReturns(monthlyReturns))
 
-  def createNilMonthlyReturn(
-    instanceId: String,
-    taxYear: Int,
-    taxMonth: Int,
-    decEmpStatusConsidered: Option[String],
-    decInformationCorrect: Option[String]
-  ): Future[MonthlyReturn] = {
-    logger.info(s"[Stub] createNilMonthlyReturn($instanceId,$taxYear,$taxMonth,...)")
-    Future.successful(
-      MonthlyReturn(
-        monthlyReturnId = 12345L,
-        taxYear = taxYear,
-        taxMonth = taxMonth,
-        nilReturnIndicator = Some("Y"),
-        decEmpStatusConsidered = decEmpStatusConsidered,
-        decAllSubsVerified = Some("Y"),
-        decInformationCorrect = decInformationCorrect,
-        decNoMoreSubPayments = Some("Y"),
-        decNilReturnNoPayments = Some("Y"),
-        status = Some("STARTED"),
-        lastUpdate = Some(java.time.LocalDateTime.now()),
-        amendment = Some("N"),
-        supersededBy = None
-      )
+  override def createNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[CreateNilMonthlyReturnResponse] = {
+    val monthlyReturnId = idSeq.getAndIncrement()
+
+    schemeVersions.updateWith(request.instanceId)(v => Some(v.getOrElse(0L) + 1L))
+
+    val now = LocalDateTime.now()
+    val monthlyReturn = MonthlyReturn(
+      monthlyReturnId = monthlyReturnId,
+      taxYear = request.taxYear,
+      taxMonth = request.taxMonth,
+      nilReturnIndicator = Some("Y"),
+      decEmpStatusConsidered = None,
+      decAllSubsVerified = None,
+      decInformationCorrect = Some(request.decInformationCorrect),
+      decNoMoreSubPayments = None,
+      decNilReturnNoPayments = Some(request.decNilReturnNoPayments),
+      status = Some("STARTED"),
+      lastUpdate = Some(now),
+      amendment = Some("N"),
+      supersededBy = None
     )
+    storedReturns.put((request.instanceId, request.taxYear, request.taxMonth), monthlyReturn)
+
+    Future.successful(CreateNilMonthlyReturnResponse(status = "STARTED"))
   }
+
+  def getSchemeVersion(instanceId: String): Long =
+    schemeVersions.getOrElse(instanceId, 0L)
+
+  def getStoredReturn(instanceId: String, taxYear: Int, taxMonth: Int): Option[MonthlyReturn] =
+    storedReturns.get((instanceId, taxYear, taxMonth))
+
+  def reset(): Unit = {
+    idSeq.set(1_000_000L)
+    schemeVersions.clear()
+    storedReturns.clear()
+  }
+  
 }

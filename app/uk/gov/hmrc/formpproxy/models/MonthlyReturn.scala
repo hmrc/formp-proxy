@@ -38,13 +38,10 @@ object MonthlyReturn:
   implicit val format: OFormat[MonthlyReturn] = Json.format[MonthlyReturn]
 
 
-case class UserMonthlyReturns(
-  monthlyReturnList: Seq[MonthlyReturn],
-  schemeVersion: Option[Int] = None
-)
+case class UserMonthlyReturns(monthlyReturnList: Seq[MonthlyReturn])
 
 object UserMonthlyReturns:
   import MonthlyReturn.format
   implicit val format: OFormat[UserMonthlyReturns] = Json.format[UserMonthlyReturns]
-  val empty: UserMonthlyReturns = UserMonthlyReturns(Seq(), None)
+  val empty: UserMonthlyReturns = UserMonthlyReturns(Seq())
 

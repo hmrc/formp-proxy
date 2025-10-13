@@ -22,6 +22,8 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatestplus.mockito.MockitoSugar
+import uk.gov.hmrc.formpproxy.models.requests.CreateNilMonthlyReturnRequest
+import uk.gov.hmrc.formpproxy.models.response.CreateNilMonthlyReturnResponse
 import uk.gov.hmrc.formpproxy.models.{MonthlyReturn, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.repositories.CisMonthlyReturnSource
 
@@ -102,40 +104,42 @@ final class MonthlyReturnServiceSpec
 
   "MonthlyReturnService createNilMonthlyReturn" - {
 
-    "delegates to repo and returns MonthlyReturn (happy path)" in {
-      val c = Ctx()
-      val created = mkReturn(77777L, 2)
+    "delegates to repo and returns status (happy path)" in new Ctx {
+      val request = CreateNilMonthlyReturnRequest(
+        instanceId             = id,
+        taxYear                = 2025,
+        taxMonth               = 2,
+        decInformationCorrect  = "Y",
+        decNilReturnNoPayments = "Y"
+      )
+      val res = CreateNilMonthlyReturnResponse(status = "STARTED")
 
-      when(
-        c.repo.createNilMonthlyReturn(
-          eqTo(c.id),
-          eqTo(2025),
-          eqTo(2),
-          eqTo(None),
-          eqTo(Some("confirmed"))
-        )
-      ).thenReturn(Future.successful(created))
+      when(repo.createNilMonthlyReturn(eqTo(request))).thenReturn(Future.successful(res))
 
-      val out = c.service.createNilMonthlyReturn(c.id, 2025, 2, None, Some("confirmed")).futureValue
-      out mustBe created
+      val out = service.createNilMonthlyReturn(request).futureValue
+      out mustBe res
 
-      verify(c.repo).createNilMonthlyReturn(eqTo(c.id), eqTo(2025), eqTo(2), eqTo(None), eqTo(Some("confirmed")))
-      verifyNoMoreInteractions(c.repo)
+      verify(repo).createNilMonthlyReturn(eqTo(request))
+      verifyNoMoreInteractions(repo)
     }
 
-    "propagates failures from the repository" in {
-      val c = Ctx()
+    "propagates failures from the repository" in new Ctx {
+      val request = CreateNilMonthlyReturnRequest(
+        instanceId             = id,
+        taxYear                = 2025,
+        taxMonth               = 2,
+        decInformationCorrect  = "Y",
+        decNilReturnNoPayments = "Y"
+      )
       val boom = new RuntimeException("db failed")
 
-      when(
-        c.repo.createNilMonthlyReturn(eqTo(c.id), eqTo(2025), eqTo(2), eqTo(None), eqTo(Some("confirmed")))
-      ).thenReturn(Future.failed(boom))
+      when(repo.createNilMonthlyReturn(eqTo(request))).thenReturn(Future.failed(boom))
 
-      val ex = c.service.createNilMonthlyReturn(c.id, 2025, 2, None, Some("confirmed")).failed.futureValue
+      val ex = service.createNilMonthlyReturn(request).failed.futureValue
       ex mustBe boom
 
-      verify(c.repo).createNilMonthlyReturn(eqTo(c.id), eqTo(2025), eqTo(2), eqTo(None), eqTo(Some("confirmed")))
-      verifyNoMoreInteractions(c.repo)
+      verify(repo).createNilMonthlyReturn(eqTo(request))
+      verifyNoMoreInteractions(repo)
     }
   }
 }

@@ -23,7 +23,7 @@ import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.formpproxy.actions.AuthAction
 import uk.gov.hmrc.formpproxy.models.UserMonthlyReturns
-import uk.gov.hmrc.formpproxy.models.requests.InstanceIdRequest
+import uk.gov.hmrc.formpproxy.models.requests.{CreateNilMonthlyReturnRequest, InstanceIdRequest}
 import uk.gov.hmrc.formpproxy.services.MonthlyReturnService
 
 import javax.inject.Inject
@@ -61,22 +61,16 @@ class MonthlyReturnController @Inject()(
     }
 
 
-  def createNilMonthlyReturn: Action[JsValue] = authorise.async(parse.json) { implicit request =>
-    val b = request.body
-    val instanceId = (b \ "instanceId").as[String]
-    val taxYear = (b \ "taxYear").as[Int]
-    val taxMonth = (b \ "taxMonth").as[Int]
-    val decEmpStatusConsidered = (b \ "decEmpStatusConsidered").asOpt[String]
-    val decInformationCorrect = (b \ "decInformationCorrect").asOpt[String]
-    
-    service.createNilMonthlyReturn(instanceId, taxYear, taxMonth, decEmpStatusConsidered, decInformationCorrect)
-      .map(monthlyReturn => Ok(Json.toJson(monthlyReturn)))
-      .recover {
-        case u: UpstreamErrorResponse =>
-          Status(u.statusCode)(Json.obj("message" -> u.message))
-        case t: Throwable =>
-          logger.error("[createNilMonthlyReturn] failed", t)
-          InternalServerError(Json.obj("message" -> "Unexpected error"))
-      }
-  }
+  def createNilMonthlyReturn: Action[CreateNilMonthlyReturnRequest] =
+    authorise.async(parse.json[CreateNilMonthlyReturnRequest]) { implicit request =>
+      service
+        .createNilMonthlyReturn(request.body)
+        .map(result => Created(Json.toJson(result)))
+        .recover {
+          case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
+          case t: Throwable =>
+            logger.error("[createNilMonthlyReturn] failed", t)
+            InternalServerError(Json.obj("message" -> "Unexpected error"))
+        }
+    }
 }
