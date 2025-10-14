@@ -128,7 +128,7 @@ class MonthlyReturnControllerSpec
 
       // Typed request body matches Action[CreateNilMonthlyReturnRequest]
       val req: FakeRequest[CreateNilMonthlyReturnRequest] =
-        FakeRequest(POST, "/formp-proxy/monthly-return/nil").withBody(request)
+        FakeRequest(POST, "/formp-proxy/monthly-return/nil/create").withBody(request)
 
       val res: Future[Result] = controller.createNilMonthlyReturn(req)
 
@@ -154,7 +154,7 @@ class MonthlyReturnControllerSpec
         .thenReturn(Future.failed(err))
 
       val req: FakeRequest[CreateNilMonthlyReturnRequest] =
-        FakeRequest(POST, "/formp-proxy/monthly-return/nil").withBody(request)
+        FakeRequest(POST, "/formp-proxy/monthly-return/nil/create").withBody(request)
 
       val res = controller.createNilMonthlyReturn(req)
 
