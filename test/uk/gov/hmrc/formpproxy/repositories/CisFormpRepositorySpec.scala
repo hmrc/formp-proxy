@@ -87,7 +87,7 @@ final class CisFormpRepositorySpec
         val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
       }
       when(conn.prepareCall(anyArg[String])).thenReturn(cs)
-      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(null) // scheme cursor can be null
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(null)
       when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsMonthly)
       when(rsMonthly.next()).thenReturn(false)
 
@@ -97,6 +97,91 @@ final class CisFormpRepositorySpec
       out.monthlyReturnList mustBe empty
       verify(rsMonthly).close()
       verify(cs).close()
+    }
+  }
+
+  "createNilMonthlyReturn" should {
+
+    "call underlying procedures with correct parameters and return STARTED" in {
+      val db = mock(classOf[Database])
+      val conn = mock(classOf[java.sql.Connection])
+      val csCreate = mock(classOf[CallableStatement])
+      val csVersion = mock(classOf[CallableStatement])
+      val csUpdate = mock(classOf[CallableStatement])
+      val psGetScheme = mock(classOf[java.sql.PreparedStatement])
+      val rsScheme = mock(classOf[java.sql.ResultSet])
+
+      when(db.withTransaction(org.mockito.ArgumentMatchers.any[java.sql.Connection => Any]))
+        .thenAnswer { inv =>
+          val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+        }
+
+      when(conn.prepareStatement("select version from scheme where instance_id = ?"))
+        .thenReturn(psGetScheme)
+      when(psGetScheme.executeQuery()).thenReturn(rsScheme)
+      when(rsScheme.next()).thenReturn(true)
+      when(rsScheme.getInt(1)).thenReturn(3)
+
+      when(conn.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }"))
+        .thenReturn(csCreate)
+      when(conn.prepareCall("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"))
+        .thenReturn(csVersion)
+      when(conn.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Update_Monthly_Return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"))
+        .thenReturn(csUpdate)
+
+      val repo = new CisFormpRepository(db)
+
+      val request = uk.gov.hmrc.formpproxy.models.requests.CreateNilMonthlyReturnRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 2,
+        decInformationCorrect = "Y",
+        decNilReturnNoPayments = "Y"
+      )
+
+      val out = repo.createNilMonthlyReturn(request).futureValue
+      out.status mustBe "STARTED"
+
+      verify(conn).prepareStatement("select version from scheme where instance_id = ?")
+      verify(psGetScheme).setString(1, "abc-123")
+      verify(psGetScheme).executeQuery()
+      verify(rsScheme).next()
+      verify(rsScheme).getInt(1)
+      verify(rsScheme).close()
+      verify(psGetScheme).close()
+
+      verify(conn).prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }")
+      verify(csCreate).setString(1, "abc-123")
+      verify(csCreate).setInt(2, 2025)
+      verify(csCreate).setInt(3, 2)
+      verify(csCreate).setString(4, "Y")
+      verify(csCreate).execute()
+      verify(csCreate).close()
+
+      verify(conn).prepareCall("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }")
+      verify(csVersion).setString(1, "abc-123")
+      verify(csVersion).setInt(2, 3)
+      verify(csVersion).registerOutParameter(2, java.sql.Types.INTEGER)
+      verify(csVersion).execute()
+      verify(csVersion).getInt(2)
+      verify(csVersion).close()
+
+      verify(conn).prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Update_Monthly_Return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+      verify(csUpdate).setString(1, "abc-123")
+      verify(csUpdate).setInt(2, 2025)
+      verify(csUpdate).setInt(3, 2)
+      verify(csUpdate).setString(4, "N")
+      verify(csUpdate).setNull(5, java.sql.Types.VARCHAR)
+      verify(csUpdate).setNull(6, java.sql.Types.VARCHAR)
+      verify(csUpdate).setString(7, "Y")
+      verify(csUpdate).setNull(8, java.sql.Types.CHAR)
+      verify(csUpdate).setString(9, "Y")
+      verify(csUpdate).setString(10, "Y")
+      verify(csUpdate).setString(11, "STARTED")
+      verify(csUpdate).setInt(12, 0)
+      verify(csUpdate).registerOutParameter(12, java.sql.Types.INTEGER)
+      verify(csUpdate).execute()
+      verify(csUpdate).close()
     }
   }
 }
