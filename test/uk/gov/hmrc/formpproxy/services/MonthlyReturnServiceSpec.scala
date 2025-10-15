@@ -22,6 +22,8 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatestplus.mockito.MockitoSugar
+import uk.gov.hmrc.formpproxy.models.requests.CreateNilMonthlyReturnRequest
+import uk.gov.hmrc.formpproxy.models.response.CreateNilMonthlyReturnResponse
 import uk.gov.hmrc.formpproxy.models.{MonthlyReturn, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.repositories.CisMonthlyReturnSource
 
@@ -97,6 +99,47 @@ final class MonthlyReturnServiceSpec
 
       verify(c.repo).getAllMonthlyReturns(eqTo(c.id))
       verifyNoMoreInteractions(c.repo)
+    }
+  }
+
+  "MonthlyReturnService createNilMonthlyReturn" - {
+
+    "delegates to repo and returns status (happy path)" in new Ctx {
+      val request = CreateNilMonthlyReturnRequest(
+        instanceId             = id,
+        taxYear                = 2025,
+        taxMonth               = 2,
+        decInformationCorrect  = "Y",
+        decNilReturnNoPayments = "Y"
+      )
+      val res = CreateNilMonthlyReturnResponse(status = "STARTED")
+
+      when(repo.createNilMonthlyReturn(eqTo(request))).thenReturn(Future.successful(res))
+
+      val out = service.createNilMonthlyReturn(request).futureValue
+      out mustBe res
+
+      verify(repo).createNilMonthlyReturn(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failures from the repository" in new Ctx {
+      val request = CreateNilMonthlyReturnRequest(
+        instanceId             = id,
+        taxYear                = 2025,
+        taxMonth               = 2,
+        decInformationCorrect  = "Y",
+        decNilReturnNoPayments = "Y"
+      )
+      val boom = new RuntimeException("db failed")
+
+      when(repo.createNilMonthlyReturn(eqTo(request))).thenReturn(Future.failed(boom))
+
+      val ex = service.createNilMonthlyReturn(request).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).createNilMonthlyReturn(eqTo(request))
+      verifyNoMoreInteractions(repo)
     }
   }
 }

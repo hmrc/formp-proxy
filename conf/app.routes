@@ -1,5 +1,7 @@
 # microservice specific routes
 
 POST       /monthly-returns                               uk.gov.hmrc.formpproxy.controllers.MonthlyReturnController.retrieveMonthlyReturns
+POST       /monthly-return/nil/create                               uk.gov.hmrc.formpproxy.controllers.MonthlyReturnController.createNilMonthlyReturn
+
 POST       /monthly-return/submissions/create-and-track   uk.gov.hmrc.formpproxy.controllers.MonthlyReturnSubmissionController.createAndTrackSubmission()
 POST       /monthly-return/submissions/update             uk.gov.hmrc.formpproxy.controllers.MonthlyReturnSubmissionController.updateSubmission()

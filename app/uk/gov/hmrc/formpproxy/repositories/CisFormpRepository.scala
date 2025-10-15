@@ -21,7 +21,8 @@ import oracle.jdbc.OracleTypes
 import javax.inject.{Inject, Singleton}
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
-import uk.gov.hmrc.formpproxy.models.requests.{CreateAndTrackSubmissionRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.models.requests.{CreateAndTrackSubmissionRequest, UpdateSubmissionRequest, CreateNilMonthlyReturnRequest}
+import uk.gov.hmrc.formpproxy.models.response.CreateNilMonthlyReturnResponse
 
 import scala.concurrent.{ExecutionContext, Future}
 import java.sql.{Connection, ResultSet, Timestamp, Types}
@@ -32,6 +33,7 @@ trait CisMonthlyReturnSource {
   def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns]
   def createAndTrackSubmission(request: CreateAndTrackSubmissionRequest): Future[String]
   def updateMonthlyReturnSubmission(request: UpdateSubmissionRequest): Future[Unit]
+  def createNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[CreateNilMonthlyReturnResponse]
 }
 
 @Singleton
@@ -267,6 +269,85 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
       cs.setString(16, amendment)
       cs.execute()
     } finally cs.close()
+  }
+
+
+  override def createNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[CreateNilMonthlyReturnResponse] = {
+    logger.info(s"[CIS] createNilMonthlyReturn(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})")
+    Future {
+      db.withTransaction { conn =>
+        val schemeVersionBefore = getSchemeVersion(conn, request.instanceId)
+
+        callCreateMonthlyReturn(conn, request)
+        callUpdateSchemeVersion(conn, request.instanceId, schemeVersionBefore)
+        callUpdateMonthlyReturn(conn, request)
+
+        CreateNilMonthlyReturnResponse(status = "STARTED")
+      }
+    }
+  }
+
+  private val CallCreateMonthlyReturn = "{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }"
+  private val CallUpdateSchemeVersion = "{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"
+  private val CallUpdateMonthlyReturn = "{ call MONTHLY_RETURN_PROCS_2016.Update_Monthly_Return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+
+  private def callCreateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit = {
+    val cs = conn.prepareCall(CallCreateMonthlyReturn)
+    try {
+      cs.setString(1, req.instanceId)
+      cs.setInt(2, req.taxYear)
+      cs.setInt(3, req.taxMonth)
+      cs.setString(4, "Y")
+      cs.execute()
+    } finally cs.close()
+  }
+
+  private def callUpdateSchemeVersion(conn: Connection, instanceId: String, currentVersion: Int): Int = {
+    val cs = conn.prepareCall(CallUpdateSchemeVersion)
+    try {
+      cs.setString(1, instanceId)
+      cs.setInt(2, currentVersion)
+      cs.registerOutParameter(2, Types.INTEGER)
+      cs.execute()
+      cs.getInt(2)
+    } finally cs.close()
+  }
+
+  private def callUpdateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit = {
+    val cs = conn.prepareCall(CallUpdateMonthlyReturn)
+    try {
+      cs.setString(1, req.instanceId)
+      cs.setInt(2, req.taxYear)
+      cs.setInt(3, req.taxMonth)
+      cs.setString(4, "N")
+      cs.setNull(5, Types.VARCHAR)
+      cs.setNull(6, Types.VARCHAR)
+      cs.setString(7, req.decInformationCorrect)
+      cs.setNull(8, Types.CHAR)
+      cs.setString(9, req.decNilReturnNoPayments)
+      cs.setString(10, "Y")
+      cs.setString(11, "STARTED")
+      cs.setInt(12, 0)
+      cs.registerOutParameter(12, Types.INTEGER)
+      cs.execute()
+    } finally cs.close()
+  }
+
+
+  private val SqlGetSchemeVersion =
+    "select version from scheme where instance_id = ?"
+
+  private def getSchemeVersion(conn: Connection, instanceId: String): Int = {
+    val statement = conn.prepareStatement(SqlGetSchemeVersion)
+    try {
+      statement.setString(1, instanceId)
+      val rs = statement.executeQuery()
+      try {
+        if (!rs.next())
+          throw new RuntimeException(s"No SCHEME row for instance_id=$instanceId")
+        rs.getInt(1)
+      } finally rs.close()
+    } finally statement.close()
   }
 
 }
