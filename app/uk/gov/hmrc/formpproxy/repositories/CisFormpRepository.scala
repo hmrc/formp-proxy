@@ -22,7 +22,6 @@ import javax.inject.{Inject, Singleton}
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
 import uk.gov.hmrc.formpproxy.models.requests.{CreateAndTrackSubmissionRequest, UpdateSubmissionRequest}
-import uk.gov.hmrc.formpproxy.models.responses.CreateAndTrackSubmissionResponse
 
 import scala.concurrent.{ExecutionContext, Future}
 import java.sql.{Connection, ResultSet, Timestamp, Types}
@@ -31,7 +30,7 @@ import uk.gov.hmrc.formpproxy.models.{MonthlyReturn, UserMonthlyReturns}
 
 trait CisMonthlyReturnSource {
   def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns]
-  def createAndTrackSubmission(request: CreateAndTrackSubmissionRequest): Future[CreateAndTrackSubmissionResponse]
+  def createAndTrackSubmission(request: CreateAndTrackSubmissionRequest): Future[String]
   def updateMonthlyReturnSubmission(request: UpdateSubmissionRequest): Future[Unit]
 }
 
@@ -89,7 +88,7 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
     }
 
 
-  override def createAndTrackSubmission(request: CreateAndTrackSubmissionRequest): Future[CreateAndTrackSubmissionResponse] = Future {
+  override def createAndTrackSubmission(request: CreateAndTrackSubmissionRequest): Future[String] = Future {
     db.withTransaction { conn =>
       val schemeId = getSchemeId(conn, request.instanceId)
       val monthlyReturnId = getMonthlyReturnId(conn, schemeId, request.taxYear, request.taxMonth)
@@ -99,7 +98,7 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
         instanceId = request.instanceId,
         submissionType = "MONTHLY_RETURN",
         activeObjectId = monthlyReturnId,
-        hmrcMarkGenerated = request.hmrcMarkGenerated,
+        hmrcMarkGenerated = request.hmrcMarkGenerated.orNull,
         hmrcMarkGgis = null,
         emailRecipient = request.emailRecipient.orNull,
         agentId = request.agentId.orNull,
@@ -116,7 +115,7 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
         totalTaxDeducted = request.totalTaxDeducted.getOrElse(BigDecimal(0))
       )
 
-      CreateAndTrackSubmissionResponse(submissionId = submissionId, monthlyReturnId = monthlyReturnId)
+      submissionId.toString
     }
   }
 

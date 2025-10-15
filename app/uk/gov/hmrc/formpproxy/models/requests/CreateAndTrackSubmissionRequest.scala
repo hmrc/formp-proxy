@@ -22,7 +22,7 @@ case class CreateAndTrackSubmissionRequest(
   instanceId: String,
   taxYear: Int,
   taxMonth: Int,
-  hmrcMarkGenerated: String,
+  hmrcMarkGenerated: Option[String] = None,
   emailRecipient: Option[String] = None,
   agentId: Option[String] = None,
   subcontractorCount: Option[Int] = None,

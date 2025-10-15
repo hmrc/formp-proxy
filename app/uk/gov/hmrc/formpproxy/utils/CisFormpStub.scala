@@ -20,7 +20,6 @@ import play.api.Logging
 import uk.gov.hmrc.formpproxy.repositories.CisMonthlyReturnSource
 import uk.gov.hmrc.formpproxy.models.{MonthlyReturn, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.models.requests.{CreateAndTrackSubmissionRequest, UpdateSubmissionRequest}
-import uk.gov.hmrc.formpproxy.models.responses.CreateAndTrackSubmissionResponse
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
@@ -36,9 +35,9 @@ class CisFormpStub @Inject()(stubUtils: StubUtils) extends CisMonthlyReturnSourc
     Future.successful(UserMonthlyReturns(monthlyReturns))
   }
 
-  override def createAndTrackSubmission(req: CreateAndTrackSubmissionRequest): Future[CreateAndTrackSubmissionResponse] = {
+  override def createAndTrackSubmission(req: CreateAndTrackSubmissionRequest): Future[String] = {
     logger.info(s"[Stub] createAndTrackSubmission(${req.instanceId}, ${req.taxYear}, ${req.taxMonth})")
-    Future.successful(CreateAndTrackSubmissionResponse(submissionId = 90001L, monthlyReturnId = 70001L))
+    Future.successful("90001")
   }
 
   override def updateMonthlyReturnSubmission(req: UpdateSubmissionRequest): Future[Unit] = {

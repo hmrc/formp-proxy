@@ -19,7 +19,6 @@ package uk.gov.hmrc.formpproxy.services
 import uk.gov.hmrc.formpproxy.repositories.CisMonthlyReturnSource
 import uk.gov.hmrc.formpproxy.models.requests.CreateAndTrackSubmissionRequest
 import uk.gov.hmrc.formpproxy.models.requests.UpdateSubmissionRequest
-import uk.gov.hmrc.formpproxy.models.responses.CreateAndTrackSubmissionResponse
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
@@ -27,7 +26,7 @@ import scala.concurrent.Future
 @Singleton
 class MonthlyReturnSubmissionService @Inject()(repo: CisMonthlyReturnSource) {
   
-  def createAndTrackSubmission(req: CreateAndTrackSubmissionRequest): Future[CreateAndTrackSubmissionResponse] =
+  def createAndTrackSubmission(req: CreateAndTrackSubmissionRequest): Future[String] =
     repo.createAndTrackSubmission(req)
     
   def updateSubmission(req: UpdateSubmissionRequest): Future[Unit] =
