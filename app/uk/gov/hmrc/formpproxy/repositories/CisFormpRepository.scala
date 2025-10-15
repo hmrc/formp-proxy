@@ -153,8 +153,8 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
   private val SqlGetSchemeVersion =
     "select version from scheme where instance_id = ?"
 
-  private val SqlGetSchemeEmail =
-    "select email from scheme where instance_id = ?"
+  private val CallGetSchemeEmail =
+    "{ call IntGetSchemeSp(?, ?) }"
 
   private def getSchemeVersion(conn: Connection, instanceId: String): Int = {
     val statement = conn.prepareStatement(SqlGetSchemeVersion)
@@ -173,19 +173,15 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
     logger.info(s"[CIS] getSchemeEmail(instanceId=$instanceId)")
     Future {
       db.withConnection { conn =>
-        val statement = conn.prepareStatement(SqlGetSchemeEmail)
+        val cs = conn.prepareCall(CallGetSchemeEmail)
         try {
-          statement.setString(1, instanceId)
-          val rs = statement.executeQuery()
-          try {
-            if (rs.next()) {
-              val email = rs.getString("email")
-              Option(email).map(_.trim).filter(_.nonEmpty)
-            } else {
-              None
-            }
-          } finally rs.close()
-        } finally statement.close()
+          cs.setString(1, instanceId)
+          cs.registerOutParameter(2, Types.VARCHAR)
+          cs.execute()
+
+          val email = cs.getString(2)
+          Option(email).map(_.trim).filter(_.nonEmpty)
+        } finally cs.close()
       }
     }
   }

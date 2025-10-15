@@ -166,6 +166,45 @@ class MonthlyReturnControllerSpec
     }
   }
 
+  "MonthlyReturnController getSchemeEmail" - {
+
+    "returns 200 with email when service succeeds" in new Setup {
+      when(mockService.getSchemeEmail(eqTo("abc-123"))).thenReturn(Future.successful(Some("x@y.com")))
+
+      val req: FakeRequest[uk.gov.hmrc.formpproxy.models.requests.InstanceIdRequest] =
+        FakeRequest(POST, "/formp-proxy/scheme/email").withBody(uk.gov.hmrc.formpproxy.models.requests.InstanceIdRequest("abc-123"))
+      val res: Future[Result] = controller.getSchemeEmail(req)
+
+      status(res) mustBe OK
+      (contentAsJson(res) \ "email").asOpt[String] mustBe Some("x@y.com")
+      verify(mockService).getSchemeEmail(eqTo("abc-123"))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 200 with null when service returns None" in new Setup {
+      when(mockService.getSchemeEmail(eqTo("abc-123"))).thenReturn(Future.successful(None))
+
+      val req: FakeRequest[uk.gov.hmrc.formpproxy.models.requests.InstanceIdRequest] =
+        FakeRequest(POST, "/formp-proxy/scheme/email").withBody(uk.gov.hmrc.formpproxy.models.requests.InstanceIdRequest("abc-123"))
+      val res = controller.getSchemeEmail(req)
+
+      status(res) mustBe OK
+      (contentAsJson(res) \ "email").toOption.flatMap(_.asOpt[String]) mustBe None
+    }
+
+    "propagates UpstreamErrorResponse" in new Setup {
+      val err = UpstreamErrorResponse("formp failed", BAD_GATEWAY, BAD_GATEWAY)
+      when(mockService.getSchemeEmail(eqTo("abc-123"))).thenReturn(Future.failed(err))
+
+      val req: FakeRequest[uk.gov.hmrc.formpproxy.models.requests.InstanceIdRequest] =
+        FakeRequest(POST, "/formp-proxy/scheme/email").withBody(uk.gov.hmrc.formpproxy.models.requests.InstanceIdRequest("abc-123"))
+      val res = controller.getSchemeEmail(req)
+
+      status(res) mustBe BAD_GATEWAY
+      (contentAsJson(res) \ "message").as[String] must include("formp failed")
+    }
+  }
+
   private trait Setup {
     implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.global
     private val cc: ControllerComponents = stubControllerComponents()
