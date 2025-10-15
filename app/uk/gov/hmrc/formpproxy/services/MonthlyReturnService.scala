@@ -32,4 +32,7 @@ class MonthlyReturnService @Inject()(repo: CisMonthlyReturnSource)() {
 
   def createNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[CreateNilMonthlyReturnResponse] =
     repo.createNilMonthlyReturn(request)
+
+  def getSchemeEmail(instanceId: String): Future[Option[String]] =
+    repo.getSchemeEmail(instanceId)
 }
