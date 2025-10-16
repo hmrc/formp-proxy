@@ -40,6 +40,7 @@ class CisFormpStub @Inject()(stubUtils: StubUtils) extends CisMonthlyReturnSourc
     logger.info(s"[Stub] getAllMonthlyReturns(instanceId=$instanceId) -> returning Jan, Feb, Mar 2025")
     val monthlyReturns: Seq[MonthlyReturn] = Seq(1, 2, 3).map(stubData.generateMonthlyReturns)
     Future.successful(UserMonthlyReturns(monthlyReturns))
+  }
 
   override def createNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[CreateNilMonthlyReturnResponse] = {
     val monthlyReturnId = idSeq.getAndIncrement()
@@ -79,8 +80,6 @@ class CisFormpStub @Inject()(stubUtils: StubUtils) extends CisMonthlyReturnSourc
     storedReturns.clear()
   }
 
-  }
-
   override def createAndTrackSubmission(req: CreateAndTrackSubmissionRequest): Future[String] = {
     logger.info(s"[Stub] createAndTrackSubmission(${req.instanceId}, ${req.taxYear}, ${req.taxMonth})")
     Future.successful("90001")
@@ -90,4 +89,5 @@ class CisFormpStub @Inject()(stubUtils: StubUtils) extends CisMonthlyReturnSourc
     logger.info(s"[Stub] updateMrSubmission(${req.instanceId}, ${req.taxYear}, ${req.taxMonth}, status=${req.submittableStatus})")
     Future.successful(())
   }
+
 }

@@ -22,15 +22,15 @@ import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.formpproxy.actions.AuthAction
 import uk.gov.hmrc.formpproxy.models.requests.{CreateAndTrackSubmissionRequest, UpdateSubmissionRequest}
-import uk.gov.hmrc.formpproxy.services.MonthlyReturnSubmissionService
+import uk.gov.hmrc.formpproxy.services.SubmissionService
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class MonthlyReturnSubmissionController @Inject()(
-  authorise: AuthAction,
-  service: MonthlyReturnSubmissionService,
-  cc: ControllerComponents                                               
+class SubmissionController @Inject()(
+                                      authorise: AuthAction,
+                                      service: SubmissionService,
+                                      cc: ControllerComponents                                               
 )(implicit ec: ExecutionContext)
   extends BackendController(cc) with Logging {
   

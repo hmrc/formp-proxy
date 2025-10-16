@@ -24,7 +24,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 
 @Singleton
-class MonthlyReturnSubmissionService @Inject()(repo: CisMonthlyReturnSource) {
+class SubmissionService @Inject()(repo: CisMonthlyReturnSource) {
   
   def createAndTrackSubmission(req: CreateAndTrackSubmissionRequest): Future[String] =
     repo.createAndTrackSubmission(req)

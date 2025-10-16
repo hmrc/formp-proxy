@@ -125,6 +125,7 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
     db.withConnection { conn =>
       val schemeId = getSchemeId(conn, request.instanceId)
       val monthlyReturnId = getMonthlyReturnId(conn, schemeId, request.taxYear, request.taxMonth)
+      val amendValue = request.amendment.getOrElse("N")
 
       callUpdateMonthlyReturnSubmission(
         conn,
@@ -143,7 +144,7 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
         instanceId = request.instanceId,
         taxYear = request.taxYear,
         taxMonth = request.taxMonth,
-        amendment = request.amendment.orNull
+        amendment = amendValue
       )
       ()
     }
