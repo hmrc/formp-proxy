@@ -154,7 +154,7 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
     "select version from scheme where instance_id = ?"
 
   private val CallGetSchemeEmail =
-    "{ call IntGetSchemeSp(?, ?) }"
+    "{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"
 
   private def getSchemeVersion(conn: Connection, instanceId: String): Int = {
     val statement = conn.prepareStatement(SqlGetSchemeVersion)
@@ -176,11 +176,18 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
         val cs = conn.prepareCall(CallGetSchemeEmail)
         try {
           cs.setString(1, instanceId)
-          cs.registerOutParameter(2, Types.VARCHAR)
+          cs.registerOutParameter(2, java.sql.Types.REF_CURSOR)
           cs.execute()
 
-          val email = cs.getString(2)
-          Option(email).map(_.trim).filter(_.nonEmpty)
+          val cursor = cs.getObject(2).asInstanceOf[java.sql.ResultSet]
+          try {
+            if (cursor.next()) {
+              val email = cursor.getString("email_address")
+              Option(email).map(_.trim).filter(_.nonEmpty)
+            } else {
+              None
+            }
+          } finally cursor.close()
         } finally cs.close()
       }
     }
