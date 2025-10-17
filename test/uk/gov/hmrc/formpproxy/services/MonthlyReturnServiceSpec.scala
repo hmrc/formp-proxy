@@ -19,9 +19,7 @@ package uk.gov.hmrc.formpproxy.services
 import org.mockito.ArgumentMatchers.eq as eqTo
 import org.mockito.Mockito.*
 import org.scalatest.freespec.AnyFreeSpec
-import org.scalatest.matchers.must.Matchers
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatestplus.mockito.MockitoSugar
+import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.models.requests.CreateNilMonthlyReturnRequest
 import uk.gov.hmrc.formpproxy.models.response.CreateNilMonthlyReturnResponse
 import uk.gov.hmrc.formpproxy.models.{MonthlyReturn, UserMonthlyReturns}
@@ -30,16 +28,12 @@ import uk.gov.hmrc.formpproxy.repositories.CisMonthlyReturnSource
 import scala.concurrent.Future
 import java.time.LocalDateTime
 
-final class MonthlyReturnServiceSpec
-  extends AnyFreeSpec
-    with Matchers
-    with ScalaFutures
-    with MockitoSugar {
+final class MonthlyReturnServiceSpec extends SpecBase{
 
   case class Ctx() {
     val repo    = mock[CisMonthlyReturnSource]
     val service = new MonthlyReturnService(repo)
-    val id      = "abc-123"
+    val id      = "123"
   }
 
   private def mkReturn(id: Long, month: Int, year: Int = 2025): MonthlyReturn =
