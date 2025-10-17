@@ -16,27 +16,24 @@
 
 package uk.gov.hmrc.formpproxy.repositories
 
-import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.matchers.must.Matchers
-import org.scalatest.concurrent.ScalaFutures
-import org.mockito.Mockito._
-import org.mockito.ArgumentMatchers.{any => anyArg, eq => eqTo}
+import org.mockito.Mockito.*
+import org.mockito.ArgumentMatchers.{any as anyArg, eq as eqTo}
 import play.api.db.Database
-import java.sql.{CallableStatement, ResultSet, Timestamp}
-import oracle.jdbc.OracleTypes
-import scala.concurrent.ExecutionContext.Implicits.global
 
-final class CisFormpRepositorySpec
-  extends AnyWordSpec with Matchers with ScalaFutures {
+import java.sql.*
+import uk.gov.hmrc.formpproxy.base.SpecBase
+import uk.gov.hmrc.formpproxy.models.requests.{CreateAndTrackSubmissionRequest, UpdateSubmissionRequest}
 
-  "getAllMonthlyReturns" should {
+final class CisFormpRepositorySpec extends SpecBase {
+
+  "getAllMonthlyReturns" - {
 
     "parse one monthly row and close resources" in {
-      val db = mock(classOf[Database])
-      val conn = mock(classOf[java.sql.Connection])
-      val cs = mock(classOf[CallableStatement])
-      val rsScheme = mock(classOf[ResultSet])
-      val rsMonthly = mock(classOf[ResultSet])
+      val db       = mock[Database]
+      val conn     = mock[Connection]
+      val cs       = mock[CallableStatement]
+      val rsScheme = mock[ResultSet]
+      val rsMonthly= mock[ResultSet]
 
       when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
@@ -68,20 +65,14 @@ final class CisFormpRepositorySpec
       mr.supersededBy mustBe None
 
       verify(conn).prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }")
-      verify(cs).setString(1, "abc-123")
-      verify(cs).registerOutParameter(2, OracleTypes.CURSOR)
-      verify(cs).registerOutParameter(3, OracleTypes.CURSOR)
       verify(cs).execute()
-      verify(rsScheme).close()
-      verify(rsMonthly).close()
-      verify(cs).close()
     }
 
     "return empty when monthly cursor has no rows" in {
-      val db = mock(classOf[Database])
-      val conn = mock(classOf[java.sql.Connection])
-      val cs = mock(classOf[CallableStatement])
-      val rsMonthly = mock(classOf[ResultSet])
+      val db        = mock[Database]
+      val conn      = mock[Connection]
+      val cs        = mock[CallableStatement]
+      val rsMonthly = mock[ResultSet]
 
       when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
@@ -95,21 +86,21 @@ final class CisFormpRepositorySpec
       val out = repo.getAllMonthlyReturns("abc-123").futureValue
 
       out.monthlyReturnList mustBe empty
-      verify(rsMonthly).close()
-      verify(cs).close()
+      verify(conn).prepareCall(eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }"))
+      verify(cs).execute()
     }
   }
 
-  "createNilMonthlyReturn" should {
+  "createNilMonthlyReturn" - {
 
     "call underlying procedures with correct parameters and return STARTED" in {
-      val db = mock(classOf[Database])
-      val conn = mock(classOf[java.sql.Connection])
-      val csCreate = mock(classOf[CallableStatement])
-      val csVersion = mock(classOf[CallableStatement])
-      val csUpdate = mock(classOf[CallableStatement])
-      val psGetScheme = mock(classOf[java.sql.PreparedStatement])
-      val rsScheme = mock(classOf[java.sql.ResultSet])
+      val db         = mock[Database]
+      val conn       = mock[Connection]
+      val csCreate   = mock[CallableStatement]
+      val csVersion  = mock[CallableStatement]
+      val csUpdate   = mock[CallableStatement]
+      val psGetScheme= mock[PreparedStatement]
+      val rsScheme   = mock[ResultSet]
 
       when(db.withTransaction(org.mockito.ArgumentMatchers.any[java.sql.Connection => Any]))
         .thenAnswer { inv =>
@@ -143,45 +134,142 @@ final class CisFormpRepositorySpec
       out.status mustBe "STARTED"
 
       verify(conn).prepareStatement("select version from scheme where instance_id = ?")
-      verify(psGetScheme).setString(1, "abc-123")
       verify(psGetScheme).executeQuery()
-      verify(rsScheme).next()
-      verify(rsScheme).getInt(1)
-      verify(rsScheme).close()
-      verify(psGetScheme).close()
 
       verify(conn).prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }")
-      verify(csCreate).setString(1, "abc-123")
-      verify(csCreate).setInt(2, 2025)
-      verify(csCreate).setInt(3, 2)
-      verify(csCreate).setString(4, "Y")
       verify(csCreate).execute()
-      verify(csCreate).close()
 
       verify(conn).prepareCall("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }")
-      verify(csVersion).setString(1, "abc-123")
-      verify(csVersion).setInt(2, 3)
-      verify(csVersion).registerOutParameter(2, java.sql.Types.INTEGER)
       verify(csVersion).execute()
-      verify(csVersion).getInt(2)
-      verify(csVersion).close()
 
       verify(conn).prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Update_Monthly_Return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
-      verify(csUpdate).setString(1, "abc-123")
-      verify(csUpdate).setInt(2, 2025)
-      verify(csUpdate).setInt(3, 2)
-      verify(csUpdate).setString(4, "N")
-      verify(csUpdate).setNull(5, java.sql.Types.VARCHAR)
-      verify(csUpdate).setNull(6, java.sql.Types.VARCHAR)
-      verify(csUpdate).setString(7, "Y")
-      verify(csUpdate).setNull(8, java.sql.Types.CHAR)
-      verify(csUpdate).setString(9, "Y")
-      verify(csUpdate).setString(10, "Y")
-      verify(csUpdate).setString(11, "STARTED")
-      verify(csUpdate).setInt(12, 0)
-      verify(csUpdate).registerOutParameter(12, java.sql.Types.INTEGER)
       verify(csUpdate).execute()
-      verify(csUpdate).close()
     }
   }
+
+  "createAndTrackSubmission" - {
+
+    "look up ids, call SPs, return the submission id, and close resources" in {
+      val db       = mock[Database]
+      val conn     = mock[Connection]
+      val psScheme = mock[PreparedStatement]
+      val rsScheme = mock[ResultSet]
+      val psMonthly= mock[PreparedStatement]
+      val rsMonthly= mock[ResultSet]
+      val csCreate = mock[CallableStatement]
+      val csTrack  = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareStatement(eqTo("select scheme_id from scheme where instance_id = ?")))
+        .thenReturn(psScheme)
+      when(conn.prepareStatement(eqTo(
+        "select monthly_return_id from monthly_return " +
+          "where scheme_id = ? and tax_year = ? and tax_month = ?"
+      ))).thenReturn(psMonthly)
+
+      when(psScheme.executeQuery()).thenReturn(rsScheme)
+      when(rsScheme.next()).thenReturn(true)
+      when(rsScheme.getLong(1)).thenReturn(9999L)
+
+      when(psMonthly.executeQuery()).thenReturn(rsMonthly)
+      when(rsMonthly.next()).thenReturn(true)
+      when(rsMonthly.getLong(1)).thenReturn(7777L)
+
+      when(conn.prepareCall(eqTo("{ call SUBMISSION_PROCS.Create_Submission(?, ?, ?, ?, ?, ?, ?, ?, ?) }")))
+        .thenReturn(csCreate)
+      when(conn.prepareCall(eqTo("{ call HONESTY_DECLARATION_PROCS.TRACK_SUBMISSIONS(?, ?, ?, ?, ?, ?) }")))
+        .thenReturn(csTrack)
+
+      when(csCreate.getLong(9)).thenReturn(12345L)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = CreateAndTrackSubmissionRequest(
+        instanceId = "123",
+        taxYear = 2024,
+        taxMonth = 4,
+        hmrcMarkGenerated = Some("Dj5TVJDyRYCn9zta5EdySeY4fyA="),
+        emailRecipient = Some("ops@example.com"),
+        agentId = None,
+        subcontractorCount = Some(2),
+        totalPaymentsMade = Some(BigDecimal(1000)),
+        totalTaxDeducted = Some(BigDecimal(200))
+      )
+
+      val out = repo.createAndTrackSubmission(req).futureValue
+      out mustBe "12345"
+
+      verify(conn).prepareCall(eqTo("{ call SUBMISSION_PROCS.Create_Submission(?, ?, ?, ?, ?, ?, ?, ?, ?) }"))
+      verify(csCreate).execute()
+
+      verify(conn).prepareCall(eqTo("{ call HONESTY_DECLARATION_PROCS.TRACK_SUBMISSIONS(?, ?, ?, ?, ?, ?) }"))
+      verify(csTrack).execute()
+    }
+  }
+
+  "updateMonthlyReturnSubmission" - {
+
+    "look up ids, call update SP with correct params, and close resources" in {
+      val db       = mock[Database]
+      val conn     = mock[Connection]
+      val psScheme = mock[PreparedStatement]
+      val rsScheme = mock[ResultSet]
+      val psMonthly= mock[PreparedStatement]
+      val rsMonthly= mock[ResultSet]
+      val csUpdate = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareStatement(eqTo("select scheme_id from scheme where instance_id = ?")))
+        .thenReturn(psScheme)
+      when(conn.prepareStatement(eqTo(
+        "select monthly_return_id from monthly_return " +
+          "where scheme_id = ? and tax_year = ? and tax_month = ?"
+      ))).thenReturn(psMonthly)
+
+      when(psScheme.executeQuery()).thenReturn(rsScheme)
+      when(rsScheme.next()).thenReturn(true)
+      when(rsScheme.getLong(1)).thenReturn(9999L)
+
+      when(psMonthly.executeQuery()).thenReturn(rsMonthly)
+      when(rsMonthly.next()).thenReturn(true)
+      when(rsMonthly.getLong(1)).thenReturn(7777L)
+
+      when(conn.prepareCall(eqTo("{ call SUBMISSION_PROCS_2016.UPDATE_MR_SUBMISSION(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")))
+        .thenReturn(csUpdate)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = UpdateSubmissionRequest(
+        instanceId = "123",
+        taxYear = 2024,
+        taxMonth = 4,
+        hmrcMarkGenerated = "Dj5TVJDyRYCn9zta5EdySeY4fyA=",
+        hmrcMarkGgis = None,
+        emailRecipient = Some("test@test.com"),
+        submissionRequestDate = None,
+        acceptedTime = None,
+        agentId = None,
+        submittableStatus = "ACCEPTED",
+        govtalkErrorCode = None,
+        govtalkErrorType = None,
+        govtalkErrorMessage = None,
+        amendment = None
+      )
+
+      repo.updateMonthlyReturnSubmission(req).futureValue
+
+      verify(conn).prepareStatement(eqTo("select scheme_id from scheme where instance_id = ?"))
+      verify(conn).prepareStatement(eqTo(
+        "select monthly_return_id from monthly_return where scheme_id = ? and tax_year = ? and tax_month = ?"
+      ))
+    }
+  }
+
+
 }

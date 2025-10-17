@@ -16,8 +16,9 @@
 
 package uk.gov.hmrc.formpproxy.itutil
 
-import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
 import play.api.http.HeaderNames as PlayHeaders
@@ -33,10 +34,11 @@ import scala.concurrent.{ExecutionContext, Future}
 
 
 trait ApplicationWithWiremock
-  extends AnyWordSpec
+  extends AnyFreeSpec
     with GuiceOneServerPerSuite
     with BeforeAndAfterAll
-    with BeforeAndAfterEach:
+    with BeforeAndAfterEach
+    with ScalaFutures {
 
   lazy val wireMock = new WireMock
 
@@ -52,7 +54,7 @@ trait ApplicationWithWiremock
     .configure(extraConfig)
     .build()
 
-  lazy val httpClientV2: HttpClientV2 = app.injector.instanceOf[HttpClientV2]
+  lazy val httpClient: HttpClientV2 = app.injector.instanceOf[HttpClientV2]
   implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -76,19 +78,25 @@ trait ApplicationWithWiremock
       HeaderNames.xSessionId -> "sessionId"
     )
 
-  protected def get(uri: String): Future[HttpResponse] =
-    httpClientV2
-      .get(url"$baseUrl/$uri")
-      .setHeader(commonHeaders*)
+  protected def get(path: String): Future[HttpResponse] =
+    httpClient
+      .get(url"$baseUrl/$path")
+      .setHeader(commonHeaders *)
       .execute[HttpResponse]
 
-  protected def post(uri: String, body: JsValue): Future[HttpResponse] =
-    httpClientV2.post(url"$baseUrl/$uri")
+  protected def post(path: String, body: JsValue): Future[HttpResponse] = {
+    val url = s"$baseUrl/$path"
+    httpClient.post(url"$url")
       .setHeader(
         commonHeaders ++ Seq(
-          "Accept"       -> "application/json",
+          "Accept" -> "application/json",
           "Content-Type" -> "application/json"
-        )*
+        ) *
       )
       .withBody(body)
       .execute[HttpResponse]
+  }
+
+  protected def postJson(uri: String, body: JsValue): HttpResponse =
+    post(uri, body).futureValue
+}
