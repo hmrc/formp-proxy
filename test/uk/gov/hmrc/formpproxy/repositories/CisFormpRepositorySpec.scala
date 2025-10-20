@@ -273,13 +273,13 @@ final class CisFormpRepositorySpec extends SpecBase {
 
 
 
-  "getSchemeEmail" should {
+  "getSchemeEmail" - {
 
     "call SCHEME_PROCS.int_Get_Scheme and return Some(email) when email is found" in {
-      val db = mock(classOf[Database])
-      val conn = mock(classOf[java.sql.Connection])
-      val cs = mock(classOf[CallableStatement])
-      val rs = mock(classOf[ResultSet])
+      val db = mock[Database]
+      val conn = mock[java.sql.Connection]
+      val cs = mock[CallableStatement]
+      val rs = mock[ResultSet]
 
       when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
@@ -306,10 +306,10 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
 
     "call SCHEME_PROCS.int_Get_Scheme and return None when email is null" in {
-      val db = mock(classOf[Database])
-      val conn = mock(classOf[java.sql.Connection])
-      val cs = mock(classOf[CallableStatement])
-      val rs = mock(classOf[ResultSet])
+      val db = mock[Database]
+      val conn = mock[java.sql.Connection]
+      val cs = mock[CallableStatement]
+      val rs = mock[ResultSet]
 
       when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
@@ -336,10 +336,10 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
 
     "call SCHEME_PROCS.int_Get_Scheme and return None when email is empty string" in {
-      val db = mock(classOf[Database])
-      val conn = mock(classOf[java.sql.Connection])
-      val cs = mock(classOf[CallableStatement])
-      val rs = mock(classOf[ResultSet])
+      val db = mock[Database]
+      val conn = mock[java.sql.Connection]
+      val cs = mock[CallableStatement]
+      val rs = mock[ResultSet]
 
       when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
@@ -366,10 +366,10 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
 
     "call SCHEME_PROCS.int_Get_Scheme and return Some(email) when email has whitespace that gets trimmed" in {
-      val db = mock(classOf[Database])
-      val conn = mock(classOf[java.sql.Connection])
-      val cs = mock(classOf[CallableStatement])
-      val rs = mock(classOf[ResultSet])
+      val db = mock[Database]
+      val conn = mock[java.sql.Connection]
+      val cs = mock[CallableStatement]
+      val rs = mock[ResultSet]
 
       when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)

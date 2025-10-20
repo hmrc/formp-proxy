@@ -39,9 +39,6 @@ class DatabaseIntegrationSpec
     )
   }
 
-  private def postJson(uri: String, body: JsValue): HttpResponse =
-    post(uri, body).futureValue
-
   private def postJsonRaw(uri: String, body: JsValue): HttpResponse =
     postRaw(uri, body).futureValue
 

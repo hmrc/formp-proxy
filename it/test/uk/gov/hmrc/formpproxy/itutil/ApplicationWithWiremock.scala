@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.formpproxy.itutil
 
-import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
 import play.api.http.HeaderNames as PlayHeaders
@@ -34,7 +34,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 
 trait ApplicationWithWiremock
-  extends AnyFreeSpec
+  extends AnyWordSpec
     with GuiceOneServerPerSuite
     with BeforeAndAfterAll
     with BeforeAndAfterEach
@@ -99,7 +99,7 @@ trait ApplicationWithWiremock
 
   protected def postRaw(uri: String, body: JsValue): Future[HttpResponse] = {
     val fullUrl = if (uri.startsWith("/")) s"$baseUrl$uri" else s"$baseUrl/$uri"
-    httpClientV2.post(new java.net.URL(fullUrl))
+    httpClient.post(new java.net.URL(fullUrl))
       .setHeader(
         commonHeaders ++ Seq(
           "Accept"       -> "application/json",

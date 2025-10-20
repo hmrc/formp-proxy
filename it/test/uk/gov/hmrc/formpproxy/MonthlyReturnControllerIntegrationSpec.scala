@@ -19,20 +19,19 @@ package uk.gov.hmrc.formpproxy
 import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, AuthStub}
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
-import org.scalatest.freespec.AnyFreeSpec
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.http.Status.*
 import play.api.libs.json.{JsValue, Json}
 
 class MonthlyReturnControllerIntegrationSpec
-  extends AnyFreeSpec
-    with Matchers
+  extends Matchers
     with ScalaFutures
     with IntegrationPatience
     with ApplicationWithWiremock {
 
   private val endpoint = "monthly-returns"
 
-  "POST /formp-proxy/monthly-returns" - {
+  "POST /formp-proxy/monthly-returns" should {
 
     "return 200 with wrapper when authorised and JSON is valid" in {
       AuthStub.authorised()

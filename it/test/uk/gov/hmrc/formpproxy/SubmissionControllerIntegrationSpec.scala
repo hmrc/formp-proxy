@@ -19,13 +19,11 @@ package uk.gov.hmrc.formpproxy
 import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, AuthStub}
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
-import org.scalatest.freespec.AnyFreeSpec
 import play.api.http.Status.*
 import play.api.libs.json.{JsValue, Json}
 
 final class SubmissionControllerIntegrationSpec
-  extends AnyFreeSpec
-    with Matchers
+  extends Matchers
     with ScalaFutures
     with IntegrationPatience
     with ApplicationWithWiremock {
@@ -33,9 +31,9 @@ final class SubmissionControllerIntegrationSpec
   private val createAndTrackPath = "submissions/create-and-track"
   private val updatePath = "submissions/update"
 
-  "SubmissionController" - {
+  "SubmissionController" should {
 
-    "POST /formp-proxy/submissions (createAndTrackSubmission)" - {
+    "POST /formp-proxy/submissions (createAndTrackSubmission)" should {
 
       "returns 201 with submissionId when authorised and JSON is valid" in {
         AuthStub.authorised()
@@ -86,7 +84,7 @@ final class SubmissionControllerIntegrationSpec
       }
     }
 
-    "POST /formp-proxy/submissions/update (updateSubmission)" - {
+    "POST /formp-proxy/submissions/update (updateSubmission)" should {
 
       "returns 204 NoContent when authorised and JSON is valid" in {
         AuthStub.authorised()
