@@ -73,6 +73,9 @@ class CisFormpStub @Inject()(stubUtils: StubUtils) extends CisMonthlyReturnSourc
   def getStoredReturn(instanceId: String, taxYear: Int, taxMonth: Int): Option[MonthlyReturn] =
     storedReturns.get((instanceId, taxYear, taxMonth))
 
+  override def getSchemeEmail(instanceId: String): Future[Option[String]] =
+    Future.successful(Some("test@test.com"))
+
   def reset(): Unit = {
     idSeq.set(1_000_000L)
     schemeVersions.clear()

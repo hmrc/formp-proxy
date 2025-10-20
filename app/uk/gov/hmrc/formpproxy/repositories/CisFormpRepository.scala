@@ -32,6 +32,7 @@ import uk.gov.hmrc.formpproxy.models.{MonthlyReturn, UserMonthlyReturns}
 trait CisMonthlyReturnSource {
   def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns]
   def createNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[CreateNilMonthlyReturnResponse]
+  def getSchemeEmail(instanceId: String): Future[Option[String]]
 }
 
 @Singleton
@@ -152,6 +153,9 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
   private val SqlGetSchemeVersion =
     "select version from scheme where instance_id = ?"
 
+  private val CallGetSchemeEmail =
+    "{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"
+
   private def getSchemeVersion(conn: Connection, instanceId: String): Int = {
     val statement = conn.prepareStatement(SqlGetSchemeVersion)
     try {
@@ -163,6 +167,30 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
         rs.getInt(1)
       } finally rs.close()
     } finally statement.close()
+  }
+
+  override def getSchemeEmail(instanceId: String): Future[Option[String]] = {
+    logger.info(s"[CIS] getSchemeEmail(instanceId=$instanceId)")
+    Future {
+      db.withConnection { conn =>
+        val cs = conn.prepareCall(CallGetSchemeEmail)
+        try {
+          cs.setString(1, instanceId)
+          cs.registerOutParameter(2, java.sql.Types.REF_CURSOR)
+          cs.execute()
+
+          val cursor = cs.getObject(2).asInstanceOf[java.sql.ResultSet]
+          try {
+            if (cursor.next()) {
+              val email = cursor.getString("email_address")
+              Option(email).map(_.trim).filter(_.nonEmpty)
+            } else {
+              None
+            }
+          } finally cursor.close()
+        } finally cs.close()
+      }
+    }
   }
   
 }
