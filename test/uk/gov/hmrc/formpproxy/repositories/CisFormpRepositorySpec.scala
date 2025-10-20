@@ -272,4 +272,127 @@ final class CisFormpRepositorySpec extends SpecBase {
   }
 
 
+
+  "getSchemeEmail" should {
+
+    "call SCHEME_PROCS.int_Get_Scheme and return Some(email) when email is found" in {
+      val db = mock(classOf[Database])
+      val conn = mock(classOf[java.sql.Connection])
+      val cs = mock(classOf[CallableStatement])
+      val rs = mock(classOf[ResultSet])
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")).thenReturn(cs)
+      when(cs.getObject(2)).thenReturn(rs)
+      when(rs.next()).thenReturn(true, false)
+      when(rs.getString("email_address")).thenReturn("test@example.com")
+
+      val repo = new CisFormpRepository(db)
+      val result = repo.getSchemeEmail("abc-123").futureValue
+
+      result mustBe Some("test@example.com")
+
+      verify(conn).prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")
+      verify(cs).setString(1, "abc-123")
+      verify(cs).registerOutParameter(2, java.sql.Types.REF_CURSOR)
+      verify(cs).execute()
+      verify(cs).getObject(2)
+      verify(rs).next()
+      verify(rs).getString("email_address")
+      verify(rs).close()
+      verify(cs).close()
+    }
+
+    "call SCHEME_PROCS.int_Get_Scheme and return None when email is null" in {
+      val db = mock(classOf[Database])
+      val conn = mock(classOf[java.sql.Connection])
+      val cs = mock(classOf[CallableStatement])
+      val rs = mock(classOf[ResultSet])
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")).thenReturn(cs)
+      when(cs.getObject(2)).thenReturn(rs)
+      when(rs.next()).thenReturn(true, false)
+      when(rs.getString("email_address")).thenReturn(null)
+
+      val repo = new CisFormpRepository(db)
+      val result = repo.getSchemeEmail("abc-123").futureValue
+
+      result mustBe None
+
+      verify(conn).prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")
+      verify(cs).setString(1, "abc-123")
+      verify(cs).registerOutParameter(2, java.sql.Types.REF_CURSOR)
+      verify(cs).execute()
+      verify(cs).getObject(2)
+      verify(rs).next()
+      verify(rs).getString("email_address")
+      verify(rs).close()
+      verify(cs).close()
+    }
+
+    "call SCHEME_PROCS.int_Get_Scheme and return None when email is empty string" in {
+      val db = mock(classOf[Database])
+      val conn = mock(classOf[java.sql.Connection])
+      val cs = mock(classOf[CallableStatement])
+      val rs = mock(classOf[ResultSet])
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")).thenReturn(cs)
+      when(cs.getObject(2)).thenReturn(rs)
+      when(rs.next()).thenReturn(true, false)
+      when(rs.getString("email_address")).thenReturn("   ")
+
+      val repo = new CisFormpRepository(db)
+      val result = repo.getSchemeEmail("abc-123").futureValue
+
+      result mustBe None
+
+      verify(conn).prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")
+      verify(cs).setString(1, "abc-123")
+      verify(cs).registerOutParameter(2, java.sql.Types.REF_CURSOR)
+      verify(cs).execute()
+      verify(cs).getObject(2)
+      verify(rs).next()
+      verify(rs).getString("email_address")
+      verify(rs).close()
+      verify(cs).close()
+    }
+
+    "call SCHEME_PROCS.int_Get_Scheme and return Some(email) when email has whitespace that gets trimmed" in {
+      val db = mock(classOf[Database])
+      val conn = mock(classOf[java.sql.Connection])
+      val cs = mock(classOf[CallableStatement])
+      val rs = mock(classOf[ResultSet])
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")).thenReturn(cs)
+      when(cs.getObject(2)).thenReturn(rs)
+      when(rs.next()).thenReturn(true, false)
+      when(rs.getString("email_address")).thenReturn("  test@example.com  ")
+
+      val repo = new CisFormpRepository(db)
+      val result = repo.getSchemeEmail("abc-123").futureValue
+
+      result mustBe Some("test@example.com")
+
+      verify(conn).prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")
+      verify(cs).setString(1, "abc-123")
+      verify(cs).registerOutParameter(2, java.sql.Types.REF_CURSOR)
+      verify(cs).execute()
+      verify(cs).getObject(2)
+      verify(rs).next()
+      verify(rs).getString("email_address")
+      verify(rs).close()
+      verify(cs).close()
+    }
+  }
 }

@@ -136,4 +136,32 @@ final class MonthlyReturnServiceSpec extends SpecBase{
       verifyNoMoreInteractions(repo)
     }
   }
+
+  "MonthlyReturnService getSchemeEmail" - {
+
+    "delegates to repo and returns Some(email)" in new Ctx {
+      when(repo.getSchemeEmail(eqTo(id))).thenReturn(Future.successful(Some("a@b.com")))
+
+      service.getSchemeEmail(id).futureValue mustBe Some("a@b.com")
+      verify(repo).getSchemeEmail(eqTo(id))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "delegates to repo and returns None" in new Ctx {
+      when(repo.getSchemeEmail(eqTo(id))).thenReturn(Future.successful(None))
+
+      service.getSchemeEmail(id).futureValue mustBe None
+      verify(repo).getSchemeEmail(eqTo(id))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failures from repo" in new Ctx {
+      val boom = new RuntimeException("db boom")
+      when(repo.getSchemeEmail(eqTo(id))).thenReturn(Future.failed(boom))
+
+      service.getSchemeEmail(id).failed.futureValue mustBe boom
+      verify(repo).getSchemeEmail(eqTo(id))
+      verifyNoMoreInteractions(repo)
+    }
+  }
 }
