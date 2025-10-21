@@ -323,6 +323,9 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
       cs.execute()
 
       val rs = cs.getObject(2, classOf[ResultSet])
+      if (rs == null)
+        throw new RuntimeException(s"int_Get_Scheme returned null cursor for instance_id=$instanceId")
+        
       Using.resource(rs) { r =>
         if (r != null && r.next()) readSchemeRow(r)
         else throw new RuntimeException(s"No SCHEME row for instance_id=$instanceId")
@@ -354,6 +357,9 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
       cs.execute()
 
       val monthlyReturns = cs.getObject(3, classOf[ResultSet])
+      if (monthlyReturns == null)
+        throw new RuntimeException("Get_All_Monthly_Returns returned null monthly cursor")
+        
       Using.resource(monthlyReturns) { rs =>
         if (rs == null)
           throw new RuntimeException("Get_All_Monthly_Returns returned null monthly cursor")

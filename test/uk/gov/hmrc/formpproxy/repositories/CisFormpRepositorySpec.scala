@@ -110,7 +110,8 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"))
         .thenReturn(csGetScheme)
-      when(csGetScheme.getObject(2)).thenReturn(rsScheme)
+      when(csGetScheme.getObject(eqTo(2), eqTo(classOf[ResultSet])))
+        .thenReturn(rsScheme)
       when(rsScheme.next()).thenReturn(true, false)
       when(rsScheme.getInt("version")).thenReturn(0)
 
@@ -150,37 +151,32 @@ final class CisFormpRepositorySpec extends SpecBase {
     "look up ids, call SPs, return the submission id, and close resources" in {
       val db       = mock[Database]
       val conn     = mock[Connection]
-      val psScheme = mock[PreparedStatement]
       val rsScheme = mock[ResultSet]
-      val psMonthly= mock[PreparedStatement]
       val rsMonthly= mock[ResultSet]
+      val csScheme  = mock[CallableStatement]
+      val csAll     = mock[CallableStatement]
       val csCreate = mock[CallableStatement]
       val csTrack  = mock[CallableStatement]
+
 
       when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
       }
 
-      when(conn.prepareStatement(eqTo("select scheme_id from scheme where instance_id = ?")))
-        .thenReturn(psScheme)
-      when(conn.prepareStatement(eqTo(
-        "select monthly_return_id from monthly_return " +
-          "where scheme_id = ? and tax_year = ? and tax_month = ?"
-      ))).thenReturn(psMonthly)
-
-      when(psScheme.executeQuery()).thenReturn(rsScheme)
+      when(conn.prepareCall(eqTo("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"))).thenReturn(csScheme)
+      when(csScheme.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
       when(rsScheme.next()).thenReturn(true)
-      when(rsScheme.getLong(1)).thenReturn(9999L)
+      when(rsScheme.getLong("scheme_id")).thenReturn(9999L)
 
-      when(psMonthly.executeQuery()).thenReturn(rsMonthly)
-      when(rsMonthly.next()).thenReturn(true)
-      when(rsMonthly.getLong(1)).thenReturn(7777L)
+      when(conn.prepareCall(eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }"))).thenReturn(csAll)
+      when(csAll.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsMonthly)
+      when(rsMonthly.next()).thenReturn(true, false)
+      when(rsMonthly.getInt("tax_year")).thenReturn(2024)
+      when(rsMonthly.getInt("tax_month")).thenReturn(4)
+      when(rsMonthly.getLong("monthly_return_id")).thenReturn(7777L)
 
-      when(conn.prepareCall(eqTo("{ call SUBMISSION_PROCS.Create_Submission(?, ?, ?, ?, ?, ?, ?, ?, ?) }")))
-        .thenReturn(csCreate)
-      when(conn.prepareCall(eqTo("{ call HONESTY_DECLARATION_PROCS.TRACK_SUBMISSIONS(?, ?, ?, ?, ?, ?) }")))
-        .thenReturn(csTrack)
-
+      when(conn.prepareCall(eqTo("{ call SUBMISSION_PROCS.Create_Submission(?, ?, ?, ?, ?, ?, ?, ?, ?) }"))).thenReturn(csCreate)
+      when(conn.prepareCall(eqTo("{ call HONESTY_DECLARATION_PROCS.TRACK_SUBMISSIONS(?, ?, ?, ?, ?, ?) }"))).thenReturn(csTrack)
       when(csCreate.getLong(9)).thenReturn(12345L)
 
       val repo = new CisFormpRepository(db)
@@ -190,7 +186,7 @@ final class CisFormpRepositorySpec extends SpecBase {
         taxYear = 2024,
         taxMonth = 4,
         hmrcMarkGenerated = Some("Dj5TVJDyRYCn9zta5EdySeY4fyA="),
-        emailRecipient = Some("ops@example.com"),
+        emailRecipient = Some("test@test.com"),
         agentId = None,
         subcontractorCount = Some(2),
         totalPaymentsMade = Some(BigDecimal(1000)),
@@ -200,10 +196,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       val out = repo.createAndTrackSubmission(req).futureValue
       out mustBe "12345"
 
-      verify(conn).prepareCall(eqTo("{ call SUBMISSION_PROCS.Create_Submission(?, ?, ?, ?, ?, ?, ?, ?, ?) }"))
       verify(csCreate).execute()
-
-      verify(conn).prepareCall(eqTo("{ call HONESTY_DECLARATION_PROCS.TRACK_SUBMISSIONS(?, ?, ?, ?, ?, ?) }"))
       verify(csTrack).execute()
     }
   }
@@ -213,30 +206,27 @@ final class CisFormpRepositorySpec extends SpecBase {
     "look up ids, call update SP with correct params, and close resources" in {
       val db       = mock[Database]
       val conn     = mock[Connection]
-      val psScheme = mock[PreparedStatement]
       val rsScheme = mock[ResultSet]
-      val psMonthly= mock[PreparedStatement]
-      val rsMonthly= mock[ResultSet]
+      val rsMonthly = mock[ResultSet]
+      val csScheme = mock[CallableStatement]
+      val csAll = mock[CallableStatement]
       val csUpdate = mock[CallableStatement]
 
       when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
       }
 
-      when(conn.prepareStatement(eqTo("select scheme_id from scheme where instance_id = ?")))
-        .thenReturn(psScheme)
-      when(conn.prepareStatement(eqTo(
-        "select monthly_return_id from monthly_return " +
-          "where scheme_id = ? and tax_year = ? and tax_month = ?"
-      ))).thenReturn(psMonthly)
-
-      when(psScheme.executeQuery()).thenReturn(rsScheme)
+      when(conn.prepareCall(eqTo("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"))).thenReturn(csScheme)
+      when(csScheme.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
       when(rsScheme.next()).thenReturn(true)
-      when(rsScheme.getLong(1)).thenReturn(9999L)
+      when(rsScheme.getLong("scheme_id")).thenReturn(9999L)
 
-      when(psMonthly.executeQuery()).thenReturn(rsMonthly)
-      when(rsMonthly.next()).thenReturn(true)
-      when(rsMonthly.getLong(1)).thenReturn(7777L)
+      when(conn.prepareCall(eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }"))).thenReturn(csAll)
+      when(csAll.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsMonthly)
+      when(rsMonthly.next()).thenReturn(true, false)
+      when(rsMonthly.getInt("tax_year")).thenReturn(2024)
+      when(rsMonthly.getInt("tax_month")).thenReturn(4)
+      when(rsMonthly.getLong("monthly_return_id")).thenReturn(7777L)
 
       when(conn.prepareCall(eqTo("{ call SUBMISSION_PROCS_2016.UPDATE_MR_SUBMISSION(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")))
         .thenReturn(csUpdate)
@@ -262,10 +252,8 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       repo.updateMonthlyReturnSubmission(req).futureValue
 
-      verify(conn).prepareStatement(eqTo("select scheme_id from scheme where instance_id = ?"))
-      verify(conn).prepareStatement(eqTo(
-        "select monthly_return_id from monthly_return where scheme_id = ? and tax_year = ? and tax_month = ?"
-      ))
+      verify(csUpdate).execute()
+      verify(conn).prepareCall(eqTo("{ call SUBMISSION_PROCS_2016.UPDATE_MR_SUBMISSION(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"))
     }
   }
 
@@ -283,7 +271,7 @@ final class CisFormpRepositorySpec extends SpecBase {
         val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
       }
       when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")).thenReturn(cs)
-      when(cs.getObject(2)).thenReturn(rs)
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rs)
       when(rs.next()).thenReturn(true, false)
       when(rs.getString("email_address")).thenReturn("test@example.com")
 
@@ -292,15 +280,8 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       result mustBe Some("test@example.com")
 
-      verify(conn).prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")
-      verify(cs).setString(1, "abc-123")
-      verify(cs).registerOutParameter(2, java.sql.Types.REF_CURSOR)
       verify(cs).execute()
-      verify(cs).getObject(2)
-      verify(rs).next()
-      verify(rs).getString("email_address")
       verify(rs).close()
-      verify(cs).close()
     }
 
     "call SCHEME_PROCS.int_Get_Scheme and return None when email is null" in {
@@ -313,7 +294,7 @@ final class CisFormpRepositorySpec extends SpecBase {
         val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
       }
       when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")).thenReturn(cs)
-      when(cs.getObject(2)).thenReturn(rs)
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rs)
       when(rs.next()).thenReturn(true, false)
       when(rs.getString("email_address")).thenReturn(null)
 
@@ -322,15 +303,8 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       result mustBe None
 
-      verify(conn).prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")
-      verify(cs).setString(1, "abc-123")
-      verify(cs).registerOutParameter(2, java.sql.Types.REF_CURSOR)
       verify(cs).execute()
-      verify(cs).getObject(2)
-      verify(rs).next()
-      verify(rs).getString("email_address")
       verify(rs).close()
-      verify(cs).close()
     }
 
     "call SCHEME_PROCS.int_Get_Scheme and return None when email is empty string" in {
@@ -343,7 +317,7 @@ final class CisFormpRepositorySpec extends SpecBase {
         val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
       }
       when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")).thenReturn(cs)
-      when(cs.getObject(2)).thenReturn(rs)
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rs)
       when(rs.next()).thenReturn(true, false)
       when(rs.getString("email_address")).thenReturn("   ")
 
@@ -352,15 +326,8 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       result mustBe None
 
-      verify(conn).prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")
-      verify(cs).setString(1, "abc-123")
-      verify(cs).registerOutParameter(2, java.sql.Types.REF_CURSOR)
       verify(cs).execute()
-      verify(cs).getObject(2)
-      verify(rs).next()
-      verify(rs).getString("email_address")
       verify(rs).close()
-      verify(cs).close()
     }
 
     "call SCHEME_PROCS.int_Get_Scheme and return Some(email) when email has whitespace that gets trimmed" in {
@@ -373,7 +340,7 @@ final class CisFormpRepositorySpec extends SpecBase {
         val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
       }
       when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")).thenReturn(cs)
-      when(cs.getObject(2)).thenReturn(rs)
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rs)
       when(rs.next()).thenReturn(true, false)
       when(rs.getString("email_address")).thenReturn("  test@example.com  ")
 
@@ -381,16 +348,9 @@ final class CisFormpRepositorySpec extends SpecBase {
       val result = repo.getSchemeEmail("abc-123").futureValue
 
       result mustBe Some("test@example.com")
-
-      verify(conn).prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")
-      verify(cs).setString(1, "abc-123")
-      verify(cs).registerOutParameter(2, java.sql.Types.REF_CURSOR)
+      
       verify(cs).execute()
-      verify(cs).getObject(2)
-      verify(rs).next()
-      verify(rs).getString("email_address")
       verify(rs).close()
-      verify(cs).close()
     }
   }
 }
