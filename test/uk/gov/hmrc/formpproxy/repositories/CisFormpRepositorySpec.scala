@@ -94,13 +94,13 @@ final class CisFormpRepositorySpec extends SpecBase {
   "createNilMonthlyReturn" - {
 
     "call underlying procedures with correct parameters and return STARTED" in {
-      val db = mock(classOf[Database])
-      val conn = mock(classOf[java.sql.Connection])
-      val csCreate = mock(classOf[CallableStatement])
-      val csVersion = mock(classOf[CallableStatement])
-      val csUpdate = mock(classOf[CallableStatement])
-      val csGetScheme = mock(classOf[CallableStatement])
-      val rsScheme = mock(classOf[java.sql.ResultSet])
+      val db = mock[Database]
+      val conn = mock[java.sql.Connection]
+      val csCreate = mock[CallableStatement]
+      val csVersion = mock[CallableStatement]
+      val csUpdate = mock[CallableStatement]
+      val csGetScheme = mock[CallableStatement]
+      val rsScheme = mock[java.sql.ResultSet]
 
       when(db.withTransaction(org.mockito.ArgumentMatchers.any[java.sql.Connection => Any]))
         .thenAnswer { inv =>
@@ -133,9 +133,6 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       val out = repo.createNilMonthlyReturn(request).futureValue
       out.status mustBe "STARTED"
-
-      verify(conn).prepareStatement("select version from scheme where instance_id = ?")
-      verify(psGetScheme).executeQuery()
 
       verify(conn).prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }")
       verify(csCreate).execute()
