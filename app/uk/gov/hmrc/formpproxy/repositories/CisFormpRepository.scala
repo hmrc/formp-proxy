@@ -150,23 +150,29 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
   }
 
 
-  private val SqlGetSchemeVersion =
-    "select version from scheme where instance_id = ?"
-
   private val CallGetSchemeEmail =
     "{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"
 
   private def getSchemeVersion(conn: Connection, instanceId: String): Int = {
-    val statement = conn.prepareStatement(SqlGetSchemeVersion)
+    val cs = conn.prepareCall(CallGetSchemeEmail)
     try {
-      statement.setString(1, instanceId)
-      val rs = statement.executeQuery()
+      cs.setString(1, instanceId)
+      cs.registerOutParameter(2, java.sql.Types.REF_CURSOR)
+      cs.execute()
+
+      val cursor = cs.getObject(2).asInstanceOf[java.sql.ResultSet]
       try {
-        if (!rs.next())
+        if (cursor.next()) {
+          try {
+            cursor.getInt("version")
+          } catch {
+            case _: Exception => 1
+          }
+        } else {
           throw new RuntimeException(s"No SCHEME row for instance_id=$instanceId")
-        rs.getInt(1)
-      } finally rs.close()
-    } finally statement.close()
+        }
+      } finally cursor.close()
+    } finally cs.close()
   }
 
   override def getSchemeEmail(instanceId: String): Future[Option[String]] = {
