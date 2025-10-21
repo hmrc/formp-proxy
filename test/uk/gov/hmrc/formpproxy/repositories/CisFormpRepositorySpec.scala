@@ -108,7 +108,7 @@ final class CisFormpRepositorySpec
       val csCreate = mock(classOf[CallableStatement])
       val csVersion = mock(classOf[CallableStatement])
       val csUpdate = mock(classOf[CallableStatement])
-      val psGetScheme = mock(classOf[java.sql.PreparedStatement])
+      val csGetScheme = mock(classOf[CallableStatement])
       val rsScheme = mock(classOf[java.sql.ResultSet])
 
       when(db.withTransaction(org.mockito.ArgumentMatchers.any[java.sql.Connection => Any]))
@@ -116,11 +116,12 @@ final class CisFormpRepositorySpec
           val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
         }
 
-      when(conn.prepareStatement("select version from scheme where instance_id = ?"))
-        .thenReturn(psGetScheme)
-      when(psGetScheme.executeQuery()).thenReturn(rsScheme)
-      when(rsScheme.next()).thenReturn(true)
-      when(rsScheme.getInt(1)).thenReturn(3)
+
+      when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"))
+        .thenReturn(csGetScheme)
+      when(csGetScheme.getObject(2)).thenReturn(rsScheme)
+      when(rsScheme.next()).thenReturn(true, false)
+      when(rsScheme.getInt("version")).thenReturn(0)
 
       when(conn.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }"))
         .thenReturn(csCreate)
@@ -142,13 +143,16 @@ final class CisFormpRepositorySpec
       val out = repo.createNilMonthlyReturn(request).futureValue
       out.status mustBe "STARTED"
 
-      verify(conn).prepareStatement("select version from scheme where instance_id = ?")
-      verify(psGetScheme).setString(1, "abc-123")
-      verify(psGetScheme).executeQuery()
+
+      verify(conn).prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")
+      verify(csGetScheme).setString(1, "abc-123")
+      verify(csGetScheme).registerOutParameter(2, java.sql.Types.REF_CURSOR)
+      verify(csGetScheme).execute()
+      verify(csGetScheme).getObject(2)
       verify(rsScheme).next()
-      verify(rsScheme).getInt(1)
+      verify(rsScheme).getInt("version")
       verify(rsScheme).close()
-      verify(psGetScheme).close()
+      verify(csGetScheme).close()
 
       verify(conn).prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }")
       verify(csCreate).setString(1, "abc-123")
@@ -160,7 +164,7 @@ final class CisFormpRepositorySpec
 
       verify(conn).prepareCall("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }")
       verify(csVersion).setString(1, "abc-123")
-      verify(csVersion).setInt(2, 3)
+      verify(csVersion).setInt(2, 0)
       verify(csVersion).registerOutParameter(2, java.sql.Types.INTEGER)
       verify(csVersion).execute()
       verify(csVersion).getInt(2)
