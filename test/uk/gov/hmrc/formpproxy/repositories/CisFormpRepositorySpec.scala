@@ -94,24 +94,25 @@ final class CisFormpRepositorySpec extends SpecBase {
   "createNilMonthlyReturn" - {
 
     "call underlying procedures with correct parameters and return STARTED" in {
-      val db         = mock[Database]
-      val conn       = mock[Connection]
-      val csCreate   = mock[CallableStatement]
-      val csVersion  = mock[CallableStatement]
-      val csUpdate   = mock[CallableStatement]
-      val psGetScheme= mock[PreparedStatement]
-      val rsScheme   = mock[ResultSet]
+      val db = mock(classOf[Database])
+      val conn = mock(classOf[java.sql.Connection])
+      val csCreate = mock(classOf[CallableStatement])
+      val csVersion = mock(classOf[CallableStatement])
+      val csUpdate = mock(classOf[CallableStatement])
+      val csGetScheme = mock(classOf[CallableStatement])
+      val rsScheme = mock(classOf[java.sql.ResultSet])
 
       when(db.withTransaction(org.mockito.ArgumentMatchers.any[java.sql.Connection => Any]))
         .thenAnswer { inv =>
           val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
         }
 
-      when(conn.prepareStatement("select version from scheme where instance_id = ?"))
-        .thenReturn(psGetScheme)
-      when(psGetScheme.executeQuery()).thenReturn(rsScheme)
-      when(rsScheme.next()).thenReturn(true)
-      when(rsScheme.getInt(1)).thenReturn(3)
+
+      when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"))
+        .thenReturn(csGetScheme)
+      when(csGetScheme.getObject(2)).thenReturn(rsScheme)
+      when(rsScheme.next()).thenReturn(true, false)
+      when(rsScheme.getInt("version")).thenReturn(0)
 
       when(conn.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }"))
         .thenReturn(csCreate)
