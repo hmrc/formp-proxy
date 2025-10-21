@@ -121,7 +121,7 @@ final class CisFormpRepositorySpec
         .thenReturn(csGetScheme)
       when(csGetScheme.getObject(2)).thenReturn(rsScheme)
       when(rsScheme.next()).thenReturn(true, false)
-      when(rsScheme.getInt("version")).thenReturn(3)
+      when(rsScheme.getInt("version")).thenReturn(0)
 
       when(conn.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }"))
         .thenReturn(csCreate)
@@ -164,7 +164,7 @@ final class CisFormpRepositorySpec
 
       verify(conn).prepareCall("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }")
       verify(csVersion).setString(1, "abc-123")
-      verify(csVersion).setInt(2, 3)
+      verify(csVersion).setInt(2, 0)
       verify(csVersion).registerOutParameter(2, java.sql.Types.INTEGER)
       verify(csVersion).execute()
       verify(csVersion).getInt(2)

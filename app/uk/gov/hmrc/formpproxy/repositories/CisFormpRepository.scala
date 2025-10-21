@@ -166,7 +166,7 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
           try {
             cursor.getInt("version")
           } catch {
-            case _: Exception => 1
+            case _: Exception => 0
           }
         } else {
           throw new RuntimeException(s"No SCHEME row for instance_id=$instanceId")
