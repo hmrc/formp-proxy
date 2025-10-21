@@ -21,13 +21,16 @@ import oracle.jdbc.OracleTypes
 import javax.inject.{Inject, Singleton}
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
-import uk.gov.hmrc.formpproxy.models.requests.{CreateAndTrackSubmissionRequest, UpdateSubmissionRequest, CreateNilMonthlyReturnRequest}
+import uk.gov.hmrc.formpproxy.models.requests.{CreateAndTrackSubmissionRequest, CreateNilMonthlyReturnRequest, UpdateSubmissionRequest}
 import uk.gov.hmrc.formpproxy.models.response.CreateNilMonthlyReturnResponse
 
 import scala.concurrent.{ExecutionContext, Future}
 import java.sql.{Connection, ResultSet, Timestamp, Types}
+import java.lang.Long
 import scala.annotation.tailrec
 import uk.gov.hmrc.formpproxy.models.{MonthlyReturn, UserMonthlyReturns}
+
+import scala.util.Using
 
 trait CisMonthlyReturnSource {
   def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns]
@@ -37,6 +40,8 @@ trait CisMonthlyReturnSource {
   def getSchemeEmail(instanceId: String): Future[Option[String]]
 }
 
+private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
+
 @Singleton
 class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit ec: ExecutionContext)
   extends CisMonthlyReturnSource with Logging {
@@ -45,7 +50,7 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
     logger.info(s"[CIS] getMonthlyReturns(instanceId=$instanceId)")
     Future {
       db.withConnection { conn =>
-        val cs = conn.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }")
+        val cs = conn.prepareCall(CallGetAllMonthlyReturns)
         try {
           cs.setString(1, instanceId)
           cs.registerOutParameter(2, OracleTypes.CURSOR)
@@ -55,10 +60,10 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
           val rsScheme = cs.getObject(2, classOf[ResultSet])
           try () finally if (rsScheme != null) rsScheme.close()
 
-          val rsMonthly = cs.getObject(3, classOf[ResultSet])
+          val monthlyReturns = cs.getObject(3, classOf[ResultSet])
           val returns =
-            try collectMonthlyReturns(rsMonthly)
-            finally if (rsMonthly != null) rsMonthly.close()
+            try collectMonthlyReturns(monthlyReturns)
+            finally if (monthlyReturns != null) monthlyReturns.close()
 
           UserMonthlyReturns(returns)
       } finally {
@@ -94,7 +99,7 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
   override def createAndTrackSubmission(request: CreateAndTrackSubmissionRequest): Future[String] = Future {
     db.withTransaction { conn =>
       val schemeId = getSchemeId(conn, request.instanceId)
-      val monthlyReturnId = getMonthlyReturnId(conn, schemeId, request.taxYear, request.taxMonth)
+      val monthlyReturnId = getMonthlyReturnId(conn, request.instanceId, request.taxYear, request.taxMonth)
 
       val submissionId = callCreateSubmission(
         conn,
@@ -124,8 +129,7 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
 
   override def updateMonthlyReturnSubmission(request: UpdateSubmissionRequest): Future[Unit] = Future {
     db.withConnection { conn =>
-      val schemeId = getSchemeId(conn, request.instanceId)
-      val monthlyReturnId = getMonthlyReturnId(conn, schemeId, request.taxYear, request.taxMonth)
+      val monthlyReturnId = getMonthlyReturnId(conn, request.instanceId, request.taxYear, request.taxMonth)
       val amendValue = request.amendment.getOrElse("N")
 
       callUpdateMonthlyReturnSubmission(
@@ -149,39 +153,6 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
       )
       ()
     }
-  }
-
-  private val SqlGetSchemeId =
-    "select scheme_id from scheme where instance_id = ?"
-
-  private def getSchemeId(conn: Connection, instanceId: String): Long = {
-    val statement = conn.prepareStatement(SqlGetSchemeId)
-    try {
-      statement.setString(1, instanceId)
-      val rs = statement.executeQuery()
-      try {
-        if (!rs.next()) throw new RuntimeException(s"No SCHEME row for instance_id=$instanceId")
-        rs.getLong(1)
-      } finally rs.close()
-    } finally statement.close()
-  }
-
-  private val SqlGetMonthlyReturnId =
-    "select monthly_return_id from monthly_return " +
-    "where scheme_id = ? and tax_year = ? and tax_month = ?"
-
-  private def getMonthlyReturnId(conn: Connection, schemeId: Long, taxYear: Int, taxMonth: Int): Long = {
-    val statement = conn.prepareStatement(SqlGetMonthlyReturnId)
-    try {
-      statement.setLong(1, schemeId)
-      statement.setInt(2, taxYear)
-      statement.setInt(3, taxMonth)
-      val rs = statement.executeQuery()
-      try {
-        if (!rs.next()) throw new RuntimeException(s"No MONTHLY_RETURN for scheme=$schemeId year=$taxYear, month=$taxMonth")
-        rs.getLong(1)
-      } finally rs.close()
-    } finally statement.close()
   }
 
   private def callCreateSubmission(
@@ -292,6 +263,8 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
   private val CallCreateMonthlyReturn = "{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }"
   private val CallUpdateSchemeVersion = "{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"
   private val CallUpdateMonthlyReturn = "{ call MONTHLY_RETURN_PROCS_2016.Update_Monthly_Return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+  private val CallGetScheme = "{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"
+  private val CallGetAllMonthlyReturns = "{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }"
 
   private def callCreateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit = {
     val cs = conn.prepareCall(CallCreateMonthlyReturn)
@@ -335,55 +308,70 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
     } finally cs.close()
   }
 
-
-  private val CallGetSchemeEmail =
-    "{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"
-
-  private def getSchemeVersion(conn: Connection, instanceId: String): Int = {
-    val cs = conn.prepareCall(CallGetSchemeEmail)
-    try {
-      cs.setString(1, instanceId)
-      cs.registerOutParameter(2, java.sql.Types.REF_CURSOR)
-      cs.execute()
-
-      val cursor = cs.getObject(2).asInstanceOf[java.sql.ResultSet]
-      try {
-        if (cursor.next()) {
-          try {
-            cursor.getInt("version")
-          } catch {
-            case _: Exception => 0
-          }
-        } else {
-          throw new RuntimeException(s"No SCHEME row for instance_id=$instanceId")
-        }
-      } finally cursor.close()
-    } finally cs.close()
+  private def readSchemeRow(rs: ResultSet): SchemeRow = {
+    val id = rs.getLong("scheme_id")
+    val v = rs.getInt("version")
+    val version = if (rs.wasNull()) None else Some(v)
+    val email = Option(rs.getString("email_address")).map(_.trim).filter(_.nonEmpty)
+    SchemeRow(id, version, email)
   }
 
-  override def getSchemeEmail(instanceId: String): Future[Option[String]] = {
-    logger.info(s"[CIS] getSchemeEmail(instanceId=$instanceId)")
-    Future {
-      db.withConnection { conn =>
-        val cs = conn.prepareCall(CallGetSchemeEmail)
-        try {
-          cs.setString(1, instanceId)
-          cs.registerOutParameter(2, java.sql.Types.REF_CURSOR)
-          cs.execute()
+  private def loadScheme(conn: Connection, instanceId: String): SchemeRow =
+    Using.resource(conn.prepareCall(CallGetScheme)) { cs =>
+      cs.setString(1, instanceId)
+      cs.registerOutParameter(2, Types.REF_CURSOR)
+      cs.execute()
 
-          val cursor = cs.getObject(2).asInstanceOf[java.sql.ResultSet]
-          try {
-            if (cursor.next()) {
-              val email = cursor.getString("email_address")
-              Option(email).map(_.trim).filter(_.nonEmpty)
-            } else {
-              None
-            }
-          } finally cursor.close()
-        } finally cs.close()
+      val rs = cs.getObject(2, classOf[ResultSet])
+      Using.resource(rs) { r =>
+        if (r != null && r.next()) readSchemeRow(r)
+        else throw new RuntimeException(s"No SCHEME row for instance_id=$instanceId")
       }
+    }
+
+  private def getSchemeVersion(conn: Connection, instanceId: String): Int =
+    loadScheme(conn, instanceId).version.getOrElse(0)
+
+  override def getSchemeEmail(instanceId: String): Future[Option[String]] = Future {
+    db.withConnection { conn =>
+      loadScheme(conn, instanceId).email
     }
   }
 
+  private def getSchemeId(conn: Connection, instanceId: String): Long =
+    loadScheme(conn, instanceId).schemeId
+
+  private def getMonthlyReturnId(
+                                  conn: Connection,
+                                  instanceId: String,
+                                  taxYear: Int,
+                                  taxMonth: Int
+                                ): Long =
+    Using.resource(conn.prepareCall(CallGetAllMonthlyReturns)) { cs =>
+      cs.setString(1, instanceId)
+      cs.registerOutParameter(2, OracleTypes.CURSOR)
+      cs.registerOutParameter(3, OracleTypes.CURSOR)
+      cs.execute()
+
+      val monthlyReturns = cs.getObject(3, classOf[ResultSet])
+      Using.resource(monthlyReturns) { rs =>
+        if (rs == null)
+          throw new RuntimeException("Get_All_Monthly_Returns returned null monthly cursor")
+
+        var found: Long = null
+        while (found == null && rs.next()) {
+          val year = rs.getInt("tax_year")
+          val month = rs.getInt("tax_month")
+          if (year == taxYear && month == taxMonth) {
+            found = rs.getLong("monthly_return_id")
+          }
+        }
+
+        if (found != null) found.longValue()
+        else throw new RuntimeException(
+          s"No MONTHLY_RETURN for instance_id=$instanceId year=$taxYear month=$taxMonth"
+        )
+      }
+    }
 
 }
