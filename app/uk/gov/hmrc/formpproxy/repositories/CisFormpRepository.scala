@@ -361,9 +361,6 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
         throw new RuntimeException("Get_All_Monthly_Returns returned null monthly cursor")
         
       Using.resource(monthlyReturns) { rs =>
-        if (rs == null)
-          throw new RuntimeException("Get_All_Monthly_Returns returned null monthly cursor")
-
         var found: Long = null
         while (found == null && rs.next()) {
           val year = rs.getInt("tax_year")

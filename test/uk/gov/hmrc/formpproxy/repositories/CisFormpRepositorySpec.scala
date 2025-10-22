@@ -257,7 +257,112 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
   }
 
+  "loadScheme" - {
 
+    "throw when int_Get_Scheme returns null cursor" in {
+      val db  = mock[Database]
+      val connection   = mock[Connection]
+      val cs  = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any])
+        f(connection)
+      }
+      when(connection.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")).thenReturn(cs)
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(null)
+
+      val repo = new CisFormpRepository(db)
+      val method = classOf[CisFormpRepository].getDeclaredMethod("loadScheme", classOf[Connection], classOf[String])
+      method.setAccessible(true)
+
+      val thrown = intercept[java.lang.reflect.InvocationTargetException] {
+        method.invoke(repo, connection, "abc-123")
+      }
+      val cause = thrown.getCause.asInstanceOf[RuntimeException]
+      cause.getMessage must include("null cursor")
+    }
+
+    "throw when no SCHEME row for instance id" in {
+      val db = mock[Database]
+      val connection = mock[Connection]
+      val cs = mock[CallableStatement]
+      val rs = mock[ResultSet]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any])
+        f(connection)
+      }
+      when(connection.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")).thenReturn(cs)
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rs)
+      when(rs.next()).thenReturn(false)
+
+      val repo = new CisFormpRepository(db)
+      val method = classOf[CisFormpRepository].getDeclaredMethod("loadScheme", classOf[Connection], classOf[String])
+      method.setAccessible(true)
+
+      val thrown = intercept[java.lang.reflect.InvocationTargetException] {
+        method.invoke(repo, connection, "abc-123")
+      }
+      val cause = thrown.getCause.asInstanceOf[RuntimeException]
+      cause.getMessage must include("No SCHEME row")
+    }
+  }
+
+  "getMonthlyReturnId" - {
+
+    "throw when Get_All_Monthly_Returns returns null monthly cursor (outer null check)" in {
+      val db = mock[Database]
+      val connection  = mock[Connection]
+      val cs = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any])
+        f(connection)
+      }
+      when(connection.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }")).thenReturn(cs)
+      when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(null) // ← null monthly cursor
+
+      val repo = new CisFormpRepository(db)
+      val method = classOf[CisFormpRepository].getDeclaredMethod(
+        "getMonthlyReturnId", classOf[Connection], classOf[String], classOf[Int], classOf[Int]
+      )
+      method.setAccessible(true)
+      val thrown = intercept[java.lang.reflect.InvocationTargetException] {
+        method.invoke(repo, connection, "abc-123", Int.box(2025), Int.box(2))
+      }
+      val cause = thrown.getCause.asInstanceOf[RuntimeException]
+      cause.getMessage must include("null monthly cursor")
+    }
+
+    "throw when no MONTHLY_RETURN matches the requested year/month" in {
+      val db = mock[Database]
+      val connection  = mock[Connection]
+      val cs = mock[CallableStatement]
+      val rs = mock[ResultSet]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any])
+        f(connection)
+      }
+      when(connection.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }")).thenReturn(cs)
+      when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rs)
+
+      when(rs.next()).thenReturn(true, true, false)
+      when(rs.getInt("tax_year")).thenReturn(2024, 2025)
+      when(rs.getInt("tax_month")).thenReturn(12, 1)
+
+      val repo = new CisFormpRepository(db)
+      val method = classOf[CisFormpRepository].getDeclaredMethod(
+        "getMonthlyReturnId", classOf[Connection], classOf[String], classOf[Int], classOf[Int]
+      )
+      method.setAccessible(true)
+      val thrown = intercept[java.lang.reflect.InvocationTargetException] {
+        method.invoke(repo, connection, "abc-123", Int.box(2025), Int.box(2))
+      }
+      val cause = thrown.getCause.asInstanceOf[RuntimeException]
+      cause.getMessage must include("No MONTHLY_RETURN for instance_id=abc-123 year=2025 month=2")
+    }
+  }
 
   "getSchemeEmail" - {
 
@@ -348,7 +453,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       val result = repo.getSchemeEmail("abc-123").futureValue
 
       result mustBe Some("test@example.com")
-      
+
       verify(cs).execute()
       verify(rs).close()
     }
