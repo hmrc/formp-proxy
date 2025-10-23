@@ -17,24 +17,19 @@
 package uk.gov.hmrc.formpproxy
 
 import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, AuthStub}
-import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.http.Status.*
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.http.HttpResponse
 
 class MonthlyReturnControllerIntegrationSpec
-  extends AnyWordSpec
-    with Matchers
+  extends Matchers
     with ScalaFutures
     with IntegrationPatience
     with ApplicationWithWiremock {
 
   private val endpoint = "monthly-returns"
-
-  private def postJson(uri: String, body: JsValue): HttpResponse =
-    post(uri, body).futureValue
 
   "POST /formp-proxy/monthly-returns" should {
 
