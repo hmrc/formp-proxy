@@ -20,7 +20,7 @@ import play.api.Logging
 import uk.gov.hmrc.formpproxy.models.response.CreateNilMonthlyReturnResponse
 import uk.gov.hmrc.formpproxy.repositories.CisMonthlyReturnSource
 import uk.gov.hmrc.formpproxy.models.{MonthlyReturn, UserMonthlyReturns}
-import uk.gov.hmrc.formpproxy.models.requests.{CreateAndTrackSubmissionRequest, UpdateSubmissionRequest, CreateNilMonthlyReturnRequest}
+import uk.gov.hmrc.formpproxy.models.requests.{CreateSubmissionRequest, UpdateSubmissionRequest, CreateNilMonthlyReturnRequest}
 
 import java.time.LocalDateTime
 import java.util.concurrent.atomic.AtomicLong
@@ -83,7 +83,7 @@ class CisFormpStub @Inject()(stubUtils: StubUtils) extends CisMonthlyReturnSourc
     storedReturns.clear()
   }
 
-  override def createAndTrackSubmission(req: CreateAndTrackSubmissionRequest): Future[String] = {
+  override def createSubmission(req: CreateSubmissionRequest): Future[String] = {
     logger.info(s"[Stub] createAndTrackSubmission(${req.instanceId}, ${req.taxYear}, ${req.taxMonth})")
     Future.successful("90001")
   }

@@ -21,7 +21,7 @@ import oracle.jdbc.OracleTypes
 import javax.inject.{Inject, Singleton}
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
-import uk.gov.hmrc.formpproxy.models.requests.{CreateAndTrackSubmissionRequest, CreateNilMonthlyReturnRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.models.requests.{CreateSubmissionRequest, CreateNilMonthlyReturnRequest, UpdateSubmissionRequest}
 import uk.gov.hmrc.formpproxy.models.response.CreateNilMonthlyReturnResponse
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -34,7 +34,7 @@ import scala.util.Using
 
 trait CisMonthlyReturnSource {
   def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns]
-  def createAndTrackSubmission(request: CreateAndTrackSubmissionRequest): Future[String]
+  def createSubmission(request: CreateSubmissionRequest): Future[String]
   def updateMonthlyReturnSubmission(request: UpdateSubmissionRequest): Future[Unit]
   def createNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[CreateNilMonthlyReturnResponse]
   def getSchemeEmail(instanceId: String): Future[Option[String]]
@@ -96,9 +96,8 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
     }
 
 
-  override def createAndTrackSubmission(request: CreateAndTrackSubmissionRequest): Future[String] = Future {
+  override def createSubmission(request: CreateSubmissionRequest): Future[String] = Future {
     db.withTransaction { conn =>
-      val schemeId = getSchemeId(conn, request.instanceId)
       val monthlyReturnId = getMonthlyReturnId(conn, request.instanceId, request.taxYear, request.taxMonth)
 
       val submissionId = callCreateSubmission(
@@ -110,17 +109,7 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
         hmrcMarkGgis = null,
         emailRecipient = request.emailRecipient.orNull,
         agentId = request.agentId.orNull,
-        submittableStatus = "PENDING" // to be discussed
-      )
-
-      callTrackSubmission(
-        conn,
-        schemeId = schemeId,
-        taxYear = request.taxYear,
-        taxMonth = request.taxMonth,
-        subcontractorCount = request.subcontractorCount.getOrElse(0),
-        totalPaymentsMade = request.totalPaymentsMade.getOrElse(BigDecimal(0)),
-        totalTaxDeducted = request.totalTaxDeducted.getOrElse(BigDecimal(0))
+        submittableStatus = "PENDING" 
       )
 
       submissionId.toString
@@ -179,27 +168,6 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
       cs.registerOutParameter(9, Types.NUMERIC)
       cs.execute()
       cs.getLong(9)
-    } finally cs.close()
-  }
-
-  private def callTrackSubmission(
-    conn: Connection,
-    schemeId: Long,
-    taxYear: Int,
-    taxMonth: Int,
-    subcontractorCount: Int,
-    totalPaymentsMade: BigDecimal,
-    totalTaxDeducted: BigDecimal
-  ): Unit = {
-    val cs = conn.prepareCall("{ call HONESTY_DECLARATION_PROCS.TRACK_SUBMISSIONS(?, ?, ?, ?, ?, ?) }")
-    try {
-      cs.setLong(1, schemeId)
-      cs.setInt(2,  taxYear)
-      cs.setInt(3,  taxMonth)
-      cs.setInt(4,  subcontractorCount)
-      cs.setBigDecimal(5, totalPaymentsMade.bigDecimal)
-      cs.setBigDecimal(6, totalTaxDeducted.bigDecimal)
-      cs.execute()
     } finally cs.close()
   }
 

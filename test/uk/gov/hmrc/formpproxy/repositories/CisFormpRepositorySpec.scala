@@ -22,7 +22,7 @@ import play.api.db.Database
 
 import java.sql.*
 import uk.gov.hmrc.formpproxy.base.SpecBase
-import uk.gov.hmrc.formpproxy.models.requests.{CreateAndTrackSubmissionRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.models.requests.{CreateSubmissionRequest, UpdateSubmissionRequest}
 
 final class CisFormpRepositorySpec extends SpecBase {
 
@@ -146,27 +146,19 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
   }
 
-  "createAndTrackSubmission" - {
+  "createSubmission" - {
 
     "look up ids, call SPs, return the submission id, and close resources" in {
       val db       = mock[Database]
       val conn     = mock[Connection]
-      val rsScheme = mock[ResultSet]
       val rsMonthly= mock[ResultSet]
-      val csScheme  = mock[CallableStatement]
       val csAll     = mock[CallableStatement]
       val csCreate = mock[CallableStatement]
-      val csTrack  = mock[CallableStatement]
 
 
       when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
       }
-
-      when(conn.prepareCall(eqTo("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"))).thenReturn(csScheme)
-      when(csScheme.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
-      when(rsScheme.next()).thenReturn(true)
-      when(rsScheme.getLong("scheme_id")).thenReturn(9999L)
 
       when(conn.prepareCall(eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }"))).thenReturn(csAll)
       when(csAll.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsMonthly)
@@ -176,12 +168,11 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsMonthly.getLong("monthly_return_id")).thenReturn(7777L)
 
       when(conn.prepareCall(eqTo("{ call SUBMISSION_PROCS.Create_Submission(?, ?, ?, ?, ?, ?, ?, ?, ?) }"))).thenReturn(csCreate)
-      when(conn.prepareCall(eqTo("{ call HONESTY_DECLARATION_PROCS.TRACK_SUBMISSIONS(?, ?, ?, ?, ?, ?) }"))).thenReturn(csTrack)
       when(csCreate.getLong(9)).thenReturn(12345L)
 
       val repo = new CisFormpRepository(db)
 
-      val req = CreateAndTrackSubmissionRequest(
+      val req = CreateSubmissionRequest(
         instanceId = "123",
         taxYear = 2024,
         taxMonth = 4,
@@ -193,11 +184,10 @@ final class CisFormpRepositorySpec extends SpecBase {
         totalTaxDeducted = Some(BigDecimal(200))
       )
 
-      val out = repo.createAndTrackSubmission(req).futureValue
+      val out = repo.createSubmission(req).futureValue
       out mustBe "12345"
 
       verify(csCreate).execute()
-      verify(csTrack).execute()
     }
   }
 
