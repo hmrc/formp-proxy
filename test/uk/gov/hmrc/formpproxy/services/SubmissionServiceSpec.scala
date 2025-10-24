@@ -19,7 +19,7 @@ package uk.gov.hmrc.formpproxy.services
 import org.mockito.Mockito.*
 import org.mockito.ArgumentMatchers.{any, eq as eqTo}
 import uk.gov.hmrc.formpproxy.base.SpecBase
-import uk.gov.hmrc.formpproxy.models.requests.{CreateAndTrackSubmissionRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.models.requests.{CreateSubmissionRequest, UpdateSubmissionRequest}
 import uk.gov.hmrc.formpproxy.repositories.CisMonthlyReturnSource
 
 import scala.concurrent.Future
@@ -32,34 +32,34 @@ class SubmissionServiceSpec extends SpecBase {
   }
   def setup: Setup = new Setup {}
 
-  "SubmissionService createAndTrackSubmission" - {
+  "SubmissionService createSubmission" - {
 
     "delegates to repo and returns submissionId" in {
       val s = setup; import s._
 
-      val req = CreateAndTrackSubmissionRequest("123", 2024, 4)
-      when(repo.createAndTrackSubmission(any[CreateAndTrackSubmissionRequest]))
+      val req = CreateSubmissionRequest("123", 2024, 4)
+      when(repo.createSubmission(any[CreateSubmissionRequest]))
         .thenReturn(Future.successful("sub-123"))
 
-      val out = service.createAndTrackSubmission(req).futureValue
+      val out = service.createSubmission(req).futureValue
       out mustBe "sub-123"
 
-      verify(repo).createAndTrackSubmission(eqTo(req))
+      verify(repo).createSubmission(eqTo(req))
     }
 
     "propagates failure from repo" in {
       val s = setup; import s._
 
-      val req = CreateAndTrackSubmissionRequest("123", 2024, 4)
-      when(repo.createAndTrackSubmission(any[CreateAndTrackSubmissionRequest]))
+      val req = CreateSubmissionRequest("123", 2024, 4)
+      when(repo.createSubmission(any[CreateSubmissionRequest]))
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
-      val fut = service.createAndTrackSubmission(req)
+      val fut = service.createSubmission(req)
       whenReady(fut.failed) { ex =>
         ex.getMessage mustBe "boom"
       }
 
-      verify(repo).createAndTrackSubmission(eqTo(req))
+      verify(repo).createSubmission(eqTo(req))
     }
   }
 

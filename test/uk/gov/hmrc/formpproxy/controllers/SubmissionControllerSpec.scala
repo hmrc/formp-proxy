@@ -24,7 +24,7 @@ import play.api.libs.json.Json
 import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
 import uk.gov.hmrc.formpproxy.base.SpecBase
-import uk.gov.hmrc.formpproxy.models.requests.{CreateAndTrackSubmissionRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.models.requests.{CreateSubmissionRequest, UpdateSubmissionRequest}
 import uk.gov.hmrc.formpproxy.services.SubmissionService
 
 import scala.concurrent.Future
@@ -39,16 +39,16 @@ class SubmissionControllerSpec extends SpecBase {
 
     def setup: Setup = new Setup {}
 
-    "POST /submissions (createAndTrackSubmission)" - {
+    "POST /submissions (createSubmission)" - {
 
         "returns 201 Created with submissionId on valid payload" in {
             val s = setup; import s._
 
-            when(service.createAndTrackSubmission(any[CreateAndTrackSubmissionRequest]))
+            when(service.createSubmission(any[CreateSubmissionRequest]))
               .thenReturn(Future.successful("sub-123"))
 
             val json = Json.toJson(
-                CreateAndTrackSubmissionRequest(
+                CreateSubmissionRequest(
                     instanceId = "123",
                     taxYear = 2024,
                     taxMonth = 4,
@@ -57,37 +57,37 @@ class SubmissionControllerSpec extends SpecBase {
                 )
             )
 
-            val result = controller.createAndTrackSubmission().apply(
+            val result = controller.createSubmission().apply(
                 postJson("/submissions", json)
             )
 
             status(result) mustBe CREATED
             contentAsJson(result) mustBe Json.obj("submissionId" -> "sub-123")
-            verify(service).createAndTrackSubmission(any[CreateAndTrackSubmissionRequest])
+            verify(service).createSubmission(any[CreateSubmissionRequest])
         }
 
         "returns 400 BadRequest for invalid JSON" in {
             val s = setup; import s._
 
             val bad = Json.obj("nope" -> "nope")
-            val result = controller.createAndTrackSubmission().apply(
+            val result = controller.createSubmission().apply(
                 postJson("/submissions", bad)
             )
 
             status(result) mustBe BAD_REQUEST
             (contentAsJson(result) \ "message").as[String] mustBe "Invalid payload"
-            verify(service, never()).createAndTrackSubmission(any[CreateAndTrackSubmissionRequest])
+            verify(service, never()).createSubmission(any[CreateSubmissionRequest])
         }
 
         "maps service failure to 500 with error body" in {
             val s = setup; import s._
 
-            when(service.createAndTrackSubmission(any[CreateAndTrackSubmissionRequest]))
+            when(service.createSubmission(any[CreateSubmissionRequest]))
               .thenReturn(Future.failed(new RuntimeException("boom")))
 
-            val json = Json.toJson(CreateAndTrackSubmissionRequest("123", 2024, 4))
+            val json = Json.toJson(CreateSubmissionRequest("123", 2024, 4))
 
-            val result = controller.createAndTrackSubmission().apply(
+            val result = controller.createSubmission().apply(
                 postJson("/submissions", json)
             )
 

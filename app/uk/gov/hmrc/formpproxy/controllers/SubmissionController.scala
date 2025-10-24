@@ -21,7 +21,7 @@ import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.formpproxy.actions.AuthAction
-import uk.gov.hmrc.formpproxy.models.requests.{CreateAndTrackSubmissionRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.models.requests.{CreateSubmissionRequest, UpdateSubmissionRequest}
 import uk.gov.hmrc.formpproxy.services.SubmissionService
 
 import javax.inject.Inject
@@ -34,15 +34,15 @@ class SubmissionController @Inject()(
 )(implicit ec: ExecutionContext)
   extends BackendController(cc) with Logging {
   
-  def createAndTrackSubmission(): Action[JsValue] =
+  def createSubmission(): Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
-      request.body.validate[CreateAndTrackSubmissionRequest].fold(
+      request.body.validate[CreateSubmissionRequest].fold(
         errs => Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
         body =>
-          service.createAndTrackSubmission(body)
+          service.createSubmission(body)
             .map(submissionId => Created(Json.obj("submissionId" -> submissionId)))
             .recover { case t =>
-              logger.error("[createAndTrackSubmission] failed", t)
+              logger.error("[createSubmission] failed", t)
               InternalServerError(Json.obj("message" -> "Unexpected error"))
             }
       )
