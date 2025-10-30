@@ -21,7 +21,7 @@ import org.mockito.ArgumentMatchers.*
 import org.mockito.ArgumentMatchers.eq as eqTo
 import org.scalatest.freespec.AnyFreeSpec
 import uk.gov.hmrc.formpproxy.base.SpecBase
-import uk.gov.hmrc.formpproxy.models.requests.{CreateAndTrackSubmissionRequest, CreateNilMonthlyReturnRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.models.requests.{CreateSubmissionRequest, CreateNilMonthlyReturnRequest, UpdateSubmissionRequest}
 import uk.gov.hmrc.formpproxy.models.MonthlyReturn
 
 import java.time.LocalDateTime
@@ -124,12 +124,12 @@ class CisFormpStubSpec extends SpecBase {
     }
   }
   
-  "createAndTrackSubmission" - {
+  "createSubmission" - {
     "returns constant submission id '90001'" in {
       val s = setup; import s._
 
-      val req = CreateAndTrackSubmissionRequest("123", 2024, 4)
-      stub.createAndTrackSubmission(req).futureValue mustBe "90001"
+      val req = CreateSubmissionRequest("123", 2024, 4)
+      stub.createSubmission(req).futureValue mustBe "90001"
     }
   }
 
