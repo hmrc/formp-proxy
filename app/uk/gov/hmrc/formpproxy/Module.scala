@@ -19,8 +19,8 @@ package uk.gov.hmrc.formpproxy
 import play.api.inject.{Binding, Module as AppModule}
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.formpproxy.actions.{AuthAction, DefaultAuthAction}
-import uk.gov.hmrc.formpproxy.repositories.{CisFormpRepository, CisMonthlyReturnSource}
-import uk.gov.hmrc.formpproxy.utils.CisFormpStub
+import uk.gov.hmrc.formpproxy.cis.repositories.{CisFormpRepository, CisMonthlyReturnSource}
+import uk.gov.hmrc.formpproxy.cis.utils.CisFormpStub
 
 class Module extends AppModule:
 

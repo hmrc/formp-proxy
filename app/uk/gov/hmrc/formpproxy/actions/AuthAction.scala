@@ -21,7 +21,7 @@ import play.api.mvc.*
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.retrieve.~
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisationException, AuthorisedFunctions}
-import uk.gov.hmrc.formpproxy.models.requests.AuthenticatedRequest
+import uk.gov.hmrc.formpproxy.cis.models.requests.AuthenticatedRequest
 import uk.gov.hmrc.http.{HeaderCarrier, UnauthorizedException}
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
