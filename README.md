@@ -1,7 +1,13 @@
 
 # formp-proxy
 
-This is a placeholder README.md for a new repository
+This FormP Proxy service connects to the FormP Oracle database.
+
+## Running the service
+
+Service Manager: `sm2 --start FORMP_PROXY`
+
+To start the server locally: `sbt 'run 6995'`
 
 ### License
 
