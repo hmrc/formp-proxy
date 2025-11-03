@@ -28,11 +28,13 @@ import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class DefaultAuthAction @Inject()(
-                                   override val authConnector: AuthConnector,
-                                   val parser: BodyParsers.Default
-                                 )(implicit val executionContext: ExecutionContext)
-  extends AuthAction with AuthorisedFunctions with Logging {
+class DefaultAuthAction @Inject() (
+  override val authConnector: AuthConnector,
+  val parser: BodyParsers.Default
+)(implicit val executionContext: ExecutionContext)
+    extends AuthAction
+    with AuthorisedFunctions
+    with Logging {
 
   override def invokeBlock[A](request: Request[A], block: AuthenticatedRequest[A] => Future[Result]): Future[Result] = {
     implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
@@ -40,20 +42,20 @@ class DefaultAuthAction @Inject()(
     val sessionId = summon[HeaderCarrier].sessionId
       .getOrElse(throw new UnauthorizedException("Unable to retrieve session ID from headers"))
 
-    authorised() 
+    authorised()
       .retrieve(Retrievals.internalId and Retrievals.credentials) {
         case Some(internalId) ~ Some(credentials) =>
           block(AuthenticatedRequest(request, internalId, credentials.providerId, sessionId))
-        case _ =>
+        case _                                    =>
           throw new UnauthorizedException("Unable to retrieve credential or internal Id")
       }
-      .recover {
-        case ae: AuthorisationException =>
-          logger.warn(s"[Auth] Authorisation Exception ${ae.reason}")
-          Results.Unauthorized
+      .recover { case ae: AuthorisationException =>
+        logger.warn(s"[Auth] Authorisation Exception ${ae.reason}")
+        Results.Unauthorized
       }
   }
 }
 
 trait AuthAction
-  extends ActionBuilder[AuthenticatedRequest, AnyContent] with ActionFunction[Request, AuthenticatedRequest]
+    extends ActionBuilder[AuthenticatedRequest, AnyContent]
+    with ActionFunction[Request, AuthenticatedRequest]

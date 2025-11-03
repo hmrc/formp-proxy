@@ -25,7 +25,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 
 @Singleton
-class MonthlyReturnService @Inject()(repo: CisMonthlyReturnSource)() {
+class MonthlyReturnService @Inject() (repo: CisMonthlyReturnSource)() {
 
   def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns] =
     repo.getAllMonthlyReturns(instanceId)

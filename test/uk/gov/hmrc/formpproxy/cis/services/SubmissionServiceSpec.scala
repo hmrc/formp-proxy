@@ -28,7 +28,7 @@ class SubmissionServiceSpec extends SpecBase {
 
   trait Setup {
     val repo: CisMonthlyReturnSource = mock[CisMonthlyReturnSource]
-    lazy val service = new SubmissionService(repo)
+    lazy val service                 = new SubmissionService(repo)
   }
   def setup: Setup = new Setup {}
 

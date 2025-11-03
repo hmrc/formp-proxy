@@ -25,9 +25,9 @@ import uk.gov.hmrc.formpproxy.cis.utils.CisFormpStub
 class Module extends AppModule:
 
   override def bindings(
-                         environment: Environment,
-                         configuration: Configuration
-                       ): Seq[Binding[_]] =
+    environment: Environment,
+    configuration: Configuration
+  ): Seq[Binding[_]] =
     lazy val cisFormpStubbed = configuration.get[Boolean]("feature-switch.cis-formp-stubbed")
 
     lazy val cisDatasource = if (cisFormpStubbed) classOf[CisFormpStub] else classOf[CisFormpRepository]

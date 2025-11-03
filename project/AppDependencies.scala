@@ -12,13 +12,13 @@ object AppDependencies {
     "uk.gov.hmrc"             %% "bootstrap-backend-play-30"  % bootstrapVersion,
     "com.oracle.jdbc"         %  "ojdbc8"                     % oraVersion,
     "com.oracle.jdbc"         %  "orai18n"                    % oraVersion,
-    "org.scala-lang"          % "scala-library"               % "2.13.6",
+    "org.scala-lang"          % "scala-library"               % "2.13.17",
     jdbc
   )
 
   val test: Seq[ModuleID] = Seq(
     "uk.gov.hmrc"             %% "bootstrap-test-play-30"     % bootstrapVersion            % Test,
-    "org.scalatest"           %% "scalatest"                  % "3.2.9"                     % Test,
+    "org.scalatest"           %% "scalatest"                  % "3.2.19"                     % Test,
     "org.scalatestplus"       %% "scalacheck-1-17"            % "3.2.18.0"                  % Test
   )
 

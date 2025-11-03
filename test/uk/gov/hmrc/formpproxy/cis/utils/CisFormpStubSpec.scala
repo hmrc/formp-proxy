@@ -29,7 +29,7 @@ class CisFormpStubSpec extends SpecBase {
 
   trait Setup {
     val utils: StubUtils = mock[StubUtils]
-    lazy val stub = new CisFormpStub(utils)
+    lazy val stub        = new CisFormpStub(utils)
 
     def createMonthlyReturn(month: Int): MonthlyReturn =
       MonthlyReturn(
@@ -49,7 +49,7 @@ class CisFormpStubSpec extends SpecBase {
       )
   }
   def setup: Setup = new Setup {}
-  
+
   "getAllMonthlyReturns" - {
     "returns Jan/Feb/Mar via StubUtils" in {
       val s = setup; import s.*
@@ -67,7 +67,7 @@ class CisFormpStubSpec extends SpecBase {
       verify(utils).generateMonthlyReturns(3)
     }
   }
-  
+
   "createNilMonthlyReturn" - {
     "stores a STARTED nil return and bumps scheme version" in {
       val s = setup; import s.*
@@ -86,7 +86,7 @@ class CisFormpStubSpec extends SpecBase {
       stub.getSchemeVersion("123") mustBe 1L
 
       val stored = stub.getStoredReturn("123", 2025, 2).value
-      stored.monthlyReturnId mustBe 1000L         
+      stored.monthlyReturnId mustBe 1000L
       stored.nilReturnIndicator mustBe Some("Y")
       stored.decInformationCorrect mustBe Some("Y")
       stored.decNilReturnNoPayments mustBe Some("Y")
@@ -104,7 +104,7 @@ class CisFormpStubSpec extends SpecBase {
       stub.createNilMonthlyReturn(base.copy(taxMonth = 3)).futureValue
 
       stub.getSchemeVersion("123") mustBe 2L
-      stub.getStoredReturn("123", 2025, 3).value.monthlyReturnId mustBe 1001L 
+      stub.getStoredReturn("123", 2025, 3).value.monthlyReturnId mustBe 1001L
     }
 
     "reset clears state and sets id sequence to 1,000,000" in {
@@ -122,7 +122,7 @@ class CisFormpStubSpec extends SpecBase {
       stub.getStoredReturn("123", 2025, 4).value.monthlyReturnId mustBe 1_000_000L
     }
   }
-  
+
   "createSubmission" - {
     "returns constant submission id '90001'" in {
       val s = setup; import s.*

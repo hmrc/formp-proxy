@@ -27,38 +27,47 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class SubmissionController @Inject()(
-                                      authorise: AuthAction,
-                                      service: SubmissionService,
-                                      cc: ControllerComponents                                               
+class SubmissionController @Inject() (
+  authorise: AuthAction,
+  service: SubmissionService,
+  cc: ControllerComponents
 )(implicit ec: ExecutionContext)
-  extends BackendController(cc) with Logging {
-  
+    extends BackendController(cc)
+    with Logging {
+
   def createSubmission(): Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
-      request.body.validate[CreateSubmissionRequest].fold(
-        errs => Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
-        body =>
-          service.createSubmission(body)
-            .map(submissionId => Created(Json.obj("submissionId" -> submissionId)))
-            .recover { case t =>
-              logger.error("[createSubmission] failed", t)
-              InternalServerError(Json.obj("message" -> "Unexpected error"))
-            }
-      )
+      request.body
+        .validate[CreateSubmissionRequest]
+        .fold(
+          errs =>
+            Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
+          body =>
+            service
+              .createSubmission(body)
+              .map(submissionId => Created(Json.obj("submissionId" -> submissionId)))
+              .recover { case t =>
+                logger.error("[createSubmission] failed", t)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
+              }
+        )
     }
-    
+
   def updateSubmission(): Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
-      request.body.validate[UpdateSubmissionRequest].fold(
-        errs => Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
-        body =>
-          service.updateSubmission(body)
-            .map(_ => NoContent)
-            .recover { case t =>
-              logger.error("[updateSubmission] failed", t)
-              InternalServerError
-            }
-      )
+      request.body
+        .validate[UpdateSubmissionRequest]
+        .fold(
+          errs =>
+            Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
+          body =>
+            service
+              .updateSubmission(body)
+              .map(_ => NoContent)
+              .recover { case t =>
+                logger.error("[updateSubmission] failed", t)
+                InternalServerError
+              }
+        )
     }
 }

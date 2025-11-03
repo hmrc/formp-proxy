@@ -23,11 +23,11 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 
 @Singleton
-class SubmissionService @Inject()(repo: CisMonthlyReturnSource) {
-  
+class SubmissionService @Inject() (repo: CisMonthlyReturnSource) {
+
   def createSubmission(req: CreateSubmissionRequest): Future[String] =
     repo.createSubmission(req)
-    
+
   def updateSubmission(req: UpdateSubmissionRequest): Future[Unit] =
     repo.updateMonthlyReturnSubmission(req)
 }

@@ -29,12 +29,12 @@ import scala.collection.concurrent.TrieMap
 import scala.concurrent.Future
 
 @Singleton
-class CisFormpStub @Inject()(stubUtils: StubUtils) extends CisMonthlyReturnSource with Logging {
+class CisFormpStub @Inject() (stubUtils: StubUtils) extends CisMonthlyReturnSource with Logging {
 
   private[this] val stubData = stubUtils
-  private val idSeq = new AtomicLong(1000L)
+  private val idSeq          = new AtomicLong(1000L)
   private val schemeVersions = TrieMap.empty[String, Long]
-  private val storedReturns = TrieMap.empty[(String, Int, Int), MonthlyReturn]
+  private val storedReturns  = TrieMap.empty[(String, Int, Int), MonthlyReturn]
 
   override def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns] = {
     logger.info(s"[Stub] getAllMonthlyReturns(instanceId=$instanceId) -> returning Jan, Feb, Mar 2025")
@@ -42,12 +42,14 @@ class CisFormpStub @Inject()(stubUtils: StubUtils) extends CisMonthlyReturnSourc
     Future.successful(UserMonthlyReturns(monthlyReturns))
   }
 
-  override def createNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[CreateNilMonthlyReturnResponse] = {
+  override def createNilMonthlyReturn(
+    request: CreateNilMonthlyReturnRequest
+  ): Future[CreateNilMonthlyReturnResponse] = {
     val monthlyReturnId = idSeq.getAndIncrement()
 
     schemeVersions.updateWith(request.instanceId)(v => Some(v.getOrElse(0L) + 1L))
 
-    val now = LocalDateTime.now()
+    val now           = LocalDateTime.now()
     val monthlyReturn = MonthlyReturn(
       monthlyReturnId = monthlyReturnId,
       taxYear = request.taxYear,
@@ -89,7 +91,9 @@ class CisFormpStub @Inject()(stubUtils: StubUtils) extends CisMonthlyReturnSourc
   }
 
   override def updateMonthlyReturnSubmission(req: UpdateSubmissionRequest): Future[Unit] = {
-    logger.info(s"[Stub] updateMrSubmission(${req.instanceId}, ${req.taxYear}, ${req.taxMonth}, status=${req.submittableStatus})")
+    logger.info(
+      s"[Stub] updateMrSubmission(${req.instanceId}, ${req.taxYear}, ${req.taxMonth}, status=${req.submittableStatus})"
+    )
     Future.successful(())
   }
 

@@ -36,11 +36,7 @@ import uk.gov.hmrc.http.UpstreamErrorResponse
 import java.time.LocalDateTime
 import scala.concurrent.{ExecutionContext, Future}
 
-class MonthlyReturnControllerSpec
-  extends AnyFreeSpec
-    with Matchers
-    with ScalaFutures
-    with MockitoSugar {
+class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures with MockitoSugar {
 
   "MonthlyReturnController retrieveMonthlyReturns" - {
 
@@ -49,7 +45,7 @@ class MonthlyReturnControllerSpec
         .thenReturn(Future.successful(nonEmptyWrapper))
 
       val req: FakeRequest[JsValue] = makeJsonRequest(Json.obj("instanceId" -> "abc-123"))
-      val res: Future[Result] = controller.retrieveMonthlyReturns(req)
+      val res: Future[Result]       = controller.retrieveMonthlyReturns(req)
 
       status(res) mustBe OK
       contentType(res) mustBe Some(JSON)
@@ -114,7 +110,7 @@ class MonthlyReturnControllerSpec
   "MonthlyReturnController createNilMonthlyReturn" - {
 
     "returns 201 with status when service succeeds" in new Setup {
-      val request = CreateNilMonthlyReturnRequest(
+      val request  = CreateNilMonthlyReturnRequest(
         instanceId = "abc-123",
         taxYear = 2025,
         taxMonth = 2,
@@ -148,7 +144,7 @@ class MonthlyReturnControllerSpec
         decInformationCorrect = "Y",
         decNilReturnNoPayments = "Y"
       )
-      val err = UpstreamErrorResponse("formp failed", BAD_GATEWAY, BAD_GATEWAY)
+      val err     = UpstreamErrorResponse("formp failed", BAD_GATEWAY, BAD_GATEWAY)
 
       when(mockService.createNilMonthlyReturn(eqTo(request)))
         .thenReturn(Future.failed(err))
@@ -173,7 +169,7 @@ class MonthlyReturnControllerSpec
 
       val req: FakeRequest[InstanceIdRequest] =
         FakeRequest(POST, "/formp-proxy/scheme/email").withBody(requests.InstanceIdRequest("abc-123"))
-      val res: Future[Result] = controller.getSchemeEmail(req)
+      val res: Future[Result]                 = controller.getSchemeEmail(req)
 
       status(res) mustBe OK
       (contentAsJson(res) \ "email").asOpt[String] mustBe Some("x@y.com")
@@ -186,7 +182,7 @@ class MonthlyReturnControllerSpec
 
       val req: FakeRequest[InstanceIdRequest] =
         FakeRequest(POST, "/formp-proxy/scheme/email").withBody(requests.InstanceIdRequest("abc-123"))
-      val res = controller.getSchemeEmail(req)
+      val res                                 = controller.getSchemeEmail(req)
 
       status(res) mustBe OK
       (contentAsJson(res) \ "email").toOption.flatMap(_.asOpt[String]) mustBe None
@@ -198,7 +194,7 @@ class MonthlyReturnControllerSpec
 
       val req: FakeRequest[InstanceIdRequest] =
         FakeRequest(POST, "/formp-proxy/scheme/email").withBody(requests.InstanceIdRequest("abc-123"))
-      val res = controller.getSchemeEmail(req)
+      val res                                 = controller.getSchemeEmail(req)
 
       status(res) mustBe BAD_GATEWAY
       (contentAsJson(res) \ "message").as[String] must include("formp failed")
@@ -206,13 +202,13 @@ class MonthlyReturnControllerSpec
   }
 
   private trait Setup {
-    implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+    implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.global
     private val cc: ControllerComponents = stubControllerComponents()
     private val parsers: PlayBodyParsers = cc.parsers
-    private def fakeAuth: AuthAction = new FakeAuthAction(parsers)
+    private def fakeAuth: AuthAction     = new FakeAuthAction(parsers)
 
     val mockService: MonthlyReturnService = mock[MonthlyReturnService]
-    val controller = new MonthlyReturnController(fakeAuth, mockService, cc)
+    val controller                        = new MonthlyReturnController(fakeAuth, mockService, cc)
 
     def makeJsonRequest(body: JsValue) =
       FakeRequest(POST, "/formp-proxy/monthly-returns")

@@ -29,37 +29,41 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class MonthlyReturnController @Inject()(
-                                         authorise: AuthAction,
-                                         service: MonthlyReturnService,
-                                         cc: ControllerComponents
-                                       )(implicit ec: ExecutionContext)
-  extends BackendController(cc) with Logging {
+class MonthlyReturnController @Inject() (
+  authorise: AuthAction,
+  service: MonthlyReturnService,
+  cc: ControllerComponents
+)(implicit ec: ExecutionContext)
+    extends BackendController(cc)
+    with Logging {
 
   def retrieveMonthlyReturns: Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
-      request.body.validate[InstanceIdRequest].fold(
-        errs =>
-          Future.successful(
-            BadRequest(Json.obj(
-              "message" -> "Invalid JSON body",
-              "errors"  -> JsError.toJson(errs)
-            ))
-          ),
-        instanceIdRequest =>
-          service
-            .getAllMonthlyReturns(instanceIdRequest.instanceId)
-            .map { (payload: UserMonthlyReturns) => Ok(Json.toJson(payload)) }
-            .recover {
-              case u: UpstreamErrorResponse =>
-                Status(u.statusCode)(Json.obj("message" -> u.message))
-              case t: Throwable =>
-                logger.error("[retrieveMonthlyReturns] failed", t)
-                InternalServerError(Json.obj("message" -> "Unexpected error"))
-            }
-      )
+      request.body
+        .validate[InstanceIdRequest]
+        .fold(
+          errs =>
+            Future.successful(
+              BadRequest(
+                Json.obj(
+                  "message" -> "Invalid JSON body",
+                  "errors"  -> JsError.toJson(errs)
+                )
+              )
+            ),
+          instanceIdRequest =>
+            service
+              .getAllMonthlyReturns(instanceIdRequest.instanceId)
+              .map((payload: UserMonthlyReturns) => Ok(Json.toJson(payload)))
+              .recover {
+                case u: UpstreamErrorResponse =>
+                  Status(u.statusCode)(Json.obj("message" -> u.message))
+                case t: Throwable             =>
+                  logger.error("[retrieveMonthlyReturns] failed", t)
+                  InternalServerError(Json.obj("message" -> "Unexpected error"))
+              }
+        )
     }
-
 
   def createNilMonthlyReturn: Action[CreateNilMonthlyReturnRequest] =
     authorise.async(parse.json[CreateNilMonthlyReturnRequest]) { implicit request =>
@@ -68,7 +72,7 @@ class MonthlyReturnController @Inject()(
         .map(result => Created(Json.toJson(result)))
         .recover {
           case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
-          case t: Throwable =>
+          case t: Throwable             =>
             logger.error("[createNilMonthlyReturn] failed", t)
             InternalServerError(Json.obj("message" -> "Unexpected error"))
         }
@@ -81,7 +85,7 @@ class MonthlyReturnController @Inject()(
         .map(email => Ok(Json.obj("email" -> email)))
         .recover {
           case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
-          case t: Throwable =>
+          case t: Throwable             =>
             logger.error("[getSchemeEmail] failed", t)
             InternalServerError(Json.obj("message" -> "Unexpected error"))
         }

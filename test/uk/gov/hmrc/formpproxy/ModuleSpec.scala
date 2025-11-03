@@ -36,8 +36,8 @@ class ModuleSpec extends AnyWordSpec with Matchers {
 
       running(app) {
         val inj = app.injector
-        inj.instanceOf(classOf[AuthAction]) mustBe a [DefaultAuthAction]
-        inj.instanceOf(classOf[CisMonthlyReturnSource]) mustBe a [CisFormpStub]
+        inj.instanceOf(classOf[AuthAction]) mustBe a[DefaultAuthAction]
+        inj.instanceOf(classOf[CisMonthlyReturnSource]) mustBe a[CisFormpStub]
       }
     }
 
@@ -49,7 +49,7 @@ class ModuleSpec extends AnyWordSpec with Matchers {
 
       running(app) {
         val inj = app.injector
-        inj.instanceOf(classOf[CisMonthlyReturnSource]) mustBe a [CisFormpRepository]
+        inj.instanceOf(classOf[CisMonthlyReturnSource]) mustBe a[CisFormpRepository]
       }
     }
   }

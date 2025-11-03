@@ -28,7 +28,7 @@ import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 import java.time.LocalDateTime
 import scala.concurrent.Future
 
-final class MonthlyReturnServiceSpec extends SpecBase{
+final class MonthlyReturnServiceSpec extends SpecBase {
 
   case class Ctx() {
     val repo    = mock[CisMonthlyReturnSource]
@@ -38,25 +38,25 @@ final class MonthlyReturnServiceSpec extends SpecBase{
 
   private def mkReturn(id: Long, month: Int, year: Int = 2025): MonthlyReturn =
     MonthlyReturn(
-      monthlyReturnId        = id,
-      taxYear                = year,
-      taxMonth               = month,
-      nilReturnIndicator     = Some("N"),
+      monthlyReturnId = id,
+      taxYear = year,
+      taxMonth = month,
+      nilReturnIndicator = Some("N"),
       decEmpStatusConsidered = Some("Y"),
-      decAllSubsVerified     = Some("Y"),
-      decInformationCorrect  = Some("Y"),
-      decNoMoreSubPayments   = Some("N"),
+      decAllSubsVerified = Some("Y"),
+      decInformationCorrect = Some("Y"),
+      decNoMoreSubPayments = Some("N"),
       decNilReturnNoPayments = Some("N"),
-      status                 = Some("SUBMITTED"),
-      lastUpdate             = Some(LocalDateTime.parse("2025-01-01T00:00:00")),
-      amendment              = Some("N"),
-      supersededBy           = None
+      status = Some("SUBMITTED"),
+      lastUpdate = Some(LocalDateTime.parse("2025-01-01T00:00:00")),
+      amendment = Some("N"),
+      supersededBy = None
     )
 
   "MonthlyReturnService getAllMonthlyReturns" - {
 
     "returns wrapper when repository returns rows (happy path)" in {
-      val c = Ctx()
+      val c       = Ctx()
       val payload = UserMonthlyReturns(Seq(mkReturn(66666L, 1), mkReturn(66667L, 7)))
 
       when(c.repo.getAllMonthlyReturns(eqTo(c.id)))
@@ -82,7 +82,7 @@ final class MonthlyReturnServiceSpec extends SpecBase{
     }
 
     "propagates failures from the repository" in {
-      val c = Ctx()
+      val c    = Ctx()
       val boom = new RuntimeException("formp failed")
 
       when(c.repo.getAllMonthlyReturns(eqTo(c.id)))
@@ -100,13 +100,13 @@ final class MonthlyReturnServiceSpec extends SpecBase{
 
     "delegates to repo and returns status (happy path)" in new Ctx {
       val request = CreateNilMonthlyReturnRequest(
-        instanceId             = id,
-        taxYear                = 2025,
-        taxMonth               = 2,
-        decInformationCorrect  = "Y",
+        instanceId = id,
+        taxYear = 2025,
+        taxMonth = 2,
+        decInformationCorrect = "Y",
         decNilReturnNoPayments = "Y"
       )
-      val res = CreateNilMonthlyReturnResponse(status = "STARTED")
+      val res     = CreateNilMonthlyReturnResponse(status = "STARTED")
 
       when(repo.createNilMonthlyReturn(eqTo(request))).thenReturn(Future.successful(res))
 
@@ -119,13 +119,13 @@ final class MonthlyReturnServiceSpec extends SpecBase{
 
     "propagates failures from the repository" in new Ctx {
       val request = CreateNilMonthlyReturnRequest(
-        instanceId             = id,
-        taxYear                = 2025,
-        taxMonth               = 2,
-        decInformationCorrect  = "Y",
+        instanceId = id,
+        taxYear = 2025,
+        taxMonth = 2,
+        decInformationCorrect = "Y",
         decNilReturnNoPayments = "Y"
       )
-      val boom = new RuntimeException("db failed")
+      val boom    = new RuntimeException("db failed")
 
       when(repo.createNilMonthlyReturn(eqTo(request))).thenReturn(Future.failed(boom))
 

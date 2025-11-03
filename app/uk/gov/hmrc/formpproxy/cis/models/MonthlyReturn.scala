@@ -20,28 +20,28 @@ import play.api.libs.json.{Json, OFormat}
 
 import java.time.LocalDateTime
 
-case class MonthlyReturn(monthlyReturnId: Long,
-                         taxYear: Int,
-                         taxMonth: Int,
-                         nilReturnIndicator: Option[String],
-                         decEmpStatusConsidered: Option[String],
-                         decAllSubsVerified: Option[String],
-                         decInformationCorrect: Option[String],
-                         decNoMoreSubPayments: Option[String],
-                         decNilReturnNoPayments: Option[String],
-                         status: Option[String],
-                         lastUpdate: Option[LocalDateTime],
-                         amendment: Option[String],
-                         supersededBy: Option[Long])
+case class MonthlyReturn(
+  monthlyReturnId: Long,
+  taxYear: Int,
+  taxMonth: Int,
+  nilReturnIndicator: Option[String],
+  decEmpStatusConsidered: Option[String],
+  decAllSubsVerified: Option[String],
+  decInformationCorrect: Option[String],
+  decNoMoreSubPayments: Option[String],
+  decNilReturnNoPayments: Option[String],
+  status: Option[String],
+  lastUpdate: Option[LocalDateTime],
+  amendment: Option[String],
+  supersededBy: Option[Long]
+)
 
 object MonthlyReturn:
   implicit val format: OFormat[MonthlyReturn] = Json.format[MonthlyReturn]
-
 
 case class UserMonthlyReturns(monthlyReturnList: Seq[MonthlyReturn])
 
 object UserMonthlyReturns:
   import MonthlyReturn.format
   implicit val format: OFormat[UserMonthlyReturns] = Json.format[UserMonthlyReturns]
-  val empty: UserMonthlyReturns = UserMonthlyReturns(Seq())
-
+  val empty: UserMonthlyReturns                    = UserMonthlyReturns(Seq())

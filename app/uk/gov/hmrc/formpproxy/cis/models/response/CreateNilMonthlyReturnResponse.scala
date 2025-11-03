@@ -19,8 +19,8 @@ package uk.gov.hmrc.formpproxy.cis.models.response
 import play.api.libs.json.{Json, OFormat}
 
 final case class CreateNilMonthlyReturnResponse(
-                                                 status: String
-                                               )
+  status: String
+)
 
 object CreateNilMonthlyReturnResponse {
   implicit val format: OFormat[CreateNilMonthlyReturnResponse] = Json.format[CreateNilMonthlyReturnResponse]

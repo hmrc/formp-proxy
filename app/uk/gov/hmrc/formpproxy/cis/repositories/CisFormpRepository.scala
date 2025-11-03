@@ -41,9 +41,10 @@ trait CisMonthlyReturnSource {
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
 
 @Singleton
-class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit ec: ExecutionContext)
-  extends CisMonthlyReturnSource with Logging {
-  
+class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit ec: ExecutionContext)
+    extends CisMonthlyReturnSource
+    with Logging {
+
   override def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns] = {
     logger.info(s"[CIS] getMonthlyReturns(instanceId=$instanceId)")
     Future {
@@ -56,17 +57,16 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
           cs.execute()
 
           val rsScheme = cs.getObject(2, classOf[ResultSet])
-          try () finally if (rsScheme != null) rsScheme.close()
+          try ()
+          finally if (rsScheme != null) rsScheme.close()
 
           val monthlyReturns = cs.getObject(3, classOf[ResultSet])
-          val returns =
+          val returns        =
             try collectMonthlyReturns(monthlyReturns)
             finally if (monthlyReturns != null) monthlyReturns.close()
 
           UserMonthlyReturns(returns)
-      } finally {
-        cs.close()
-        }
+        } finally cs.close()
       }
     }
   }
@@ -77,22 +77,21 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
     else {
       val mr = MonthlyReturn(
         monthlyReturnId = rs.getLong("monthly_return_id"),
-        taxYear         = rs.getInt("tax_year"),
-        taxMonth        = rs.getInt("tax_month"),
-        nilReturnIndicator     = Option(rs.getString("nil_return_indicator")),
+        taxYear = rs.getInt("tax_year"),
+        taxMonth = rs.getInt("tax_month"),
+        nilReturnIndicator = Option(rs.getString("nil_return_indicator")),
         decEmpStatusConsidered = Option(rs.getString("dec_emp_status_considered")),
-        decAllSubsVerified     = Option(rs.getString("dec_all_subs_verified")),
-        decInformationCorrect  = Option(rs.getString("dec_information_correct")),
-        decNoMoreSubPayments   = Option(rs.getString("dec_no_more_sub_payments")),
+        decAllSubsVerified = Option(rs.getString("dec_all_subs_verified")),
+        decInformationCorrect = Option(rs.getString("dec_information_correct")),
+        decNoMoreSubPayments = Option(rs.getString("dec_no_more_sub_payments")),
         decNilReturnNoPayments = Option(rs.getString("dec_nil_return_no_payments")),
-        status                 = Option(rs.getString("status")),
-        lastUpdate             = Option(rs.getTimestamp("last_update")).map(_.toLocalDateTime),
-        amendment              = Option(rs.getString("amendment")),
-        supersededBy           = { val v = rs.getLong("superseded_by"); if (rs.wasNull()) None else Some(v) }
+        status = Option(rs.getString("status")),
+        lastUpdate = Option(rs.getTimestamp("last_update")).map(_.toLocalDateTime),
+        amendment = Option(rs.getString("amendment")),
+        supersededBy = { val v = rs.getLong("superseded_by"); if (rs.wasNull()) None else Some(v) }
       )
       collectMonthlyReturns(rs, acc :+ mr)
     }
-
 
   override def createSubmission(request: CreateSubmissionRequest): Future[String] = Future {
     db.withTransaction { conn =>
@@ -107,7 +106,7 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
         hmrcMarkGgis = null,
         emailRecipient = request.emailRecipient.orNull,
         agentId = request.agentId.orNull,
-        submittableStatus = "PENDING" 
+        submittableStatus = "PENDING"
       )
 
       submissionId.toString
@@ -117,7 +116,7 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
   override def updateMonthlyReturnSubmission(request: UpdateSubmissionRequest): Future[Unit] = Future {
     db.withConnection { conn =>
       val monthlyReturnId = getMonthlyReturnId(conn, request.instanceId, request.taxYear, request.taxMonth)
-      val amendValue = request.amendment.getOrElse("N")
+      val amendValue      = request.amendment.getOrElse("N")
 
       callUpdateMonthlyReturnSubmission(
         conn,
@@ -188,7 +187,9 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
     taxMonth: Int,
     amendment: String
   ): Unit = {
-    val cs = conn.prepareCall("{ call SUBMISSION_PROCS_2016.UPDATE_MR_SUBMISSION(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+    val cs = conn.prepareCall(
+      "{ call SUBMISSION_PROCS_2016.UPDATE_MR_SUBMISSION(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+    )
     try {
       cs.setString(1, submissionType)
       cs.setLong(2, activeObjectId)
@@ -210,9 +211,12 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
     } finally cs.close()
   }
 
-
-  override def createNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[CreateNilMonthlyReturnResponse] = {
-    logger.info(s"[CIS] createNilMonthlyReturn(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})")
+  override def createNilMonthlyReturn(
+    request: CreateNilMonthlyReturnRequest
+  ): Future[CreateNilMonthlyReturnResponse] = {
+    logger.info(
+      s"[CIS] createNilMonthlyReturn(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
+    )
     Future {
       db.withTransaction { conn =>
         val schemeVersionBefore = getSchemeVersion(conn, request.instanceId)
@@ -226,10 +230,11 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
     }
   }
 
-  private val CallCreateMonthlyReturn = "{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }"
-  private val CallUpdateSchemeVersion = "{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"
-  private val CallUpdateMonthlyReturn = "{ call MONTHLY_RETURN_PROCS_2016.Update_Monthly_Return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
-  private val CallGetScheme = "{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"
+  private val CallCreateMonthlyReturn  = "{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }"
+  private val CallUpdateSchemeVersion  = "{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"
+  private val CallUpdateMonthlyReturn  =
+    "{ call MONTHLY_RETURN_PROCS_2016.Update_Monthly_Return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+  private val CallGetScheme            = "{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"
   private val CallGetAllMonthlyReturns = "{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }"
 
   private def callCreateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit = {
@@ -275,10 +280,10 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
   }
 
   private def readSchemeRow(rs: ResultSet): SchemeRow = {
-    val id = rs.getLong("scheme_id")
-    val v = rs.getInt("version")
+    val id      = rs.getLong("scheme_id")
+    val v       = rs.getInt("version")
     val version = if (rs.wasNull()) None else Some(v)
-    val email = Option(rs.getString("email_address")).map(_.trim).filter(_.nonEmpty)
+    val email   = Option(rs.getString("email_address")).map(_.trim).filter(_.nonEmpty)
     SchemeRow(id, version, email)
   }
 
@@ -291,7 +296,7 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
       val rs = cs.getObject(2, classOf[ResultSet])
       if (rs == null)
         throw new RuntimeException(s"int_Get_Scheme returned null cursor for instance_id=$instanceId")
-        
+
       Using.resource(rs) { r =>
         if (r != null && r.next()) readSchemeRow(r)
         else throw new RuntimeException(s"No SCHEME row for instance_id=$instanceId")
@@ -311,11 +316,11 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
     loadScheme(conn, instanceId).schemeId
 
   private def getMonthlyReturnId(
-                                  conn: Connection,
-                                  instanceId: String,
-                                  taxYear: Int,
-                                  taxMonth: Int
-                                ): Long =
+    conn: Connection,
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int
+  ): Long =
     Using.resource(conn.prepareCall(CallGetAllMonthlyReturns)) { cs =>
       cs.setString(1, instanceId)
       cs.registerOutParameter(2, OracleTypes.CURSOR)
@@ -325,11 +330,11 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
       val monthlyReturns = cs.getObject(3, classOf[ResultSet])
       if (monthlyReturns == null)
         throw new RuntimeException("Get_All_Monthly_Returns returned null monthly cursor")
-        
+
       Using.resource(monthlyReturns) { rs =>
         var found: Long = null
         while (found == null && rs.next()) {
-          val year = rs.getInt("tax_year")
+          val year  = rs.getInt("tax_year")
           val month = rs.getInt("tax_month")
           if (year == taxYear && month == taxMonth) {
             found = rs.getLong("monthly_return_id")
@@ -337,9 +342,10 @@ class CisFormpRepository @Inject()(@NamedDatabase("cis") db: Database)(implicit 
         }
 
         if (found != null) found.longValue()
-        else throw new RuntimeException(
-          s"No MONTHLY_RETURN for instance_id=$instanceId year=$taxYear month=$taxMonth"
-        )
+        else
+          throw new RuntimeException(
+            s"No MONTHLY_RETURN for instance_id=$instanceId year=$taxYear month=$taxMonth"
+          )
       }
     }
 

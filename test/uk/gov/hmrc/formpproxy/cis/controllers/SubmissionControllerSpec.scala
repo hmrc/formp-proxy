@@ -29,135 +29,145 @@ import uk.gov.hmrc.formpproxy.cis.services.SubmissionService
 
 import scala.concurrent.Future
 
-
 class SubmissionControllerSpec extends SpecBase {
-    trait Setup {
-        val service: SubmissionService = mock[SubmissionService]
-        val auth: FakeAuthAction       = new FakeAuthAction(cc.parsers)
-        lazy val controller            = new SubmissionController(auth, service, cc)
+  trait Setup {
+    val service: SubmissionService = mock[SubmissionService]
+    val auth: FakeAuthAction       = new FakeAuthAction(cc.parsers)
+    lazy val controller            = new SubmissionController(auth, service, cc)
+  }
+
+  def setup: Setup = new Setup {}
+
+  "POST /submissions (createSubmission)" - {
+
+    "returns 201 Created with submissionId on valid payload" in {
+      val s = setup; import s.*
+
+      when(service.createSubmission(any[CreateSubmissionRequest]))
+        .thenReturn(Future.successful("sub-123"))
+
+      val json = Json.toJson(
+        CreateSubmissionRequest(
+          instanceId = "123",
+          taxYear = 2024,
+          taxMonth = 4,
+          hmrcMarkGenerated = Some("Dj5TVJDyRYCn9zta5EdySeY4fyA="),
+          emailRecipient = Some("test@test.com")
+        )
+      )
+
+      val result = controller
+        .createSubmission()
+        .apply(
+          postJson("/submissions", json)
+        )
+
+      status(result) mustBe CREATED
+      contentAsJson(result) mustBe Json.obj("submissionId" -> "sub-123")
+      verify(service).createSubmission(any[CreateSubmissionRequest])
     }
 
-    def setup: Setup = new Setup {}
+    "returns 400 BadRequest for invalid JSON" in {
+      val s = setup; import s.*
 
-    "POST /submissions (createSubmission)" - {
+      val bad    = Json.obj("nope" -> "nope")
+      val result = controller
+        .createSubmission()
+        .apply(
+          postJson("/submissions", bad)
+        )
 
-        "returns 201 Created with submissionId on valid payload" in {
-            val s = setup; import s.*
-
-            when(service.createSubmission(any[CreateSubmissionRequest]))
-              .thenReturn(Future.successful("sub-123"))
-
-            val json = Json.toJson(
-                CreateSubmissionRequest(
-                    instanceId = "123",
-                    taxYear = 2024,
-                    taxMonth = 4,
-                    hmrcMarkGenerated = Some("Dj5TVJDyRYCn9zta5EdySeY4fyA="),
-                    emailRecipient = Some("test@test.com")
-                )
-            )
-
-            val result = controller.createSubmission().apply(
-                postJson("/submissions", json)
-            )
-
-            status(result) mustBe CREATED
-            contentAsJson(result) mustBe Json.obj("submissionId" -> "sub-123")
-            verify(service).createSubmission(any[CreateSubmissionRequest])
-        }
-
-        "returns 400 BadRequest for invalid JSON" in {
-            val s = setup; import s.*
-
-            val bad = Json.obj("nope" -> "nope")
-            val result = controller.createSubmission().apply(
-                postJson("/submissions", bad)
-            )
-
-            status(result) mustBe BAD_REQUEST
-            (contentAsJson(result) \ "message").as[String] mustBe "Invalid payload"
-            verify(service, never()).createSubmission(any[CreateSubmissionRequest])
-        }
-
-        "maps service failure to 500 with error body" in {
-            val s = setup; import s.*
-
-            when(service.createSubmission(any[CreateSubmissionRequest]))
-              .thenReturn(Future.failed(new RuntimeException("boom")))
-
-            val json = Json.toJson(CreateSubmissionRequest("123", 2024, 4))
-
-            val result = controller.createSubmission().apply(
-                postJson("/submissions", json)
-            )
-
-            status(result) mustBe INTERNAL_SERVER_ERROR
-            contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
-        }
+      status(result) mustBe BAD_REQUEST
+      (contentAsJson(result) \ "message").as[String] mustBe "Invalid payload"
+      verify(service, never()).createSubmission(any[CreateSubmissionRequest])
     }
 
-    "POST /submissions/update (updateSubmission)" - {
+    "maps service failure to 500 with error body" in {
+      val s = setup; import s.*
 
-        "returns 204 NoContent on valid payload" in {
-            val s = setup; import s.*
+      when(service.createSubmission(any[CreateSubmissionRequest]))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
 
-            when(service.updateSubmission(any[UpdateSubmissionRequest]))
-              .thenReturn(Future.successful(()))
+      val json = Json.toJson(CreateSubmissionRequest("123", 2024, 4))
 
-            val json = Json.toJson(
-                UpdateSubmissionRequest(
-                    instanceId = "123",
-                    taxYear = 2024,
-                    taxMonth = 4,
-                    hmrcMarkGenerated = "Dj5TVJDyRYCn9zta5EdySeY4fyA=",
-                    submittableStatus = "ACCEPTED"
-                )
-            )
+      val result = controller
+        .createSubmission()
+        .apply(
+          postJson("/submissions", json)
+        )
 
-            val result = controller.updateSubmission().apply(
-                postJson("/submissions/update", json)
-            )
-
-            status(result) mustBe NO_CONTENT
-            verify(service).updateSubmission(any[UpdateSubmissionRequest])
-        }
-
-        "returns 400 BadRequest for invalid JSON" in {
-            val s = setup; import s.*
-
-            val bad = Json.obj("bad" -> "json")
-
-            val result = controller.updateSubmission().apply(
-                postJson("/submissions/update", bad)
-            )
-
-            status(result) mustBe BAD_REQUEST
-            (contentAsJson(result) \ "message").as[String] mustBe "Invalid payload"
-            verify(service, never()).updateSubmission(any[UpdateSubmissionRequest])
-        }
-
-        "maps service failure to 500 (no body expected)" in {
-            val s = setup; import s.*
-
-            when(service.updateSubmission(any[UpdateSubmissionRequest]))
-              .thenReturn(Future.failed(new RuntimeException("boom")))
-
-            val json = Json.toJson(
-                UpdateSubmissionRequest(
-                    instanceId = "123",
-                    taxYear = 2024,
-                    taxMonth = 4,
-                    hmrcMarkGenerated = "Dj5TVJDyRYCn9zta5EdySeY4fyA=",
-                    submittableStatus = "ACCEPTED"
-                )
-            )
-
-            val result = controller.updateSubmission().apply(
-                postJson("/submissions/update", json)
-            )
-
-            status(result) mustBe INTERNAL_SERVER_ERROR
-        }
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
     }
+  }
+
+  "POST /submissions/update (updateSubmission)" - {
+
+    "returns 204 NoContent on valid payload" in {
+      val s = setup; import s.*
+
+      when(service.updateSubmission(any[UpdateSubmissionRequest]))
+        .thenReturn(Future.successful(()))
+
+      val json = Json.toJson(
+        UpdateSubmissionRequest(
+          instanceId = "123",
+          taxYear = 2024,
+          taxMonth = 4,
+          hmrcMarkGenerated = "Dj5TVJDyRYCn9zta5EdySeY4fyA=",
+          submittableStatus = "ACCEPTED"
+        )
+      )
+
+      val result = controller
+        .updateSubmission()
+        .apply(
+          postJson("/submissions/update", json)
+        )
+
+      status(result) mustBe NO_CONTENT
+      verify(service).updateSubmission(any[UpdateSubmissionRequest])
+    }
+
+    "returns 400 BadRequest for invalid JSON" in {
+      val s = setup; import s.*
+
+      val bad = Json.obj("bad" -> "json")
+
+      val result = controller
+        .updateSubmission()
+        .apply(
+          postJson("/submissions/update", bad)
+        )
+
+      status(result) mustBe BAD_REQUEST
+      (contentAsJson(result) \ "message").as[String] mustBe "Invalid payload"
+      verify(service, never()).updateSubmission(any[UpdateSubmissionRequest])
+    }
+
+    "maps service failure to 500 (no body expected)" in {
+      val s = setup; import s.*
+
+      when(service.updateSubmission(any[UpdateSubmissionRequest]))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val json = Json.toJson(
+        UpdateSubmissionRequest(
+          instanceId = "123",
+          taxYear = 2024,
+          taxMonth = 4,
+          hmrcMarkGenerated = "Dj5TVJDyRYCn9zta5EdySeY4fyA=",
+          submittableStatus = "ACCEPTED"
+        )
+      )
+
+      val result = controller
+        .updateSubmission()
+        .apply(
+          postJson("/submissions/update", json)
+        )
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+    }
+  }
 }
-
