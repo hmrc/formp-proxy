@@ -14,12 +14,22 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.config
+package uk.gov.hmrc.formpproxy.cis.models.requests
 
-import javax.inject.{Inject, Singleton}
-import play.api.Configuration
+import play.api.libs.json.{Json, OFormat}
 
-@Singleton
-class AppConfig @Inject() (config: Configuration):
+case class CreateSubmissionRequest(
+  instanceId: String,
+  taxYear: Int,
+  taxMonth: Int,
+  hmrcMarkGenerated: Option[String] = None,
+  emailRecipient: Option[String] = None,
+  agentId: Option[String] = None,
+  subcontractorCount: Option[Int] = None,
+  totalPaymentsMade: Option[BigDecimal] = None,
+  totalTaxDeducted: Option[BigDecimal] = None
+)
 
-  val appName: String = config.get[String]("appName")
+object CreateSubmissionRequest {
+  implicit val format: OFormat[CreateSubmissionRequest] = Json.format[CreateSubmissionRequest]
+}

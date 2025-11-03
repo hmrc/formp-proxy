@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.config
+package uk.gov.hmrc.formpproxy.cis.models.requests
 
-import javax.inject.{Inject, Singleton}
-import play.api.Configuration
+import play.api.libs.json.{Json, OFormat}
 
-@Singleton
-class AppConfig @Inject() (config: Configuration):
-
-  val appName: String = config.get[String]("appName")
+final case class InstanceIdRequest(instanceId: String)
+object InstanceIdRequest {
+  implicit val format: OFormat[InstanceIdRequest] = Json.format[InstanceIdRequest]
+}

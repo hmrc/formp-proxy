@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.config
+package uk.gov.hmrc.formpproxy.cis.models.requests
 
-import javax.inject.{Inject, Singleton}
-import play.api.Configuration
+import play.api.mvc.{Request, WrappedRequest}
+import uk.gov.hmrc.http.SessionId
 
-@Singleton
-class AppConfig @Inject() (config: Configuration):
-
-  val appName: String = config.get[String]("appName")
+case class AuthenticatedRequest[A](
+  private val request: Request[A],
+  internalId: String,
+  credentialId: String,
+  sessionId: SessionId
+) extends WrappedRequest[A](request)

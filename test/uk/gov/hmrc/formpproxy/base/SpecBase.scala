@@ -29,9 +29,8 @@ import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext
 
-
 trait SpecBase
-  extends AnyFreeSpec
+    extends AnyFreeSpec
     with Matchers
     with TryValues
     with DefaultAwaitTimeout
@@ -41,10 +40,10 @@ trait SpecBase
     with IntegrationPatience
     with BeforeAndAfterEach {
 
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+  implicit val hc: HeaderCarrier    = HeaderCarrier()
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
-  lazy val cc: ControllerComponents = stubControllerComponents()
+  lazy val cc: ControllerComponents                         = stubControllerComponents()
   lazy val fakeRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
 
   def withJson[A: Writes](req: FakeRequest[_], body: A): FakeRequest[JsValue] =

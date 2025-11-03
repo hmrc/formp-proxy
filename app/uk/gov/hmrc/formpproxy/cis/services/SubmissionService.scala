@@ -14,12 +14,20 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.config
+package uk.gov.hmrc.formpproxy.cis.services
+
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateSubmissionRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
 import javax.inject.{Inject, Singleton}
-import play.api.Configuration
+import scala.concurrent.Future
 
 @Singleton
-class AppConfig @Inject() (config: Configuration):
+class SubmissionService @Inject() (repo: CisMonthlyReturnSource) {
 
-  val appName: String = config.get[String]("appName")
+  def createSubmission(req: CreateSubmissionRequest): Future[String] =
+    repo.createSubmission(req)
+
+  def updateSubmission(req: UpdateSubmissionRequest): Future[Unit] =
+    repo.updateMonthlyReturnSubmission(req)
+}

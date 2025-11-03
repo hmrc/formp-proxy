@@ -17,13 +17,13 @@
 package uk.gov.hmrc.formpproxy.actions
 
 import play.api.mvc.{AnyContent, BodyParser, PlayBodyParsers, Request, Result}
+import uk.gov.hmrc.formpproxy.cis.models.requests.AuthenticatedRequest
 import uk.gov.hmrc.http.SessionId
-import uk.gov.hmrc.formpproxy.models.requests.AuthenticatedRequest
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class FakeAuthAction @Inject()(bodyParsers: PlayBodyParsers) extends AuthAction {
+class FakeAuthAction @Inject() (bodyParsers: PlayBodyParsers) extends AuthAction {
 
   override def parser: BodyParser[AnyContent] = bodyParsers.defaultBodyParser
 

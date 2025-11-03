@@ -14,12 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.config
+package uk.gov.hmrc.formpproxy.cis.models.requests
 
-import javax.inject.{Inject, Singleton}
-import play.api.Configuration
+import play.api.libs.json.{Json, OFormat}
 
-@Singleton
-class AppConfig @Inject() (config: Configuration):
+final case class CreateNilMonthlyReturnRequest(
+  instanceId: String,
+  taxYear: Int,
+  taxMonth: Int,
+  decInformationCorrect: String,
+  decNilReturnNoPayments: String
+)
 
-  val appName: String = config.get[String]("appName")
+object CreateNilMonthlyReturnRequest {
+  implicit val format: OFormat[CreateNilMonthlyReturnRequest] = Json.format[CreateNilMonthlyReturnRequest]
+}

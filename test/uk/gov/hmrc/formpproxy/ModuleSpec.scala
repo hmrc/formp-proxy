@@ -21,8 +21,8 @@ import org.scalatest.matchers.must.Matchers
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.Helpers.running
 import uk.gov.hmrc.formpproxy.actions.{AuthAction, DefaultAuthAction}
-import uk.gov.hmrc.formpproxy.repositories.{CisFormpRepository, CisMonthlyReturnSource}
-import uk.gov.hmrc.formpproxy.utils.CisFormpStub
+import uk.gov.hmrc.formpproxy.cis.repositories.{CisFormpRepository, CisMonthlyReturnSource}
+import uk.gov.hmrc.formpproxy.cis.utils.CisFormpStub
 
 class ModuleSpec extends AnyWordSpec with Matchers {
 
@@ -36,8 +36,8 @@ class ModuleSpec extends AnyWordSpec with Matchers {
 
       running(app) {
         val inj = app.injector
-        inj.instanceOf(classOf[AuthAction]) mustBe a [DefaultAuthAction]
-        inj.instanceOf(classOf[CisMonthlyReturnSource]) mustBe a [CisFormpStub]
+        inj.instanceOf(classOf[AuthAction]) mustBe a[DefaultAuthAction]
+        inj.instanceOf(classOf[CisMonthlyReturnSource]) mustBe a[CisFormpStub]
       }
     }
 
@@ -49,7 +49,7 @@ class ModuleSpec extends AnyWordSpec with Matchers {
 
       running(app) {
         val inj = app.injector
-        inj.instanceOf(classOf[CisMonthlyReturnSource]) mustBe a [CisFormpRepository]
+        inj.instanceOf(classOf[CisMonthlyReturnSource]) mustBe a[CisFormpRepository]
       }
     }
   }
