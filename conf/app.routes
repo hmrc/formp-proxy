@@ -9,3 +9,6 @@ POST       /submissions/create                                      uk.gov.hmrc.
 POST       /submissions/update                                      uk.gov.hmrc.formpproxy.cis.controllers.SubmissionController.updateSubmission()
 
 # SDLT routes
+
+POST       /create/return                                           uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.createSDLTReturn()
+POST       /retrieve-return                                         uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.getSDLTReturn()
