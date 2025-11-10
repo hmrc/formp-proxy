@@ -23,6 +23,7 @@ import play.api.test.Helpers.running
 import uk.gov.hmrc.formpproxy.actions.{AuthAction, DefaultAuthAction}
 import uk.gov.hmrc.formpproxy.cis.repositories.{CisFormpRepository, CisMonthlyReturnSource}
 import uk.gov.hmrc.formpproxy.cis.utils.CisFormpStub
+import uk.gov.hmrc.formpproxy.sdlt.repositories.{SdltFormpRepository, SdltSource}
 
 class ModuleSpec extends AnyWordSpec with Matchers {
 
@@ -50,6 +51,18 @@ class ModuleSpec extends AnyWordSpec with Matchers {
       running(app) {
         val inj = app.injector
         inj.instanceOf(classOf[CisMonthlyReturnSource]) mustBe a[CisFormpRepository]
+      }
+    }
+
+    "bind AuthAction -> DefaultAuthAction and sdltSource -> SdltFormpRepository" in {
+      val app = new GuiceApplicationBuilder()
+        .overrides(new Module)
+        .build()
+
+      running(app) {
+        val inj = app.injector
+        inj.instanceOf(classOf[AuthAction]) mustBe a[DefaultAuthAction]
+        inj.instanceOf(classOf[SdltSource]) mustBe a[SdltFormpRepository]
       }
     }
   }
