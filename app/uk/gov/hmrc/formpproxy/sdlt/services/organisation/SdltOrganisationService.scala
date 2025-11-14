@@ -24,6 +24,6 @@ import scala.concurrent.Future
 
 class SdltOrganisationService @Inject()(repo: SdltFormpRepository) {
 
-  def getSDLTOrganisation(req: GetSdltOrgByStornRequest): Future[GetSdltOrgRequest] =
+  def getSDLTOrganisation(req: String): Future[GetSdltOrgRequest] =
     repo.sdltGetOrganisation(req)
 }

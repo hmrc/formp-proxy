@@ -37,7 +37,7 @@ import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
 import uk.gov.hmrc.formpproxy.sdlt.models.*
-import uk.gov.hmrc.formpproxy.sdlt.models.organisation.GetSdltOrgByStornRequest
+import uk.gov.hmrc.formpproxy.sdlt.models.organisation.{GetSdltOrgByStornRequest, GetSdltOrgRequest}
 import uk.gov.hmrc.formpproxy.sdlt.services.organisation.SdltOrganisationService
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -70,7 +70,7 @@ class SdltOrganisationController @Inject()(
           getReturnRequest =>
             service
               .getSDLTOrganisation(getReturnRequest.storn)
-              .map((payload: GetReturnRequest) => Ok(Json.toJson(payload)))
+              .map((payload: GetSdltOrgRequest) => Ok(Json.toJson(payload)))
               .recover {
                 case u: UpstreamErrorResponse =>
                   Status(u.statusCode)(Json.obj("message" -> u.message))
