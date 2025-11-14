@@ -20,12 +20,12 @@ import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.formpproxy.sdlt.models.Agent
 
 case class GetSdltOrgRequest(
-                              storn                   : Option[String],
-                              version                 : Option[String],
-                              isReturnUser            : Option[String],
-                              doNotDisplayWelcomePage : Option[String],
-                              agents                  : Seq[Agent]
-                            )
+  storn: Option[String],
+  version: Option[String],
+  isReturnUser: Option[String],
+  doNotDisplayWelcomePage: Option[String],
+  agents: Seq[Agent]
+)
 
 object GetSdltOrgRequest {
   implicit val format: OFormat[GetSdltOrgRequest] = Json.format[GetSdltOrgRequest]

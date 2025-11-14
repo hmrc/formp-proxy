@@ -30,7 +30,7 @@ import scala.concurrent.{ExecutionContext, Future}
 trait SdltSource {
   def sdltCreateReturn(request: CreateReturnRequest): Future[String]
   def sdltGetReturn(returnResourceRef: String, storn: String): Future[GetReturnRequest]
-  def sdltGetOrganisation(req: String): Future[GetSdltOrgRequest] 
+  def sdltGetOrganisation(req: String): Future[GetSdltOrgRequest]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -56,7 +56,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
           cs.execute()
 
           val sdltOrganisation = processResultSet(cs, 2, processSdltOrganisation)
-          val agents = processResultSetSeq(cs, 3, processAgent)
+          val agents           = processResultSetSeq(cs, 3, processAgent)
 
           GetSdltOrgRequest(
             storn = Some(storn),
@@ -69,7 +69,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       }
     }
   }
-  
+
   override def sdltCreateReturn(request: CreateReturnRequest): Future[String] = Future {
 
     db.withTransaction { conn =>

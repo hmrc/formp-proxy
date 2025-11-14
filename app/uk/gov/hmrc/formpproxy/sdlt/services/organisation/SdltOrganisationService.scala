@@ -22,7 +22,7 @@ import uk.gov.hmrc.formpproxy.sdlt.repositories.SdltFormpRepository
 import javax.inject.Inject
 import scala.concurrent.Future
 
-class SdltOrganisationService @Inject()(repo: SdltFormpRepository) {
+class SdltOrganisationService @Inject() (repo: SdltFormpRepository) {
 
   def getSDLTOrganisation(req: String): Future[GetSdltOrgRequest] =
     repo.sdltGetOrganisation(req)

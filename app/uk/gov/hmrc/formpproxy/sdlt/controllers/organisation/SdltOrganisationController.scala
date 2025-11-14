@@ -45,7 +45,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class SdltOrganisationController @Inject()(
+class SdltOrganisationController @Inject() (
   authorise: AuthAction,
   service: SdltOrganisationService,
   cc: ControllerComponents
