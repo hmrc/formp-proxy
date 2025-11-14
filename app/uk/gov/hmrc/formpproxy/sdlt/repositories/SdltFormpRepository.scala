@@ -20,6 +20,7 @@ import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
 import uk.gov.hmrc.formpproxy.sdlt.models.*
+import uk.gov.hmrc.formpproxy.sdlt.models.organisation.GetSdltOrgRequest
 
 import java.lang.Long
 import java.sql.{CallableStatement, Connection, ResultSet, Types}
@@ -29,6 +30,7 @@ import scala.concurrent.{ExecutionContext, Future}
 trait SdltSource {
   def sdltCreateReturn(request: CreateReturnRequest): Future[String]
   def sdltGetReturn(returnResourceRef: String, storn: String): Future[GetReturnRequest]
+  def sdltGetOrganisation(req: String): Future[GetSdltOrgRequest] 
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -38,6 +40,36 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     extends SdltSource
     with Logging {
 
+  override def sdltGetOrganisation(storn: String): Future[GetSdltOrgRequest] = {
+    logger.info(s"[SDLT] getSDLTOrganisation(storn=$storn)")
+    Future {
+      db.withConnection { conn =>
+        val cs = conn.prepareCall(
+          "{ call SDLT_ORGANISATION_PROCS.Get_SDLT_Organisation(?, ?, ?) }"
+        )
+        try {
+          cs.setString(1, storn)
+
+          cs.registerOutParameter(2, OracleTypes.CURSOR)
+          cs.registerOutParameter(3, OracleTypes.CURSOR)
+
+          cs.execute()
+
+          val sdltOrganisation = processResultSet(cs, 2, processSdltOrganisation)
+          val agents = processResultSetSeq(cs, 3, processAgent)
+
+          GetSdltOrgRequest(
+            storn = Some(storn),
+            version = sdltOrganisation.flatMap(_.version),
+            isReturnUser = sdltOrganisation.flatMap(_.isReturnUser),
+            doNotDisplayWelcomePage = sdltOrganisation.flatMap(_.doNotDisplayWelcomePage),
+            agents = agents
+          )
+        } finally cs.close()
+      }
+    }
+  }
+  
   override def sdltCreateReturn(request: CreateReturnRequest): Future[String] = Future {
 
     db.withTransaction { conn =>
