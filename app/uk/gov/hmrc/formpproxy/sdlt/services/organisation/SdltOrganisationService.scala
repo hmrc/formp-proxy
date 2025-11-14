@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.formpproxy.sdlt.services.organisation
 
-import uk.gov.hmrc.formpproxy.sdlt.models.organisation.{GetSdltOrgByStornRequest, GetSdltOrgRequest}
+import uk.gov.hmrc.formpproxy.sdlt.models.organisation.GetSdltOrgRequest
 import uk.gov.hmrc.formpproxy.sdlt.repositories.SdltFormpRepository
 
 import javax.inject.Inject
