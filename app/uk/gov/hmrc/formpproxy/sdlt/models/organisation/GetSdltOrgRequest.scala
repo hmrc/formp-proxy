@@ -19,17 +19,6 @@ package uk.gov.hmrc.formpproxy.sdlt.models.organisation
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.formpproxy.sdlt.models.Agent
 
-case class GetSdltOrg(
-                       storn                   : Option[String],
-                       version                 : Option[String],
-                       isReturnUser            : Option[String],
-                       doNotDisplayWelcomePage : Option[String]
-                     )
-
-object GetSdltOrg {
-  implicit val format: OFormat[GetSdltOrg] = Json.format[GetSdltOrg]
-}
-
 case class GetSdltOrgRequest(
                               storn                   : Option[String],
                               version                 : Option[String],
