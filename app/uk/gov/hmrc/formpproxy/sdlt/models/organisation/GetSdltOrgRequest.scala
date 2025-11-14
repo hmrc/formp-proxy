@@ -17,32 +17,27 @@
 package uk.gov.hmrc.formpproxy.sdlt.models.organisation
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.formpproxy.sdlt.models.Agent
+
+case class GetSdltOrg(
+                       storn                   : Option[String],
+                       version                 : Option[String],
+                       isReturnUser            : Option[String],
+                       doNotDisplayWelcomePage : Option[String]
+                     )
+
+object GetSdltOrg {
+  implicit val format: OFormat[GetSdltOrg] = Json.format[GetSdltOrg]
+}
 
 case class GetSdltOrgRequest(
-                                       storn                   : String,
-                                       version                 : Int,
-                                       isReturnUser            : String,
-                                       doNotDisplayWelcomePage : String,
-                                       agents                  : Seq[AgentDetailsResponse]
-                                     )
+                              storn                   : Option[String],
+                              version                 : Option[String],
+                              isReturnUser            : Option[String],
+                              doNotDisplayWelcomePage : Option[String],
+                              agents                  : Seq[Agent]
+                            )
 
 object GetSdltOrgRequest {
   implicit val format: OFormat[GetSdltOrgRequest] = Json.format[GetSdltOrgRequest]
-}
-
-case class AgentDetailsResponse(
-                                 agentReferenceNumber : String,
-                                 agentName            : String,
-                                 agentId              : Option[String],
-                                 addressLine1         : Option[String],
-                                 addressLine2         : Option[String],
-                                 addressLine3         : Option[String],
-                                 addressLine4         : Option[String],
-                                 postcode             : Option[String],
-                                 phone                : Option[String],
-                                 email                : Option[String]
-                               )
-
-object AgentDetailsResponse {
-  implicit val format: OFormat[AgentDetailsResponse] = Json.format[AgentDetailsResponse]
 }
