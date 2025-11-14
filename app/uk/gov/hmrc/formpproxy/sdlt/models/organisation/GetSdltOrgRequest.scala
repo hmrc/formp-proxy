@@ -26,7 +26,7 @@ case class GetSdltOrgRequest(
                                        agents                  : Seq[AgentDetailsResponse]
                                      )
 
-object SdltOrganisationResponse {
+object GetSdltOrgRequest {
   implicit val format: OFormat[GetSdltOrgRequest] = Json.format[GetSdltOrgRequest]
 }
 
