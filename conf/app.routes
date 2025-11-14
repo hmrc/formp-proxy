@@ -13,4 +13,4 @@ POST       /submissions/update                                      uk.gov.hmrc.
 POST       /create/return                                           uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.createSDLTReturn()
 POST       /retrieve-return                                         uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.getSDLTReturn()
 
-POST       /get/organisation                                        uk.gov.hmrc.formpproxy.sdlt.controllers.returns.SdltOrganisationController.getSdltOrganisation()
+POST       /get/organisation                                        uk.gov.hmrc.formpproxy.sdlt.controllers.organisation.SdltOrganisationController.getSDLTOrganisation()

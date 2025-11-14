@@ -53,7 +53,7 @@ class SdltOrganisationController @Inject()(
     extends BackendController(cc)
     with Logging {
 
-  def getSdltOrganisation(): Action[JsValue] =
+  def getSDLTOrganisation(): Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
       request.body
         .validate[GetSdltOrgByStornRequest]

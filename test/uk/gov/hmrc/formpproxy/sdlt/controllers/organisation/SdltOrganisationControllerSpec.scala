@@ -46,7 +46,7 @@ class SdltOrganisationControllerSpec extends AnyFreeSpec with Matchers with Scal
         .thenReturn(Future.successful(fullOrganisationData))
 
       val req: FakeRequest[JsValue] = makeJsonRequest(Json.toJson(getRequest))
-      val res: Future[Result]       = controller.getSdltOrganisation()(req)
+      val res: Future[Result]       = controller.getSDLTOrganisation()(req)
 
       status(res) mustBe OK
       contentType(res) mustBe Some(JSON)
@@ -73,7 +73,7 @@ class SdltOrganisationControllerSpec extends AnyFreeSpec with Matchers with Scal
         .thenReturn(Future.successful(minimalOrganisationData))
 
       val req = makeJsonRequest(Json.toJson(getRequest))
-      val res = controller.getSdltOrganisation()(req)
+      val res = controller.getSDLTOrganisation()(req)
 
       status(res) mustBe OK
 
@@ -87,7 +87,7 @@ class SdltOrganisationControllerSpec extends AnyFreeSpec with Matchers with Scal
 
     "returns 400 when JSON body is empty" in new Setup {
       val req = makeJsonRequest(Json.obj())
-      val res = controller.getSdltOrganisation()(req)
+      val res = controller.getSDLTOrganisation()(req)
 
       status(res) mustBe BAD_REQUEST
       (contentAsJson(res) \ "message").as[String] mustBe "Invalid JSON body"
@@ -98,7 +98,7 @@ class SdltOrganisationControllerSpec extends AnyFreeSpec with Matchers with Scal
       val invalidJson: JsObject = Json.obj("foo" -> "bar")
 
       val req = makeJsonRequest(invalidJson)
-      val res = controller.getSdltOrganisation()(req)
+      val res = controller.getSDLTOrganisation()(req)
 
       status(res) mustBe BAD_REQUEST
       (contentAsJson(res) \ "message").as[String] mustBe "Invalid JSON body"
@@ -118,7 +118,7 @@ class SdltOrganisationControllerSpec extends AnyFreeSpec with Matchers with Scal
         .thenReturn(Future.failed(err))
 
       val req = makeJsonRequest(Json.toJson(getRequest))
-      val res = controller.getSdltOrganisation()(req)
+      val res = controller.getSDLTOrganisation()(req)
 
       status(res) mustBe BAD_GATEWAY
       (contentAsJson(res) \ "message").as[String] must include("FORMP organisation service unavailable")
@@ -134,7 +134,7 @@ class SdltOrganisationControllerSpec extends AnyFreeSpec with Matchers with Scal
         .thenReturn(Future.failed(new RuntimeException("Database timeout")))
 
       val req = makeJsonRequest(Json.toJson(getRequest))
-      val res = controller.getSdltOrganisation()(req)
+      val res = controller.getSDLTOrganisation()(req)
 
       status(res) mustBe INTERNAL_SERVER_ERROR
       (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
@@ -153,7 +153,7 @@ class SdltOrganisationControllerSpec extends AnyFreeSpec with Matchers with Scal
         .thenReturn(Future.successful(differentData))
 
       val req = makeJsonRequest(Json.toJson(getRequest))
-      val res = controller.getSdltOrganisation()(req)
+      val res = controller.getSDLTOrganisation()(req)
 
       status(res) mustBe OK
       (contentAsJson(res) \ "storn").asOpt[String] mustBe Some("STORN99999")
