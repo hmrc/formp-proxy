@@ -16,7 +16,9 @@
 
 package uk.gov.hmrc.formpproxy.sdlt.services
 
-import uk.gov.hmrc.formpproxy.sdlt.models.{CreateReturnRequest, GetReturnRequest}
+import uk.gov.hmrc.formpproxy.sdlt.models.*
+import uk.gov.hmrc.formpproxy.sdlt.models.agent.*
+import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.repositories.SdltFormpRepository
 
 import javax.inject.Inject
@@ -29,5 +31,26 @@ class ReturnService @Inject() (repo: SdltFormpRepository) {
 
   def getSDLTReturn(returnResourceRef: String, storn: String): Future[GetReturnRequest] =
     repo.sdltGetReturn(returnResourceRef = returnResourceRef, storn = storn)
+
+  def createVendor(req: CreateVendorRequest): Future[CreateVendorReturn] =
+    repo.sdltCreateVendor(req)
+
+  def updateVendor(req: UpdateVendorRequest): Future[UpdateVendorReturn] =
+    repo.sdltUpdateVendor(req)
+
+  def deleteVendor(req: DeleteVendorRequest): Future[DeleteVendorReturn] =
+    repo.sdltDeleteVendor(req)
+
+  def createReturnAgent(req: CreateReturnAgentRequest): Future[CreateReturnAgentReturn] =
+    repo.sdltCreateReturnAgent(req)
+
+  def updateReturnAgent(req: UpdateReturnAgentRequest): Future[UpdateReturnAgentReturn] =
+    repo.sdltUpdateReturnAgent(req)
+
+  def deleteReturnAgent(req: DeleteReturnAgentRequest): Future[DeleteReturnAgentReturn] =
+    repo.sdltDeleteReturnAgent(req)
+
+  def updateReturnVersion(req: ReturnVersionUpdateRequest): Future[ReturnVersionUpdateReturn] =
+    repo.sdltUpdateReturnVersion(req)
 
 }

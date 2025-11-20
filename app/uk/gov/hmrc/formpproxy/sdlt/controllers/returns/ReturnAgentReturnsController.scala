@@ -36,15 +36,16 @@ import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
-import uk.gov.hmrc.formpproxy.sdlt.models._
+import uk.gov.hmrc.formpproxy.sdlt.models.*
+import uk.gov.hmrc.formpproxy.sdlt.models.agent.*
+import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.services.ReturnService
-import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class ReturnsController @Inject() (
+class ReturnAgentReturnsController @Inject() (
   authorise: AuthAction,
   service: ReturnService,
   cc: ControllerComponents
@@ -52,69 +53,61 @@ class ReturnsController @Inject() (
     extends BackendController(cc)
     with Logging {
 
-  def createSDLTReturn(): Action[JsValue] =
+  def createReturnAgent(): Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
       request.body
-        .validate[CreateReturnRequest]
+        .validate[CreateReturnAgentRequest]
         .fold(
           errs =>
             Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
           body =>
             service
-              .createSDLTReturn(body)
-              .map { returnRefId =>
-                Created(Json.obj("returnResourceRef" -> returnRefId))
+              .createReturnAgent(body)
+              .map { CreateReturnAgentReturn =>
+                Created(Json.toJson(CreateReturnAgentReturn))
               }
               .recover { case t =>
-                logger.error("[createSubmission] failed", t)
+                logger.error("[createReturnAgent] failed", t)
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )
     }
 
-  def getSDLTReturn(): Action[JsValue] =
+  def updateReturnAgent(): Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
       request.body
-        .validate[GetReturnByRefRequest]
-        .fold(
-          errs =>
-            Future.successful(
-              BadRequest(
-                Json.obj(
-                  "message" -> "Invalid JSON body",
-                  "errors"  -> JsError.toJson(errs)
-                )
-              )
-            ),
-          getReturnRequest =>
-            service
-              .getSDLTReturn(getReturnRequest.returnResourceRef, getReturnRequest.storn)
-              .map((payload: GetReturnRequest) => Ok(Json.toJson(payload)))
-              .recover {
-                case u: UpstreamErrorResponse =>
-                  Status(u.statusCode)(Json.obj("message" -> u.message))
-                case t: Throwable             =>
-                  logger.error("[getSDLTReturn] failed", t)
-                  InternalServerError(Json.obj("message" -> "Unexpected error"))
-              }
-        )
-    }
-
-  def updateReturnVersion(): Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
-      request.body
-        .validate[ReturnVersionUpdateRequest]
+        .validate[UpdateReturnAgentRequest]
         .fold(
           errs =>
             Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
           body =>
             service
-              .updateReturnVersion(body)
-              .map { UpdatedVersion =>
-                Ok(Json.toJson(UpdatedVersion))
+              .updateReturnAgent(body)
+              .map { UpdateReturnAgentReturn =>
+                Ok(Json.toJson(UpdateReturnAgentReturn))
               }
               .recover { case t =>
-                logger.error("[updateReturnVersion] failed", t)
+                logger.error("[updateReturnAgent] failed", t)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
+              }
+        )
+    }
+
+  def deleteReturnAgent(): Action[JsValue] =
+    authorise.async(parse.json) { implicit request =>
+      request.body
+        .validate[DeleteReturnAgentRequest]
+        .fold(
+          errs =>
+            Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
+          body =>
+            service
+              .deleteReturnAgent(body)
+              .map { DeleteReturnAgentReturn =>
+                Ok(Json.toJson(DeleteReturnAgentReturn))
+              }
+              .recover { case t =>
+                logger.error("[deleteReturnAgent] failed", t)
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )

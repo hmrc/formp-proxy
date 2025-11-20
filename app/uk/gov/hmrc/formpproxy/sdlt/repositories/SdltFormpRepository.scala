@@ -20,6 +20,8 @@ import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
 import uk.gov.hmrc.formpproxy.sdlt.models.*
+import uk.gov.hmrc.formpproxy.sdlt.models.agent.*
+import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 
 import java.lang.Long
 import java.sql.{CallableStatement, Connection, ResultSet, Types}
@@ -29,6 +31,13 @@ import scala.concurrent.{ExecutionContext, Future}
 trait SdltSource {
   def sdltCreateReturn(request: CreateReturnRequest): Future[String]
   def sdltGetReturn(returnResourceRef: String, storn: String): Future[GetReturnRequest]
+  def sdltCreateVendor(request: CreateVendorRequest): Future[CreateVendorReturn]
+  def sdltUpdateVendor(request: UpdateVendorRequest): Future[UpdateVendorReturn]
+  def sdltDeleteVendor(request: DeleteVendorRequest): Future[DeleteVendorReturn]
+  def sdltCreateReturnAgent(request: CreateReturnAgentRequest): Future[CreateReturnAgentReturn]
+  def sdltUpdateReturnAgent(request: UpdateReturnAgentRequest): Future[UpdateReturnAgentReturn]
+  def sdltDeleteReturnAgent(request: DeleteReturnAgentRequest): Future[DeleteReturnAgentReturn]
+  def sdltUpdateReturnVersion(request: ReturnVersionUpdateRequest): Future[ReturnVersionUpdateReturn]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -92,8 +101,14 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
 
   private def setOptionalString(cs: CallableStatement, index: Int, value: Option[String]): Unit =
     value match {
-      case Some(v) => cs.setString(index, v)
-      case None    => cs.setNull(index, Types.VARCHAR)
+      case Some(v) if v != null => cs.setString(index, v)
+      case _                    => cs.setNull(index, Types.VARCHAR)
+    }
+
+  private def setOptionalInt(cs: CallableStatement, index: Int, value: Option[Int]): Unit =
+    value match {
+      case Some(v) => cs.setInt(index, v)
+      case None    => cs.setNull(index, Types.NUMERIC)
     }
 
   override def sdltGetReturn(returnResourceRef: String, storn: String): Future[GetReturnRequest] = {
@@ -508,5 +523,382 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       isCloseCompany = Option(rs.getString("IS_CLOSE_COMPANY")),
       isCrownRelief = Option(rs.getString("IS_CROWN_RELIEF"))
     )
+
+  override def sdltCreateVendor(request: CreateVendorRequest): Future[CreateVendorReturn] = Future {
+    db.withTransaction { conn =>
+      callCreateVendor(
+        conn = conn,
+        p_storn = request.stornId,
+        p_return_resource_ref = request.returnResourceRef.toLong,
+        p_title = request.title,
+        p_forename1 = request.forename1,
+        p_forename2 = request.forename2,
+        p_name = request.name,
+        p_house_number = request.houseNumber,
+        p_address_1 = request.addressLine1,
+        p_address_2 = request.addressLine2,
+        p_address_3 = request.addressLine3,
+        p_address_4 = request.addressLine4,
+        p_postcode = request.postcode,
+        p_is_represented_by_agent = request.isRepresentedByAgent
+      )
+    }
+  }
+
+  private def callCreateVendor(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_title: Option[String],
+    p_forename1: Option[String],
+    p_forename2: Option[String],
+    p_name: String,
+    p_house_number: Option[String],
+    p_address_1: String,
+    p_address_2: Option[String],
+    p_address_3: Option[String],
+    p_address_4: Option[String],
+    p_postcode: Option[String],
+    p_is_represented_by_agent: String
+  ): CreateVendorReturn = {
+
+    val cs = conn.prepareCall("{ call VENDOR_PROCS.Create_Vendor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      setOptionalString(cs, 3, p_title)
+      setOptionalString(cs, 4, p_forename1)
+      setOptionalString(cs, 5, p_forename2)
+      cs.setString(6, p_name)
+      setOptionalString(cs, 7, p_house_number)
+      cs.setString(8, p_address_1)
+      setOptionalString(cs, 9, p_address_2)
+      setOptionalString(cs, 10, p_address_3)
+      setOptionalString(cs, 11, p_address_4)
+      setOptionalString(cs, 12, p_postcode)
+      cs.setString(13, p_is_represented_by_agent)
+
+      cs.registerOutParameter(14, Types.NUMERIC)
+      cs.registerOutParameter(15, Types.NUMERIC)
+
+      cs.execute()
+
+      val vendorResourceRef = cs.getLong(14)
+      val vendorId          = cs.getLong(15)
+
+      CreateVendorReturn(
+        vendorResourceRef = vendorResourceRef.toString,
+        vendorId = vendorId.toString
+      )
+    } finally cs.close()
+  }
+
+  override def sdltUpdateVendor(request: UpdateVendorRequest): Future[UpdateVendorReturn] = Future {
+    db.withTransaction { conn =>
+      callUpdateVendor(
+        conn = conn,
+        p_storn = request.stornId,
+        p_return_resource_ref = request.returnResourceRef.toLong,
+        p_title = request.title,
+        p_forename1 = request.forename1,
+        p_forename2 = request.forename2,
+        p_name = request.name,
+        p_house_number = request.houseNumber,
+        p_address_1 = request.addressLine1,
+        p_address_2 = request.addressLine2,
+        p_address_3 = request.addressLine3,
+        p_address_4 = request.addressLine4,
+        p_postcode = request.postcode,
+        p_is_represented_by_agent = request.isRepresentedByAgent,
+        p_vendor_resource_ref = request.vendorResourceRef.toLong,
+        p_next_vendor_id = request.nextVendorId
+      )
+    }
+  }
+
+  private def callUpdateVendor(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_title: Option[String],
+    p_forename1: Option[String],
+    p_forename2: Option[String],
+    p_name: String,
+    p_house_number: Option[String],
+    p_address_1: String,
+    p_address_2: Option[String],
+    p_address_3: Option[String],
+    p_address_4: Option[String],
+    p_postcode: Option[String],
+    p_is_represented_by_agent: String,
+    p_vendor_resource_ref: Long,
+    p_next_vendor_id: Option[String]
+  ): UpdateVendorReturn = {
+
+    val cs = conn.prepareCall("{ call VENDOR_PROCS.Update_Vendor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      setOptionalString(cs, 3, p_title)
+      setOptionalString(cs, 4, p_forename1)
+      setOptionalString(cs, 5, p_forename2)
+      cs.setString(6, p_name)
+      setOptionalString(cs, 7, p_house_number)
+      cs.setString(8, p_address_1)
+      setOptionalString(cs, 9, p_address_2)
+      setOptionalString(cs, 10, p_address_3)
+      setOptionalString(cs, 11, p_address_4)
+      setOptionalString(cs, 12, p_postcode)
+      cs.setString(13, p_is_represented_by_agent)
+      cs.setLong(14, p_vendor_resource_ref)
+      setOptionalString(cs, 15, p_next_vendor_id)
+
+      cs.execute()
+
+      UpdateVendorReturn(
+        updated = true
+      )
+
+    } finally cs.close()
+  }
+
+  override def sdltDeleteVendor(request: DeleteVendorRequest): Future[DeleteVendorReturn] = Future {
+    db.withTransaction { conn =>
+      callDeleteVendor(
+        conn = conn,
+        p_storn = request.storn,
+        p_return_resource_ref = request.returnResourceRef.toLong,
+        p_vendor_resource_ref = request.vendorResourceRef.toLong
+      )
+    }
+  }
+
+  private def callDeleteVendor(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_vendor_resource_ref: Long
+  ): DeleteVendorReturn = {
+
+    val cs = conn.prepareCall("{ call VENDOR_PROCS.Delete_Vendor(?, ?, ?) }")
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.setLong(3, p_vendor_resource_ref)
+
+      cs.execute()
+
+      DeleteVendorReturn(
+        deleted = true
+      )
+    } finally cs.close()
+  }
+
+  override def sdltCreateReturnAgent(request: CreateReturnAgentRequest): Future[CreateReturnAgentReturn] = Future {
+    db.withTransaction { conn =>
+      callCreateReturnAgent(
+        conn = conn,
+        p_storn = request.stornId,
+        p_return_resource_ref = request.returnResourceRef.toLong,
+        p_agent_type = request.agentType,
+        p_name = request.name,
+        p_house_number = request.houseNumber,
+        p_address_1 = request.addressLine1,
+        p_address_2 = request.addressLine2,
+        p_address_3 = request.addressLine3,
+        p_address_4 = request.addressLine4,
+        p_postcode = request.postcode,
+        p_phone = request.phoneNumber,
+        p_email = request.email,
+        p_dx_address = None,
+        p_reference = request.agentReference,
+        p_is_authorised = request.isAuthorised
+      )
+    }
+  }
+
+  private def callCreateReturnAgent(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_agent_type: String,
+    p_name: String,
+    p_house_number: Option[String],
+    p_address_1: String,
+    p_address_2: Option[String],
+    p_address_3: Option[String],
+    p_address_4: Option[String],
+    p_postcode: String,
+    p_phone: Option[String],
+    p_email: Option[String],
+    p_dx_address: Option[String],
+    p_reference: Option[String],
+    p_is_authorised: Option[String]
+  ): CreateReturnAgentReturn = {
+
+    val cs = conn.prepareCall(
+      "{ call RETURN_AGENT_PROCS.Create_Return_Agent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+    )
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.setString(3, p_agent_type)
+      cs.setString(4, p_name)
+      setOptionalString(cs, 5, p_house_number)
+      cs.setString(6, p_address_1)
+      setOptionalString(cs, 7, p_address_2)
+      setOptionalString(cs, 8, p_address_3)
+      setOptionalString(cs, 9, p_address_4)
+      cs.setString(10, p_postcode)
+      setOptionalString(cs, 11, p_phone)
+      setOptionalString(cs, 12, p_email)
+      setOptionalString(cs, 13, p_dx_address)
+      setOptionalString(cs, 14, p_reference)
+      setOptionalString(cs, 15, p_is_authorised)
+
+      cs.registerOutParameter(16, Types.NUMERIC)
+
+      cs.execute()
+
+      val returnAgentID = cs.getLong(16)
+
+      CreateReturnAgentReturn(
+        returnAgentID = returnAgentID.toString
+      )
+    } finally cs.close()
+  }
+
+  override def sdltUpdateReturnAgent(request: UpdateReturnAgentRequest): Future[UpdateReturnAgentReturn] = Future {
+    db.withTransaction { conn =>
+      callUpdateReturnAgent(
+        conn = conn,
+        p_storn = request.stornId,
+        p_return_resource_ref = request.returnResourceRef.toLong,
+        p_agent_type = request.agentType,
+        p_name = request.name,
+        p_house_number = request.houseNumber,
+        p_address_1 = request.addressLine1,
+        p_address_2 = request.addressLine2,
+        p_address_3 = request.addressLine3,
+        p_address_4 = request.addressLine4,
+        p_postcode = request.postcode,
+        p_phone = request.phoneNumber,
+        p_email = request.email,
+        p_dx_address = None,
+        p_reference = request.agentReference,
+        p_is_authorised = request.isAuthorised
+      )
+    }
+  }
+
+  private def callUpdateReturnAgent(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_agent_type: String,
+    p_name: String,
+    p_house_number: Option[String],
+    p_address_1: String,
+    p_address_2: Option[String],
+    p_address_3: Option[String],
+    p_address_4: Option[String],
+    p_postcode: String,
+    p_phone: Option[String],
+    p_email: Option[String],
+    p_dx_address: Option[String],
+    p_reference: Option[String],
+    p_is_authorised: Option[String]
+  ): UpdateReturnAgentReturn = {
+
+    val cs = conn.prepareCall(
+      "{ call RETURN_AGENT_PROCS.UPDATE_RETURN_AGENT(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+    )
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.setString(3, p_agent_type)
+      cs.setString(4, p_name)
+      setOptionalString(cs, 5, p_house_number)
+      cs.setString(6, p_address_1)
+      setOptionalString(cs, 7, p_address_2)
+      setOptionalString(cs, 8, p_address_3)
+      setOptionalString(cs, 9, p_address_4)
+      cs.setString(10, p_postcode)
+      setOptionalString(cs, 11, p_phone)
+      setOptionalString(cs, 12, p_email)
+      setOptionalString(cs, 13, p_dx_address)
+      setOptionalString(cs, 14, p_reference)
+      setOptionalString(cs, 15, p_is_authorised)
+      cs.execute()
+
+      UpdateReturnAgentReturn(
+        updated = true
+      )
+    } finally cs.close()
+  }
+
+  override def sdltDeleteReturnAgent(request: DeleteReturnAgentRequest): Future[DeleteReturnAgentReturn] = Future {
+    db.withTransaction { conn =>
+      callDeleteReturnAgent(
+        conn = conn,
+        p_storn = request.storn,
+        p_return_resource_ref = request.returnResourceRef.toLong,
+        p_agent_type = request.agentType
+      )
+    }
+  }
+
+  private def callDeleteReturnAgent(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_agent_type: String
+  ): DeleteReturnAgentReturn = {
+
+    val cs = conn.prepareCall("{ call RETURN_AGENT_PROCS.Delete_Return_Agent(?, ?, ?) }")
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.setString(3, p_agent_type)
+      cs.execute()
+
+      DeleteReturnAgentReturn(deleted = true)
+    } finally cs.close()
+  }
+
+  override def sdltUpdateReturnVersion(request: ReturnVersionUpdateRequest): Future[ReturnVersionUpdateReturn] =
+    Future {
+      db.withTransaction { conn =>
+        callUpdateReturnVersion(
+          conn = conn,
+          p_storn = request.storn,
+          p_return_resource_ref = request.returnResourceRef.toLong,
+          p_version = request.currentVersion.toLong
+        )
+      }
+    }
+
+  private def callUpdateReturnVersion(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_version: Long
+  ): ReturnVersionUpdateReturn = {
+
+    val cs = conn.prepareCall("{ call RETURN_PROCS.Update_Version_Number(?, ?, ?) }")
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.setLong(3, p_version)
+
+      cs.registerOutParameter(3, Types.NUMERIC)
+
+      cs.execute()
+
+      val newVersion = cs.getInt(3)
+
+      ReturnVersionUpdateReturn(newVersion = newVersion)
+    } finally cs.close()
+  }
 
 }
