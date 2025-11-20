@@ -36,15 +36,15 @@ import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
-import uk.gov.hmrc.formpproxy.sdlt.models._
+import uk.gov.hmrc.formpproxy.sdlt.models.*
+import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.services.ReturnService
-import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class ReturnsController @Inject() (
+class VendorReturnsController @Inject() (
   authorise: AuthAction,
   service: ReturnService,
   cc: ControllerComponents
@@ -52,69 +52,61 @@ class ReturnsController @Inject() (
     extends BackendController(cc)
     with Logging {
 
-  def createSDLTReturn(): Action[JsValue] =
+  def createVendor(): Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
       request.body
-        .validate[CreateReturnRequest]
+        .validate[CreateVendorRequest]
         .fold(
           errs =>
             Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
           body =>
             service
-              .createSDLTReturn(body)
-              .map { returnRefId =>
-                Created(Json.obj("returnResourceRef" -> returnRefId))
+              .createVendor(body)
+              .map { CreateVendorReturn =>
+                Created(Json.toJson(CreateVendorReturn))
               }
               .recover { case t =>
-                logger.error("[createSubmission] failed", t)
+                logger.error("[createVendor] failed", t)
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )
     }
 
-  def getSDLTReturn(): Action[JsValue] =
+  def updateVendor(): Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
       request.body
-        .validate[GetReturnByRefRequest]
-        .fold(
-          errs =>
-            Future.successful(
-              BadRequest(
-                Json.obj(
-                  "message" -> "Invalid JSON body",
-                  "errors"  -> JsError.toJson(errs)
-                )
-              )
-            ),
-          getReturnRequest =>
-            service
-              .getSDLTReturn(getReturnRequest.returnResourceRef, getReturnRequest.storn)
-              .map((payload: GetReturnRequest) => Ok(Json.toJson(payload)))
-              .recover {
-                case u: UpstreamErrorResponse =>
-                  Status(u.statusCode)(Json.obj("message" -> u.message))
-                case t: Throwable             =>
-                  logger.error("[getSDLTReturn] failed", t)
-                  InternalServerError(Json.obj("message" -> "Unexpected error"))
-              }
-        )
-    }
-
-  def updateReturnVersion(): Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
-      request.body
-        .validate[ReturnVersionUpdateRequest]
+        .validate[UpdateVendorRequest]
         .fold(
           errs =>
             Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
           body =>
             service
-              .updateReturnVersion(body)
-              .map { UpdatedVersion =>
-                Ok(Json.toJson(UpdatedVersion))
+              .updateVendor(body)
+              .map { UpdateVendorReturn =>
+                Ok(Json.toJson(UpdateVendorReturn))
               }
               .recover { case t =>
-                logger.error("[updateReturnVersion] failed", t)
+                logger.error("[updateVendor] failed", t)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
+              }
+        )
+    }
+
+  def deleteVendor(): Action[JsValue] =
+    authorise.async(parse.json) { implicit request =>
+      request.body
+        .validate[DeleteVendorRequest]
+        .fold(
+          errs =>
+            Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
+          body =>
+            service
+              .deleteVendor(body)
+              .map { DeleteVendorReturn =>
+                Ok(Json.toJson(DeleteVendorReturn))
+              }
+              .recover { case t =>
+                logger.error("[deleteVendor] failed", t)
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )

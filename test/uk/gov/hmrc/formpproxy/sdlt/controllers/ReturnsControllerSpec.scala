@@ -342,6 +342,171 @@ class ReturnsControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
     }
   }
 
+  "ReturnsController updateReturnVersion" - {
+
+    "returns 200 with new version when service succeeds" in new Setup {
+      val request: ReturnVersionUpdateRequest = ReturnVersionUpdateRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001",
+        currentVersion = "1"
+      )
+
+      val expectedResponse: ReturnVersionUpdateReturn = ReturnVersionUpdateReturn(
+        newVersion = 2
+      )
+
+      when(mockService.updateReturnVersion(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(Json.toJson(request))
+      val res: Future[Result]       = controller.updateReturnVersion()(req)
+
+      status(res) mustBe OK
+      contentType(res) mustBe Some(JSON)
+      (contentAsJson(res) \ "newVersion").as[Int] mustBe 2
+
+      verify(mockService).updateReturnVersion(eqTo(request))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 200 with incremented version for higher version numbers" in new Setup {
+      val request: ReturnVersionUpdateRequest = ReturnVersionUpdateRequest(
+        storn = "STORN99999",
+        returnResourceRef = "100002",
+        currentVersion = "5"
+      )
+
+      val expectedResponse: ReturnVersionUpdateReturn = ReturnVersionUpdateReturn(
+        newVersion = 6
+      )
+
+      when(mockService.updateReturnVersion(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(Json.toJson(request))
+      val res: Future[Result]       = controller.updateReturnVersion()(req)
+
+      status(res) mustBe OK
+      (contentAsJson(res) \ "newVersion").as[Int] mustBe 6
+    }
+
+    "returns 400 when JSON body is empty" in new Setup {
+      val req: FakeRequest[JsValue] = makeJsonRequest(Json.obj())
+      val res: Future[Result]       = controller.updateReturnVersion()(req)
+
+      status(res) mustBe BAD_REQUEST
+      (contentAsJson(res) \ "message").as[String] mustBe "Invalid payload"
+      verifyNoInteractions(mockService)
+    }
+
+    "returns 400 when storn is missing" in new Setup {
+      val invalidJson: JsObject = Json.obj(
+        "returnResourceRef" -> "100001",
+        "currentVersion"    -> "1"
+      )
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(invalidJson)
+      val res: Future[Result]       = controller.updateReturnVersion()(req)
+
+      status(res) mustBe BAD_REQUEST
+      (contentAsJson(res) \ "message").as[String] mustBe "Invalid payload"
+      verifyNoInteractions(mockService)
+    }
+
+    "returns 400 when returnResourceRef is missing" in new Setup {
+      val invalidJson: JsObject = Json.obj(
+        "storn"          -> "STORN12345",
+        "currentVersion" -> "1"
+      )
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(invalidJson)
+      val res: Future[Result]       = controller.updateReturnVersion()(req)
+
+      status(res) mustBe BAD_REQUEST
+      (contentAsJson(res) \ "message").as[String] mustBe "Invalid payload"
+      verifyNoInteractions(mockService)
+    }
+
+    "returns 400 when currentVersion is missing" in new Setup {
+      val invalidJson: JsObject = Json.obj(
+        "storn"             -> "STORN12345",
+        "returnResourceRef" -> "100001"
+      )
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(invalidJson)
+      val res: Future[Result]       = controller.updateReturnVersion()(req)
+
+      status(res) mustBe BAD_REQUEST
+      (contentAsJson(res) \ "message").as[String] mustBe "Invalid payload"
+      verifyNoInteractions(mockService)
+    }
+
+    "returns 500 with generic message on unexpected exception" in new Setup {
+      val request: ReturnVersionUpdateRequest = ReturnVersionUpdateRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001",
+        currentVersion = "1"
+      )
+
+      when(mockService.updateReturnVersion(eqTo(request)))
+        .thenReturn(Future.failed(new RuntimeException("Database connection failed")))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(Json.toJson(request))
+      val res: Future[Result]       = controller.updateReturnVersion()(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
+
+      verify(mockService).updateReturnVersion(eqTo(request))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "handles version update from version 0" in new Setup {
+      val request: ReturnVersionUpdateRequest = ReturnVersionUpdateRequest(
+        storn = "STORN11111",
+        returnResourceRef = "100003",
+        currentVersion = "0"
+      )
+
+      val expectedResponse: ReturnVersionUpdateReturn = ReturnVersionUpdateReturn(
+        newVersion = 1
+      )
+
+      when(mockService.updateReturnVersion(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(Json.toJson(request))
+      val res: Future[Result]       = controller.updateReturnVersion()(req)
+
+      status(res) mustBe OK
+      (contentAsJson(res) \ "newVersion").as[Int] mustBe 1
+    }
+
+    "handles version update with different return" in new Setup {
+      val request: ReturnVersionUpdateRequest = ReturnVersionUpdateRequest(
+        storn = "STORN77777",
+        returnResourceRef = "999999",
+        currentVersion = "10"
+      )
+
+      val expectedResponse: ReturnVersionUpdateReturn = ReturnVersionUpdateReturn(
+        newVersion = 11
+      )
+
+      when(mockService.updateReturnVersion(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(Json.toJson(request))
+      val res: Future[Result]       = controller.updateReturnVersion()(req)
+
+      status(res) mustBe OK
+      (contentAsJson(res) \ "newVersion").as[Int] mustBe 11
+
+      verify(mockService).updateReturnVersion(eqTo(request))
+      verifyNoMoreInteractions(mockService)
+    }
+  }
+
   private trait Setup {
     implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.global
     private val cc: ControllerComponents = stubControllerComponents()

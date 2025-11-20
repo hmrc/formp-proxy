@@ -21,6 +21,8 @@ import org.mockito.Mockito.*
 import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.sdlt.models.*
+import uk.gov.hmrc.formpproxy.sdlt.models.vendor._
+import uk.gov.hmrc.formpproxy.sdlt.models.agent._
 
 import java.sql.*
 
@@ -781,5 +783,717 @@ final class SdltFormpRepositorySpec extends SpecBase {
       e.submissionID mustBe None
     }
 
+  }
+
+  "sdltCreateVendor" - {
+
+    "call Create_Vendor stored procedure with correct parameters and return vendor IDs" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call VENDOR_PROCS.Create_Vendor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")))
+        .thenReturn(cs)
+      when(cs.getLong(14)).thenReturn(100001L)
+      when(cs.getLong(15)).thenReturn(1L)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = CreateVendorRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        title = Some("Mr"),
+        forename1 = Some("John"),
+        forename2 = Some("James"),
+        name = "Smith",
+        houseNumber = Some("123"),
+        addressLine1 = "Main Street",
+        addressLine2 = Some("Apartment 4B"),
+        addressLine3 = Some("City Center"),
+        addressLine4 = Some("Greater London"),
+        postcode = Some("SW1A 1AA"),
+        isRepresentedByAgent = "N"
+      )
+
+      val result = repo.sdltCreateVendor(request).futureValue
+
+      result.vendorResourceRef mustBe "100001"
+      result.vendorId mustBe "1"
+
+      verify(conn).prepareCall("{ call VENDOR_PROCS.Create_Vendor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setString(3, "Mr")
+      verify(cs).setString(4, "John")
+      verify(cs).setString(5, "James")
+      verify(cs).setString(6, "Smith")
+      verify(cs).setString(7, "123")
+      verify(cs).setString(8, "Main Street")
+      verify(cs).setString(9, "Apartment 4B")
+      verify(cs).setString(10, "City Center")
+      verify(cs).setString(11, "Greater London")
+      verify(cs).setString(12, "SW1A 1AA")
+      verify(cs).setString(13, "N")
+      verify(cs).registerOutParameter(14, Types.NUMERIC)
+      verify(cs).registerOutParameter(15, Types.NUMERIC)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "handle optional fields being None" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+      when(cs.getLong(14)).thenReturn(100002L)
+      when(cs.getLong(15)).thenReturn(2L)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = CreateVendorRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        title = None,
+        forename1 = None,
+        forename2 = None,
+        name = "Company Vendor Ltd",
+        houseNumber = None,
+        addressLine1 = "Business Park",
+        addressLine2 = None,
+        addressLine3 = None,
+        addressLine4 = None,
+        postcode = None,
+        isRepresentedByAgent = "Y"
+      )
+
+      val result = repo.sdltCreateVendor(request).futureValue
+
+      result.vendorResourceRef mustBe "100002"
+      result.vendorId mustBe "2"
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).setNull(3, Types.VARCHAR)
+      verify(cs).setNull(4, Types.VARCHAR)
+      verify(cs).setNull(5, Types.VARCHAR)
+      verify(cs).setString(6, "Company Vendor Ltd")
+      verify(cs).setNull(7, Types.VARCHAR)
+      verify(cs).setString(8, "Business Park")
+      verify(cs).setNull(9, Types.VARCHAR)
+      verify(cs).setNull(10, Types.VARCHAR)
+      verify(cs).setNull(11, Types.VARCHAR)
+      verify(cs).setNull(12, Types.VARCHAR)
+      verify(cs).setString(13, "Y")
+      verify(cs).execute()
+    }
+  }
+
+  "sdltUpdateVendor" - {
+
+    "call Update_Vendor stored procedure with correct parameters" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call VENDOR_PROCS.Update_Vendor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")))
+        .thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateVendorRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        title = Some("Mrs"),
+        forename1 = Some("Jane"),
+        forename2 = None,
+        name = "Doe",
+        houseNumber = Some("456"),
+        addressLine1 = "Oak Avenue",
+        addressLine2 = Some("Suite 10"),
+        addressLine3 = None,
+        addressLine4 = None,
+        postcode = Some("W1A 1AA"),
+        isRepresentedByAgent = "Y",
+        vendorResourceRef = "100001",
+        nextVendorId = Some("100002")
+      )
+
+      val result = repo.sdltUpdateVendor(request).futureValue
+
+      result.updated mustBe true
+
+      verify(conn).prepareCall("{ call VENDOR_PROCS.Update_Vendor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setString(3, "Mrs")
+      verify(cs).setString(4, "Jane")
+      verify(cs).setNull(5, Types.VARCHAR)
+      verify(cs).setString(6, "Doe")
+      verify(cs).setString(7, "456")
+      verify(cs).setString(8, "Oak Avenue")
+      verify(cs).setString(9, "Suite 10")
+      verify(cs).setNull(10, Types.VARCHAR)
+      verify(cs).setNull(11, Types.VARCHAR)
+      verify(cs).setString(12, "W1A 1AA")
+      verify(cs).setString(13, "Y")
+      verify(cs).setLong(14, 100001L)
+      verify(cs).setString(15, "100002")
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "handle minimal update with no optional fields" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateVendorRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        title = None,
+        forename1 = None,
+        forename2 = None,
+        name = "Updated Vendor Ltd",
+        houseNumber = None,
+        addressLine1 = "New Business Park",
+        addressLine2 = None,
+        addressLine3 = None,
+        addressLine4 = None,
+        postcode = None,
+        isRepresentedByAgent = "N",
+        vendorResourceRef = "100002",
+        nextVendorId = None
+      )
+
+      val result = repo.sdltUpdateVendor(request).futureValue
+
+      result.updated mustBe true
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).setNull(3, Types.VARCHAR)
+      verify(cs).setNull(4, Types.VARCHAR)
+      verify(cs).setNull(5, Types.VARCHAR)
+      verify(cs).setString(6, "Updated Vendor Ltd")
+      verify(cs).setNull(7, Types.VARCHAR)
+      verify(cs).setString(8, "New Business Park")
+      verify(cs).setNull(9, Types.VARCHAR)
+      verify(cs).setNull(10, Types.VARCHAR)
+      verify(cs).setNull(11, Types.VARCHAR)
+      verify(cs).setNull(12, Types.VARCHAR)
+      verify(cs).setString(13, "N")
+      verify(cs).setLong(14, 100002L)
+      verify(cs).setNull(15, Types.VARCHAR)
+      verify(cs).execute()
+    }
+  }
+
+  "sdltDeleteVendor" - {
+
+    "call Delete_Vendor stored procedure with correct parameters" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call VENDOR_PROCS.Delete_Vendor(?, ?, ?) }"))).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = DeleteVendorRequest(
+        storn = "STORN12345",
+        vendorResourceRef = "100001",
+        returnResourceRef = "100001"
+      )
+
+      val result = repo.sdltDeleteVendor(request).futureValue
+
+      result.deleted mustBe true
+
+      verify(conn).prepareCall("{ call VENDOR_PROCS.Delete_Vendor(?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setLong(3, 100001L)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "handle different vendor resource references" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = DeleteVendorRequest(
+        storn = "STORN99999",
+        vendorResourceRef = "999999",
+        returnResourceRef = "100002"
+      )
+
+      val result = repo.sdltDeleteVendor(request).futureValue
+
+      result.deleted mustBe true
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).setLong(3, 999999L)
+      verify(cs).execute()
+    }
+  }
+
+  "sdltCreateReturnAgent" - {
+
+    "call Create_Return_Agent stored procedure with correct parameters and return agent ID" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo("{ call RETURN_AGENT_PROCS.Create_Return_Agent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+        )
+      )
+        .thenReturn(cs)
+      when(cs.getLong(16)).thenReturn(100001L)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = CreateReturnAgentRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        agentType = "SOLICITOR",
+        name = "Smith & Partners LLP",
+        houseNumber = Some("10"),
+        addressLine1 = "Legal District",
+        addressLine2 = Some("Business Quarter"),
+        addressLine3 = Some("Manchester"),
+        addressLine4 = Some("Greater Manchester"),
+        postcode = "M1 1AA",
+        phoneNumber = Some("0161234567"),
+        email = Some("agent@smithpartners.com"),
+        agentReference = Some("AGT123456"),
+        isAuthorised = Some("Y")
+      )
+
+      val result = repo.sdltCreateReturnAgent(request).futureValue
+
+      result.returnAgentID mustBe "100001"
+
+      verify(conn).prepareCall(
+        "{ call RETURN_AGENT_PROCS.Create_Return_Agent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+      )
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setString(3, "SOLICITOR")
+      verify(cs).setString(4, "Smith & Partners LLP")
+      verify(cs).setString(5, "10")
+      verify(cs).setString(6, "Legal District")
+      verify(cs).setString(7, "Business Quarter")
+      verify(cs).setString(8, "Manchester")
+      verify(cs).setString(9, "Greater Manchester")
+      verify(cs).setString(10, "M1 1AA")
+      verify(cs).setString(11, "0161234567")
+      verify(cs).setString(12, "agent@smithpartners.com")
+      verify(cs).setNull(13, Types.VARCHAR)
+      verify(cs).setString(14, "AGT123456")
+      verify(cs).setString(15, "Y")
+      verify(cs).registerOutParameter(16, Types.NUMERIC)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "handle optional fields being None" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+      when(cs.getLong(16)).thenReturn(100002L)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = CreateReturnAgentRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        agentType = "ACCOUNTANT",
+        name = "Quick Accounting",
+        houseNumber = None,
+        addressLine1 = "High Street",
+        addressLine2 = None,
+        addressLine3 = None,
+        addressLine4 = None,
+        postcode = "EC1A 1BB",
+        phoneNumber = None,
+        email = None,
+        agentReference = None,
+        isAuthorised = None
+      )
+
+      val result = repo.sdltCreateReturnAgent(request).futureValue
+
+      result.returnAgentID mustBe "100002"
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).setString(3, "ACCOUNTANT")
+      verify(cs).setString(4, "Quick Accounting")
+      verify(cs).setNull(5, Types.VARCHAR)
+      verify(cs).setString(6, "High Street")
+      verify(cs).setNull(7, Types.VARCHAR)
+      verify(cs).setNull(8, Types.VARCHAR)
+      verify(cs).setNull(9, Types.VARCHAR)
+      verify(cs).setString(10, "EC1A 1BB")
+      verify(cs).setNull(11, Types.VARCHAR)
+      verify(cs).setNull(12, Types.VARCHAR)
+      verify(cs).setNull(13, Types.VARCHAR)
+      verify(cs).setNull(14, Types.VARCHAR)
+      verify(cs).setNull(15, Types.VARCHAR)
+      verify(cs).execute()
+    }
+  }
+
+  "sdltUpdateReturnAgent" - {
+
+    "call UPDATE_RETURN_AGENT stored procedure with correct parameters" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo("{ call RETURN_AGENT_PROCS.UPDATE_RETURN_AGENT(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+        )
+      )
+        .thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateReturnAgentRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        agentType = "SOLICITOR",
+        name = "Updated Smith & Partners LLP",
+        houseNumber = Some("20"),
+        addressLine1 = "New Legal District",
+        addressLine2 = Some("Updated Quarter"),
+        addressLine3 = Some("Manchester"),
+        addressLine4 = None,
+        postcode = "M2 2BB",
+        phoneNumber = Some("0161999888"),
+        email = Some("updated@smithpartners.com"),
+        agentReference = Some("AGT999999"),
+        isAuthorised = Some("Y")
+      )
+
+      val result = repo.sdltUpdateReturnAgent(request).futureValue
+
+      result.updated mustBe true
+
+      verify(conn).prepareCall(
+        "{ call RETURN_AGENT_PROCS.UPDATE_RETURN_AGENT(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+      )
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setString(3, "SOLICITOR")
+      verify(cs).setString(4, "Updated Smith & Partners LLP")
+      verify(cs).setString(5, "20")
+      verify(cs).setString(6, "New Legal District")
+      verify(cs).setString(7, "Updated Quarter")
+      verify(cs).setString(8, "Manchester")
+      verify(cs).setNull(9, Types.VARCHAR)
+      verify(cs).setString(10, "M2 2BB")
+      verify(cs).setString(11, "0161999888")
+      verify(cs).setString(12, "updated@smithpartners.com")
+      verify(cs).setNull(13, Types.VARCHAR)
+      verify(cs).setString(14, "AGT999999")
+      verify(cs).setString(15, "Y")
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "handle minimal update with no optional fields" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateReturnAgentRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        agentType = "ACCOUNTANT",
+        name = "Updated Accounting",
+        houseNumber = None,
+        addressLine1 = "New High Street",
+        addressLine2 = None,
+        addressLine3 = None,
+        addressLine4 = None,
+        postcode = "EC2A 2BB",
+        phoneNumber = None,
+        email = None,
+        agentReference = None,
+        isAuthorised = None
+      )
+
+      val result = repo.sdltUpdateReturnAgent(request).futureValue
+
+      result.updated mustBe true
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).setString(3, "ACCOUNTANT")
+      verify(cs).setString(4, "Updated Accounting")
+      verify(cs).setNull(5, Types.VARCHAR)
+      verify(cs).setString(6, "New High Street")
+      verify(cs).setNull(7, Types.VARCHAR)
+      verify(cs).setNull(8, Types.VARCHAR)
+      verify(cs).setNull(9, Types.VARCHAR)
+      verify(cs).setString(10, "EC2A 2BB")
+      verify(cs).setNull(11, Types.VARCHAR)
+      verify(cs).setNull(12, Types.VARCHAR)
+      verify(cs).setNull(13, Types.VARCHAR)
+      verify(cs).setNull(14, Types.VARCHAR)
+      verify(cs).setNull(15, Types.VARCHAR)
+      verify(cs).execute()
+    }
+  }
+
+  "sdltDeleteReturnAgent" - {
+
+    "call Delete_Return_Agent stored procedure with correct parameters" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call RETURN_AGENT_PROCS.Delete_Return_Agent(?, ?, ?) }"))).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = DeleteReturnAgentRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001",
+        agentType = "SOLICITOR"
+      )
+
+      val result = repo.sdltDeleteReturnAgent(request).futureValue
+
+      result.deleted mustBe true
+
+      verify(conn).prepareCall("{ call RETURN_AGENT_PROCS.Delete_Return_Agent(?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setString(3, "SOLICITOR")
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "handle different agent types" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = DeleteReturnAgentRequest(
+        storn = "STORN99999",
+        returnResourceRef = "100002",
+        agentType = "ACCOUNTANT"
+      )
+
+      val result = repo.sdltDeleteReturnAgent(request).futureValue
+
+      result.deleted mustBe true
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).setString(3, "ACCOUNTANT")
+      verify(cs).execute()
+    }
+  }
+
+  "sdltUpdateReturnVersion" - {
+
+    "call Update_Version_Number stored procedure with correct parameters and return new version" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call RETURN_PROCS.Update_Version_Number(?, ?, ?) }"))).thenReturn(cs)
+      when(cs.getInt(3)).thenReturn(2)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = ReturnVersionUpdateRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001",
+        currentVersion = "1"
+      )
+
+      val result = repo.sdltUpdateReturnVersion(request).futureValue
+
+      result.newVersion mustBe 2
+
+      verify(conn).prepareCall("{ call RETURN_PROCS.Update_Version_Number(?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setLong(3, 1L)
+      verify(cs).registerOutParameter(3, Types.NUMERIC)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "handle version 0 to version 1" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+      when(cs.getInt(3)).thenReturn(1)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = ReturnVersionUpdateRequest(
+        storn = "STORN11111",
+        returnResourceRef = "100003",
+        currentVersion = "0"
+      )
+
+      val result = repo.sdltUpdateReturnVersion(request).futureValue
+
+      result.newVersion mustBe 1
+
+      verify(cs).setString(1, "STORN11111")
+      verify(cs).setLong(2, 100003L)
+      verify(cs).setLong(3, 0L)
+      verify(cs).execute()
+    }
+
+    "handle higher version numbers" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+      when(cs.getInt(3)).thenReturn(6)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = ReturnVersionUpdateRequest(
+        storn = "STORN99999",
+        returnResourceRef = "100002",
+        currentVersion = "5"
+      )
+
+      val result = repo.sdltUpdateReturnVersion(request).futureValue
+
+      result.newVersion mustBe 6
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).setLong(3, 5L)
+      verify(cs).registerOutParameter(3, Types.NUMERIC)
+      verify(cs).execute()
+    }
+
+    "handle very high version numbers" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+      when(cs.getInt(3)).thenReturn(11)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = ReturnVersionUpdateRequest(
+        storn = "STORN77777",
+        returnResourceRef = "999999",
+        currentVersion = "10"
+      )
+
+      val result = repo.sdltUpdateReturnVersion(request).futureValue
+
+      result.newVersion mustBe 11
+
+      verify(cs).setString(1, "STORN77777")
+      verify(cs).setLong(2, 999999L)
+      verify(cs).setLong(3, 10L)
+      verify(cs).execute()
+    }
   }
 }
