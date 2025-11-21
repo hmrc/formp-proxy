@@ -1500,11 +1500,11 @@ final class SdltFormpRepositorySpec extends SpecBase {
   "sdltGetOrganisation" - {
 
     "call Get_SDLT_Organisation stored procedure and map organisation and agents correctly" in {
-      val db = mock[Database]
+      val db   = mock[Database]
       val conn = mock[Connection]
-      val cs = mock[CallableStatement]
+      val cs   = mock[CallableStatement]
 
-      val rsOrg = mock[ResultSet]
+      val rsOrg    = mock[ResultSet]
       val rsAgents = mock[ResultSet]
 
       when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
@@ -1538,7 +1538,7 @@ final class SdltFormpRepositorySpec extends SpecBase {
       when(rsAgents.getString("DX_ADDRESS")).thenReturn("DX 12345 London")
       when(rsAgents.getString("AGENT_RESOURCE_REF")).thenReturn("AGT-RES-001")
 
-      val repo = new SdltFormpRepository(db)
+      val repo   = new SdltFormpRepository(db)
       val result = repo.sdltGetOrganisation("STORN12345").futureValue
 
       result.storn mustBe Some("STORN12345")
@@ -1571,9 +1571,9 @@ final class SdltFormpRepositorySpec extends SpecBase {
     }
 
     "handle null cursors gracefully" in {
-      val db = mock[Database]
+      val db   = mock[Database]
       val conn = mock[Connection]
-      val cs = mock[CallableStatement]
+      val cs   = mock[CallableStatement]
 
       when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
@@ -1582,7 +1582,7 @@ final class SdltFormpRepositorySpec extends SpecBase {
       when(conn.prepareCall(anyArg[String])).thenReturn(cs)
       when(cs.getObject(anyArg[Int], eqTo(classOf[ResultSet]))).thenReturn(null)
 
-      val repo = new SdltFormpRepository(db)
+      val repo   = new SdltFormpRepository(db)
       val result = repo.sdltGetOrganisation("STORN99999").futureValue
 
       result.storn mustBe Some("STORN99999")
@@ -1596,11 +1596,11 @@ final class SdltFormpRepositorySpec extends SpecBase {
     }
 
     "handle empty organisation and agent result sets" in {
-      val db = mock[Database]
+      val db   = mock[Database]
       val conn = mock[Connection]
-      val cs = mock[CallableStatement]
+      val cs   = mock[CallableStatement]
 
-      val rsOrg = mock[ResultSet]
+      val rsOrg    = mock[ResultSet]
       val rsAgents = mock[ResultSet]
 
       when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
@@ -1615,7 +1615,7 @@ final class SdltFormpRepositorySpec extends SpecBase {
       when(rsOrg.next()).thenReturn(false)
       when(rsAgents.next()).thenReturn(false)
 
-      val repo = new SdltFormpRepository(db)
+      val repo   = new SdltFormpRepository(db)
       val result = repo.sdltGetOrganisation("STORN00000").futureValue
 
       result.storn mustBe Some("STORN00000")

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 package uk.gov.hmrc.formpproxy.sdlt.services.organistion
 
 import org.mockito.ArgumentMatchers.eq as eqTo
@@ -51,7 +50,7 @@ class SdltOrganisationServiceSpec extends AnyFreeSpec with Matchers with ScalaFu
   private trait Setup {
     implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.global
 
-    val mockRepo: SdltFormpRepository = mock[SdltFormpRepository]
+    val mockRepo: SdltFormpRepository    = mock[SdltFormpRepository]
     val service: SdltOrganisationService = new SdltOrganisationService(mockRepo)
 
     val expectedOrganisation: GetSdltOrgRequest =
