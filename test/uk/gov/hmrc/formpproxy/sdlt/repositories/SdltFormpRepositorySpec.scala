@@ -1496,4 +1496,137 @@ final class SdltFormpRepositorySpec extends SpecBase {
       verify(cs).execute()
     }
   }
+
+  "sdltGetOrganisation" - {
+
+    "call Get_SDLT_Organisation stored procedure and map organisation and agents correctly" in {
+      val db = mock[Database]
+      val conn = mock[Connection]
+      val cs = mock[CallableStatement]
+
+      val rsOrg = mock[ResultSet]
+      val rsAgents = mock[ResultSet]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call SDLT_ORGANISATION_PROCS.Get_SDLT_Organisation(?, ?, ?) }")))
+        .thenReturn(cs)
+
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsOrg)
+      when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsAgents)
+
+      when(rsOrg.next()).thenReturn(true, false)
+      when(rsOrg.getString("IS_RETURN_USER")).thenReturn("Y")
+      when(rsOrg.getString("DO_NOT_DISPLAY_WELCOME_PAGE")).thenReturn("N")
+      when(rsOrg.getString("STORN")).thenReturn("STORN12345")
+      when(rsOrg.getString("VERSION")).thenReturn("1")
+
+      when(rsAgents.next()).thenReturn(true, false)
+      when(rsAgents.getString("AGENT_ID")).thenReturn("AGT001")
+      when(rsAgents.getString("STORN")).thenReturn("STORN12345")
+      when(rsAgents.getString("NAME")).thenReturn("Smith & Co Solicitors")
+      when(rsAgents.getString("HOUSE_NUMBER")).thenReturn("10")
+      when(rsAgents.getString("ADDRESS_1")).thenReturn("Downing Street")
+      when(rsAgents.getString("ADDRESS_2")).thenReturn("Westminster")
+      when(rsAgents.getString("ADDRESS_3")).thenReturn("London")
+      when(rsAgents.getString("ADDRESS_4")).thenReturn(null)
+      when(rsAgents.getString("POSTCODE")).thenReturn("SW1A 2AA")
+      when(rsAgents.getString("PHONE")).thenReturn("02071234567")
+      when(rsAgents.getString("EMAIL")).thenReturn("info@smithco.co.uk")
+      when(rsAgents.getString("DX_ADDRESS")).thenReturn("DX 12345 London")
+      when(rsAgents.getString("AGENT_RESOURCE_REF")).thenReturn("AGT-RES-001")
+
+      val repo = new SdltFormpRepository(db)
+      val result = repo.sdltGetOrganisation("STORN12345").futureValue
+
+      result.storn mustBe Some("STORN12345")
+      result.version mustBe Some("1")
+      result.isReturnUser mustBe Some("Y")
+      result.doNotDisplayWelcomePage mustBe Some("N")
+
+      result.agents must have size 1
+      val agent = result.agents.head
+      agent.agentId mustBe Some("AGT001")
+      agent.storn mustBe Some("STORN12345")
+      agent.name mustBe Some("Smith & Co Solicitors")
+      agent.houseNumber mustBe Some("10")
+      agent.address1 mustBe Some("Downing Street")
+      agent.address2 mustBe Some("Westminster")
+      agent.address3 mustBe Some("London")
+      agent.address4 mustBe None
+      agent.postcode mustBe Some("SW1A 2AA")
+      agent.phone mustBe Some("02071234567")
+      agent.email mustBe Some("info@smithco.co.uk")
+      agent.dxAddress mustBe Some("DX 12345 London")
+      agent.agentResourceReference mustBe Some("AGT-RES-001")
+
+      verify(conn).prepareCall("{ call SDLT_ORGANISATION_PROCS.Get_SDLT_Organisation(?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).execute()
+      verify(cs).close()
+      verify(rsOrg).close()
+      verify(rsAgents).close()
+    }
+
+    "handle null cursors gracefully" in {
+      val db = mock[Database]
+      val conn = mock[Connection]
+      val cs = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+      when(cs.getObject(anyArg[Int], eqTo(classOf[ResultSet]))).thenReturn(null)
+
+      val repo = new SdltFormpRepository(db)
+      val result = repo.sdltGetOrganisation("STORN99999").futureValue
+
+      result.storn mustBe Some("STORN99999")
+      result.version mustBe None
+      result.isReturnUser mustBe None
+      result.doNotDisplayWelcomePage mustBe None
+      result.agents mustBe Seq.empty
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).execute()
+    }
+
+    "handle empty organisation and agent result sets" in {
+      val db = mock[Database]
+      val conn = mock[Connection]
+      val cs = mock[CallableStatement]
+
+      val rsOrg = mock[ResultSet]
+      val rsAgents = mock[ResultSet]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsOrg)
+      when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsAgents)
+
+      when(rsOrg.next()).thenReturn(false)
+      when(rsAgents.next()).thenReturn(false)
+
+      val repo = new SdltFormpRepository(db)
+      val result = repo.sdltGetOrganisation("STORN00000").futureValue
+
+      result.storn mustBe Some("STORN00000")
+      result.version mustBe None
+      result.isReturnUser mustBe None
+      result.doNotDisplayWelcomePage mustBe None
+      result.agents mustBe empty
+
+      verify(cs).execute()
+      verify(rsOrg).close()
+      verify(rsAgents).close()
+    }
+  }
 }
