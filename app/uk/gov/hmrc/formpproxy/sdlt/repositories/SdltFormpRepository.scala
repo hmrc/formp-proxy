@@ -21,6 +21,7 @@ import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.agent.*
+import uk.gov.hmrc.formpproxy.sdlt.models.organisation.*
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 
 import java.lang.Long
@@ -38,6 +39,7 @@ trait SdltSource {
   def sdltUpdateReturnAgent(request: UpdateReturnAgentRequest): Future[UpdateReturnAgentReturn]
   def sdltDeleteReturnAgent(request: DeleteReturnAgentRequest): Future[DeleteReturnAgentReturn]
   def sdltUpdateReturnVersion(request: ReturnVersionUpdateRequest): Future[ReturnVersionUpdateReturn]
+  def sdltGetOrganisation(req: String): Future[GetSdltOrgRequest]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -46,6 +48,36 @@ private final case class SchemeRow(schemeId: Long, version: Option[Int], email: 
 class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implicit ec: ExecutionContext)
     extends SdltSource
     with Logging {
+
+  override def sdltGetOrganisation(storn: String): Future[GetSdltOrgRequest] = {
+    logger.info(s"[SDLT] getSDLTOrganisation(storn=$storn)")
+    Future {
+      db.withConnection { conn =>
+        val cs = conn.prepareCall(
+          "{ call SDLT_ORGANISATION_PROCS.Get_SDLT_Organisation(?, ?, ?) }"
+        )
+        try {
+          cs.setString(1, storn)
+
+          cs.registerOutParameter(2, OracleTypes.CURSOR)
+          cs.registerOutParameter(3, OracleTypes.CURSOR)
+
+          cs.execute()
+
+          val sdltOrganisation = processResultSet(cs, 2, processSdltOrganisation)
+          val agents           = processResultSetSeq(cs, 3, processAgent)
+
+          GetSdltOrgRequest(
+            storn = Some(storn),
+            version = sdltOrganisation.flatMap(_.version),
+            isReturnUser = sdltOrganisation.flatMap(_.isReturnUser),
+            doNotDisplayWelcomePage = sdltOrganisation.flatMap(_.doNotDisplayWelcomePage),
+            agents = agents
+          )
+        } finally cs.close()
+      }
+    }
+  }
 
   override def sdltCreateReturn(request: CreateReturnRequest): Future[String] = Future {
 

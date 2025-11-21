@@ -13,6 +13,8 @@ POST       /submissions/update                                      uk.gov.hmrc.
 POST       /create/return                                           uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.createSDLTReturn()
 POST       /retrieve-return                                         uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.getSDLTReturn()
 
+POST       /organisation                                            uk.gov.hmrc.formpproxy.sdlt.controllers.organisation.SdltOrganisationController.getSDLTOrganisation()
+
 POST       /filing/create/vendor                                    uk.gov.hmrc.formpproxy.sdlt.controllers.returns.VendorReturnsController.createVendor()
 POST       /filing/update/vendor                                    uk.gov.hmrc.formpproxy.sdlt.controllers.returns.VendorReturnsController.updateVendor()
 POST       /filing/delete/vendor                                    uk.gov.hmrc.formpproxy.sdlt.controllers.returns.VendorReturnsController.deleteVendor()
