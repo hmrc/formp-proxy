@@ -17,15 +17,16 @@
 package uk.gov.hmrc.formpproxy.sdlt.controllers.agent
 
 import play.api.Logging
-import play.api.libs.json.JsValue
+import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
-import uk.gov.hmrc.formpproxy.services.agent.AgentService
+import uk.gov.hmrc.formpproxy.sdlt.models.agent.{DeleteAgentRequest, DeleteAgentReturn}
+import uk.gov.hmrc.formpproxy.sdlt.services.agent.AgentService
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 class AgentController @Inject()(
   authorise: AuthAction,
@@ -52,7 +53,7 @@ class AgentController @Inject()(
           body =>
             service
               .deleteAgent(body)
-              .map { DeleteAgentReturn
+              .map { DeleteAgentReturn =>
                 Ok(Json.toJson(DeleteAgentReturn))
               }
               .recover {

@@ -1,6 +1,6 @@
 package uk.gov.hmrc.formpproxy.sdlt.services.agent
 
-import uk.gov.hmrc.formpproxy.sdlt.models.agent.{DeleteAgentRequest, DeleteAgentReturn}
+import uk.gov.hmrc.formpproxy.sdlt.models.agent.*
 import uk.gov.hmrc.formpproxy.sdlt.repositories.SdltFormpRepository
 
 import javax.inject.Inject

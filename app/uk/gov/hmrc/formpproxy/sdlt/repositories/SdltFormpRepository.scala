@@ -935,7 +935,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     } finally cs.close()
   }
 
-  override def sdltDeleteAgent(request: DeleteAgentRequest): Future[DeleteAgentReturn] = {
+  override def sdltDeleteAgent(request: DeleteAgentRequest): Future[DeleteAgentReturn] = Future {
     db.withTransaction { conn =>
       callDeleteAgent(
         conn = conn,
@@ -954,7 +954,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     val cs = conn.prepareCall("{ call AGENT_PROCS.Delete_Agent(?, ?) }")
     try {
       cs.setString(1, p_storn)
-      cs.setLong(2, p_agent_resource_ref)
+      cs.setString(2, p_agent_resource_ref)
       cs.execute()
 
       DeleteAgentReturn(deleted = true)
