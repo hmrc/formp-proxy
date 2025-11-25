@@ -34,25 +34,8 @@ class ReturnService @Inject() (repo: SdltFormpRepository) {
   def getSDLTReturn(returnResourceRef: String, storn: String): Future[GetReturnRequest] =
     repo.sdltGetReturn(returnResourceRef = returnResourceRef, storn = storn)
 
-  // TODO: implement actual call to the repo
   def getSDLTReturns(getReturnsRequest: GetReturnRecordsRequest): Future[SdltReturnRecordResponse] =
     repo.sdltGetReturns(getReturnsRequest)
-//    Future.successful {
-//      SdltReturnRecordResponse(
-//        returnSummaryCount = None,
-//        returnSummaryList = List(
-//          ReturnSummary(
-//            returnReference = "REF001",
-//            utrn = Some("UTR001"),
-//            status = "ACTIVE",
-//            dateSubmitted = Some(LocalDate.now),
-//            purchaserName = "PurchaserName",
-//            address = "Address",
-//            agentReference = Some("AgentRef")
-//          )
-//        )
-//      )
-//    }
 
   def createVendor(req: CreateVendorRequest): Future[CreateVendorReturn] =
     repo.sdltCreateVendor(req)

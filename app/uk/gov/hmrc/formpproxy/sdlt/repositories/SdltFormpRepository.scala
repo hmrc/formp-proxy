@@ -212,9 +212,9 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     }
   }
 
+  // TODO: implement request to params wiring
   override def sdltGetReturns(request: GetReturnRecordsRequest): Future[SdltReturnRecordResponse] = {
     logger.info(s"[SDLT] sdltGetReturns(returnResourceRef=$request)")
-    // TODO: implement request to params wiring
     Future {
       db.withConnection { conn =>
         val cs = conn.prepareCall(
@@ -239,19 +239,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
           cs.setString(9, "ASC")
 
           cs.setLong(10, request.pageNumber.map(_.toLong).getOrElse(1L))
-          cs.setString(11, request.pageType.getOrElse("SUBMITTED")) // TODO: optional parameter
-
-//          cs.registerOutParameter(3, OracleTypes.CURSOR)
-//          cs.registerOutParameter(4, OracleTypes.CURSOR)
-//          cs.registerOutParameter(5, OracleTypes.CURSOR)
-//          cs.registerOutParameter(6, OracleTypes.CURSOR)
-//          cs.registerOutParameter(7, OracleTypes.CURSOR)
-//          cs.registerOutParameter(8, OracleTypes.CURSOR)
-//          cs.registerOutParameter(9, OracleTypes.CURSOR)
-//          cs.registerOutParameter(10, OracleTypes.CURSOR)
-//          cs.registerOutParameter(11, OracleTypes.CURSOR)
-//          cs.registerOutParameter(12, OracleTypes.CURSOR)
-//          cs.registerOutParameter(13, OracleTypes.CURSOR)
+          cs.setString(11, request.pageType.getOrElse("SUBMITTED"))
 
           cs.registerOutParameter(12, OracleTypes.CURSOR)
           cs.registerOutParameter(13, OracleTypes.NUMERIC)
@@ -259,19 +247,6 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
           cs.execute()
 
           val totalcount = cs.getLong(13)
-//          val returnInfo             = processResultSet(cs, 4, processReturnInfo)
-//          val purchasers             = processResultSetSeq(cs, 5, processPurchaser)
-//          val companyDetails         = processResultSet(cs, 6, processCompanyDetails)
-//          val vendors                = processResultSetSeq(cs, 7, processVendor)
-//          val lands                  = processResultSetSeq(cs, 8, processLand)
-//          val transaction            = processResultSet(cs, 9, processTransaction)
-//          val returnAgents           = processResultSetSeq(cs, 10, processReturnAgent)
-//          val agent                  = processResultSet(cs, 11, processAgent)
-//          val lease                  = processResultSet(cs, 12, processLease)
-//          val taxCalculation         = processResultSet(cs, 13, processTaxCalculation)
-//          val submission             = processResultSet(cs, 14, processSubmission)
-//          val submissionErrorDetails = processResultSet(cs, 15, processSubmissionErrorDetails)
-//          val residency              = processResultSet(cs, 16, processResidency)
 
           SdltReturnRecordResponse(
             returnSummaryCount = Some(totalcount.toInt), // Inform consumer that count is not returned
@@ -287,24 +262,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
               )
             )
           )
-//          GetReturnRequest(
-//            stornId = Some(storn),
-//            returnResourceRef = Some(returnResourceRef),
-//            sdltOrganisation = sdltOrganisation,
-//            returnInfo = returnInfo,
-//            purchaser = if (purchasers.isEmpty) None else Some(purchasers),
-//            companyDetails = companyDetails,
-//            vendor = if (vendors.isEmpty) None else Some(vendors),
-//            land = if (lands.isEmpty) None else Some(lands),
-//            transaction = transaction,
-//            returnAgent = if (returnAgents.isEmpty) None else Some(returnAgents),
-//            agent = agent,
-//            lease = lease,
-//            taxCalculation = taxCalculation,
-//            submission = submission,
-//            submissionErrorDetails = submissionErrorDetails,
-//            residency = residency
-//          )
+
         } finally cs.close()
       }
     }
