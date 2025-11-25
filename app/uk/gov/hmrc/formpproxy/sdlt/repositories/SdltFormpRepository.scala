@@ -221,15 +221,13 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
           "{ call RETURN_PROCS.query_return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
         )
         try {
+          // Set up SPs IN/OUT params
           cs.setString(1, request.storn)
-
           cs.setNull(2, Types.VARCHAR)
           cs.setNull(3, Types.VARCHAR)
           cs.setNull(4, Types.VARCHAR)
-
-          cs.setString(5, request.status.getOrElse("ACTIVE")) // TODO: optional parameter
+          cs.setString(5, request.status.getOrElse("ACTIVE"))
           cs.setNull(6, Types.VARCHAR)
-
           if (request.deletionFlag) {
             cs.setString(7, "TRUE")
           } else {
@@ -237,15 +235,13 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
           }
           cs.setString(8, "1")
           cs.setString(9, "ASC")
-
           cs.setLong(10, request.pageNumber.map(_.toLong).getOrElse(1L))
           cs.setString(11, request.pageType.getOrElse("SUBMITTED"))
-
           cs.registerOutParameter(12, OracleTypes.CURSOR)
           cs.registerOutParameter(13, OracleTypes.NUMERIC)
-
           cs.execute()
 
+          // Read output params
           val totalcount = cs.getLong(13)
 
           SdltReturnRecordResponse(
@@ -262,20 +258,10 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
               )
             )
           )
-
         } finally cs.close()
       }
     }
   }
-
-  private def getTotalCount(rs: ResultSet): Long =
-    rs.getLong("p_totalcount")
-  //    SdltOrganisation(
-//      isReturnUser = Option(rs.getString("IS_RETURN_USER")),
-//      doNotDisplayWelcomePage = Option(rs.getString("DO_NOT_DISPLAY_WELCOME_PAGE")),
-//      storn = Option(rs.getString("STORN")),
-//      version = Option(rs.getString("VERSION"))
-//    )
 
   private def processResultSet[T](cs: CallableStatement, position: Int, processor: ResultSet => T): Option[T] = {
     val rs = cs.getObject(position, classOf[ResultSet])
