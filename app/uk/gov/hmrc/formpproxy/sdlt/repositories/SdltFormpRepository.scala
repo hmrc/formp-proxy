@@ -224,10 +224,10 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
         try {
           // Set up SPs IN/OUT params :: DEFAULTS assign as per SPs definition
           cs.setString(1, request.storn)
-          cs.setNull(2, Types.VARCHAR)
-          cs.setNull(3, Types.VARCHAR)
-          cs.setNull(4, Types.VARCHAR)
-          setOptionalString(cs, 5, request.status)
+          cs.setNull(2, Types.VARCHAR) // p_utrn
+          cs.setNull(3, Types.VARCHAR) // p_min_letter
+          cs.setNull(4, Types.VARCHAR) // p_max_letter
+          setOptionalString(cs, 5, request.status) // p_status
           cs.setNull(6, Types.VARCHAR)
           if (request.deletionFlag) {
             cs.setString(7, "TRUE")
@@ -244,6 +244,8 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
           // Fetch output params
           val totalcount: Long                      = cs.getLong(13)
           val returnSummaryList: Seq[ReturnSummary] = processResultSetSeq(cs, 12, processReturnSummary)
+
+          println(returnSummaryList)
 
           SdltReturnRecordResponse(
             returnSummaryCount = Some(totalcount.toInt), // Inform consumer that count is not returned
