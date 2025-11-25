@@ -214,7 +214,6 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     }
   }
 
-  // TODO: implement request to params wiring
   override def sdltGetReturns(request: GetReturnRecordsRequest): Future[SdltReturnRecordResponse] = {
     logger.info(s"[SDLT] sdltGetReturns(returnResourceRef=$request)")
     Future {
@@ -223,12 +222,12 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
           "{ call RETURN_PROCS.query_return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
         )
         try {
-          // Set up SPs IN/OUT params
+          // Set up SPs IN/OUT params :: DEFAULTS assign as per SPs definition
           cs.setString(1, request.storn)
           cs.setNull(2, Types.VARCHAR)
           cs.setNull(3, Types.VARCHAR)
           cs.setNull(4, Types.VARCHAR)
-          cs.setString(5, request.status.getOrElse("ACTIVE"))
+          setOptionalString(cs, 5, request.status)
           cs.setNull(6, Types.VARCHAR)
           if (request.deletionFlag) {
             cs.setString(7, "TRUE")
@@ -238,17 +237,13 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
           cs.setString(8, "1")
           cs.setString(9, "ASC")
           cs.setLong(10, request.pageNumber.map(_.toLong).getOrElse(1L))
-          cs.setString(11, request.pageType.getOrElse("SUBMITTED"))
+          setOptionalString(cs, 11, request.pageType)
           cs.registerOutParameter(12, OracleTypes.CURSOR)
           cs.registerOutParameter(13, OracleTypes.NUMERIC)
           cs.execute()
-
-          // Read output params
+          // Fetch output params
           val totalcount: Long                      = cs.getLong(13)
           val returnSummaryList: Seq[ReturnSummary] = processResultSetSeq(cs, 12, processReturnSummary)
-
-          // TODO: remove println
-          println(returnSummaryList)
 
           SdltReturnRecordResponse(
             returnSummaryCount = Some(totalcount.toInt), // Inform consumer that count is not returned
@@ -266,12 +261,12 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     ReturnSummary(
       returnReference = rs.getString("return_resource_ref"),
       utrn = Try(rs.getString("utrn")).toOption,
-      status = rs.getString("status"),
+      status = Option(rs.getString("status")).getOrElse(""),
       dateSubmitted = Try(rs.getDate("submitted_date"))
         .map(fromDateToLocalDate)
         .toOption,
-      purchaserName = rs.getString("name"),
-      address = rs.getString("address"),
+      purchaserName = Try(rs.getString("purchaserName")).toOption.getOrElse(""),
+      address = Option(rs.getString("address")).getOrElse(""),
       agentReference = Try(rs.getString("agent")).toOption
     )
 
