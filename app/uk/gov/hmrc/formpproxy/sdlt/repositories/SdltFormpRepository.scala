@@ -248,10 +248,12 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
 
           println(returnSummaryList)
 
-          SdltReturnRecordResponse(
+          val res = SdltReturnRecordResponse(
             returnSummaryCount = Some(totalcount.toInt), // Inform consumer that count is not returned
             returnSummaryList = returnSummaryList.toList
           )
+          println(s"purchaserName" + res.returnSummaryList.map(_.purchaserName))
+          res
         } finally cs.close()
       }
     }
@@ -268,7 +270,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       dateSubmitted = Try(rs.getDate("submitted_date"))
         .map(fromDateToLocalDate)
         .toOption,
-      purchaserName = Try(rs.getString("purchaserName")).toOption.getOrElse(""),
+      purchaserName = Option(rs.getArray("name")).map(_.toString).getOrElse(""), // TODO: test with the actual data
       address = Option(rs.getString("address")).getOrElse(""),
       agentReference = Try(rs.getString("agent")).toOption
     )
