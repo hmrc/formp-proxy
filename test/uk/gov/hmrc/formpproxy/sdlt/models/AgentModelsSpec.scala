@@ -19,7 +19,7 @@ package uk.gov.hmrc.formpproxy.sdlt.models
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import play.api.libs.json.{JsSuccess, Json}
-import uk.gov.hmrc.formpproxy.sdlt.models.agent._
+import uk.gov.hmrc.formpproxy.sdlt.models.returnAgent._
 
 class AgentModelsSpec extends AnyFreeSpec with Matchers {
 

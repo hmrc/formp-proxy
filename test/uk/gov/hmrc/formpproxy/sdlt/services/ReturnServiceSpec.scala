@@ -22,7 +22,7 @@ import org.scalatest.freespec.AnyFreeSpec
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor._
-import uk.gov.hmrc.formpproxy.sdlt.models.agent._
+import uk.gov.hmrc.formpproxy.sdlt.models.returnAgent._
 import uk.gov.hmrc.formpproxy.sdlt.repositories.SdltFormpRepository
 
 import scala.concurrent.Future
