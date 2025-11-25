@@ -18,11 +18,10 @@ package uk.gov.hmrc.formpproxy.sdlt.services
 
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.agent.*
-import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnSummary, SdltReturnRecordResponse}
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.SdltReturnRecordResponse
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.repositories.SdltFormpRepository
 
-import java.time.LocalDate
 import javax.inject.Inject
 import scala.concurrent.Future
 
@@ -34,8 +33,8 @@ class ReturnService @Inject() (repo: SdltFormpRepository) {
   def getSDLTReturn(returnResourceRef: String, storn: String): Future[GetReturnRequest] =
     repo.sdltGetReturn(returnResourceRef = returnResourceRef, storn = storn)
 
-  def getSDLTReturns(getReturnsRequest: GetReturnRecordsRequest): Future[SdltReturnRecordResponse] =
-    repo.sdltGetReturns(getReturnsRequest)
+  def getSDLTReturns(request: GetReturnRecordsRequest): Future[SdltReturnRecordResponse] =
+    repo.sdltGetReturns(request)
 
   def createVendor(req: CreateVendorRequest): Future[CreateVendorReturn] =
     repo.sdltCreateVendor(req)

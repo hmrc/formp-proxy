@@ -215,7 +215,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
   }
 
   override def sdltGetReturns(request: GetReturnRecordsRequest): Future[SdltReturnRecordResponse] = {
-    logger.info(s"[SDLT] sdltGetReturns(returnResourceRef=$request)")
+    logger.info(s"[SDLT] sdltGetReturns(returnResourceRef=$request) pt:=${request.pageType}")
     Future {
       db.withConnection { conn =>
         val cs = conn.prepareCall(
@@ -234,10 +234,11 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
           } else {
             cs.setString(7, "FALSE")
           }
-          cs.setString(8, "1")
-          cs.setString(9, "ASC")
+          cs.setString(8, "1") // p_order
+          cs.setString(9, "ASC") // p_order_by
           cs.setLong(10, request.pageNumber.map(_.toLong).getOrElse(1L))
           setOptionalString(cs, 11, request.pageType)
+          // Output
           cs.registerOutParameter(12, OracleTypes.CURSOR)
           cs.registerOutParameter(13, OracleTypes.NUMERIC)
           cs.execute()
