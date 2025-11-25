@@ -27,9 +27,11 @@ import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 
 import java.lang.Long
 import java.sql.{CallableStatement, Connection, ResultSet, Types}
-import java.time.LocalDate
+import java.time.{LocalDate, ZoneId}
+import java.util.Date
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 trait SdltSource {
   def sdltCreateReturn(request: CreateReturnRequest): Future[String]
@@ -242,26 +244,36 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
           cs.execute()
 
           // Read output params
-          val totalcount = cs.getLong(13)
+          val totalcount: Long                      = cs.getLong(13)
+          val returnSummaryList: Seq[ReturnSummary] = processResultSetSeq(cs, 12, processReturnSummary)
+
+          // TODO: remove println
+          println(returnSummaryList)
 
           SdltReturnRecordResponse(
             returnSummaryCount = Some(totalcount.toInt), // Inform consumer that count is not returned
-            returnSummaryList = List(
-              ReturnSummary(
-                returnReference = "REF001",
-                utrn = Some("UTR001"),
-                status = "ACTIVE",
-                dateSubmitted = Some(LocalDate.now),
-                purchaserName = "PurchaserName",
-                address = "Address",
-                agentReference = Some("AgentRef")
-              )
-            )
+            returnSummaryList = returnSummaryList.toList
           )
         } finally cs.close()
       }
     }
   }
+
+  private def fromDateToLocalDate(date: Date): LocalDate =
+    LocalDate.ofInstant(date.toInstant(), ZoneId.systemDefault())
+
+  private def processReturnSummary(rs: ResultSet): ReturnSummary =
+    ReturnSummary(
+      returnReference = rs.getString("return_resource_ref"),
+      utrn = Try(rs.getString("utrn")).toOption,
+      status = rs.getString("status"),
+      dateSubmitted = Try(rs.getDate("submitted_date"))
+        .map(fromDateToLocalDate)
+        .toOption,
+      purchaserName = rs.getString("name"),
+      address = rs.getString("address"),
+      agentReference = Try(rs.getString("agent")).toOption
+    )
 
   private def processResultSet[T](cs: CallableStatement, position: Int, processor: ResultSet => T): Option[T] = {
     val rs = cs.getObject(position, classOf[ResultSet])
