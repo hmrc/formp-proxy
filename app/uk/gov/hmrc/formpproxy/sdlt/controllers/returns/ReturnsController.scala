@@ -114,16 +114,15 @@ class ReturnsController @Inject() (
                 )
               )
             ),
-          getReturnRequest =>
+          getReturnsRequest =>
             service
-              .getSDLTReturns("", getReturnRequest.storn)
+              .getSDLTReturns(getReturnsRequest)
               .map(rs => Ok(Json.toJson(rs)))
-              // .map((payload: GetReturnRequest) => Ok(Json.toJson(payload)))
               .recover {
                 case u: UpstreamErrorResponse =>
                   Status(u.statusCode)(Json.obj("message" -> u.message))
                 case t: Throwable             =>
-                  logger.error("[getSDLTReturn] failed", t)
+                  logger.error("[getSDLTReturns] failed", t)
                   InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )

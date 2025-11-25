@@ -22,16 +22,19 @@ import play.api.db.{Database, NamedDatabase}
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.agent.*
 import uk.gov.hmrc.formpproxy.sdlt.models.organisation.*
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnSummary, SdltReturnRecordResponse}
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 
 import java.lang.Long
 import java.sql.{CallableStatement, Connection, ResultSet, Types}
+import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 trait SdltSource {
   def sdltCreateReturn(request: CreateReturnRequest): Future[String]
   def sdltGetReturn(returnResourceRef: String, storn: String): Future[GetReturnRequest]
+  def sdltGetReturns(request: GetReturnRecordsRequest): Future[SdltReturnRecordResponse]
   def sdltCreateVendor(request: CreateVendorRequest): Future[CreateVendorReturn]
   def sdltUpdateVendor(request: UpdateVendorRequest): Future[UpdateVendorReturn]
   def sdltDeleteVendor(request: DeleteVendorRequest): Future[DeleteVendorReturn]
@@ -144,7 +147,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     }
 
   override def sdltGetReturn(returnResourceRef: String, storn: String): Future[GetReturnRequest] = {
-    logger.info(s"[SDLT] getSdltReturn(returnResourceRef=$returnResourceRef, storn=$storn)")
+    logger.info(s"[SDLT] sdltGetReturns(returnResourceRef=$returnResourceRef, storn=$storn)")
     Future {
       db.withConnection { conn =>
         val cs = conn.prepareCall(
@@ -208,6 +211,113 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       }
     }
   }
+
+  override def sdltGetReturns(request: GetReturnRecordsRequest): Future[SdltReturnRecordResponse] = {
+    logger.info(s"[SDLT] sdltGetReturns(returnResourceRef=$request)")
+    // TODO: implement request to params wiring
+    Future {
+      db.withConnection { conn =>
+        val cs = conn.prepareCall(
+          "{ call RETURN_PROCS.query_return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+        )
+        try {
+          cs.setString(1, request.storn)
+
+          cs.setNull(2, Types.VARCHAR)
+          cs.setNull(3, Types.VARCHAR)
+          cs.setNull(4, Types.VARCHAR)
+
+          cs.setString(5, request.status.getOrElse("ACTIVE")) // TODO: optional parameter
+          cs.setNull(6, Types.VARCHAR)
+
+          if (request.deletionFlag) {
+            cs.setString(7, "TRUE")
+          } else {
+            cs.setString(7, "FALSE")
+          }
+          cs.setString(8, "1")
+          cs.setString(9, "ASC")
+
+          cs.setLong(10, request.pageNumber.map(_.toLong).getOrElse(1L))
+          cs.setString(11, request.pageType.getOrElse("SUBMITTED")) // TODO: optional parameter
+
+//          cs.registerOutParameter(3, OracleTypes.CURSOR)
+//          cs.registerOutParameter(4, OracleTypes.CURSOR)
+//          cs.registerOutParameter(5, OracleTypes.CURSOR)
+//          cs.registerOutParameter(6, OracleTypes.CURSOR)
+//          cs.registerOutParameter(7, OracleTypes.CURSOR)
+//          cs.registerOutParameter(8, OracleTypes.CURSOR)
+//          cs.registerOutParameter(9, OracleTypes.CURSOR)
+//          cs.registerOutParameter(10, OracleTypes.CURSOR)
+//          cs.registerOutParameter(11, OracleTypes.CURSOR)
+//          cs.registerOutParameter(12, OracleTypes.CURSOR)
+//          cs.registerOutParameter(13, OracleTypes.CURSOR)
+
+          cs.registerOutParameter(12, OracleTypes.CURSOR)
+          cs.registerOutParameter(13, OracleTypes.NUMERIC)
+
+          cs.execute()
+
+          val totalcount = cs.getLong(13)
+//          val returnInfo             = processResultSet(cs, 4, processReturnInfo)
+//          val purchasers             = processResultSetSeq(cs, 5, processPurchaser)
+//          val companyDetails         = processResultSet(cs, 6, processCompanyDetails)
+//          val vendors                = processResultSetSeq(cs, 7, processVendor)
+//          val lands                  = processResultSetSeq(cs, 8, processLand)
+//          val transaction            = processResultSet(cs, 9, processTransaction)
+//          val returnAgents           = processResultSetSeq(cs, 10, processReturnAgent)
+//          val agent                  = processResultSet(cs, 11, processAgent)
+//          val lease                  = processResultSet(cs, 12, processLease)
+//          val taxCalculation         = processResultSet(cs, 13, processTaxCalculation)
+//          val submission             = processResultSet(cs, 14, processSubmission)
+//          val submissionErrorDetails = processResultSet(cs, 15, processSubmissionErrorDetails)
+//          val residency              = processResultSet(cs, 16, processResidency)
+
+          SdltReturnRecordResponse(
+            returnSummaryCount = Some(totalcount.toInt), // Inform consumer that count is not returned
+            returnSummaryList = List(
+              ReturnSummary(
+                returnReference = "REF001",
+                utrn = Some("UTR001"),
+                status = "ACTIVE",
+                dateSubmitted = Some(LocalDate.now),
+                purchaserName = "PurchaserName",
+                address = "Address",
+                agentReference = Some("AgentRef")
+              )
+            )
+          )
+//          GetReturnRequest(
+//            stornId = Some(storn),
+//            returnResourceRef = Some(returnResourceRef),
+//            sdltOrganisation = sdltOrganisation,
+//            returnInfo = returnInfo,
+//            purchaser = if (purchasers.isEmpty) None else Some(purchasers),
+//            companyDetails = companyDetails,
+//            vendor = if (vendors.isEmpty) None else Some(vendors),
+//            land = if (lands.isEmpty) None else Some(lands),
+//            transaction = transaction,
+//            returnAgent = if (returnAgents.isEmpty) None else Some(returnAgents),
+//            agent = agent,
+//            lease = lease,
+//            taxCalculation = taxCalculation,
+//            submission = submission,
+//            submissionErrorDetails = submissionErrorDetails,
+//            residency = residency
+//          )
+        } finally cs.close()
+      }
+    }
+  }
+
+  private def getTotalCount(rs: ResultSet): Long =
+    rs.getLong("p_totalcount")
+  //    SdltOrganisation(
+//      isReturnUser = Option(rs.getString("IS_RETURN_USER")),
+//      doNotDisplayWelcomePage = Option(rs.getString("DO_NOT_DISPLAY_WELCOME_PAGE")),
+//      storn = Option(rs.getString("STORN")),
+//      version = Option(rs.getString("VERSION"))
+//    )
 
   private def processResultSet[T](cs: CallableStatement, position: Int, processor: ResultSet => T): Option[T] = {
     val rs = cs.getObject(position, classOf[ResultSet])
