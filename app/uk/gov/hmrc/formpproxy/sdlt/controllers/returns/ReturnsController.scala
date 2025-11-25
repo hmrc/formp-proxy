@@ -100,6 +100,35 @@ class ReturnsController @Inject() (
         )
     }
 
+  def getSDLTReturns(): Action[JsValue] =
+    authorise.async(parse.json) { implicit request =>
+      request.body
+        .validate[GetReturnRecordsRequest]
+        .fold(
+          errs =>
+            Future.successful(
+              BadRequest(
+                Json.obj(
+                  "message" -> "Invalid JSON body",
+                  "errors"  -> JsError.toJson(errs)
+                )
+              )
+            ),
+          getReturnRequest =>
+            service
+              .getSDLTReturns("", getReturnRequest.storn)
+              .map(rs => Ok(Json.toJson(rs)))
+              // .map((payload: GetReturnRequest) => Ok(Json.toJson(payload)))
+              .recover {
+                case u: UpstreamErrorResponse =>
+                  Status(u.statusCode)(Json.obj("message" -> u.message))
+                case t: Throwable             =>
+                  logger.error("[getSDLTReturn] failed", t)
+                  InternalServerError(Json.obj("message" -> "Unexpected error"))
+              }
+        )
+    }
+
   def updateReturnVersion(): Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
       request.body
