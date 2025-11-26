@@ -44,7 +44,7 @@ trait SdltFormpRepoDataHelper {
   )
   val expectedReturnsSummaryEmpty: List[ReturnSummary] = List.empty
   val expectedResponse: SdltReturnRecordResponse       = SdltReturnRecordResponse(
-    returnSummaryCount = Some(1),
+    returnSummaryCount = Some(expectedReturnsSummary.length),
     returnSummaryList = expectedReturnsSummary
   )
   val actualResponse: SdltReturnRecordResponse         = SdltReturnRecordResponse(
