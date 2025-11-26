@@ -1634,9 +1634,9 @@ final class SdltFormpRepositorySpec extends SpecBase {
   "sdltDeletePredefinedAgent" - {
 
     "call Delete_Predefined_Agent stored procedure with correct parameters" in {
-      val db = mock[Database]
+      val db   = mock[Database]
       val conn = mock[Connection]
-      val cs = mock[CallableStatement]
+      val cs   = mock[CallableStatement]
 
       when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)

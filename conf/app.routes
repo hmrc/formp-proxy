@@ -15,7 +15,7 @@ POST       /retrieve-return                                         uk.gov.hmrc.
 
 POST       /organisation                                            uk.gov.hmrc.formpproxy.sdlt.controllers.organisation.SdltOrganisationController.getSDLTOrganisation()
 
-POST       /delete/agent                                            uk.gov.hmrc.formpproxy.sdlt.controllers.agents.DeletePredefinedAgentController.deletePredefinedAgent()
+POST       /delete/predefined-agent                                 uk.gov.hmrc.formpproxy.sdlt.controllers.agents.DeletePredefinedAgentController.deletePredefinedAgent()
 
 POST       /filing/create/vendor                                    uk.gov.hmrc.formpproxy.sdlt.controllers.returns.VendorReturnsController.createVendor()
 POST       /filing/update/vendor                                    uk.gov.hmrc.formpproxy.sdlt.controllers.returns.VendorReturnsController.updateVendor()

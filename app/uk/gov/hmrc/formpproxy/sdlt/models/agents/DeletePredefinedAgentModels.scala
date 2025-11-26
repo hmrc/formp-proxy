@@ -18,16 +18,16 @@ package uk.gov.hmrc.formpproxy.sdlt.models.agents
 
 import play.api.libs.json.{Json, OFormat}
 
-case class DeletePredefinedAgentRequest (
+case class DeletePredefinedAgentRequest(
   storn: String,
-  agentReferenceNumber: String                            
+  agentReferenceNumber: String
 )
 
 object DeletePredefinedAgentRequest {
   implicit val format: OFormat[DeletePredefinedAgentRequest] = Json.format[DeletePredefinedAgentRequest]
 }
 
-case class DeletePredefinedAgentReturn (
+case class DeletePredefinedAgentReturn(
   deleted: Boolean
 )
 

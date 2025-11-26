@@ -28,10 +28,10 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class DeletePredefinedAgentController @Inject()(
-                                                 authorise: AuthAction,
-                                                 service: DeletePredefinedAgentService,
-                                                 cc: ControllerComponents
+class DeletePredefinedAgentController @Inject() (
+  authorise: AuthAction,
+  service: DeletePredefinedAgentService,
+  cc: ControllerComponents
 )(implicit ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
@@ -59,9 +59,9 @@ class DeletePredefinedAgentController @Inject()(
               .recover {
                 case u: UpstreamErrorResponse =>
                   Status(u.statusCode)(Json.obj("message" -> u.message))
-                case t: Throwable =>
+                case t: Throwable             =>
                   logger.error("[DeleteAgentController][deleteAgent] failed", t)
-                InternalServerError(Json.obj("message" -> "Unexpected error"))
+                  InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )
     }

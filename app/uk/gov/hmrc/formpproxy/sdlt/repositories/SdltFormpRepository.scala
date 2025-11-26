@@ -935,15 +935,16 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     } finally cs.close()
   }
 
-  override def sdltDeletePredefinedAgent(request: DeletePredefinedAgentRequest): Future[DeletePredefinedAgentReturn] = Future {
-    db.withTransaction { conn =>
-      callDeleteAgent(
-        conn = conn,
-        p_storn = request.storn,
-        p_agent_resource_ref = request.agentReferenceNumber
-      )
+  override def sdltDeletePredefinedAgent(request: DeletePredefinedAgentRequest): Future[DeletePredefinedAgentReturn] =
+    Future {
+      db.withTransaction { conn =>
+        callDeleteAgent(
+          conn = conn,
+          p_storn = request.storn,
+          p_agent_resource_ref = request.agentReferenceNumber
+        )
+      }
     }
-  }
 
   private def callDeleteAgent(
     conn: Connection,
