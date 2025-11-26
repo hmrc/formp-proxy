@@ -382,6 +382,21 @@ class ReturnsControllerSpec
       verifyNoMoreInteractions(mockService)
     }
 
+    "return status code: BAD_GATEWAY :: Upstream error" in new Setup {
+
+      val req: FakeRequest[JsValue] = makeJsonReturnsRequest(Json.toJson(requestReturns))
+
+      val err: UpstreamErrorResponse = UpstreamErrorResponse("FORMP service unavailable", BAD_GATEWAY, BAD_GATEWAY)
+
+      when(mockService.getSDLTReturns(eqTo(requestReturns)))
+        .thenReturn(Future.failed(err))
+
+      val res: Future[Result] = controller.getSDLTReturns()(req)
+
+      status(res) mustBe BAD_GATEWAY
+      (contentAsJson(res) \ "message").as[String] must include("FORMP service unavailable")
+
+    }
   }
 
   "ReturnsController updateReturnVersion" - {
