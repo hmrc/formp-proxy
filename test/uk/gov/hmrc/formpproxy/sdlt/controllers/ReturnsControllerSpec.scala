@@ -29,12 +29,19 @@ import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
 import uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController
 import uk.gov.hmrc.formpproxy.sdlt.models.*
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.ReturnSummary
+import uk.gov.hmrc.formpproxy.sdlt.repositories.SdltFormpRepoDataHelper
 import uk.gov.hmrc.formpproxy.sdlt.services.ReturnService
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class ReturnsControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures with MockitoSugar {
+class ReturnsControllerSpec
+    extends AnyFreeSpec
+    with Matchers
+    with ScalaFutures
+    with MockitoSugar
+    with SdltFormpRepoDataHelper {
 
   "ReturnsController createSDLTReturn" - {
 
@@ -340,6 +347,27 @@ class ReturnsControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
       status(res) mustBe OK
       (contentAsJson(res) \ "stornId").asOpt[String] mustBe Some("STORN99999")
     }
+  }
+
+  "ReturnsController getSDLTReturns" - {
+
+    "return status code: OK" in new Setup {
+      when(mockService.getSDLTReturns(eqTo(requestReturns)))
+        .thenReturn(Future.successful(actualResponse))
+      val req: FakeRequest[JsValue] = makeJsonRequest(Json.toJson(requestReturns))
+      val res: Future[Result]       = controller.getSDLTReturns()(req)
+
+      status(res) mustBe OK
+      contentType(res) mustBe Some(JSON)
+
+      val json: JsValue = contentAsJson(res)
+      (json \ "returnSummaryCount").asOpt[Int] mustBe Some(2)
+      (json \ "returnSummaryList").as[List[ReturnSummary]] mustBe expectedReturnsSummary
+
+      verify(mockService).getSDLTReturns(eqTo(requestReturns))
+      verifyNoMoreInteractions(mockService)
+    }
+
   }
 
   "ReturnsController updateReturnVersion" - {

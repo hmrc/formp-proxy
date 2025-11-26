@@ -43,23 +43,26 @@ trait SdltFormpRepoDataHelper {
     )
   )
   val expectedReturnsSummaryEmpty: List[ReturnSummary] = List.empty
-
-  val expectedResponse: SdltReturnRecordResponse = SdltReturnRecordResponse(
+  val expectedResponse: SdltReturnRecordResponse       = SdltReturnRecordResponse(
     returnSummaryCount = Some(1),
     returnSummaryList = expectedReturnsSummary
   )
-
-  val actualResponse: SdltReturnRecordResponse = SdltReturnRecordResponse(
-    returnSummaryCount = Some(1),
+  val actualResponse: SdltReturnRecordResponse         = SdltReturnRecordResponse(
+    returnSummaryCount = Some(expectedReturnsSummary.length),
     returnSummaryList = expectedReturnsSummary
   )
-
-  val requestReturns = GetReturnRecordsRequest(
+  val requestReturns: GetReturnRecordsRequest          = GetReturnRecordsRequest(
     storn = "STORN12345",
     status = None,
     deletionFlag = false,
     pageType = None,
     pageNumber = None
   )
-
+  val requestReturnsOther: GetReturnRecordsRequest     = GetReturnRecordsRequest(
+    storn = "STORN12347",
+    status = None,
+    deletionFlag = false,
+    pageType = None,
+    pageNumber = None
+  )
 }
