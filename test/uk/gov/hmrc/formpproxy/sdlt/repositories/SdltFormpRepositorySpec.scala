@@ -28,6 +28,7 @@ import uk.gov.hmrc.formpproxy.sdlt.models.returns.ReturnSummary
 import java.sql.*
 import java.time.LocalDate
 import java.util
+import scala.collection.mutable.ArrayBuffer
 
 final class SdltFormpRepositorySpec extends SpecBase {
 
@@ -816,13 +817,19 @@ final class SdltFormpRepositorySpec extends SpecBase {
       when(resRetSummary.getString("utrn")).thenReturn("UTR001", "UTR003")
       when(resRetSummary.getString("status")).thenReturn("ACTIVE", "SUBMITTED")
       when(resRetSummary.getString("submitted_date")).thenReturn("2025-01-01", "2025-02-03")
-      when(resRetSummary.getArray("name")).thenReturn(null) // TODO: ...
+
+      // TODO: still need this code/as 'purchaserName' field is verly likely an Array
+      // val ids         = new java.util.ArrayList[String](3)
+      // ids.add("Name 1")
+      // ids.add("Company Id")
+      // ids.add("OtherDetails")
+      // val arrExpected = conn.createArrayOf("String", ids.toArray)
+      when(resRetSummary.getString("name")).thenReturn("purchaserName1", "purchaserName2")
 
       when(resRetSummary.getString("address")).thenReturn("Address 11", "Address 22")
       when(resRetSummary.getString("agent")).thenReturn("Agent 11", "Agent 22")
 
-      val repo = new SdltFormpRepository(db)
-
+      val repo    = new SdltFormpRepository(db)
       val request = GetReturnRecordsRequest(
         storn = "STORN12345",
         status = None,
@@ -841,7 +848,7 @@ final class SdltFormpRepositorySpec extends SpecBase {
           utrn = Some("UTR001"),
           status = "ACTIVE",
           dateSubmitted = Some(LocalDate.parse("2025-01-01")),
-          purchaserName = "", // TODO: set up name to be returned :: test it
+          purchaserName = "purchaserName1", // TODO: set up name to be returned :: test it
           address = "Address 11",
           agentReference = Some("Agent 11")
         ),
@@ -850,7 +857,7 @@ final class SdltFormpRepositorySpec extends SpecBase {
           utrn = Some("UTR003"),
           status = "SUBMITTED",
           dateSubmitted = Some(LocalDate.parse("2025-02-03")),
-          purchaserName = "",
+          purchaserName = "purchaserName2",
           address = "Address 22",
           agentReference = Some("Agent 22")
         )
