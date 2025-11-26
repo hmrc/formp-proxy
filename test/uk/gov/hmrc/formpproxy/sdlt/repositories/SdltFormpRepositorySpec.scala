@@ -23,7 +23,7 @@ import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.models.agent.*
-import uk.gov.hmrc.formpproxy.sdlt.models.returns.ReturnSummary
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnSummary, SdltReturnRecordResponse}
 
 import java.sql.*
 
@@ -36,13 +36,6 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
     val resRetSummary = mock[ResultSet]
 
-    val request = GetReturnRecordsRequest(
-      storn = "STORN12345",
-      status = None,
-      deletionFlag = false,
-      pageType = None,
-      pageNumber = None
-    )
   }
 
   "sdltCreateReturn" - {
@@ -833,7 +826,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       val repo = new SdltFormpRepository(db)
 
-      val result = repo.sdltGetReturns(request).futureValue
+      val result = repo.sdltGetReturns(requestReturns).futureValue
 
       result.returnSummaryCount mustBe Some(1017)
       result.returnSummaryList.length mustBe 2
@@ -864,19 +857,14 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       // Fetch data
       when(resRetSummary.next()).thenReturn(false) // read 2 rows
-
       val repo = new SdltFormpRepository(db)
 
-      val result = repo.sdltGetReturns(request).futureValue
-
+      val result: SdltReturnRecordResponse = repo.sdltGetReturns(requestReturns).futureValue
       result.returnSummaryCount mustBe Some(0)
       result.returnSummaryList.length mustBe 0
-
       result.returnSummaryList mustBe expectedReturnsSummaryEmpty
     }
-
-    "call::query_return - ..." in new ReturnsFixture {
-    }
+    "call::query_return - ..." in new ReturnsFixture {}
   }
 
   "sdltCreateVendor" - {

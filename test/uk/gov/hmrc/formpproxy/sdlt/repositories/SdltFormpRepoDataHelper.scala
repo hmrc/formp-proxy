@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.formpproxy.sdlt.repositories
 
-import uk.gov.hmrc.formpproxy.sdlt.models.returns.ReturnSummary
+import uk.gov.hmrc.formpproxy.sdlt.models.GetReturnRecordsRequest
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnSummary, SdltReturnRecordResponse}
 
 import java.time.LocalDate
 
@@ -42,4 +43,23 @@ trait SdltFormpRepoDataHelper {
     )
   )
   val expectedReturnsSummaryEmpty: List[ReturnSummary] = List.empty
+
+  val expectedResponse: SdltReturnRecordResponse = SdltReturnRecordResponse(
+    returnSummaryCount = Some(1),
+    returnSummaryList = expectedReturnsSummary
+  )
+
+  val actualResponse: SdltReturnRecordResponse = SdltReturnRecordResponse(
+    returnSummaryCount = Some(1),
+    returnSummaryList = expectedReturnsSummary
+  )
+
+  val requestReturns = GetReturnRecordsRequest(
+    storn = "STORN12345",
+    status = None,
+    deletionFlag = false,
+    pageType = None,
+    pageNumber = None
+  )
+
 }
