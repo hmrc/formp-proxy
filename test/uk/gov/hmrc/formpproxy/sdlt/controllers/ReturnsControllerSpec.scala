@@ -395,7 +395,18 @@ class ReturnsControllerSpec
 
       status(res) mustBe BAD_GATEWAY
       (contentAsJson(res) \ "message").as[String] must include("FORMP service unavailable")
+    }
 
+    "return status code: INTERNAL_ERROR :: Unexpected error" in new Setup {
+      val req: FakeRequest[JsValue] = makeJsonReturnsRequest(Json.toJson(requestReturns))
+
+      when(mockService.getSDLTReturns(eqTo(requestReturns)))
+        .thenReturn(Future.failed(new RuntimeException("Database timeout")))
+
+      val res: Future[Result] = controller.getSDLTReturns()(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error::getSDLTReturns"
     }
   }
 

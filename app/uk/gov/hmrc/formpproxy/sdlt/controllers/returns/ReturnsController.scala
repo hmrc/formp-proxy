@@ -124,7 +124,7 @@ class ReturnsController @Inject() (
                   Status(u.statusCode)(Json.obj("message" -> u.message))
                 case t: Throwable             =>
                   logger.error("[getSDLTReturns] failed", t)
-                  InternalServerError(Json.obj("message" -> "Unexpected error:: getSDLTReturns"))
+                  InternalServerError(Json.obj("message" -> "Unexpected error::getSDLTReturns"))
               }
         )
     }
