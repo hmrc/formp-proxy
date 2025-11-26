@@ -26,11 +26,10 @@ import uk.gov.hmrc.formpproxy.sdlt.models.agent.*
 import uk.gov.hmrc.formpproxy.sdlt.models.returns.ReturnSummary
 
 import java.sql.*
-import java.time.LocalDate
 
 final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelper {
 
-  trait RepoFixture {
+  trait ReturnsFixture {
     val db   = mock[Database]
     val conn = mock[Connection]
     val cs   = mock[CallableStatement]
@@ -804,7 +803,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
   }
 
   "sdltGetReturns" - {
-    "standard call::query_return - 2 rows returned :: success" in new RepoFixture {
+    "call::query_return - return 2 rows :: success" in new ReturnsFixture {
 
       when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[Connection => Any]);
@@ -848,7 +847,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).execute()
       verify(cs).close()
     }
-    "standard call::query_return - empty result :: success" in new RepoFixture {
+    "call::query_return - return empty result :: success" in new ReturnsFixture {
       when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[Connection => Any]);
         f(conn)
@@ -874,6 +873,9 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       result.returnSummaryList.length mustBe 0
 
       result.returnSummaryList mustBe expectedReturnsSummaryEmpty
+    }
+
+    "call::query_return - ..." in new ReturnsFixture {
     }
   }
 

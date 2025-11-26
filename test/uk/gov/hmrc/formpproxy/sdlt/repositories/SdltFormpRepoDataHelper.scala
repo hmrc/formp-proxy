@@ -27,7 +27,7 @@ trait SdltFormpRepoDataHelper {
       utrn = Some("UTR001"),
       status = "ACTIVE",
       dateSubmitted = Some(LocalDate.parse("2025-01-01")),
-      purchaserName = "purchaserName1", // TODO: set up name to be returned :: test it
+      purchaserName = "purchaserName1",
       address = "Address 11",
       agentReference = Some("Agent 11")
     ),
