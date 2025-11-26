@@ -270,7 +270,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       dateSubmitted = Try(rs.getDate("submitted_date"))
         .map(fromDateToLocalDate)
         .toOption,
-      purchaserName = Option(rs.getArray("name")).map(_.toString).getOrElse(""), // TODO: test with the actual data
+      purchaserName = Option(rs.getArray("name")).map(_.toString).getOrElse(""),
       address = Option(rs.getString("address")).getOrElse(""),
       agentReference = Try(rs.getString("agent")).toOption
     )

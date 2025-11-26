@@ -109,7 +109,7 @@ class ReturnsController @Inject() (
             Future.successful(
               BadRequest(
                 Json.obj(
-                  "message" -> "Invalid JSON body",
+                  "message" -> "Invalid JSON body:: GetReturnRecordsRequest",
                   "errors"  -> JsError.toJson(errs)
                 )
               )
@@ -120,10 +120,11 @@ class ReturnsController @Inject() (
               .map(rs => Ok(Json.toJson(rs)))
               .recover {
                 case u: UpstreamErrorResponse =>
+                  logger.error("[getSDLTReturns]::UpstreamErrorResponse")
                   Status(u.statusCode)(Json.obj("message" -> u.message))
                 case t: Throwable             =>
                   logger.error("[getSDLTReturns] failed", t)
-                  InternalServerError(Json.obj("message" -> "Unexpected error"))
+                  InternalServerError(Json.obj("message" -> "Unexpected error:: getSDLTReturns"))
               }
         )
     }
