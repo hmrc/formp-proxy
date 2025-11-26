@@ -27,23 +27,32 @@ import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 
 import java.lang.Long
 import java.sql.{CallableStatement, Connection, ResultSet, Types}
-import java.time.{LocalDate, ZoneId}
-import java.util.Date
+import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 trait SdltSource {
   def sdltCreateReturn(request: CreateReturnRequest): Future[String]
+
   def sdltGetReturn(returnResourceRef: String, storn: String): Future[GetReturnRequest]
+
   def sdltGetReturns(request: GetReturnRecordsRequest): Future[SdltReturnRecordResponse]
+
   def sdltCreateVendor(request: CreateVendorRequest): Future[CreateVendorReturn]
+
   def sdltUpdateVendor(request: UpdateVendorRequest): Future[UpdateVendorReturn]
+
   def sdltDeleteVendor(request: DeleteVendorRequest): Future[DeleteVendorReturn]
+
   def sdltCreateReturnAgent(request: CreateReturnAgentRequest): Future[CreateReturnAgentReturn]
+
   def sdltUpdateReturnAgent(request: UpdateReturnAgentRequest): Future[UpdateReturnAgentReturn]
+
   def sdltDeleteReturnAgent(request: DeleteReturnAgentRequest): Future[DeleteReturnAgentReturn]
+
   def sdltUpdateReturnVersion(request: ReturnVersionUpdateRequest): Future[ReturnVersionUpdateReturn]
+
   def sdltGetOrganisation(req: String): Future[GetSdltOrgRequest]
 }
 
