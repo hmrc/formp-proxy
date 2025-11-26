@@ -29,6 +29,7 @@ import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
 import uk.gov.hmrc.formpproxy.sdlt.models.agents.{DeletePredefinedAgentRequest, DeletePredefinedAgentReturn}
 import uk.gov.hmrc.formpproxy.sdlt.services.agents.DeletePredefinedAgentService
+import uk.gov.hmrc.http.UpstreamErrorResponse
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -97,6 +98,19 @@ class DeletePredefinedAgentControllerSpec extends AnyFreeSpec with Matchers with
       status(res) mustBe BAD_REQUEST
       (contentAsJson(res) \ "message").as[String] mustBe "Invalid JSON body"
       verifyNoInteractions(mockService)
+    }
+
+    "returns status code BAD_GATEWAY when Upstream error is returned" in new Setup {
+      val err: UpstreamErrorResponse = UpstreamErrorResponse("FormP service unavailable", BAD_GATEWAY, BAD_GATEWAY)
+
+      when(mockService.deletePredefinedAgent(eqTo(request)))
+        .thenReturn(Future.failed(err))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(Json.toJson(request))
+      val res: Future[Result]       = controller.deletePredefinedAgent()(req)
+
+      status(res) mustBe BAD_GATEWAY
+      (contentAsJson(res) \ "message").as[String] mustBe "FormP service unavailable"
     }
 
     "returns 500 with generic message on unexpected exception" in new Setup {
