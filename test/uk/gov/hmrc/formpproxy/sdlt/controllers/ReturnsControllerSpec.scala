@@ -354,7 +354,7 @@ class ReturnsControllerSpec
     "return status code: OK" in new Setup {
       when(mockService.getSDLTReturns(eqTo(requestReturns)))
         .thenReturn(Future.successful(actualResponse))
-      val req: FakeRequest[JsValue] = makeJsonRequest(Json.toJson(requestReturns))
+      val req: FakeRequest[JsValue] = makeJsonReturnsRequest(Json.toJson(requestReturns))
       val res: Future[Result]       = controller.getSDLTReturns()(req)
 
       status(res) mustBe OK
@@ -365,6 +365,20 @@ class ReturnsControllerSpec
       (json \ "returnSummaryList").as[List[ReturnSummary]] mustBe expectedReturnsSummary
 
       verify(mockService).getSDLTReturns(eqTo(requestReturns))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "return status code: BAD_REQUEST / invalid json in request" in new Setup {
+
+      when(mockService.getSDLTReturns(eqTo(requestReturns)))
+        .thenReturn(Future.successful(actualResponse))
+
+      val req: FakeRequest[JsValue] = makeJsonReturnsRequest(Json.toJson(requestReturnsInvalid))
+      val res: Future[Result]       = controller.getSDLTReturns()(req)
+
+      status(res) mustBe BAD_REQUEST
+
+      verify(mockService, times(0)).getSDLTReturns(eqTo(requestReturns))
       verifyNoMoreInteractions(mockService)
     }
 
@@ -546,6 +560,11 @@ class ReturnsControllerSpec
 
     def makeJsonRequest(body: JsValue): FakeRequest[JsValue] =
       FakeRequest(POST, "/formp-proxy/sdlt/return")
+        .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
+        .withBody(body)
+
+    def makeJsonReturnsRequest(body: JsValue): FakeRequest[JsValue] =
+      FakeRequest(POST, "/formp-proxy/sdlt/returns")
         .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
         .withBody(body)
 

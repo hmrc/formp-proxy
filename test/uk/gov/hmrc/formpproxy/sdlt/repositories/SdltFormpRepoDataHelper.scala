@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.formpproxy.sdlt.repositories
 
+import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.formpproxy.sdlt.models.GetReturnRecordsRequest
 import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnSummary, SdltReturnRecordResponse}
 
@@ -51,14 +52,32 @@ trait SdltFormpRepoDataHelper {
     returnSummaryCount = Some(expectedReturnsSummary.length),
     returnSummaryList = expectedReturnsSummary
   )
-  val requestReturns: GetReturnRecordsRequest          = GetReturnRecordsRequest(
+
+  val requestReturns: GetReturnRecordsRequest = GetReturnRecordsRequest(
     storn = "STORN12345",
     status = None,
     deletionFlag = false,
     pageType = None,
     pageNumber = None
   )
-  val requestReturnsOther: GetReturnRecordsRequest     = GetReturnRecordsRequest(
+
+  case class InvalidRecordsRequest(
+    statusA: Option[String],
+    pageTypeA: Option[String],
+    pageNumberA: Option[String] = None
+  )
+
+  object InvalidRecordsRequest {
+    implicit val format: OFormat[InvalidRecordsRequest] = Json.format[InvalidRecordsRequest]
+  }
+
+  val requestReturnsInvalid: InvalidRecordsRequest = InvalidRecordsRequest(
+    statusA = Some("ACTIVE"),
+    pageTypeA = None,
+    pageNumberA = None
+  )
+
+  val requestReturnsOther: GetReturnRecordsRequest = GetReturnRecordsRequest(
     storn = "STORN12347",
     status = None,
     deletionFlag = false,
