@@ -26,6 +26,7 @@ import uk.gov.hmrc.formpproxy.sdlt.models.agent.*
 import uk.gov.hmrc.formpproxy.sdlt.models.returns.ReturnSummary
 
 import java.sql.*
+import java.time.LocalDate
 import java.util
 
 final class SdltFormpRepositorySpec extends SpecBase {
@@ -810,15 +811,15 @@ final class SdltFormpRepositorySpec extends SpecBase {
       when(cs.getObject(eqTo(12), eqTo(classOf[ResultSet]))).thenReturn(resRetSummary)
 
       // Fetch data
-      when(resRetSummary.next()).thenReturn(true, false)
-      when(resRetSummary.getString("return_resource_ref")).thenReturn("REF")
-      when(resRetSummary.getString("utrn")).thenReturn("UTR")
-      when(resRetSummary.getString("status")).thenReturn("ACTIVE")
-      when(resRetSummary.getDate("submitted_date")).thenReturn(new Date(2025, 1, 1))
+      when(resRetSummary.next()).thenReturn(true, true, false) // read 2 rows
+      when(resRetSummary.getString("return_resource_ref")).thenReturn("REF01", "REF02")
+      when(resRetSummary.getString("utrn")).thenReturn("UTR001", "UTR003")
+      when(resRetSummary.getString("status")).thenReturn("ACTIVE", "SUBMITTED")
+      when(resRetSummary.getString("submitted_date")).thenReturn("2025-01-01", "2025-02-03")
       when(resRetSummary.getArray("name")).thenReturn(null) // TODO: ...
 
-      when(resRetSummary.getString("address")).thenReturn("SomeAddress")
-      when(resRetSummary.getString("agent")).thenReturn("AgentDetails")
+      when(resRetSummary.getString("address")).thenReturn("Address 11", "Address 22")
+      when(resRetSummary.getString("agent")).thenReturn("Agent 11", "Agent 22")
 
       val repo = new SdltFormpRepository(db)
 
@@ -832,18 +833,26 @@ final class SdltFormpRepositorySpec extends SpecBase {
       val result  = repo.sdltGetReturns(request).futureValue
 
       result.returnSummaryCount mustBe Some(1017)
-      result.returnSummaryList.length mustBe 1
+      result.returnSummaryList.length mustBe 2
 
-      // TODO: test when multiple rows returned
       result.returnSummaryList mustBe List(
         ReturnSummary(
-          returnReference = "REF",
-          utrn = Some("UTR"),
+          returnReference = "REF01",
+          utrn = Some("UTR001"),
           status = "ACTIVE",
-          dateSubmitted = None, // TODO: not working as expected
+          dateSubmitted = Some(LocalDate.parse("2025-01-01")),
           purchaserName = "", // TODO: set up name to be returned :: test it
-          address = "SomeAddress",
-          agentReference = Some("AgentDetails")
+          address = "Address 11",
+          agentReference = Some("Agent 11")
+        ),
+        ReturnSummary(
+          returnReference = "REF02",
+          utrn = Some("UTR003"),
+          status = "SUBMITTED",
+          dateSubmitted = Some(LocalDate.parse("2025-02-03")),
+          purchaserName = "",
+          address = "Address 22",
+          agentReference = Some("Agent 22")
         )
       )
 
