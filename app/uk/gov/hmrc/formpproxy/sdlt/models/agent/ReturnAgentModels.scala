@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.sdlt.models.returnAgent
+package uk.gov.hmrc.formpproxy.sdlt.models.agent
 
 import play.api.libs.json.{Json, OFormat}
 
