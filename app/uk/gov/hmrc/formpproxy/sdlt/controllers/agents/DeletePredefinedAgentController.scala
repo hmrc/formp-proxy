@@ -14,32 +14,32 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.sdlt.controllers.agent
+package uk.gov.hmrc.formpproxy.sdlt.controllers.agents
 
 import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
-import uk.gov.hmrc.formpproxy.sdlt.models.agent.{DeleteAgentRequest, DeleteAgentReturn}
-import uk.gov.hmrc.formpproxy.sdlt.services.agent.AgentService
+import uk.gov.hmrc.formpproxy.sdlt.models.agents.{DeletePredefinedAgentRequest, DeletePredefinedAgentReturn}
+import uk.gov.hmrc.formpproxy.sdlt.services.agents.DeletePredefinedAgentService
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class AgentController @Inject()(
-  authorise: AuthAction,
-  service: AgentService,
-  cc: ControllerComponents
+class DeletePredefinedAgentController @Inject()(
+                                                 authorise: AuthAction,
+                                                 service: DeletePredefinedAgentService,
+                                                 cc: ControllerComponents
 )(implicit ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
-  def deleteAgent(): Action[JsValue] =
+  def deletePredefinedAgent(): Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
       request.body
-        .validate[DeleteAgentRequest]
+        .validate[DeletePredefinedAgentRequest]
         .fold(
           errs =>
             Future.successful(
@@ -52,9 +52,9 @@ class AgentController @Inject()(
             ),
           body =>
             service
-              .deleteAgent(body)
-              .map { DeleteAgentReturn =>
-                Ok(Json.toJson(DeleteAgentReturn))
+              .deletePredefinedAgent(body)
+              .map { DeletePredefinedAgentReturn =>
+                Ok(Json.toJson(DeletePredefinedAgentReturn))
               }
               .recover {
                 case u: UpstreamErrorResponse =>

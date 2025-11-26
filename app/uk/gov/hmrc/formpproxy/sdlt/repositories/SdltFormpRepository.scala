@@ -21,7 +21,7 @@ import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.returnAgent.*
-import uk.gov.hmrc.formpproxy.sdlt.models.agent.*
+import uk.gov.hmrc.formpproxy.sdlt.models.agents.{DeletePredefinedAgentRequest, DeletePredefinedAgentReturn}
 import uk.gov.hmrc.formpproxy.sdlt.models.organisation.*
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 
@@ -41,7 +41,7 @@ trait SdltSource {
   def sdltDeleteReturnAgent(request: DeleteReturnAgentRequest): Future[DeleteReturnAgentReturn]
   def sdltUpdateReturnVersion(request: ReturnVersionUpdateRequest): Future[ReturnVersionUpdateReturn]
   def sdltGetOrganisation(req: String): Future[GetSdltOrgRequest]
-  def sdltDeleteAgent(req: DeleteAgentRequest): Future[DeleteAgentReturn]
+  def sdltDeletePredefinedAgent(req: DeletePredefinedAgentRequest): Future[DeletePredefinedAgentReturn]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -935,7 +935,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     } finally cs.close()
   }
 
-  override def sdltDeleteAgent(request: DeleteAgentRequest): Future[DeleteAgentReturn] = Future {
+  override def sdltDeletePredefinedAgent(request: DeletePredefinedAgentRequest): Future[DeletePredefinedAgentReturn] = Future {
     db.withTransaction { conn =>
       callDeleteAgent(
         conn = conn,
@@ -946,10 +946,10 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
   }
 
   private def callDeleteAgent(
-                                     conn: Connection,
-                                     p_storn: String,
-                                     p_agent_resource_ref: String
-                                   ): DeleteAgentReturn = {
+    conn: Connection,
+    p_storn: String,
+    p_agent_resource_ref: String
+  ): DeletePredefinedAgentReturn = {
 
     val cs = conn.prepareCall("{ call AGENT_PROCS.Delete_Agent(?, ?) }")
     try {
@@ -957,7 +957,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       cs.setString(2, p_agent_resource_ref)
       cs.execute()
 
-      DeleteAgentReturn(deleted = true)
+      DeletePredefinedAgentReturn(deleted = true)
     } finally cs.close()
   }
 

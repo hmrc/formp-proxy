@@ -21,8 +21,9 @@ import org.mockito.Mockito.*
 import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.sdlt.models.*
-import uk.gov.hmrc.formpproxy.sdlt.models.vendor._
-import uk.gov.hmrc.formpproxy.sdlt.models.returnAgent._
+import uk.gov.hmrc.formpproxy.sdlt.models.agents.DeletePredefinedAgentRequest
+import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
+import uk.gov.hmrc.formpproxy.sdlt.models.returnAgent.*
 
 import java.sql.*
 
@@ -1627,6 +1628,38 @@ final class SdltFormpRepositorySpec extends SpecBase {
       verify(cs).execute()
       verify(rsOrg).close()
       verify(rsAgents).close()
+    }
+  }
+
+  "sdltDeletePredefinedAgent" - {
+
+    "call Delete_Predefined_Agent stored procedure with correct parameters" in {
+      val db = mock[Database]
+      val conn = mock[Connection]
+      val cs = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call AGENT_PROCS.Delete_Agent(?, ?) }"))).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = DeletePredefinedAgentRequest(
+        storn = "STN001",
+        agentReferenceNumber = "ARN001"
+      )
+
+      val result = repo.sdltDeletePredefinedAgent(request).futureValue
+
+      result.deleted mustBe true
+
+      verify(conn).prepareCall("{ call AGENT_PROCS.Delete_Agent(?, ?) }")
+      verify(cs).setString(1, "STN001")
+      verify(cs).setString(2, "ARN001")
+      verify(cs).execute()
+      verify(cs).close()
     }
   }
 }
