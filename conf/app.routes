@@ -24,3 +24,5 @@ POST       /filing/update/return-agent                              uk.gov.hmrc.
 POST       /filing/delete/return-agent                              uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnAgentReturnsController.deleteReturnAgent()
 
 POST       /filing/update/return-version                            uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.updateReturnVersion()
+
+POST       /manage-agents/agent-details/submit                      uk.gov.hmrc.formpproxy.sdlt.controllers.manageAgents.CreatePredefinedAgentController.createPredefinedAgent()

@@ -1629,4 +1629,6 @@ final class SdltFormpRepositorySpec extends SpecBase {
       verify(rsAgents).close()
     }
   }
+
+  "createPredefinedAgent" - {}
 }
