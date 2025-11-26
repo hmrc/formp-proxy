@@ -262,12 +262,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       status = Option(rs.getString("status")).getOrElse(""),
       dateSubmitted = Try(LocalDate.parse(rs.getString("submitted_date"))).toOption,
       purchaserName = Option(rs.getString("name")).getOrElse(""),
-//        Option {
-//        val data = rs.getArray("name")
-//        println(s"Here we go: $data")
-//        data
-//      }.map(_.toString).getOrElse(""),
-      // This causing crash if attempt to treat as a String output
+      // purchaserName => causing crash if attempt to treat as a String output???
       address = Option(rs.getString("address")).getOrElse(""),
       agentReference = Try(rs.getString("agent")).toOption
     )

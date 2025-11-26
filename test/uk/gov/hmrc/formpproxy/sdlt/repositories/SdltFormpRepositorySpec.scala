@@ -818,12 +818,6 @@ final class SdltFormpRepositorySpec extends SpecBase {
       when(resRetSummary.getString("status")).thenReturn("ACTIVE", "SUBMITTED")
       when(resRetSummary.getString("submitted_date")).thenReturn("2025-01-01", "2025-02-03")
 
-      // TODO: still need this code/as 'purchaserName' field is verly likely an Array
-      // val ids         = new java.util.ArrayList[String](3)
-      // ids.add("Name 1")
-      // ids.add("Company Id")
-      // ids.add("OtherDetails")
-      // val arrExpected = conn.createArrayOf("String", ids.toArray)
       when(resRetSummary.getString("name")).thenReturn("purchaserName1", "purchaserName2")
 
       when(resRetSummary.getString("address")).thenReturn("Address 11", "Address 22")
