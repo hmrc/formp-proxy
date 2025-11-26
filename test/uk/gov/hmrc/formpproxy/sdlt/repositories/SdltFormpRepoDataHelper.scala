@@ -21,7 +21,7 @@ import uk.gov.hmrc.formpproxy.sdlt.models.returns.ReturnSummary
 import java.time.LocalDate
 
 trait SdltFormpRepoDataHelper {
-  val expectedReturnsSummary = List(
+  val expectedReturnsSummary: List[ReturnSummary]      = List(
     ReturnSummary(
       returnReference = "REF01",
       utrn = Some("UTR001"),
@@ -41,4 +41,5 @@ trait SdltFormpRepoDataHelper {
       agentReference = Some("Agent 22")
     )
   )
+  val expectedReturnsSummaryEmpty: List[ReturnSummary] = List.empty
 }

@@ -848,7 +848,33 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).execute()
       verify(cs).close()
     }
-    "standard call::query_return - empty result :: success" in {}
+    "standard call::query_return - empty result :: success" in new RepoFixture {
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]);
+        f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo("{ call RETURN_PROCS.query_return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+        )
+      ).thenReturn(cs)
+
+      when(cs.getLong(eqTo(13))).thenReturn(0L)
+      when(cs.getObject(eqTo(12), eqTo(classOf[ResultSet]))).thenReturn(resRetSummary)
+
+      // Fetch data
+      when(resRetSummary.next()).thenReturn(false) // read 2 rows
+
+      val repo = new SdltFormpRepository(db)
+
+      val result = repo.sdltGetReturns(request).futureValue
+
+      result.returnSummaryCount mustBe Some(0)
+      result.returnSummaryList.length mustBe 0
+
+      result.returnSummaryList mustBe expectedReturnsSummaryEmpty
+    }
   }
 
   "sdltCreateVendor" - {
