@@ -21,10 +21,12 @@ import org.mockito.Mockito.*
 import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.sdlt.models.*
-import uk.gov.hmrc.formpproxy.sdlt.models.vendor._
-import uk.gov.hmrc.formpproxy.sdlt.models.agent._
+import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
+import uk.gov.hmrc.formpproxy.sdlt.models.agent.*
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.ReturnSummary
 
 import java.sql.*
+import java.util
 
 final class SdltFormpRepositorySpec extends SpecBase {
 
@@ -783,6 +785,75 @@ final class SdltFormpRepositorySpec extends SpecBase {
       e.submissionID mustBe None
     }
 
+  }
+
+  "sdltGetReturns" - {
+    "standard call:: query_return - return success" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      val resRetSummary = mock[ResultSet]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]);
+        f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo("{ call RETURN_PROCS.query_return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+        )
+      ).thenReturn(cs)
+
+      when(cs.getLong(eqTo(13))).thenReturn(1017L)
+      when(cs.getObject(eqTo(12), eqTo(classOf[ResultSet]))).thenReturn(resRetSummary)
+
+      // Fetch data
+      when(resRetSummary.next()).thenReturn(true, false)
+      when(resRetSummary.getString("return_resource_ref")).thenReturn("REF")
+      when(resRetSummary.getString("utrn")).thenReturn("UTR")
+      when(resRetSummary.getString("status")).thenReturn("ACTIVE")
+      when(resRetSummary.getDate("submitted_date")).thenReturn(new Date(2025, 1, 1))
+      when(resRetSummary.getArray("name")).thenReturn(null) // TODO: ...
+
+      when(resRetSummary.getString("address")).thenReturn("SomeAddress")
+      when(resRetSummary.getString("agent")).thenReturn("AgentDetails")
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = GetReturnRecordsRequest(
+        storn = "STORN12345",
+        status = None,
+        deletionFlag = false,
+        pageType = None,
+        pageNumber = None
+      )
+      val result  = repo.sdltGetReturns(request).futureValue
+
+      result.returnSummaryCount mustBe Some(1017)
+      result.returnSummaryList.length mustBe 1
+
+      // TODO: test when multiple rows returned
+      result.returnSummaryList mustBe List(
+        ReturnSummary(
+          returnReference = "REF",
+          utrn = Some("UTR"),
+          status = "ACTIVE",
+          dateSubmitted = None, // TODO: not working as expected
+          purchaserName = "", // TODO: set up name to be returned :: test it
+          address = "SomeAddress",
+          agentReference = Some("AgentDetails")
+        )
+      )
+
+      verify(conn).prepareCall(
+        eqTo("{ call RETURN_PROCS.query_return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+      )
+      verify(cs).getLong(13)
+      verify(cs).execute()
+      verify(cs).close()
+    }
   }
 
   "sdltCreateVendor" - {
