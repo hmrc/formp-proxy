@@ -27,10 +27,24 @@ import uk.gov.hmrc.formpproxy.sdlt.models.returns.ReturnSummary
 
 import java.sql.*
 import java.time.LocalDate
-import java.util
-import scala.collection.mutable.ArrayBuffer
 
-final class SdltFormpRepositorySpec extends SpecBase {
+final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelper {
+
+  trait RepoFixture {
+    val db   = mock[Database]
+    val conn = mock[Connection]
+    val cs   = mock[CallableStatement]
+
+    val resRetSummary = mock[ResultSet]
+
+    val request = GetReturnRecordsRequest(
+      storn = "STORN12345",
+      status = None,
+      deletionFlag = false,
+      pageType = None,
+      pageNumber = None
+    )
+  }
 
   "sdltCreateReturn" - {
 
@@ -790,12 +804,7 @@ final class SdltFormpRepositorySpec extends SpecBase {
   }
 
   "sdltGetReturns" - {
-    "standard call:: query_return - return success" in {
-      val db   = mock[Database]
-      val conn = mock[Connection]
-      val cs   = mock[CallableStatement]
-
-      val resRetSummary = mock[ResultSet]
+    "standard call::query_return - 2 rows returned :: success" in new RepoFixture {
 
       when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[Connection => Any]);
@@ -823,39 +832,14 @@ final class SdltFormpRepositorySpec extends SpecBase {
       when(resRetSummary.getString("address")).thenReturn("Address 11", "Address 22")
       when(resRetSummary.getString("agent")).thenReturn("Agent 11", "Agent 22")
 
-      val repo    = new SdltFormpRepository(db)
-      val request = GetReturnRecordsRequest(
-        storn = "STORN12345",
-        status = None,
-        deletionFlag = false,
-        pageType = None,
-        pageNumber = None
-      )
-      val result  = repo.sdltGetReturns(request).futureValue
+      val repo = new SdltFormpRepository(db)
+
+      val result = repo.sdltGetReturns(request).futureValue
 
       result.returnSummaryCount mustBe Some(1017)
       result.returnSummaryList.length mustBe 2
 
-      result.returnSummaryList mustBe List(
-        ReturnSummary(
-          returnReference = "REF01",
-          utrn = Some("UTR001"),
-          status = "ACTIVE",
-          dateSubmitted = Some(LocalDate.parse("2025-01-01")),
-          purchaserName = "purchaserName1", // TODO: set up name to be returned :: test it
-          address = "Address 11",
-          agentReference = Some("Agent 11")
-        ),
-        ReturnSummary(
-          returnReference = "REF02",
-          utrn = Some("UTR003"),
-          status = "SUBMITTED",
-          dateSubmitted = Some(LocalDate.parse("2025-02-03")),
-          purchaserName = "purchaserName2",
-          address = "Address 22",
-          agentReference = Some("Agent 22")
-        )
-      )
+      result.returnSummaryList mustBe expectedReturnsSummary
 
       verify(conn).prepareCall(
         eqTo("{ call RETURN_PROCS.query_return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
@@ -864,6 +848,7 @@ final class SdltFormpRepositorySpec extends SpecBase {
       verify(cs).execute()
       verify(cs).close()
     }
+    "standard call::query_return - empty result :: success" in {}
   }
 
   "sdltCreateVendor" - {
