@@ -27,7 +27,7 @@ import play.api.mvc.{ControllerComponents, PlayBodyParsers, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
-import uk.gov.hmrc.formpproxy.sdlt.models.agents.{DeletePredefinedAgentRequest, DeletePredefinedAgentReturn}
+import uk.gov.hmrc.formpproxy.sdlt.models.agents.{DeletePredefinedAgentRequest, DeletePredefinedAgentResponse}
 import uk.gov.hmrc.formpproxy.sdlt.services.agents.DeletePredefinedAgentService
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
@@ -47,7 +47,7 @@ class DeletePredefinedAgentControllerSpec extends AnyFreeSpec with Matchers with
 
     "returns 200 with deleted flag when service succeeds" in new Setup {
 
-      val expectedResponse: DeletePredefinedAgentReturn = DeletePredefinedAgentReturn(
+      val expectedResponse: DeletePredefinedAgentResponse = DeletePredefinedAgentResponse(
         deleted = true
       )
 

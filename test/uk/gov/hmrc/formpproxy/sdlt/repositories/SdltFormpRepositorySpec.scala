@@ -1648,7 +1648,7 @@ final class SdltFormpRepositorySpec extends SpecBase {
 
       val request = DeletePredefinedAgentRequest(
         storn = "STN001",
-        agentReferenceNumber = "ARN001"
+        agentReferenceNumber = "100001"
       )
 
       val result = repo.sdltDeletePredefinedAgent(request).futureValue
@@ -1657,7 +1657,7 @@ final class SdltFormpRepositorySpec extends SpecBase {
 
       verify(conn).prepareCall("{ call AGENT_PROCS.Delete_Agent(?, ?) }")
       verify(cs).setString(1, "STN001")
-      verify(cs).setString(2, "ARN001")
+      verify(cs).setLong(2, 100001L)
       verify(cs).execute()
       verify(cs).close()
     }

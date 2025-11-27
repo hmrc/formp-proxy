@@ -20,7 +20,7 @@ import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
-import uk.gov.hmrc.formpproxy.sdlt.models.agents.{DeletePredefinedAgentRequest, DeletePredefinedAgentReturn}
+import uk.gov.hmrc.formpproxy.sdlt.models.agents.{DeletePredefinedAgentRequest, DeletePredefinedAgentResponse}
 import uk.gov.hmrc.formpproxy.sdlt.services.agents.DeletePredefinedAgentService
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -53,14 +53,12 @@ class DeletePredefinedAgentController @Inject() (
           body =>
             service
               .deletePredefinedAgent(body)
-              .map { DeletePredefinedAgentReturn =>
-                Ok(Json.toJson(DeletePredefinedAgentReturn))
-              }
+              .map((payload: DeletePredefinedAgentResponse) => Ok(Json.toJson(payload)))
               .recover {
                 case u: UpstreamErrorResponse =>
                   Status(u.statusCode)(Json.obj("message" -> u.message))
                 case t: Throwable             =>
-                  logger.error("[DeleteAgentController][deleteAgent] failed", t)
+                  logger.error("[DeletePredefinedAgentController][deletePredefinedAgent] failed", t)
                   InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )

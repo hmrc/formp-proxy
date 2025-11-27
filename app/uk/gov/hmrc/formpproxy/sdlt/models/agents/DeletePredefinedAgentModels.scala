@@ -27,10 +27,10 @@ object DeletePredefinedAgentRequest {
   implicit val format: OFormat[DeletePredefinedAgentRequest] = Json.format[DeletePredefinedAgentRequest]
 }
 
-case class DeletePredefinedAgentReturn(
+case class DeletePredefinedAgentResponse(
   deleted: Boolean
 )
 
-object DeletePredefinedAgentReturn {
-  implicit val format: OFormat[DeletePredefinedAgentReturn] = Json.format[DeletePredefinedAgentReturn]
+object DeletePredefinedAgentResponse {
+  implicit val format: OFormat[DeletePredefinedAgentResponse] = Json.format[DeletePredefinedAgentResponse]
 }

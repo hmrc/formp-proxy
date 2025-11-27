@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.formpproxy.sdlt.services.agents
 
-import uk.gov.hmrc.formpproxy.sdlt.models.agents.{DeletePredefinedAgentRequest, DeletePredefinedAgentReturn}
+import uk.gov.hmrc.formpproxy.sdlt.models.agents.{DeletePredefinedAgentRequest, DeletePredefinedAgentResponse}
 import uk.gov.hmrc.formpproxy.sdlt.repositories.SdltFormpRepository
 
 import javax.inject.Inject
@@ -24,6 +24,6 @@ import scala.concurrent.Future
 
 class DeletePredefinedAgentService @Inject() (repo: SdltFormpRepository) {
 
-  def deletePredefinedAgent(req: DeletePredefinedAgentRequest): Future[DeletePredefinedAgentReturn] =
+  def deletePredefinedAgent(req: DeletePredefinedAgentRequest): Future[DeletePredefinedAgentResponse] =
     repo.sdltDeletePredefinedAgent(req)
 }

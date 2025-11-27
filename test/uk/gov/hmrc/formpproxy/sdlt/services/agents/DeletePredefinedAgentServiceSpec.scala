@@ -19,7 +19,7 @@ package uk.gov.hmrc.formpproxy.sdlt.services.agents
 import org.mockito.Mockito.{verify, verifyNoMoreInteractions, when}
 import org.mockito.ArgumentMatchers.eq as eqTo
 import uk.gov.hmrc.formpproxy.base.SpecBase
-import uk.gov.hmrc.formpproxy.sdlt.models.agents.{DeletePredefinedAgentRequest, DeletePredefinedAgentReturn}
+import uk.gov.hmrc.formpproxy.sdlt.models.agents.{DeletePredefinedAgentRequest, DeletePredefinedAgentResponse}
 import uk.gov.hmrc.formpproxy.sdlt.repositories.SdltFormpRepository
 
 import scala.concurrent.Future
@@ -29,12 +29,12 @@ class DeletePredefinedAgentServiceSpec extends SpecBase {
   "DeletePredefinedAgentService.deletePredefinedAgent" - {
 
     "must delegate to repository and return true when delete successful" in new Setup {
-      val expectedResponse: DeletePredefinedAgentReturn = DeletePredefinedAgentReturn(deleted = true)
+      val expectedResponse: DeletePredefinedAgentResponse = DeletePredefinedAgentResponse(deleted = true)
 
       when(repo.sdltDeletePredefinedAgent(eqTo(request)))
         .thenReturn(Future.successful(expectedResponse))
 
-      val result: DeletePredefinedAgentReturn = service.deletePredefinedAgent(request).futureValue
+      val result: DeletePredefinedAgentResponse = service.deletePredefinedAgent(request).futureValue
       result mustBe expectedResponse
 
       verify(repo).sdltDeletePredefinedAgent(eqTo(request))
@@ -42,12 +42,12 @@ class DeletePredefinedAgentServiceSpec extends SpecBase {
     }
 
     "must return false when delete fails" in new Setup {
-      val expectedResponse: DeletePredefinedAgentReturn = DeletePredefinedAgentReturn(deleted = false)
+      val expectedResponse: DeletePredefinedAgentResponse = DeletePredefinedAgentResponse(deleted = false)
 
       when(repo.sdltDeletePredefinedAgent(eqTo(request)))
         .thenReturn(Future.successful(expectedResponse))
 
-      val result: DeletePredefinedAgentReturn = service.deletePredefinedAgent(request).futureValue
+      val result: DeletePredefinedAgentResponse = service.deletePredefinedAgent(request).futureValue
       result mustBe expectedResponse
 
       verify(repo).sdltDeletePredefinedAgent(eqTo(request))

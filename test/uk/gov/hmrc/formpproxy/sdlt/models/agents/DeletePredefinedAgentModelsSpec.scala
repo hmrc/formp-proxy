@@ -19,7 +19,7 @@ package uk.gov.hmrc.formpproxy.sdlt.models.agents
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import play.api.libs.json.{JsSuccess, Json}
-import uk.gov.hmrc.formpproxy.sdlt.models.agents.{DeletePredefinedAgentRequest, DeletePredefinedAgentReturn}
+import uk.gov.hmrc.formpproxy.sdlt.models.agents.{DeletePredefinedAgentRequest, DeletePredefinedAgentResponse}
 
 class DeletePredefinedAgentModelsSpec extends AnyFreeSpec with Matchers {
 
@@ -73,10 +73,10 @@ class DeletePredefinedAgentModelsSpec extends AnyFreeSpec with Matchers {
     }
   }
 
-  "DeletePredefinedReturnAgent" - {
+  "DeletePredefinedAgentResponse" - {
 
     "must serialize to JSON correctly when deleted is true" in {
-      val response = DeletePredefinedAgentReturn(deleted = true)
+      val response = DeletePredefinedAgentResponse(deleted = true)
 
       val json = Json.toJson(response)
 
@@ -84,7 +84,7 @@ class DeletePredefinedAgentModelsSpec extends AnyFreeSpec with Matchers {
     }
 
     "must serialize to JSON correctly when deleted is false" in {
-      val response = DeletePredefinedAgentReturn(deleted = false)
+      val response = DeletePredefinedAgentResponse(deleted = false)
 
       val json = Json.toJson(response)
 
@@ -94,7 +94,7 @@ class DeletePredefinedAgentModelsSpec extends AnyFreeSpec with Matchers {
     "must deserialize from JSON correctly when deleted is true" in {
       val json = Json.obj("deleted" -> true)
 
-      val result = json.validate[DeletePredefinedAgentReturn]
+      val result = json.validate[DeletePredefinedAgentResponse]
 
       result mustBe a[JsSuccess[_]]
       result.get.deleted mustBe true
@@ -103,7 +103,7 @@ class DeletePredefinedAgentModelsSpec extends AnyFreeSpec with Matchers {
     "must deserialize from JSON correctly when deleted is false" in {
       val json = Json.obj("deleted" -> false)
 
-      val result = json.validate[DeletePredefinedAgentReturn]
+      val result = json.validate[DeletePredefinedAgentResponse]
 
       result mustBe a[JsSuccess[_]]
       result.get.deleted mustBe false
@@ -112,7 +112,7 @@ class DeletePredefinedAgentModelsSpec extends AnyFreeSpec with Matchers {
     "must fail to deserialize when deleted field is missing" in {
       val json = Json.obj()
 
-      val result = json.validate[DeletePredefinedAgentReturn]
+      val result = json.validate[DeletePredefinedAgentResponse]
 
       result.isError mustBe true
     }
