@@ -149,7 +149,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     }
 
   override def sdltGetReturn(returnResourceRef: String, storn: String): Future[GetReturnRequest] = {
-    logger.info(s"[SDLT] sdltGetReturns(returnResourceRef=$returnResourceRef, storn=$storn)")
+    logger.info(s"[SDLT] sdltGetReturn(returnResourceRef=$returnResourceRef, storn=$storn)")
     Future {
       db.withConnection { conn =>
         val cs = conn.prepareCall(

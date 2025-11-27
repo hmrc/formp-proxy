@@ -590,7 +590,7 @@ class ReturnsControllerSpec
         .withBody(body)
 
     def makeJsonReturnsRequest(body: JsValue): FakeRequest[JsValue] =
-      FakeRequest(POST, "/formp-proxy/sdlt/returns")
+      FakeRequest(POST, "/formp-proxy/sdlt/get/returns")
         .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
         .withBody(body)
 
