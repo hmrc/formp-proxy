@@ -1642,7 +1642,8 @@ final class SdltFormpRepositorySpec extends SpecBase {
         val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
       }
 
-      when(conn.prepareCall(eqTo("{ call AGENT_PROCS.Update_Agent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"))).thenReturn(cs)
+      when(conn.prepareCall(eqTo("{ call AGENT_PROCS.Update_Agent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")))
+        .thenReturn(cs)
 
       val repo = new SdltFormpRepository(db)
 
@@ -1659,7 +1660,7 @@ final class SdltFormpRepositorySpec extends SpecBase {
         phone = "02071234567",
         email = "info@smithco.co.uk",
         dxAddress = None,
-        agentResourceReference = "ARN001"
+        agentResourceReference = "001"
       )
 
       val result = repo.sdltUpdatePredefinedAgent(request).futureValue
@@ -1668,10 +1669,14 @@ final class SdltFormpRepositorySpec extends SpecBase {
 
       verify(conn).prepareCall("{ call AGENT_PROCS.Update_Agent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ) }")
       verify(cs).setString(1, request.storn)
-      //verify(cs).setLong(2, request.agentResourceReference.toLong)
+      verify(cs).setLong(2, request.agentResourceReference.toLong)
       verify(cs).setString(3, request.name)
-      //verify(cs).setString(4, request.Types.VARCHAR)
+      verify(cs).setNull(4, Types.VARCHAR)
       verify(cs).setString(5, request.address1)
+      verify(cs).setNull(6, Types.VARCHAR)
+      verify(cs).setNull(7, Types.VARCHAR)
+      verify(cs).setNull(8, Types.VARCHAR)
+      verify(cs).setNull(9, Types.VARCHAR)
       verify(cs).setString(10, request.phone)
       verify(cs).setString(11, request.email)
       verify(cs).execute()
