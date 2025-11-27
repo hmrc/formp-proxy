@@ -27,8 +27,7 @@ import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 
 import java.lang.Long
 import java.sql.{CallableStatement, Connection, ResultSet, Types}
-import java.time.{LocalDate, ZoneId}
-import java.util.Date
+import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
