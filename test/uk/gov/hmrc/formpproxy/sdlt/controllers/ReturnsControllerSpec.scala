@@ -29,12 +29,19 @@ import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
 import uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController
 import uk.gov.hmrc.formpproxy.sdlt.models.*
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.ReturnSummary
+import uk.gov.hmrc.formpproxy.sdlt.repositories.SdltFormpRepoDataHelper
 import uk.gov.hmrc.formpproxy.sdlt.services.ReturnService
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class ReturnsControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures with MockitoSugar {
+class ReturnsControllerSpec
+    extends AnyFreeSpec
+    with Matchers
+    with ScalaFutures
+    with MockitoSugar
+    with SdltFormpRepoDataHelper {
 
   "ReturnsController createSDLTReturn" - {
 
@@ -342,6 +349,67 @@ class ReturnsControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
     }
   }
 
+  "ReturnsController getSDLTReturns" - {
+
+    "return status code: OK" in new Setup {
+      when(mockService.getSDLTReturns(eqTo(requestReturns)))
+        .thenReturn(Future.successful(actualResponse))
+      val req: FakeRequest[JsValue] = makeJsonReturnsRequest(Json.toJson(requestReturns))
+      val res: Future[Result]       = controller.getSDLTReturns()(req)
+
+      status(res) mustBe OK
+      contentType(res) mustBe Some(JSON)
+
+      val json: JsValue = contentAsJson(res)
+      (json \ "returnSummaryCount").asOpt[Int] mustBe Some(2)
+      (json \ "returnSummaryList").as[List[ReturnSummary]] mustBe expectedReturnsSummary
+
+      verify(mockService).getSDLTReturns(eqTo(requestReturns))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "return status code: BAD_REQUEST / invalid json in request" in new Setup {
+
+      when(mockService.getSDLTReturns(eqTo(requestReturns)))
+        .thenReturn(Future.successful(actualResponse))
+
+      val req: FakeRequest[JsValue] = makeJsonReturnsRequest(Json.toJson(requestReturnsInvalid))
+      val res: Future[Result]       = controller.getSDLTReturns()(req)
+
+      status(res) mustBe BAD_REQUEST
+
+      verify(mockService, times(0)).getSDLTReturns(eqTo(requestReturns))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "return status code: BAD_GATEWAY :: Upstream error" in new Setup {
+
+      val req: FakeRequest[JsValue] = makeJsonReturnsRequest(Json.toJson(requestReturns))
+
+      val err: UpstreamErrorResponse = UpstreamErrorResponse("FORMP service unavailable", BAD_GATEWAY, BAD_GATEWAY)
+
+      when(mockService.getSDLTReturns(eqTo(requestReturns)))
+        .thenReturn(Future.failed(err))
+
+      val res: Future[Result] = controller.getSDLTReturns()(req)
+
+      status(res) mustBe BAD_GATEWAY
+      (contentAsJson(res) \ "message").as[String] must include("FORMP service unavailable")
+    }
+
+    "return status code: INTERNAL_ERROR :: Unexpected error" in new Setup {
+      val req: FakeRequest[JsValue] = makeJsonReturnsRequest(Json.toJson(requestReturns))
+
+      when(mockService.getSDLTReturns(eqTo(requestReturns)))
+        .thenReturn(Future.failed(new RuntimeException("Database timeout")))
+
+      val res: Future[Result] = controller.getSDLTReturns()(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error::getSDLTReturns"
+    }
+  }
+
   "ReturnsController updateReturnVersion" - {
 
     "returns 200 with new version when service succeeds" in new Setup {
@@ -518,6 +586,11 @@ class ReturnsControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
 
     def makeJsonRequest(body: JsValue): FakeRequest[JsValue] =
       FakeRequest(POST, "/formp-proxy/sdlt/return")
+        .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
+        .withBody(body)
+
+    def makeJsonReturnsRequest(body: JsValue): FakeRequest[JsValue] =
+      FakeRequest(POST, "/formp-proxy/sdlt/returns")
         .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
         .withBody(body)
 
