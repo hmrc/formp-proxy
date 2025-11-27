@@ -21,18 +21,22 @@ import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.agent.*
-import uk.gov.hmrc.formpproxy.sdlt.models.agents.{CreatePredefinedAgentRequest, CreatePredefinedAgentResponse}
+import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
 import uk.gov.hmrc.formpproxy.sdlt.models.organisation.*
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnSummary, SdltReturnRecordResponse}
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 
 import java.lang.Long
 import java.sql.{CallableStatement, Connection, ResultSet, Types}
+import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 trait SdltSource {
   def sdltCreateReturn(request: CreateReturnRequest): Future[String]
   def sdltGetReturn(returnResourceRef: String, storn: String): Future[GetReturnRequest]
+  def sdltGetReturns(request: GetReturnRecordsRequest): Future[SdltReturnRecordResponse]
   def sdltCreateVendor(request: CreateVendorRequest): Future[CreateVendorReturn]
   def sdltUpdateVendor(request: UpdateVendorRequest): Future[UpdateVendorReturn]
   def sdltDeleteVendor(request: DeleteVendorRequest): Future[DeleteVendorReturn]
@@ -42,6 +46,7 @@ trait SdltSource {
   def sdltUpdateReturnVersion(request: ReturnVersionUpdateRequest): Future[ReturnVersionUpdateReturn]
   def sdltGetOrganisation(req: String): Future[GetSdltOrgRequest]
   def sdltCreatePredefinedAgent(request: CreatePredefinedAgentRequest): Future[CreatePredefinedAgentResponse]
+  def sdltDeletePredefinedAgent(req: DeletePredefinedAgentRequest): Future[DeletePredefinedAgentResponse]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -146,7 +151,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     }
 
   override def sdltGetReturn(returnResourceRef: String, storn: String): Future[GetReturnRequest] = {
-    logger.info(s"[SDLT] getSdltReturn(returnResourceRef=$returnResourceRef, storn=$storn)")
+    logger.info(s"[SDLT] sdltGetReturn(returnResourceRef=$returnResourceRef, storn=$storn)")
     Future {
       db.withConnection { conn =>
         val cs = conn.prepareCall(
@@ -210,6 +215,59 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       }
     }
   }
+
+  override def sdltGetReturns(request: GetReturnRecordsRequest): Future[SdltReturnRecordResponse] = {
+    logger.info(s"[SDLT] sdltGetReturns($request)")
+    Future {
+      db.withConnection { conn =>
+        val cs = conn.prepareCall(
+          "{ call RETURN_PROCS.query_return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+        )
+        try {
+          // Set up SPs IN/OUT params :: DEFAULTS assign as per SPs definition
+          cs.setString(1, request.storn)
+          cs.setNull(2, Types.VARCHAR) // p_utrn
+          cs.setNull(3, Types.VARCHAR) // p_min_letter
+          cs.setNull(4, Types.VARCHAR) // p_max_letter
+          setOptionalString(cs, 5, request.status) // p_status
+          cs.setNull(6, Types.VARCHAR)
+          if (request.deletionFlag) {
+            cs.setString(7, "TRUE")
+          } else {
+            cs.setString(7, "FALSE")
+          }
+          cs.setString(8, "1") // p_order
+          cs.setString(9, "ASC") // p_order_by
+          cs.setLong(10, request.pageNumber.map(_.toLong).getOrElse(1L))
+          setOptionalString(cs, 11, request.pageType)
+          // Output
+          cs.registerOutParameter(12, OracleTypes.CURSOR)
+          cs.registerOutParameter(13, OracleTypes.NUMERIC)
+          cs.execute()
+          // Fetch output params
+          val totalcount: Long                      = cs.getLong(13)
+          val returnSummaryList: Seq[ReturnSummary] = processResultSetSeq(cs, 12, processReturnSummary)
+
+          SdltReturnRecordResponse(
+            returnSummaryCount = Some(totalcount.toInt), // Inform consumer that count is not returned
+            returnSummaryList = returnSummaryList.toList
+          )
+        } finally cs.close()
+      }
+    }
+  }
+
+  private def processReturnSummary(rs: ResultSet): ReturnSummary =
+    ReturnSummary(
+      returnReference = rs.getString("return_resource_ref"),
+      utrn = Option(rs.getString("utrn")),
+      status = Option(rs.getString("status")).getOrElse(""),
+      dateSubmitted = Try(LocalDate.parse(rs.getString("submitted_date"))).toOption,
+      purchaserName = Option(rs.getString("name")).getOrElse(""),
+      // purchaserName => causing crash if attempt to treat as a String output???
+      address = Option(rs.getString("address")).getOrElse(""),
+      agentReference = Option(rs.getString("agent"))
+    )
 
   private def processResultSet[T](cs: CallableStatement, position: Int, processor: ResultSet => T): Option[T] = {
     val rs = cs.getObject(position, classOf[ResultSet])
@@ -932,6 +990,33 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       val newVersion = cs.getInt(3)
 
       ReturnVersionUpdateReturn(newVersion = newVersion)
+    } finally cs.close()
+  }
+
+  override def sdltDeletePredefinedAgent(request: DeletePredefinedAgentRequest): Future[DeletePredefinedAgentResponse] =
+    Future {
+      db.withTransaction { conn =>
+        callDeleteAgent(
+          conn = conn,
+          p_storn = request.storn,
+          p_agent_resource_ref = request.agentReferenceNumber.toLong
+        )
+      }
+    }
+
+  private def callDeleteAgent(
+    conn: Connection,
+    p_storn: String,
+    p_agent_resource_ref: Long
+  ): DeletePredefinedAgentResponse = {
+
+    val cs = conn.prepareCall("{ call AGENT_PROCS.Delete_Agent(?, ?) }")
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_agent_resource_ref)
+      cs.execute()
+
+      DeletePredefinedAgentResponse(deleted = true)
     } finally cs.close()
   }
 
