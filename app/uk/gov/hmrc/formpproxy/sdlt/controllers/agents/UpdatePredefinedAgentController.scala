@@ -22,18 +22,17 @@ import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
 import uk.gov.hmrc.formpproxy.sdlt.models.agents.UpdatePredefinedAgentRequest
 import uk.gov.hmrc.formpproxy.sdlt.services.agents.UpdatePredefinedAgentService
-import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class UpdatePredefinedAgentController @Inject()(
-                                                 authorise: AuthAction,
-                                                 service: UpdatePredefinedAgentService,
-                                                 cc: ControllerComponents
-                                               )(implicit ec: ExecutionContext)
-  extends BackendController(cc)
+class UpdatePredefinedAgentController @Inject() (
+  authorise: AuthAction,
+  service: UpdatePredefinedAgentService,
+  cc: ControllerComponents
+)(implicit ec: ExecutionContext)
+    extends BackendController(cc)
     with Logging {
 
   def updatePredefinedAgent(): Action[JsValue] =

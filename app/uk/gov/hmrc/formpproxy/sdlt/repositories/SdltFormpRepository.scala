@@ -48,7 +48,7 @@ private final case class SchemeRow(schemeId: Long, version: Option[Int], email: 
 
 @Singleton
 class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implicit ec: ExecutionContext)
-  extends SdltSource
+    extends SdltSource
     with Logging {
 
   override def sdltGetOrganisation(storn: String): Future[GetSdltOrgRequest] = {
@@ -103,18 +103,18 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
   }
 
   private def callCreateReturnSubmission(
-                                          conn: Connection,
-                                          p_storn: String,
-                                          p_purchaser_is_company: String,
-                                          p_surname_comp_name: String,
-                                          p_land_house_number: Option[String] = None,
-                                          p_land_address_1: String,
-                                          p_land_address_2: Option[String] = None,
-                                          p_land_address_3: Option[String] = None,
-                                          p_land_address_4: Option[String] = None,
-                                          p_land_postcode: Option[String] = None,
-                                          p_transaction_type: String
-                                        ): Long = {
+    conn: Connection,
+    p_storn: String,
+    p_purchaser_is_company: String,
+    p_surname_comp_name: String,
+    p_land_house_number: Option[String] = None,
+    p_land_address_1: String,
+    p_land_address_2: Option[String] = None,
+    p_land_address_3: Option[String] = None,
+    p_land_address_4: Option[String] = None,
+    p_land_postcode: Option[String] = None,
+    p_transaction_type: String
+  ): Long = {
     val cs = conn.prepareCall("{ call RETURN_PROCS.Create_Return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
     try {
       cs.setString(1, p_storn)
@@ -580,21 +580,21 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
   }
 
   private def callCreateVendor(
-                                conn: Connection,
-                                p_storn: String,
-                                p_return_resource_ref: Long,
-                                p_title: Option[String],
-                                p_forename1: Option[String],
-                                p_forename2: Option[String],
-                                p_name: String,
-                                p_house_number: Option[String],
-                                p_address_1: String,
-                                p_address_2: Option[String],
-                                p_address_3: Option[String],
-                                p_address_4: Option[String],
-                                p_postcode: Option[String],
-                                p_is_represented_by_agent: String
-                              ): CreateVendorReturn = {
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_title: Option[String],
+    p_forename1: Option[String],
+    p_forename2: Option[String],
+    p_name: String,
+    p_house_number: Option[String],
+    p_address_1: String,
+    p_address_2: Option[String],
+    p_address_3: Option[String],
+    p_address_4: Option[String],
+    p_postcode: Option[String],
+    p_is_represented_by_agent: String
+  ): CreateVendorReturn = {
 
     val cs = conn.prepareCall("{ call VENDOR_PROCS.Create_Vendor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
     try {
@@ -651,23 +651,23 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
   }
 
   private def callUpdateVendor(
-                                conn: Connection,
-                                p_storn: String,
-                                p_return_resource_ref: Long,
-                                p_title: Option[String],
-                                p_forename1: Option[String],
-                                p_forename2: Option[String],
-                                p_name: String,
-                                p_house_number: Option[String],
-                                p_address_1: String,
-                                p_address_2: Option[String],
-                                p_address_3: Option[String],
-                                p_address_4: Option[String],
-                                p_postcode: Option[String],
-                                p_is_represented_by_agent: String,
-                                p_vendor_resource_ref: Long,
-                                p_next_vendor_id: Option[String]
-                              ): UpdateVendorReturn = {
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_title: Option[String],
+    p_forename1: Option[String],
+    p_forename2: Option[String],
+    p_name: String,
+    p_house_number: Option[String],
+    p_address_1: String,
+    p_address_2: Option[String],
+    p_address_3: Option[String],
+    p_address_4: Option[String],
+    p_postcode: Option[String],
+    p_is_represented_by_agent: String,
+    p_vendor_resource_ref: Long,
+    p_next_vendor_id: Option[String]
+  ): UpdateVendorReturn = {
 
     val cs = conn.prepareCall("{ call VENDOR_PROCS.Update_Vendor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
     try {
@@ -708,11 +708,11 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
   }
 
   private def callDeleteVendor(
-                                conn: Connection,
-                                p_storn: String,
-                                p_return_resource_ref: Long,
-                                p_vendor_resource_ref: Long
-                              ): DeleteVendorReturn = {
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_vendor_resource_ref: Long
+  ): DeleteVendorReturn = {
 
     val cs = conn.prepareCall("{ call VENDOR_PROCS.Delete_Vendor(?, ?, ?) }")
     try {
@@ -752,23 +752,23 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
   }
 
   private def callCreateReturnAgent(
-                                     conn: Connection,
-                                     p_storn: String,
-                                     p_return_resource_ref: Long,
-                                     p_agent_type: String,
-                                     p_name: String,
-                                     p_house_number: Option[String],
-                                     p_address_1: String,
-                                     p_address_2: Option[String],
-                                     p_address_3: Option[String],
-                                     p_address_4: Option[String],
-                                     p_postcode: String,
-                                     p_phone: Option[String],
-                                     p_email: Option[String],
-                                     p_dx_address: Option[String],
-                                     p_reference: Option[String],
-                                     p_is_authorised: Option[String]
-                                   ): CreateReturnAgentReturn = {
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_agent_type: String,
+    p_name: String,
+    p_house_number: Option[String],
+    p_address_1: String,
+    p_address_2: Option[String],
+    p_address_3: Option[String],
+    p_address_4: Option[String],
+    p_postcode: String,
+    p_phone: Option[String],
+    p_email: Option[String],
+    p_dx_address: Option[String],
+    p_reference: Option[String],
+    p_is_authorised: Option[String]
+  ): CreateReturnAgentReturn = {
 
     val cs = conn.prepareCall(
       "{ call RETURN_AGENT_PROCS.Create_Return_Agent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
@@ -826,23 +826,23 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
   }
 
   private def callUpdateReturnAgent(
-                                     conn: Connection,
-                                     p_storn: String,
-                                     p_return_resource_ref: Long,
-                                     p_agent_type: String,
-                                     p_name: String,
-                                     p_house_number: Option[String],
-                                     p_address_1: String,
-                                     p_address_2: Option[String],
-                                     p_address_3: Option[String],
-                                     p_address_4: Option[String],
-                                     p_postcode: String,
-                                     p_phone: Option[String],
-                                     p_email: Option[String],
-                                     p_dx_address: Option[String],
-                                     p_reference: Option[String],
-                                     p_is_authorised: Option[String]
-                                   ): UpdateReturnAgentReturn = {
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_agent_type: String,
+    p_name: String,
+    p_house_number: Option[String],
+    p_address_1: String,
+    p_address_2: Option[String],
+    p_address_3: Option[String],
+    p_address_4: Option[String],
+    p_postcode: String,
+    p_phone: Option[String],
+    p_email: Option[String],
+    p_dx_address: Option[String],
+    p_reference: Option[String],
+    p_is_authorised: Option[String]
+  ): UpdateReturnAgentReturn = {
 
     val cs = conn.prepareCall(
       "{ call RETURN_AGENT_PROCS.UPDATE_RETURN_AGENT(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
@@ -883,11 +883,11 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
   }
 
   private def callDeleteReturnAgent(
-                                     conn: Connection,
-                                     p_storn: String,
-                                     p_return_resource_ref: Long,
-                                     p_agent_type: String
-                                   ): DeleteReturnAgentReturn = {
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_agent_type: String
+  ): DeleteReturnAgentReturn = {
 
     val cs = conn.prepareCall("{ call RETURN_AGENT_PROCS.Delete_Return_Agent(?, ?, ?) }")
     try {
@@ -913,11 +913,11 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     }
 
   private def callUpdateReturnVersion(
-                                       conn: Connection,
-                                       p_storn: String,
-                                       p_return_resource_ref: Long,
-                                       p_version: Long
-                                     ): ReturnVersionUpdateReturn = {
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_version: Long
+  ): ReturnVersionUpdateReturn = {
 
     val cs = conn.prepareCall("{ call RETURN_PROCS.Update_Version_Number(?, ?, ?) }")
     try {
@@ -957,20 +957,20 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     }
 
   private def callUpdatePredefinedAgent(
-                                         conn: Connection,
-                                         p_storn: String,
-                                         p_agent_resource_ref: Long,
-                                         p_name: String,
-                                         p_house_number: Option[String],
-                                         p_address_1: Option[String],
-                                         p_address_2: Option[String],
-                                         p_address_3: Option[String],
-                                         p_address_4: Option[String],
-                                         p_postcode: Option[String],
-                                         p_phone: Option[String],
-                                         p_email: Option[String],
-                                         p_dx_address: Option[String]
-                                       ): UpdatePredefinedAgentResponse = {
+    conn: Connection,
+    p_storn: String,
+    p_agent_resource_ref: Long,
+    p_name: String,
+    p_house_number: Option[String],
+    p_address_1: Option[String],
+    p_address_2: Option[String],
+    p_address_3: Option[String],
+    p_address_4: Option[String],
+    p_postcode: Option[String],
+    p_phone: Option[String],
+    p_email: Option[String],
+    p_dx_address: Option[String]
+  ): UpdatePredefinedAgentResponse = {
 
     val cs = conn.prepareCall("{ call AGENT_PROCS.Update_Agent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ) }")
     try {

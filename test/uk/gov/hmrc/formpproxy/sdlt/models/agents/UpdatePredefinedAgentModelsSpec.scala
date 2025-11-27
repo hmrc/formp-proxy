@@ -14,16 +14,6 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.sdlt.services.agents
+package uk.gov.hmrc.formpproxy.sdlt.models.agents
 
-import uk.gov.hmrc.formpproxy.sdlt.models.agents.{UpdatePredefinedAgentRequest, UpdatePredefinedAgentResponse}
-import uk.gov.hmrc.formpproxy.sdlt.repositories.SdltFormpRepository
-
-import javax.inject.Inject
-import scala.concurrent.Future
-
-class UpdatePredefinedAgentService @Inject() (repository: SdltFormpRepository) {
-
-  def updatePredefinedAgent(req: UpdatePredefinedAgentRequest): Future[UpdatePredefinedAgentResponse] =
-    repository.sdltUpdatePredefinedAgent(req)
-}
+class UpdatePredefinedAgentModelsSpec {}
