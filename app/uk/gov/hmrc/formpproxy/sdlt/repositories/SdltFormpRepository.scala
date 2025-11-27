@@ -20,7 +20,6 @@ import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
 import uk.gov.hmrc.formpproxy.sdlt.models.*
-import uk.gov.hmrc.formpproxy.sdlt.models.agent.*
 import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
 import uk.gov.hmrc.formpproxy.sdlt.models.organisation.*
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
@@ -942,12 +941,12 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
           conn = conn,
           p_storn = request.storn,
           p_agent_resource_ref = request.agentResourceReference.toLong,
-          p_name = request.agentName,
+          p_name = request.name,
           p_house_number = request.houseNumber,
-          p_address_1 = request.addressLine1,
-          p_address_2 = request.addressLine2,
-          p_address_3 = request.addressLine3,
-          p_address_4 = request.addressLine4,
+          p_address_1 = request.address1,
+          p_address_2 = request.address2,
+          p_address_3 = request.address3,
+          p_address_4 = request.address4,
           p_postcode = request.postcode,
           p_phone = request.phone,
           p_email = request.email,
@@ -962,29 +961,29 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     p_agent_resource_ref: Long,
     p_name: String,
     p_house_number: Option[String],
-    p_address_1: Option[String],
+    p_address_1: String,
     p_address_2: Option[String],
     p_address_3: Option[String],
     p_address_4: Option[String],
     p_postcode: Option[String],
-    p_phone: Option[String],
-    p_email: Option[String],
+    p_phone: String,
+    p_email: String,
     p_dx_address: Option[String]
   ): UpdatePredefinedAgentResponse = {
 
-    val cs = conn.prepareCall("{ call AGENT_PROCS.Update_Agent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ) }")
+    val cs = conn.prepareCall("{ call AGENT_PROCS.Update_Agent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ) }")
     try {
       cs.setString(1, p_storn)
       cs.setLong(2, p_agent_resource_ref)
       cs.setString(3, p_name)
       setOptionalString(cs, 4, p_house_number)
-      setOptionalString(cs, 5, p_address_1)
+      cs.setString(5, p_address_1)
       setOptionalString(cs, 6, p_address_2)
       setOptionalString(cs, 7, p_address_3)
       setOptionalString(cs, 8, p_address_4)
       setOptionalString(cs, 9, p_postcode)
-      setOptionalString(cs, 10, p_phone)
-      setOptionalString(cs, 11, p_email)
+      cs.setString(10, p_phone)
+      cs.setString(11, p_email)
       setOptionalString(cs, 11, p_dx_address)
       cs.execute()
       UpdatePredefinedAgentResponse(updated = true)

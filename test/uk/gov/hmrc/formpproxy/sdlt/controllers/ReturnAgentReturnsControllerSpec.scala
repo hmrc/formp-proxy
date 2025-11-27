@@ -28,7 +28,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
 import uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnAgentReturnsController
-import uk.gov.hmrc.formpproxy.sdlt.models.agent.*
+import uk.gov.hmrc.formpproxy.sdlt.models.agents.{CreateReturnAgentRequest, CreateReturnAgentReturn, DeleteReturnAgentRequest, DeleteReturnAgentReturn, UpdateReturnAgentRequest, UpdateReturnAgentReturn}
 import uk.gov.hmrc.formpproxy.sdlt.services.ReturnService
 
 import scala.concurrent.{ExecutionContext, Future}

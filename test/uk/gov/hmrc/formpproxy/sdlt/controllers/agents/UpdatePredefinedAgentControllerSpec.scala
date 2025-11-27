@@ -40,16 +40,18 @@ class UpdatePredefinedAgentControllerSpec extends AnyFreeSpec with Matchers with
 
   val request: UpdatePredefinedAgentRequest = UpdatePredefinedAgentRequest(
     storn,
-    agentReferenceNumber,
-    agentName = "64 Acme Property Agents Ltd",
+    agentId = None,
+    name = "Smith & Co Solicitors",
     houseNumber = None,
-    addressLine1 = Some("Zoo Lane"),
-    addressLine2 = Some("Westminster"),
-    addressLine3 = Some("London"),
-    addressLine4 = None,
-    postcode = Some("SW1A 2AA"),
-    phone = Some("02079460000"),
-    email = Some("test@example.com")
+    address1 = "12 High Street",
+    address2 = Some("London"),
+    address3 = Some("Greater London"),
+    address4 = None,
+    postcode = Some("SW1A 1AA"),
+    phone = "02071234567",
+    email = "info@smithco.co.uk",
+    dxAddress = None,
+    agentResourceReference = agentReferenceNumber
   )
 
   "AgentController updateSDLTAgent" - {

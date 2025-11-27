@@ -21,8 +21,9 @@ import org.mockito.Mockito.*
 import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.sdlt.models.*
-import uk.gov.hmrc.formpproxy.sdlt.models.vendor._
-import uk.gov.hmrc.formpproxy.sdlt.models.agent._
+import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
+import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
+import uk.gov.hmrc.formpproxy.sdlt.models.agents.{CreateReturnAgentRequest, DeleteReturnAgentRequest, UpdateReturnAgentRequest}
 
 import java.sql.*
 
@@ -1627,6 +1628,54 @@ final class SdltFormpRepositorySpec extends SpecBase {
       verify(cs).execute()
       verify(rsOrg).close()
       verify(rsAgents).close()
+    }
+  }
+
+  "sdltUpdatePredefinedAgent" - {
+
+    "call Update_Predefined_Agent stored procedure with correct parameters" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call AGENT_PROCS.Update_Agent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"))).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdatePredefinedAgentRequest(
+        storn = "STN001",
+        agentId = None,
+        name = "Smith & Co Solicitors",
+        houseNumber = None,
+        address1 = "12 High Street",
+        address2 = Some("London"),
+        address3 = Some("Greater London"),
+        address4 = None,
+        postcode = Some("SW1A 1AA"),
+        phone = "02071234567",
+        email = "info@smithco.co.uk",
+        dxAddress = None,
+        agentResourceReference = "ARN001"
+      )
+
+      val result = repo.sdltUpdatePredefinedAgent(request).futureValue
+
+      result.updated mustBe true
+
+      verify(conn).prepareCall("{ call AGENT_PROCS.Update_Agent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ) }")
+      verify(cs).setString(1, request.storn)
+      //verify(cs).setLong(2, request.agentResourceReference.toLong)
+      verify(cs).setString(3, request.name)
+      //verify(cs).setString(4, request.Types.VARCHAR)
+      verify(cs).setString(5, request.address1)
+      verify(cs).setString(10, request.phone)
+      verify(cs).setString(11, request.email)
+      verify(cs).execute()
+      verify(cs).close()
     }
   }
 }
