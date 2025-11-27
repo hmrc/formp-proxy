@@ -45,6 +45,7 @@ trait SdltSource {
   def sdltDeleteReturnAgent(request: DeleteReturnAgentRequest): Future[DeleteReturnAgentReturn]
   def sdltUpdateReturnVersion(request: ReturnVersionUpdateRequest): Future[ReturnVersionUpdateReturn]
   def sdltGetOrganisation(req: String): Future[GetSdltOrgRequest]
+  def sdltCreatePredefinedAgent(request: CreatePredefinedAgentRequest): Future[CreatePredefinedAgentResponse]
   def sdltDeletePredefinedAgent(req: DeletePredefinedAgentRequest): Future[DeletePredefinedAgentResponse]
 }
 
@@ -1016,6 +1017,73 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       cs.execute()
 
       DeletePredefinedAgentResponse(deleted = true)
+    } finally cs.close()
+  }
+
+  override def sdltCreatePredefinedAgent(request: CreatePredefinedAgentRequest): Future[CreatePredefinedAgentResponse] =
+    logger.info(s"[SDLT] sdltCreatePredefinedAgent(request=$request)")
+    Future {
+      db.withTransaction { conn =>
+        callCreatePredefinedAgent(
+          conn = conn,
+          p_storn = request.storn,
+          p_name = request.agentName,
+          p_house_number = request.houseNumber,
+          p_address_1 = request.addressLine1,
+          p_address_2 = request.addressLine2,
+          p_address_3 = request.addressLine3,
+          p_address_4 = request.addressLine4,
+          p_postcode = request.postcode,
+          p_phone = request.phone,
+          p_email = request.email,
+          p_dx_address = request.dxAddress
+        )
+
+      }
+    }
+
+  private def callCreatePredefinedAgent(
+    conn: Connection,
+    p_storn: String,
+    p_name: String,
+    p_house_number: Option[String],
+    p_address_1: Option[String],
+    p_address_2: Option[String],
+    p_address_3: Option[String],
+    p_address_4: Option[String],
+    p_postcode: Option[String],
+    p_phone: Option[String],
+    p_email: Option[String],
+    p_dx_address: Option[String]
+  ): CreatePredefinedAgentResponse = {
+
+    val cs = conn.prepareCall(
+      "{ call AGENT_PROCS.create_agent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+    )
+    try {
+      cs.setString(1, p_storn)
+      cs.setString(2, p_name)
+      setOptionalString(cs, 3, p_house_number)
+      setOptionalString(cs, 4, p_address_1)
+      setOptionalString(cs, 5, p_address_2)
+      setOptionalString(cs, 6, p_address_3)
+      setOptionalString(cs, 7, p_address_4)
+      setOptionalString(cs, 8, p_postcode)
+      setOptionalString(cs, 9, p_phone)
+      setOptionalString(cs, 10, p_email)
+      setOptionalString(cs, 11, p_dx_address)
+
+      cs.registerOutParameter(12, Types.NUMERIC)
+      cs.registerOutParameter(13, Types.NUMERIC)
+      cs.execute()
+
+      val tempAgentId          = cs.getLong(12)
+      val tempAgentResourceRef = cs.getLong(13)
+
+      CreatePredefinedAgentResponse(
+        agentResourceRef = Some(tempAgentResourceRef.toString),
+        agentId = Some(tempAgentId.toString)
+      )
     } finally cs.close()
   }
 
