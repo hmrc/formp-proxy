@@ -100,7 +100,7 @@ class ReturnsController @Inject() (
         )
     }
 
-  def getSDLTReturns(): Action[JsValue] =
+  def getSDLTReturns: Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
       request.body
         .validate[GetReturnRecordsRequest]

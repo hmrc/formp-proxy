@@ -18,8 +18,6 @@ package uk.gov.hmrc.formpproxy.sdlt.models
 
 import play.api.libs.json.{Json, OFormat}
 
-import java.time.LocalDate
-
 case class GetReturnRecordsRequest(
   storn: String,
   status: Option[String],
