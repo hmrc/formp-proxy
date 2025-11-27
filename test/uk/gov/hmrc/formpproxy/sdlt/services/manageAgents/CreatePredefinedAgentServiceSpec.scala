@@ -22,7 +22,7 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.mockito.MockitoSugar.mock
-import uk.gov.hmrc.formpproxy.sdlt.models.agent.manageAgents.{CreatePredefinedAgentRequest, CreatePredefinedAgentResponse}
+import uk.gov.hmrc.formpproxy.sdlt.models.agents.{CreatePredefinedAgentRequest, CreatePredefinedAgentResponse}
 import uk.gov.hmrc.formpproxy.sdlt.repositories.SdltFormpRepository
 
 import scala.concurrent.{ExecutionContext, Future}

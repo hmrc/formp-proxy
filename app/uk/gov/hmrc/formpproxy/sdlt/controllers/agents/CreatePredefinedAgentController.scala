@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.sdlt.controllers.manageAgents
+package uk.gov.hmrc.formpproxy.sdlt.controllers.agents
 
 import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
-import uk.gov.hmrc.formpproxy.sdlt.models.agent.manageAgents.*
+import uk.gov.hmrc.formpproxy.sdlt.models.agents.{CreatePredefinedAgentRequest, CreatePredefinedAgentResponse}
 import uk.gov.hmrc.formpproxy.sdlt.services.manageAgents.CreatePredefinedAgentService
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController

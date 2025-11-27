@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.sdlt.controllers.manageAgents
+package uk.gov.hmrc.formpproxy.sdlt.controllers.agents
 
 import org.mockito.Mockito.{verify, verifyNoInteractions, verifyNoMoreInteractions, when}
 import org.scalatest.concurrent.ScalaFutures
@@ -27,7 +27,7 @@ import play.api.mvc.{ControllerComponents, PlayBodyParsers, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{ACCEPT, BAD_GATEWAY, CONTENT_TYPE, JSON, contentAsJson, contentType, defaultAwaitTimeout, status, stubControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
-import uk.gov.hmrc.formpproxy.sdlt.models.agent.manageAgents.{CreatePredefinedAgentRequest, CreatePredefinedAgentResponse}
+import uk.gov.hmrc.formpproxy.sdlt.models.agents.{CreatePredefinedAgentRequest, CreatePredefinedAgentResponse}
 import uk.gov.hmrc.formpproxy.sdlt.services.manageAgents.CreatePredefinedAgentService
 import uk.gov.hmrc.http.UpstreamErrorResponse
 

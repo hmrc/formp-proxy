@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.formpproxy.sdlt.services.manageAgents
 
-import uk.gov.hmrc.formpproxy.sdlt.models.agent.manageAgents.*
+import uk.gov.hmrc.formpproxy.sdlt.models.agents.{CreatePredefinedAgentRequest, CreatePredefinedAgentResponse}
 import uk.gov.hmrc.formpproxy.sdlt.repositories.SdltFormpRepository
 
 import javax.inject.Inject

@@ -23,7 +23,7 @@ import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.models.agent.*
-import uk.gov.hmrc.formpproxy.sdlt.models.agent.manageAgents.CreatePredefinedAgentRequest
+import uk.gov.hmrc.formpproxy.sdlt.models.agents.CreatePredefinedAgentRequest
 
 import java.sql.*
 
