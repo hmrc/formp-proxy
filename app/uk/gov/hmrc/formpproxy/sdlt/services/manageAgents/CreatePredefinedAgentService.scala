@@ -16,8 +16,7 @@
 
 package uk.gov.hmrc.formpproxy.sdlt.services.manageAgents
 
-
-import uk.gov.hmrc.formpproxy.sdlt.models.agent.manageAgents.{CreatePredefinedAgentRequest, CreatePredefinedAgentResponse}
+import uk.gov.hmrc.formpproxy.sdlt.models.agent.manageAgents.*
 import uk.gov.hmrc.formpproxy.sdlt.repositories.SdltFormpRepository
 
 import javax.inject.Inject
@@ -25,7 +24,9 @@ import scala.concurrent.Future
 
 class CreatePredefinedAgentService @Inject (repo: SdltFormpRepository) {
 
-  def createPredefinedAgent(createPredefinedAgent: CreatePredefinedAgentRequest): Future[CreatePredefinedAgentResponse] =
+  def createPredefinedAgent(
+    createPredefinedAgent: CreatePredefinedAgentRequest
+  ): Future[CreatePredefinedAgentResponse] =
     repo.sdltCreatePredefinedAgent(createPredefinedAgent)
 
 }

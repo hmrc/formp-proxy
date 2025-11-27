@@ -1,3 +1,19 @@
+/*
+ * Copyright 2025 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package uk.gov.hmrc.formpproxy.sdlt.controllers.manageAgents
 
 import org.mockito.Mockito.{verify, verifyNoInteractions, verifyNoMoreInteractions, when}
@@ -72,7 +88,7 @@ class CreatePredefinedAgentControllerSpec extends AnyFreeSpec with Matchers with
     "valid payload" - {
       val fullCreatePredefinedAgentData: CreatePredefinedAgentRequest  =
         CreatePredefinedAgentRequest(
-          stornId = "STN12345",
+          storn = "STN12345",
           agentName = "John",
           houseNumber = Some("10"),
           addressLine1 = Some("Downing Street"),
@@ -122,14 +138,14 @@ class CreatePredefinedAgentControllerSpec extends AnyFreeSpec with Matchers with
         val res: Future[Result] = controller.createPredefinedAgent()(req)
 
         status(res) mustBe BAD_GATEWAY
-        (contentAsJson(res) \"message").as[String] must include("formp service failed")
+        (contentAsJson(res) \ "message").as[String] must include("formp service failed")
 
         verify(mockService).createPredefinedAgent(fullCreatePredefinedAgentData)
         verifyNoMoreInteractions(mockService)
 
       }
 
-      "must return 500 with generic message on unexpected exception" in new Setup{
+      "must return 500 with generic message on unexpected exception" in new Setup {
         val req = makeRequest(Json.toJson(fullCreatePredefinedAgentData))
 
         when(mockService.createPredefinedAgent(fullCreatePredefinedAgentData))
@@ -157,12 +173,12 @@ class CreatePredefinedAgentControllerSpec extends AnyFreeSpec with Matchers with
     val controller  = new CreatePredefinedAgentController(fakeAuth, mockService, cc)
 
     def makeRequest(body: JsValue): FakeRequest[JsValue] =
-      FakeRequest("POST", "formp-proxy/manage-agents/agent-details/submit")
+      FakeRequest("POST", "formp-proxy/create/predefined-agent")
         .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
         .withBody(body)
 
     val validCreatePredefinedAgentRequestData: JsObject                    = Json.obj(
-      "stornId"      -> "STN12345",
+      "storn"        -> "STN12345",
       "agentName"    -> "Michael",
       "houseNumber"  -> Some("10"),
       "addressLine1" -> Some("Downing Street"),
@@ -175,7 +191,7 @@ class CreatePredefinedAgentControllerSpec extends AnyFreeSpec with Matchers with
       "dxAddress"    -> None
     )
     val createPredefinedAgentRequestWithoutAgentNameData: JsObject         = Json.obj(
-      "stornId"      -> "STN12345",
+      "storn"        -> "STN12345",
       "houseNumber"  -> Some("10"),
       "addressLine1" -> Some("Downing Street"),
       "addressLine2" -> Some("Westminster"),

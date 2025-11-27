@@ -558,11 +558,6 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       isCrownRelief = Option(rs.getString("IS_CROWN_RELIEF"))
     )
 
-  private def processCreatePredefinedAgent(rs: ResultSet): CreatePredefinedAgentResponse  =
-    CreatePredefinedAgentResponse(
-      agentResourceRef = Option(rs.getString("AGENT_RESOURCE_REF")),
-      agentId = Option(rs.getString("AGENT_ID"))
-    )
   override def sdltCreateVendor(request: CreateVendorRequest): Future[CreateVendorReturn] = Future {
     db.withTransaction { conn =>
       callCreateVendor(
@@ -941,11 +936,12 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
   }
 
   override def sdltCreatePredefinedAgent(request: CreatePredefinedAgentRequest): Future[CreatePredefinedAgentResponse] =
+    logger.info(s"[SDLT] sdltCreatePredefinedAgent(request=$request)")
     Future {
       db.withTransaction { conn =>
         callCreatePredefinedAgent(
           conn = conn,
-          p_storn = request.stornId,
+          p_storn = request.storn,
           p_name = request.agentName,
           p_house_number = request.houseNumber,
           p_address_1 = request.addressLine1,
@@ -977,7 +973,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
   ): CreatePredefinedAgentResponse = {
 
     val cs = conn.prepareCall(
-      "{ call AGENT_PROCS.CREATE_AGENT(?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?) }"
+      "{ call AGENT_PROCS.create_agent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
     )
     try {
       cs.setString(1, p_storn)
@@ -991,12 +987,17 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       setOptionalString(cs, 9, p_phone)
       setOptionalString(cs, 10, p_email)
       setOptionalString(cs, 11, p_dx_address)
+
+      cs.registerOutParameter(12, Types.NUMERIC)
+      cs.registerOutParameter(13, Types.NUMERIC)
       cs.execute()
 
-      val createPredefinedAgentResponse = processResultSet(cs, 1, processCreatePredefinedAgent)
+      val tempAgentId          = cs.getLong(12)
+      val tempAgentResourceRef = cs.getLong(13)
+
       CreatePredefinedAgentResponse(
-        agentResourceRef = createPredefinedAgentResponse.flatMap(_.agentResourceRef),
-        agentId = createPredefinedAgentResponse.flatMap(_.agentId)
+        agentResourceRef = Some(tempAgentResourceRef.toString),
+        agentId = Some(tempAgentId.toString)
       )
     } finally cs.close()
   }

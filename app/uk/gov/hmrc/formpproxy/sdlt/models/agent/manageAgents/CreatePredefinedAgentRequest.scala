@@ -19,7 +19,7 @@ package uk.gov.hmrc.formpproxy.sdlt.models.agent.manageAgents
 import play.api.libs.json.{Json, OFormat}
 
 case class CreatePredefinedAgentRequest(
-  stornId: String,
+  storn: String,
   agentName: String,
   houseNumber: Option[String] = None,
   addressLine1: Option[String],
