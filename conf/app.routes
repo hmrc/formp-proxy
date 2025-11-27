@@ -12,7 +12,7 @@ POST       /submissions/update                                      uk.gov.hmrc.
 
 POST       /create/return                                           uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.createSDLTReturn()
 POST       /retrieve-return                                         uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.getSDLTReturn()
-POST       /get/returns                                             uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.getSDLTReturns()
+POST       /returns                                                 uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.getSDLTReturns()
 
 
 POST       /organisation                                            uk.gov.hmrc.formpproxy.sdlt.controllers.organisation.SdltOrganisationController.getSDLTOrganisation()

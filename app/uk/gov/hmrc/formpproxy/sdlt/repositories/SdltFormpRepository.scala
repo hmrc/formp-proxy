@@ -257,13 +257,13 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
   private def processReturnSummary(rs: ResultSet): ReturnSummary =
     ReturnSummary(
       returnReference = rs.getString("return_resource_ref"),
-      utrn = Try(rs.getString("utrn")).toOption,
+      utrn = Option(rs.getString("utrn")),
       status = Option(rs.getString("status")).getOrElse(""),
       dateSubmitted = Try(LocalDate.parse(rs.getString("submitted_date"))).toOption,
       purchaserName = Option(rs.getString("name")).getOrElse(""),
       // purchaserName => causing crash if attempt to treat as a String output???
       address = Option(rs.getString("address")).getOrElse(""),
-      agentReference = Try(rs.getString("agent")).toOption
+      agentReference = Option(rs.getString("agent"))
     )
 
   private def processResultSet[T](cs: CallableStatement, position: Int, processor: ResultSet => T): Option[T] = {
