@@ -48,10 +48,10 @@ class DatabaseIntegrationSpec
       AuthStub.authorised()
 
       val res = postJsonRaw("scheme/email", Json.obj("instanceId" -> "test-instance-id"))
-      
+
       println(s"Response status: ${res.status}")
       println(s"Response body: ${res.body}")
-      
+
       res.status mustBe 200
     }
 

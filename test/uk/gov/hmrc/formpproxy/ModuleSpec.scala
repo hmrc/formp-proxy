@@ -22,30 +22,15 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.Helpers.running
 import uk.gov.hmrc.formpproxy.actions.{AuthAction, DefaultAuthAction}
 import uk.gov.hmrc.formpproxy.cis.repositories.{CisFormpRepository, CisMonthlyReturnSource}
-import uk.gov.hmrc.formpproxy.cis.utils.CisFormpStub
 import uk.gov.hmrc.formpproxy.sdlt.repositories.{SdltFormpRepository, SdltSource}
 
 class ModuleSpec extends AnyWordSpec with Matchers {
 
   "Module bindings" should {
 
-    "bind AuthAction -> DefaultAuthAction and CisMonthlyReturnSource -> CisFormpStub when feature is ON" in {
+    "bind CisMonthlyReturnSource -> CisFormpRepository" in {
       val app = new GuiceApplicationBuilder()
         .overrides(new Module)
-        .configure("feature-switch.cis-formp-stubbed" -> true)
-        .build()
-
-      running(app) {
-        val inj = app.injector
-        inj.instanceOf(classOf[AuthAction]) mustBe a[DefaultAuthAction]
-        inj.instanceOf(classOf[CisMonthlyReturnSource]) mustBe a[CisFormpStub]
-      }
-    }
-
-    "bind CisMonthlyReturnSource -> CisFormpRepository when feature is OFF" in {
-      val app = new GuiceApplicationBuilder()
-        .overrides(new Module)
-        .configure("feature-switch.cis-formp-stubbed" -> false)
         .build()
 
       running(app) {

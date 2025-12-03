@@ -20,11 +20,13 @@ import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
-import play.api.Application
+import play.api.{Application, inject}
 import play.api.http.HeaderNames as PlayHeaders
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsValue
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
+import uk.gov.hmrc.formpproxy.cis.CisFormpStub
+import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 import uk.gov.hmrc.http.{HeaderCarrier, HeaderNames, HttpResponse}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.StringContextOps
@@ -46,12 +48,12 @@ trait ApplicationWithWiremock
     Map[String, Any](
       "microservice.services.auth.host" -> WireMockConstants.stubHost,
       "microservice.services.auth.port" -> WireMockConstants.stubPort,
-      "feature-switch.cis-formp-stubbed" -> true
     )
   }
 
   override lazy val app: Application = new GuiceApplicationBuilder()
     .configure(extraConfig)
+    .overrides(inject.bind[CisMonthlyReturnSource].to[CisFormpStub])
     .build()
 
   lazy val httpClient: HttpClientV2 = app.injector.instanceOf[HttpClientV2]
