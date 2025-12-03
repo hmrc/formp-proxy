@@ -961,13 +961,13 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     p_agent_resource_ref: Long,
     p_name: String,
     p_house_number: Option[String],
-    p_address_1: String,
+    p_address_1: Option[String],
     p_address_2: Option[String],
     p_address_3: Option[String],
     p_address_4: Option[String],
     p_postcode: Option[String],
-    p_phone: String,
-    p_email: String,
+    p_phone: Option[String],
+    p_email: Option[String],
     p_dx_address: Option[String]
   ): UpdatePredefinedAgentResponse = {
 
@@ -977,13 +977,13 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       cs.setLong(2, p_agent_resource_ref)
       cs.setString(3, p_name)
       setOptionalString(cs, 4, p_house_number)
-      cs.setString(5, p_address_1)
+      setOptionalString(cs, 5, p_address_1)
       setOptionalString(cs, 6, p_address_2)
       setOptionalString(cs, 7, p_address_3)
       setOptionalString(cs, 8, p_address_4)
       setOptionalString(cs, 9, p_postcode)
-      cs.setString(10, p_phone)
-      cs.setString(11, p_email)
+      setOptionalString(cs, 10, p_phone)
+      setOptionalString(cs, 11, p_email)
       setOptionalString(cs, 11, p_dx_address)
       cs.execute()
       UpdatePredefinedAgentResponse(updated = true)
