@@ -19,6 +19,7 @@ package uk.gov.hmrc.formpproxy.sdlt.models.agents
 import play.api.libs.json.{Json, OFormat}
 
 case class UpdatePredefinedAgentRequest(
+  agentResourceReference: String,
   storn: String,
   name: String,
   houseNumber: Option[String],
@@ -29,8 +30,7 @@ case class UpdatePredefinedAgentRequest(
   postcode: Option[String],
   phone: Option[String],
   email: Option[String],
-  dxAddress: Option[String],
-  agentResourceReference: String
+  dxAddress: Option[String]
 )
 
 object UpdatePredefinedAgentRequest {

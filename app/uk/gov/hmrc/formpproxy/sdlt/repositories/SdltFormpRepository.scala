@@ -984,7 +984,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       setOptionalString(cs, 9, p_postcode)
       setOptionalString(cs, 10, p_phone)
       setOptionalString(cs, 11, p_email)
-      setOptionalString(cs, 11, p_dx_address)
+      setOptionalString(cs, 12, p_dx_address)
       cs.execute()
       UpdatePredefinedAgentResponse(updated = true)
     } finally cs.close()

@@ -1662,14 +1662,14 @@ final class SdltFormpRepositorySpec extends SpecBase {
         agentResourceReference = "001"
       )
 
-      // val result = repo.sdltUpdatePredefinedAgent(request).futureValue
+      val result = repo.sdltUpdatePredefinedAgent(request).futureValue
 
-      // result.updated mustBe true
+      result.updated mustBe true
 
-//      verify(conn).prepareCall("{ call AGENT_PROCS.Update_Agent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ) }")
-//      verify(cs).setString(1, request.storn)
-//      verify(cs).execute()
-//      verify(cs).close()
+      verify(conn).prepareCall("{ call AGENT_PROCS.Update_Agent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ) }")
+      verify(cs).setString(1, request.storn)
+      verify(cs).execute()
+      verify(cs).close()
     }
   }
 }
