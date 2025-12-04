@@ -19,7 +19,7 @@ package uk.gov.hmrc.formpproxy.cis
 import play.api.Logging
 import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubmissionRequest}
 import uk.gov.hmrc.formpproxy.cis.models.response.CreateNilMonthlyReturnResponse
-import uk.gov.hmrc.formpproxy.cis.models.{MonthlyReturn, UserMonthlyReturns}
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 import uk.gov.hmrc.formpproxy.cis.utils.StubUtils
 
@@ -98,4 +98,11 @@ class CisFormpStub @Inject() (stubUtils: StubUtils) extends CisMonthlyReturnSour
     Future.successful(())
   }
 
+  override def getScheme(instanceId: String): Future[Option[ContractorScheme]] = Future.successful(Some(ContractorScheme(
+    schemeId = 1,
+    instanceId = "111",
+    accountsOfficeReference = "222",
+    taxOfficeNumber = "123",
+    taxOfficeReference = "AB123456"
+  )))
 }

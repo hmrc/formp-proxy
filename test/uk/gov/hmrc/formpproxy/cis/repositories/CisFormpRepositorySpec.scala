@@ -22,6 +22,7 @@ import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubmissionRequest}
 
+import java.time.Instant
 import java.sql.*
 
 final class CisFormpRepositorySpec extends SpecBase {
@@ -465,6 +466,203 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       verify(cs).execute()
       verify(rs).close()
+    }
+  }
+
+  "getScheme" - {
+
+    "returns Some(ContractorScheme) with all fields when result set has data" in {
+      val db   = mock[Database]
+      val conn = mock[java.sql.Connection]
+      val cs   = mock[CallableStatement]
+      val rs   = mock[ResultSet]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")).thenReturn(cs)
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rs)
+      when(rs.next()).thenReturn(true, false)
+
+      when(rs.getInt("scheme_id")).thenReturn(123)
+      when(rs.getString("instance_id")).thenReturn("abc-123")
+      when(rs.getString("aoref")).thenReturn("123456789")
+      when(rs.getString("tax_office_number")).thenReturn("0001")
+      when(rs.getString("tax_office_reference")).thenReturn("AB12345")
+      when(rs.getString("utr")).thenReturn("1234567890")
+      when(rs.getString("name")).thenReturn("Test Contractor")
+      when(rs.getString("email_address")).thenReturn("test@example.com")
+      when(rs.getString("display_welcome_page")).thenReturn("Y")
+      when(rs.getInt("pre_pop_count")).thenReturn(5)
+      when(rs.wasNull()).thenReturn(false)
+      when(rs.getString("pre_pop_successful")).thenReturn("Y")
+      when(rs.getInt("subcontractor_counter")).thenReturn(10)
+      when(rs.wasNull()).thenReturn(false)
+      when(rs.getInt("verif_batch_counter")).thenReturn(2)
+      when(rs.wasNull()).thenReturn(false)
+      when(rs.getString("last_update")).thenReturn("2025-12-04T10:15:30Z")
+      when(rs.getInt("version")).thenReturn(1)
+      when(rs.wasNull()).thenReturn(false)
+
+      val repo   = new CisFormpRepository(db)
+      val result = repo.getScheme("abc-123").futureValue
+
+      result must be(Symbol("defined"))
+      val scheme = result.get
+      scheme.schemeId mustBe 123
+      scheme.instanceId mustBe "abc-123"
+      scheme.accountsOfficeReference mustBe "123456789"
+      scheme.taxOfficeNumber mustBe "0001"
+      scheme.taxOfficeReference mustBe "AB12345"
+      scheme.utr mustBe Some("1234567890")
+      scheme.name mustBe Some("Test Contractor")
+      scheme.emailAddress mustBe Some("test@example.com")
+      scheme.displayWelcomePage mustBe Some("Y")
+      scheme.prePopCount mustBe Some(5)
+      scheme.prePopSuccessful mustBe Some("Y")
+      scheme.subcontractorCounter mustBe Some(10)
+      scheme.verificationBatchCounter mustBe Some(2)
+      scheme.lastUpdate mustBe Some(Instant.parse("2025-12-04T10:15:30Z"))
+      scheme.version mustBe Some(1)
+
+      verify(cs).execute()
+      verify(rs).close()
+    }
+
+    "returns None when result set is empty" in {
+      val db   = mock[Database]
+      val conn = mock[java.sql.Connection]
+      val cs   = mock[CallableStatement]
+      val rs   = mock[ResultSet]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")).thenReturn(cs)
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rs)
+      when(rs.next()).thenReturn(false)
+
+      val repo   = new CisFormpRepository(db)
+      val result = repo.getScheme("unknown-123").futureValue
+
+      result mustBe None
+
+      verify(cs).execute()
+      verify(rs).close()
+    }
+
+    "handles null optional fields correctly" in {
+      val db   = mock[Database]
+      val conn = mock[java.sql.Connection]
+      val cs   = mock[CallableStatement]
+      val rs   = mock[ResultSet]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")).thenReturn(cs)
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rs)
+      when(rs.next()).thenReturn(true, false)
+
+      when(rs.getInt("scheme_id")).thenReturn(456)
+      when(rs.getString("instance_id")).thenReturn("def-456")
+      when(rs.getString("aoref")).thenReturn("987654321")
+      when(rs.getString("tax_office_number")).thenReturn("0002")
+      when(rs.getString("tax_office_reference")).thenReturn("CD67890")
+      when(rs.getString("utr")).thenReturn(null)
+      when(rs.getString("name")).thenReturn(null)
+      when(rs.getString("email_address")).thenReturn(null)
+      when(rs.getString("display_welcome_page")).thenReturn(null)
+      when(rs.getInt("pre_pop_count")).thenReturn(0)
+      when(rs.wasNull()).thenReturn(true)
+      when(rs.getString("pre_pop_successful")).thenReturn(null)
+      when(rs.getInt("subcontractor_counter")).thenReturn(0)
+      when(rs.wasNull()).thenReturn(true)
+      when(rs.getInt("verif_batch_counter")).thenReturn(0)
+      when(rs.wasNull()).thenReturn(true)
+      when(rs.getString("last_update")).thenReturn(null)
+      when(rs.getInt("version")).thenReturn(0)
+      when(rs.wasNull()).thenReturn(true)
+
+      val repo   = new CisFormpRepository(db)
+      val result = repo.getScheme("def-456").futureValue
+
+      result must be(Symbol("defined"))
+      val scheme = result.get
+      scheme.schemeId mustBe 456
+      scheme.instanceId mustBe "def-456"
+      scheme.utr mustBe None
+      scheme.name mustBe None
+      scheme.emailAddress mustBe None
+      scheme.displayWelcomePage mustBe None
+      scheme.prePopCount mustBe None
+      scheme.prePopSuccessful mustBe None
+      scheme.subcontractorCounter mustBe None
+      scheme.verificationBatchCounter mustBe None
+      scheme.lastUpdate mustBe None
+      scheme.version mustBe None
+
+      verify(cs).execute()
+      verify(rs).close()
+    }
+
+    "parses Instant from ISO 8601 formatted string correctly" in {
+      val db   = mock[Database]
+      val conn = mock[java.sql.Connection]
+      val cs   = mock[CallableStatement]
+      val rs   = mock[ResultSet]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")).thenReturn(cs)
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rs)
+      when(rs.next()).thenReturn(true, false)
+
+      when(rs.getInt("scheme_id")).thenReturn(789)
+      when(rs.getString("instance_id")).thenReturn("ghi-789")
+      when(rs.getString("aoref")).thenReturn("111111111")
+      when(rs.getString("tax_office_number")).thenReturn("0003")
+      when(rs.getString("tax_office_reference")).thenReturn("EF23456")
+      when(rs.getString("utr")).thenReturn(null)
+      when(rs.getString("name")).thenReturn(null)
+      when(rs.getString("email_address")).thenReturn(null)
+      when(rs.getString("display_welcome_page")).thenReturn(null)
+      when(rs.getInt("pre_pop_count")).thenReturn(0)
+      when(rs.getString("pre_pop_successful")).thenReturn(null)
+      when(rs.getInt("subcontractor_counter")).thenReturn(0)
+      when(rs.getInt("verif_batch_counter")).thenReturn(0)
+      when(rs.getString("last_update")).thenReturn("2025-01-15T14:30:45.123456Z")
+      when(rs.getInt("version")).thenReturn(0)
+
+      val repo   = new CisFormpRepository(db)
+      val result = repo.getScheme("ghi-789").futureValue
+
+      result must be(Symbol("defined"))
+      result.get.lastUpdate mustBe Some(Instant.parse("2025-01-15T14:30:45.123456Z"))
+
+      verify(cs).execute()
+      verify(rs).close()
+    }
+
+    "throws RuntimeException when result set cursor is null" in {
+      val db   = mock[Database]
+      val conn = mock[java.sql.Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")).thenReturn(cs)
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(null)
+
+      val repo   = new CisFormpRepository(db)
+      val result = repo.getScheme("null-cursor-123").failed.futureValue
+
+      result mustBe a[RuntimeException]
+      result.getMessage must include("int_Get_Scheme returned null cursor")
+
+      verify(cs).execute()
     }
   }
 }
