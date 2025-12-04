@@ -12,10 +12,13 @@ POST       /submissions/update                                      uk.gov.hmrc.
 
 POST       /create/return                                           uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.createSDLTReturn()
 POST       /retrieve-return                                         uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.getSDLTReturn()
+POST       /returns                                                 uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.getSDLTReturns()
+
 
 POST       /organisation                                            uk.gov.hmrc.formpproxy.sdlt.controllers.organisation.SdltOrganisationController.getSDLTOrganisation()
 
 POST       /update/predefined-agent                                 uk.gov.hmrc.formpproxy.sdlt.controllers.agents.UpdatePredefinedAgentController.updatePredefinedAgent()
+POST       /delete/predefined-agent                                 uk.gov.hmrc.formpproxy.sdlt.controllers.agents.DeletePredefinedAgentController.deletePredefinedAgent()
 
 POST       /filing/create/vendor                                    uk.gov.hmrc.formpproxy.sdlt.controllers.returns.VendorReturnsController.createVendor()
 POST       /filing/update/vendor                                    uk.gov.hmrc.formpproxy.sdlt.controllers.returns.VendorReturnsController.updateVendor()
@@ -26,3 +29,5 @@ POST       /filing/update/return-agent                              uk.gov.hmrc.
 POST       /filing/delete/return-agent                              uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnAgentReturnsController.deleteReturnAgent()
 
 POST       /filing/update/return-version                            uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.updateReturnVersion()
+
+POST       /create/predefined-agent                                 uk.gov.hmrc.formpproxy.sdlt.controllers.agents.CreatePredefinedAgentController.createPredefinedAgent()

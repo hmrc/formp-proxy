@@ -21,13 +21,22 @@ import org.mockito.Mockito.*
 import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.sdlt.models.*
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnSummary, SdltReturnRecordResponse}
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
-import uk.gov.hmrc.formpproxy.sdlt.models.agents.{CreateReturnAgentRequest, DeleteReturnAgentRequest, UpdateReturnAgentRequest}
 
 import java.sql.*
 
-final class SdltFormpRepositorySpec extends SpecBase {
+final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelper {
+
+  trait ReturnsFixture {
+    val db   = mock[Database]
+    val conn = mock[Connection]
+    val cs   = mock[CallableStatement]
+
+    val resRetSummary = mock[ResultSet]
+
+  }
 
   "sdltCreateReturn" - {
 
@@ -784,6 +793,78 @@ final class SdltFormpRepositorySpec extends SpecBase {
       e.submissionID mustBe None
     }
 
+  }
+
+  "sdltGetReturns" - {
+    "call::query_return - return 2 rows :: success" in new ReturnsFixture {
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]);
+        f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo("{ call RETURN_PROCS.query_return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+        )
+      ).thenReturn(cs)
+
+      when(cs.getLong(eqTo(13))).thenReturn(1017L)
+      when(cs.getObject(eqTo(12), eqTo(classOf[ResultSet]))).thenReturn(resRetSummary)
+
+      // Fetch data
+      when(resRetSummary.next()).thenReturn(true, true, false) // read 2 rows
+      when(resRetSummary.getString("return_resource_ref")).thenReturn("REF01", "REF02")
+      when(resRetSummary.getString("utrn")).thenReturn("UTR001", "UTR003")
+      when(resRetSummary.getString("status")).thenReturn("ACTIVE", "SUBMITTED")
+      when(resRetSummary.getString("submitted_date")).thenReturn("2025-01-01", "2025-02-03")
+
+      when(resRetSummary.getString("name")).thenReturn("purchaserName1", "purchaserName2")
+
+      when(resRetSummary.getString("address")).thenReturn("Address 11", "Address 22")
+      when(resRetSummary.getString("agent")).thenReturn("Agent 11", "Agent 22")
+
+      val repo = new SdltFormpRepository(db)
+
+      val result = repo.sdltGetReturns(requestReturns).futureValue
+
+      result.returnSummaryCount mustBe Some(1017)
+      result.returnSummaryList.length mustBe 2
+
+      result.returnSummaryList mustBe expectedReturnsSummary
+
+      verify(conn).prepareCall(
+        eqTo("{ call RETURN_PROCS.query_return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+      )
+      verify(cs).getLong(13)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+    "call::query_return - return empty result :: success" in new ReturnsFixture {
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]);
+        f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo("{ call RETURN_PROCS.query_return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+        )
+      ).thenReturn(cs)
+
+      when(cs.getLong(eqTo(13))).thenReturn(0L)
+      when(cs.getObject(eqTo(12), eqTo(classOf[ResultSet]))).thenReturn(resRetSummary)
+
+      // Fetch data
+      when(resRetSummary.next()).thenReturn(false) // read 2 rows
+      val repo = new SdltFormpRepository(db)
+
+      val result: SdltReturnRecordResponse = repo.sdltGetReturns(requestReturns).futureValue
+      result.returnSummaryCount mustBe Some(0)
+      result.returnSummaryList.length mustBe 0
+      result.returnSummaryList mustBe expectedReturnsSummaryEmpty
+    }
+    "call::query_return - ..." in new ReturnsFixture {}
   }
 
   "sdltCreateVendor" - {
@@ -1670,6 +1751,148 @@ final class SdltFormpRepositorySpec extends SpecBase {
       verify(cs).setString(1, request.storn)
       verify(cs).execute()
       verify(cs).close()
+    }
+  }
+
+  "sdltDeletePredefinedAgent" - {
+
+    "call Delete_Predefined_Agent stored procedure with correct parameters" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call AGENT_PROCS.Delete_Agent(?, ?) }"))).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = DeletePredefinedAgentRequest(
+        storn = "STN001",
+        agentReferenceNumber = "100001"
+      )
+
+      val result = repo.sdltDeletePredefinedAgent(request).futureValue
+
+      result.deleted mustBe true
+
+      verify(conn).prepareCall("{ call AGENT_PROCS.Delete_Agent(?, ?) }")
+      verify(cs).setString(1, "STN001")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+  }
+
+  "sdltCreatePredefinedAgent" - {
+    "call AGENT_PROCS.CREATE_AGENT stored procedure and store createPredefinedAgent and return createPredefinedAgentResponse" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call AGENT_PROCS.create_agent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")))
+        .thenReturn(cs)
+      when(cs.getLong(12)).thenReturn(100011L)
+      when(cs.getLong(13)).thenReturn(12L)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = CreatePredefinedAgentRequest(
+        storn = "STORN12345",
+        agentName = "Andrew",
+        houseNumber = None,
+        addressLine1 = Some("Main Street"),
+        addressLine2 = Some("Apartment 4B"),
+        addressLine3 = Some("City Center"),
+        addressLine4 = Some("Greater London"),
+        postcode = Some("SW1A 1AA"),
+        phone = Some("1234"),
+        email = Some("andrew@email.com"),
+        dxAddress = None
+      )
+
+      val result = repo.sdltCreatePredefinedAgent(request).futureValue
+
+      result.agentId mustBe Some("100011")
+      result.agentResourceRef mustBe Some("12")
+
+      verify(conn).prepareCall("{ call AGENT_PROCS.create_agent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setString(2, "Andrew")
+      verify(cs).setNull(3, Types.VARCHAR)
+      verify(cs).setString(4, "Main Street")
+      verify(cs).setString(5, "Apartment 4B")
+      verify(cs).setString(6, "City Center")
+      verify(cs).setString(7, "Greater London")
+      verify(cs).setString(8, "SW1A 1AA")
+      verify(cs).setString(9, "1234")
+      verify(cs).setString(10, "andrew@email.com")
+      verify(cs).setNull(11, Types.VARCHAR)
+      verify(cs).registerOutParameter(12, Types.NUMERIC)
+      verify(cs).registerOutParameter(13, Types.NUMERIC)
+      verify(cs).execute()
+      verify(cs).close()
+
+    }
+
+    "handle optional fields being None" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call AGENT_PROCS.create_agent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")))
+        .thenReturn(cs)
+      when(cs.getLong(12)).thenReturn(1000112L)
+      when(cs.getLong(13)).thenReturn(12L)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = CreatePredefinedAgentRequest(
+        storn = "STORN12345",
+        agentName = "Andrew",
+        houseNumber = None,
+        addressLine1 = None,
+        addressLine2 = None,
+        addressLine3 = None,
+        addressLine4 = None,
+        postcode = None,
+        phone = None,
+        email = None,
+        dxAddress = None
+      )
+
+      val result = repo.sdltCreatePredefinedAgent(request).futureValue
+
+      result.agentId mustBe Some("1000112")
+      result.agentResourceRef mustBe Some("12")
+
+      verify(conn).prepareCall("{ call AGENT_PROCS.create_agent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setString(2, "Andrew")
+      verify(cs).setNull(3, Types.VARCHAR)
+      verify(cs).setNull(4, Types.VARCHAR)
+      verify(cs).setNull(5, Types.VARCHAR)
+      verify(cs).setNull(6, Types.VARCHAR)
+      verify(cs).setNull(7, Types.VARCHAR)
+      verify(cs).setNull(8, Types.VARCHAR)
+      verify(cs).setNull(9, Types.VARCHAR)
+      verify(cs).setNull(10, Types.VARCHAR)
+      verify(cs).setNull(11, Types.VARCHAR)
+      verify(cs).registerOutParameter(12, Types.NUMERIC)
+      verify(cs).registerOutParameter(13, Types.NUMERIC)
+      verify(cs).execute()
+      verify(cs).close()
+
     }
   }
 }

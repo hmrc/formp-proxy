@@ -23,12 +23,17 @@ import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
-import uk.gov.hmrc.formpproxy.sdlt.models.agents.{CreateReturnAgentRequest, CreateReturnAgentReturn, DeleteReturnAgentRequest, DeleteReturnAgentReturn, UpdateReturnAgentRequest, UpdateReturnAgentReturn}
-import uk.gov.hmrc.formpproxy.sdlt.repositories.SdltFormpRepository
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.SdltReturnRecordResponse
+import uk.gov.hmrc.formpproxy.sdlt.repositories.{SdltFormpRepoDataHelper, SdltFormpRepository}
 
 import scala.concurrent.Future
 
-final class ReturnServiceSpec extends SpecBase {
+final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
+
+  trait ReturnsFixture {
+    val repo: SdltFormpRepository = mock[SdltFormpRepository]
+    val service: ReturnService    = new ReturnService(repo)
+  }
 
   private def mkCreateRequest(stornId: String = "STORN12345"): CreateReturnRequest =
     CreateReturnRequest(
@@ -520,6 +525,20 @@ final class ReturnServiceSpec extends SpecBase {
       result.vendor         must be(None)
 
       verify(repo).sdltGetReturn(eqTo("100004"), eqTo("STORN12345"))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "ReturnService getSDLTReturns" - {
+    "call sdltGetReturns" in new ReturnsFixture {
+
+      when(repo.sdltGetReturns(eqTo(requestReturns)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: SdltReturnRecordResponse = service.getSDLTReturns(requestReturns).futureValue
+      result mustBe actualResponse
+
+      verify(repo).sdltGetReturns(eqTo(requestReturns))
       verifyNoMoreInteractions(repo)
     }
   }
