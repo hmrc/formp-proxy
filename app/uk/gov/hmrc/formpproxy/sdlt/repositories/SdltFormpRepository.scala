@@ -1009,7 +1009,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
           p_postcode = request.postcode,
           p_phone = request.phone,
           p_email = request.email,
-          p_dx_address = None
+          p_dx_address = request.dxAddress
         )
       }
     }
