@@ -37,7 +37,7 @@ import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
 import uk.gov.hmrc.formpproxy.sdlt.models.*
-import uk.gov.hmrc.formpproxy.sdlt.models.agent.*
+import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
 import uk.gov.hmrc.formpproxy.sdlt.services.ReturnService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 

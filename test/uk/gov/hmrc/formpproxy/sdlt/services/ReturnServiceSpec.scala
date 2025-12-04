@@ -22,7 +22,7 @@ import org.scalatest.freespec.AnyFreeSpec
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
-import uk.gov.hmrc.formpproxy.sdlt.models.agent.*
+import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
 import uk.gov.hmrc.formpproxy.sdlt.models.returns.SdltReturnRecordResponse
 import uk.gov.hmrc.formpproxy.sdlt.repositories.{SdltFormpRepoDataHelper, SdltFormpRepository}
 

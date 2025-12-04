@@ -21,11 +21,9 @@ import org.mockito.Mockito.*
 import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.sdlt.models.*
-import uk.gov.hmrc.formpproxy.sdlt.models.agents.DeletePredefinedAgentRequest
 import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnSummary, SdltReturnRecordResponse}
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
-import uk.gov.hmrc.formpproxy.sdlt.models.agent.*
-import uk.gov.hmrc.formpproxy.sdlt.models.agents.CreatePredefinedAgentRequest
+import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
 
 import java.sql.*
 
@@ -1711,6 +1709,48 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).execute()
       verify(rsOrg).close()
       verify(rsAgents).close()
+    }
+  }
+
+  "sdltUpdatePredefinedAgent" - {
+
+    "call Update_Predefined_Agent stored procedure with correct parameters" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call AGENT_PROCS.Update_Agent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ) }")))
+        .thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdatePredefinedAgentRequest(
+        agentResourceReference = "001",
+        storn = "STN001",
+        agentName = "Smith & Co Solicitors",
+        houseNumber = None,
+        addressLine1 = Some("12 High Street"),
+        addressLine2 = Some("London"),
+        addressLine3 = Some("Greater London"),
+        addressLine4 = None,
+        postcode = Some("SW1A 1AA"),
+        phone = Some("02071234567"),
+        email = Some("info@smithco.co.uk"),
+        dxAddress = None
+      )
+
+      val result = repo.sdltUpdatePredefinedAgent(request).futureValue
+
+      result.updated mustBe true
+
+      verify(conn).prepareCall("{ call AGENT_PROCS.Update_Agent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ) }")
+      verify(cs).setString(1, request.storn)
+      verify(cs).execute()
+      verify(cs).close()
     }
   }
 
