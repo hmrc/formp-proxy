@@ -994,6 +994,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
   }
 
   override def sdltUpdatePredefinedAgent(request: UpdatePredefinedAgentRequest): Future[UpdatePredefinedAgentResponse] =
+    logger.info(s"[SDLT] sdltUpdatePredefinedAgent(request=$request)")
     Future {
       db.withTransaction { conn =>
         callUpdatePredefinedAgent(
