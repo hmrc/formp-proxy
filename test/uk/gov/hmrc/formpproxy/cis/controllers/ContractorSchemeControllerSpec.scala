@@ -44,7 +44,7 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
         .thenReturn(Future.successful(Some(scheme)))
 
       val req: FakeRequest[AnyContent] = FakeRequest(GET, "/scheme/abc-123")
-      val res: Future[Result]  = controller.getScheme("abc-123")(req)
+      val res: Future[Result]          = controller.getScheme("abc-123")(req)
 
       status(res) mustBe OK
       contentType(res) mustBe Some(JSON)
@@ -171,7 +171,7 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
   }
 
   trait Setup {
-    implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+    implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.global
     private val cc: ControllerComponents = stubControllerComponents()
     private val parsers: PlayBodyParsers = cc.parsers
     private val fakeAuthAction           = new FakeAuthAction(parsers)

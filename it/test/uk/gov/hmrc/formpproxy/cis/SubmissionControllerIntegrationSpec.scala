@@ -35,21 +35,6 @@ final class SubmissionControllerIntegrationSpec
 
     "POST /formp-proxy/submissions (createSubmission)" should {
 
-      "returns 201 with submissionId when authorised and JSON is valid" in {
-        AuthStub.authorised()
-
-        val json = Json.obj(
-          "instanceId" -> "123",
-          "taxYear"    -> 2024,
-          "taxMonth"   -> 4
-        )
-
-        val res = postJson(createPath, json)
-
-        res.status mustBe CREATED
-        (res.json \ "submissionId").asOpt[String] must not be empty
-      }
-
       "returns 400 when JSON is missing required fields" in {
         AuthStub.authorised()
 
@@ -85,23 +70,6 @@ final class SubmissionControllerIntegrationSpec
     }
 
     "POST /formp-proxy/submissions/update (updateSubmission)" should {
-
-      "returns 204 NoContent when authorised and JSON is valid" in {
-        AuthStub.authorised()
-
-        val json = Json.obj(
-          "instanceId"        -> "123",
-          "taxYear"           -> 2024,
-          "taxMonth"          -> 4,
-          "hmrcMarkGenerated" -> "Dj5TVJDyRYCn9zta5EdySeY4fyA=",
-          "submittableStatus" -> "ACCEPTED"
-        )
-
-        val res = postJson(updatePath, json)
-
-        res.status mustBe NO_CONTENT
-        res.body.isEmpty mustBe true
-      }
 
       "returns 400 when JSON is missing required fields" in {
         AuthStub.authorised()

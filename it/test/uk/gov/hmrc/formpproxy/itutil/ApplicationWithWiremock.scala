@@ -25,8 +25,6 @@ import play.api.http.HeaderNames as PlayHeaders
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsValue
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
-import uk.gov.hmrc.formpproxy.cis.CisFormpStub
-import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 import uk.gov.hmrc.http.{HeaderCarrier, HeaderNames, HttpResponse}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.StringContextOps
@@ -53,7 +51,6 @@ trait ApplicationWithWiremock
 
   override lazy val app: Application = new GuiceApplicationBuilder()
     .configure(extraConfig)
-    .overrides(inject.bind[CisMonthlyReturnSource].to[CisFormpStub])
     .build()
 
   lazy val httpClient: HttpClientV2 = app.injector.instanceOf[HttpClientV2]
@@ -80,11 +77,13 @@ trait ApplicationWithWiremock
       HeaderNames.xSessionId -> "sessionId"
     )
 
-  protected def get(path: String): Future[HttpResponse] =
+  protected def get(path: String): Future[HttpResponse] = {
+    val fullUrl = s"$baseUrl/$path"
     httpClient
-      .get(url"$baseUrl/$path")
+      .get(url"$fullUrl")
       .setHeader(commonHeaders *)
       .execute[HttpResponse]
+  }
 
   protected def post(path: String, body: JsValue): Future[HttpResponse] = {
     val url = s"$baseUrl/$path"
