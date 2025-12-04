@@ -1729,18 +1729,18 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       val repo = new SdltFormpRepository(db)
 
       val request = UpdatePredefinedAgentRequest(
+        agentResourceReference = "001",
         storn = "STN001",
-        name = "Smith & Co Solicitors",
+        agentName = "Smith & Co Solicitors",
         houseNumber = None,
-        address1 = Some("12 High Street"),
-        address2 = Some("London"),
-        address3 = Some("Greater London"),
-        address4 = None,
+        addressLine1 = Some("12 High Street"),
+        addressLine2 = Some("London"),
+        addressLine3 = Some("Greater London"),
+        addressLine4 = None,
         postcode = Some("SW1A 1AA"),
         phone = Some("02071234567"),
         email = Some("info@smithco.co.uk"),
-        dxAddress = None,
-        agentResourceReference = "001"
+        dxAddress = None
       )
 
       val result = repo.sdltUpdatePredefinedAgent(request).futureValue

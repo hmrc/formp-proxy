@@ -43,26 +43,26 @@ class UpdatePredefinedAgentModelsSpec extends AnyFreeSpec with Matchers {
 
     "must serialize to JSON correctly" in {
       val request = UpdatePredefinedAgentRequest(
+        agentResourceReference = "ARN001",
         storn = "STN001",
-        name = "Smith & Co Solicitors",
+        agentName = "Smith & Co Solicitors",
         houseNumber = None,
-        address1 = Some("12 High Street"),
-        address2 = Some("London"),
-        address3 = Some("Greater London"),
-        address4 = None,
+        addressLine1 = Some("12 High Street"),
+        addressLine2 = Some("London"),
+        addressLine3 = Some("Greater London"),
+        addressLine4 = None,
         postcode = Some("SW1A 1AA"),
         phone = Some("02071234567"),
         email = Some("info@smithco.co.uk"),
-        dxAddress = None,
-        agentResourceReference = "ARN001"
+        dxAddress = None
       )
 
       val json = Json.toJson(request)
 
       (json \ "storn").as[String] mustBe "STN001"
-      (json \ "name").as[String] mustBe "Smith & Co Solicitors"
+      (json \ "agentName").as[String] mustBe "Smith & Co Solicitors"
       (json \ "agentResourceReference").as[String] mustBe "ARN001"
-      (json \ "address1").as[String] mustBe "12 High Street"
+      (json \ "addressLine1").as[String] mustBe "12 High Street"
       (json \ "phone").as[String] mustBe "02071234567"
       (json \ "email").as[String] mustBe "info@smithco.co.uk"
     }
@@ -70,9 +70,9 @@ class UpdatePredefinedAgentModelsSpec extends AnyFreeSpec with Matchers {
     "must deserialize from JSON correctly" in {
       val json = Json.obj(
         "storn"                  -> "STN001",
-        "name"                   -> "Smith & Co Solicitors",
+        "agentName"              -> "Smith & Co Solicitors",
         "agentResourceReference" -> "ARN001",
-        "address1"               -> "12 High Street",
+        "addressLine1"           -> "12 High Street",
         "phone"                  -> "02071234567",
         "email"                  -> "info@smithco.co.uk"
       )
