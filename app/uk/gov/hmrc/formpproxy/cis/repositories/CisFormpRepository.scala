@@ -21,7 +21,7 @@ import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
 import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubmissionRequest}
 import uk.gov.hmrc.formpproxy.cis.models.response.CreateNilMonthlyReturnResponse
-import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, MonthlyReturn, UserMonthlyReturns}
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, MonthlyReturn, UpdateContractorSchemeParams, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.setOptionalInt
 import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
 
@@ -41,6 +41,7 @@ trait CisMonthlyReturnSource {
   def getSchemeEmail(instanceId: String): Future[Option[String]]
   def getScheme(instanceId: String): Future[Option[ContractorScheme]]
   def createScheme(contractorScheme: CreateContractorSchemeParams): Future[Int]
+  def updateScheme(contractorScheme: UpdateContractorSchemeParams): Future[Int]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -136,6 +137,33 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           val schemeId = cs.getInt(11)
 
           schemeId
+        }
+      }
+    }
+
+  def updateScheme(contractorScheme: UpdateContractorSchemeParams): Future[Int] =
+    Future {
+      db.withConnection { conn =>
+        Using.resource(conn.prepareCall(CallUpdateScheme)) { cs =>
+          cs.setInt(1, contractorScheme.schemeId)
+          cs.setString(2, contractorScheme.instanceId)
+          cs.setString(3, contractorScheme.accountsOfficeReference)
+          cs.setString(4, contractorScheme.taxOfficeReference)
+          cs.setString(5, contractorScheme.taxOfficeReference)
+          cs.setString(6, contractorScheme.utr.orNull)
+          cs.setString(7, contractorScheme.name.orNull)
+          cs.setString(8, contractorScheme.emailAddress.orNull)
+          cs.setString(9, contractorScheme.displayWelcomePage.orNull)
+          cs.setOptionalInt(10, contractorScheme.prePopCount)
+          cs.setString(11, contractorScheme.prePopSuccessful.orNull)
+          cs.setOptionalInt(12, contractorScheme.version)
+          cs.registerOutParameter(12, OracleTypes.INTEGER)
+
+          cs.execute()
+
+          val version = cs.getInt(12)
+
+          version
         }
       }
     }

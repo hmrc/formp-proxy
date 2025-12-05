@@ -27,7 +27,7 @@ import play.api.mvc.{AnyContent, ControllerComponents, PlayBodyParsers, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
-import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams}
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, UpdateContractorSchemeParams}
 import uk.gov.hmrc.formpproxy.cis.services.ContractorSchemeService
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
@@ -170,6 +170,95 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
     }
   }
 
+  "ContractorSchemeController.updateScheme" - {
+
+    "returns 200 with version when service succeeds (happy path)" in new Setup {
+      val updateParams = testUpdateParams
+      when(mockService.updateScheme(eqTo(updateParams)))
+        .thenReturn(Future.successful(2))
+
+      val req                 = FakeRequest(PUT, "/scheme").withBody(Json.toJson(updateParams))
+      val res: Future[Result] = controller.updateScheme(req)
+
+      status(res) mustBe OK
+      contentType(res) mustBe Some(JSON)
+      (contentAsJson(res) \ "version").as[Int] mustBe 2
+      verify(mockService).updateScheme(eqTo(updateParams))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 400 when JSON body is invalid" in new Setup {
+      val invalidJson         = Json.obj("schemeId" -> 123)
+      val req                 = FakeRequest(PUT, "/scheme").withBody(invalidJson)
+      val res: Future[Result] = controller.updateScheme(req)
+
+      status(res) mustBe BAD_REQUEST
+      contentType(res) mustBe Some(JSON)
+      (contentAsJson(res) \ "message").as[String] mustBe "Invalid JSON body"
+      verifyNoInteractions(mockService)
+    }
+
+    "returns 400 when JSON body has wrong types" in new Setup {
+      val invalidJson         = Json.obj(
+        "schemeId"                -> "not-a-number",
+        "instanceId"              -> "abc-123",
+        "accountsOfficeReference" -> "123456789",
+        "taxOfficeNumber"         -> "0001",
+        "taxOfficeReference"      -> "AB12345"
+      )
+      val req                 = FakeRequest(PUT, "/scheme").withBody(invalidJson)
+      val res: Future[Result] = controller.updateScheme(req)
+
+      status(res) mustBe BAD_REQUEST
+      contentType(res) mustBe Some(JSON)
+      (contentAsJson(res) \ "message").as[String] mustBe "Invalid JSON body"
+      verifyNoInteractions(mockService)
+    }
+
+    "propagates UpstreamErrorResponse (status & message)" in new Setup {
+      val updateParams = testUpdateParams
+      val err          = UpstreamErrorResponse("formp failed", BAD_GATEWAY, BAD_GATEWAY)
+      when(mockService.updateScheme(eqTo(updateParams)))
+        .thenReturn(Future.failed(err))
+
+      val req                 = FakeRequest(PUT, "/scheme").withBody(Json.toJson(updateParams))
+      val res: Future[Result] = controller.updateScheme(req)
+
+      status(res) mustBe BAD_GATEWAY
+      (contentAsJson(res) \ "message").as[String] must include("formp failed")
+      verify(mockService).updateScheme(eqTo(updateParams))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 500 with generic message on unexpected exception" in new Setup {
+      val updateParams = testUpdateParams
+      when(mockService.updateScheme(eqTo(updateParams)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val req                 = FakeRequest(PUT, "/scheme").withBody(Json.toJson(updateParams))
+      val res: Future[Result] = controller.updateScheme(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
+      verify(mockService).updateScheme(eqTo(updateParams))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "accepts UpdateContractorSchemeParams with no optional fields" in new Setup {
+      val updateParams = testUpdateParamsMinimal
+      when(mockService.updateScheme(eqTo(updateParams)))
+        .thenReturn(Future.successful(3))
+
+      val req                 = FakeRequest(PUT, "/scheme").withBody(Json.toJson(updateParams))
+      val res: Future[Result] = controller.updateScheme(req)
+
+      status(res) mustBe OK
+      (contentAsJson(res) \ "version").as[Int] mustBe 3
+      verify(mockService).updateScheme(eqTo(updateParams))
+      verifyNoMoreInteractions(mockService)
+    }
+  }
+
   "ContractorSchemeController.createScheme" - {
 
     "returns 200 with schemeId when service succeeds (happy path)" in new Setup {
@@ -303,6 +392,30 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       accountsOfficeReference = "555555555",
       taxOfficeNumber = "0005",
       taxOfficeReference = "XX99999"
+    )
+
+    val testUpdateParams: UpdateContractorSchemeParams = UpdateContractorSchemeParams(
+      schemeId = 789,
+      instanceId = "abc-123",
+      accountsOfficeReference = "111111111",
+      taxOfficeNumber = "0003",
+      taxOfficeReference = "EF23456",
+      utr = Some("9876543210"),
+      name = Some("Updated Contractor"),
+      emailAddress = Some("updated@example.com"),
+      displayWelcomePage = Some("Y"),
+      prePopCount = Some(10),
+      prePopSuccessful = Some("Y"),
+      version = Some(1)
+    )
+
+    val testUpdateParamsMinimal: UpdateContractorSchemeParams = UpdateContractorSchemeParams(
+      schemeId = 456,
+      instanceId = "ghi-789",
+      accountsOfficeReference = "555555555",
+      taxOfficeNumber = "0005",
+      taxOfficeReference = "XX99999",
+      version = Some(2)
     )
   }
 }

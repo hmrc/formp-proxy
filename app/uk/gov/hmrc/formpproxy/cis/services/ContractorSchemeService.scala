@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.formpproxy.cis.services
 
-import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams}
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, UpdateContractorSchemeParams}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
 import javax.inject.{Inject, Singleton}
@@ -31,4 +31,6 @@ class ContractorSchemeService @Inject() (repo: CisMonthlyReturnSource) {
   def createScheme(contractorScheme: CreateContractorSchemeParams): Future[Int] =
     repo.createScheme(contractorScheme)
 
+  def updateScheme(contractorScheme: UpdateContractorSchemeParams): Future[Int] =
+    repo.updateScheme(contractorScheme)
 }

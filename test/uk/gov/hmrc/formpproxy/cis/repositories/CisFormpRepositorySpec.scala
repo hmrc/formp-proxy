@@ -21,7 +21,7 @@ import org.mockito.ArgumentMatchers.{any as anyArg, eq as eqTo}
 import org.mockito.Mockito.*
 import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
-import uk.gov.hmrc.formpproxy.cis.models.CreateContractorSchemeParams
+import uk.gov.hmrc.formpproxy.cis.models.{CreateContractorSchemeParams, UpdateContractorSchemeParams}
 import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubmissionRequest}
 
 import java.time.Instant
@@ -626,6 +626,99 @@ final class CisFormpRepositorySpec extends SpecBase {
       result.getMessage must include("int_Get_Scheme returned null cursor")
 
       verify(cs).execute()
+    }
+  }
+
+  "updateScheme" - {
+
+    "call SCHEME_PROCS.Update_Scheme with correct parameters and return version" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall(eqTo("{ call SCHEME_PROCS.Update_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")))
+        .thenReturn(cs)
+      when(cs.getInt(12)).thenReturn(2)
+
+      val repo         = new CisFormpRepository(db)
+      val updateParams = UpdateContractorSchemeParams(
+        schemeId = 123,
+        instanceId = "abc-123",
+        accountsOfficeReference = "111111111",
+        taxOfficeNumber = "0001",
+        taxOfficeReference = "AB12345",
+        utr = Some("1234567890"),
+        name = Some("Updated Contractor"),
+        emailAddress = Some("updated@example.com"),
+        displayWelcomePage = Some("Y"),
+        prePopCount = Some(10),
+        prePopSuccessful = Some("Y"),
+        version = Some(1)
+      )
+
+      val result = repo.updateScheme(updateParams).futureValue
+      result mustBe 2
+
+      verify(conn).prepareCall(eqTo("{ call SCHEME_PROCS.Update_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"))
+      verify(cs).setInt(1, 123)
+      verify(cs).setString(2, "abc-123")
+      verify(cs).setString(3, "111111111")
+      verify(cs).setString(4, "AB12345")
+      verify(cs).setString(5, "AB12345")
+      verify(cs).setString(6, "1234567890")
+      verify(cs).setString(7, "Updated Contractor")
+      verify(cs).setString(8, "updated@example.com")
+      verify(cs).setString(9, "Y")
+      verify(cs).setString(11, "Y")
+      verify(cs).registerOutParameter(12, OracleTypes.INTEGER)
+      verify(cs).execute()
+      verify(cs).getInt(12)
+      verify(cs).close()
+    }
+
+    "call SCHEME_PROCS.Update_Scheme with null optional fields" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall(eqTo("{ call SCHEME_PROCS.Update_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")))
+        .thenReturn(cs)
+      when(cs.getInt(12)).thenReturn(3)
+
+      val repo         = new CisFormpRepository(db)
+      val updateParams = UpdateContractorSchemeParams(
+        schemeId = 456,
+        instanceId = "sparse-123",
+        accountsOfficeReference = "555555555",
+        taxOfficeNumber = "0055",
+        taxOfficeReference = "YY55555",
+        version = Some(2)
+      )
+
+      val result = repo.updateScheme(updateParams).futureValue
+      result mustBe 3
+
+      verify(conn).prepareCall(eqTo("{ call SCHEME_PROCS.Update_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"))
+      verify(cs).setInt(1, 456)
+      verify(cs).setString(2, "sparse-123")
+      verify(cs).setString(3, "555555555")
+      verify(cs).setString(4, "YY55555")
+      verify(cs).setString(5, "YY55555")
+      verify(cs).setString(6, null)
+      verify(cs).setString(7, null)
+      verify(cs).setString(8, null)
+      verify(cs).setString(9, null)
+      verify(cs).setString(11, null)
+      verify(cs).registerOutParameter(12, OracleTypes.INTEGER)
+      verify(cs).execute()
+      verify(cs).getInt(12)
+      verify(cs).close()
     }
   }
 

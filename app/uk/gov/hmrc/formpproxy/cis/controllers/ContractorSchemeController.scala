@@ -20,7 +20,7 @@ import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
-import uk.gov.hmrc.formpproxy.cis.models.{CreateContractorSchemeParams, UserMonthlyReturns}
+import uk.gov.hmrc.formpproxy.cis.models.{CreateContractorSchemeParams, UpdateContractorSchemeParams, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateNilMonthlyReturnRequest, InstanceIdRequest}
 import uk.gov.hmrc.formpproxy.cis.services.{ContractorSchemeService, MonthlyReturnService}
 import uk.gov.hmrc.http.UpstreamErrorResponse
@@ -74,7 +74,34 @@ class ContractorSchemeController @Inject() (
               .recover {
                 case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
                 case t: Throwable             =>
-                  logger.error("[getScheme] failed", t)
+                  logger.error("[createScheme] failed", t)
+                  InternalServerError(Json.obj("message" -> "Unexpected error"))
+              }
+        )
+    }
+
+  def updateScheme: Action[JsValue] =
+    authorise.async(parse.json) { implicit request =>
+      request.body
+        .validate[UpdateContractorSchemeParams]
+        .fold[Future[Result]](
+          errs =>
+            Future.successful(
+              BadRequest(
+                Json.obj(
+                  "message" -> "Invalid JSON body",
+                  "errors"  -> JsError.toJson(errs)
+                )
+              )
+            ),
+          contractorScheme =>
+            service
+              .updateScheme(contractorScheme)
+              .map(version => Ok(Json.obj("version" -> version)))
+              .recover {
+                case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
+                case t: Throwable             =>
+                  logger.error("[updateScheme] failed", t)
                   InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )

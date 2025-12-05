@@ -19,7 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.services
 import org.mockito.ArgumentMatchers.eq as eqTo
 import org.mockito.Mockito.*
 import uk.gov.hmrc.formpproxy.base.SpecBase
-import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams}
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, UpdateContractorSchemeParams}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
 import java.time.Instant
@@ -157,6 +157,79 @@ final class ContractorSchemeServiceSpec extends SpecBase {
       out.get.utr mustBe None
       out.get.name mustBe None
       out.get.version mustBe None
+    }
+  }
+
+  "ContractorSchemeService updateScheme" - {
+
+    "returns version when repository successfully updates a scheme (happy path)" in {
+      val c            = Ctx()
+      val updateParams = UpdateContractorSchemeParams(
+        schemeId = 123,
+        instanceId = "abc-123",
+        accountsOfficeReference = "111111111",
+        taxOfficeNumber = "0001",
+        taxOfficeReference = "AB12345",
+        utr = Some("1234567890"),
+        name = Some("Updated Contractor"),
+        emailAddress = Some("updated@example.com"),
+        displayWelcomePage = Some("Y"),
+        prePopCount = Some(10),
+        prePopSuccessful = Some("Y"),
+        version = Some(1)
+      )
+
+      when(c.repo.updateScheme(eqTo(updateParams)))
+        .thenReturn(Future.successful(2))
+
+      val out = c.service.updateScheme(updateParams).futureValue
+      out mustBe 2
+
+      verify(c.repo).updateScheme(eqTo(updateParams))
+      verifyNoMoreInteractions(c.repo)
+    }
+
+    "updates scheme with no optional fields" in {
+      val c            = Ctx()
+      val updateParams = UpdateContractorSchemeParams(
+        schemeId = 456,
+        instanceId = "sparse-123",
+        accountsOfficeReference = "555555555",
+        taxOfficeNumber = "0055",
+        taxOfficeReference = "YY55555",
+        version = Some(2)
+      )
+
+      when(c.repo.updateScheme(eqTo(updateParams)))
+        .thenReturn(Future.successful(3))
+
+      val out = c.service.updateScheme(updateParams).futureValue
+      out mustBe 3
+
+      verify(c.repo).updateScheme(eqTo(updateParams))
+      verifyNoMoreInteractions(c.repo)
+    }
+
+    "propagates failures from the repository" in {
+      val c            = Ctx()
+      val boom         = new RuntimeException("database failed")
+      val updateParams = UpdateContractorSchemeParams(
+        schemeId = 123,
+        instanceId = "abc-123",
+        accountsOfficeReference = "111111111",
+        taxOfficeNumber = "0001",
+        taxOfficeReference = "AB12345",
+        version = Some(1)
+      )
+
+      when(c.repo.updateScheme(eqTo(updateParams)))
+        .thenReturn(Future.failed(boom))
+
+      val ex = c.service.updateScheme(updateParams).failed.futureValue
+      ex mustBe boom
+
+      verify(c.repo).updateScheme(eqTo(updateParams))
+      verifyNoMoreInteractions(c.repo)
     }
   }
 
