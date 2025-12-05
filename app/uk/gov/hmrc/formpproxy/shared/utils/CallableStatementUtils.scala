@@ -14,21 +14,24 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.cis.services
+package uk.gov.hmrc.formpproxy.shared.utils
 
-import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams}
-import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
+import java.sql.{CallableStatement, Types}
 
-import javax.inject.{Inject, Singleton}
-import scala.concurrent.Future
+object CallableStatementUtils {
 
-@Singleton
-class ContractorSchemeService @Inject() (repo: CisMonthlyReturnSource) {
+  extension (cs: CallableStatement) {
+    def setOptionalString(index: Int, value: Option[String]): Unit =
+      value match {
+        case Some(v) if v != null => cs.setString(index, v)
+        case _                    => cs.setNull(index, Types.VARCHAR)
+      }
 
-  def getScheme(instanceId: String): Future[Option[ContractorScheme]] =
-    repo.getScheme(instanceId)
-
-  def createScheme(contractorScheme: CreateContractorSchemeParams): Future[Int] =
-    repo.createScheme(contractorScheme)
+    def setOptionalInt(index: Int, value: Option[Int]): Unit =
+      value match {
+        case Some(v) => cs.setInt(index, v)
+        case None    => cs.setNull(index, Types.NUMERIC)
+      }
+  }
 
 }

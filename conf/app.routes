@@ -5,7 +5,7 @@ POST       /monthly-returns                                         uk.gov.hmrc.
 POST       /monthly-return/nil/create                               uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.createNilMonthlyReturn
 POST       /scheme/email                                            uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.getSchemeEmail
 GET        /scheme/:instanceId                                      uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.getScheme(instanceId: String)
-
+POST       /scheme                                                  uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.createScheme
 
 POST       /submissions/create                                      uk.gov.hmrc.formpproxy.cis.controllers.SubmissionController.createSubmission()
 POST       /submissions/update                                      uk.gov.hmrc.formpproxy.cis.controllers.SubmissionController.updateSubmission()

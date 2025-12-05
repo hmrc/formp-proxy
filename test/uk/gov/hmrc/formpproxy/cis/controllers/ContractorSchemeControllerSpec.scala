@@ -27,7 +27,7 @@ import play.api.mvc.{AnyContent, ControllerComponents, PlayBodyParsers, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
-import uk.gov.hmrc.formpproxy.cis.models.ContractorScheme
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams}
 import uk.gov.hmrc.formpproxy.cis.services.ContractorSchemeService
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
@@ -170,6 +170,94 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
     }
   }
 
+  "ContractorSchemeController.createScheme" - {
+
+    "returns 200 with schemeId when service succeeds (happy path)" in new Setup {
+      val createParams = testCreateParams
+      when(mockService.createScheme(eqTo(createParams)))
+        .thenReturn(Future.successful(123))
+
+      val req                 = FakeRequest(POST, "/scheme").withBody(Json.toJson(createParams))
+      val res: Future[Result] = controller.createScheme(req)
+
+      status(res) mustBe OK
+      contentType(res) mustBe Some(JSON)
+      (contentAsJson(res) \ "schemeId").as[Int] mustBe 123
+      verify(mockService).createScheme(eqTo(createParams))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 400 when JSON body is invalid" in new Setup {
+      val invalidJson         = Json.obj("instanceId" -> "abc-123")
+      val req                 = FakeRequest(POST, "/scheme").withBody(invalidJson)
+      val res: Future[Result] = controller.createScheme(req)
+
+      status(res) mustBe BAD_REQUEST
+      contentType(res) mustBe Some(JSON)
+      (contentAsJson(res) \ "message").as[String] mustBe "Invalid JSON body"
+      verifyNoInteractions(mockService)
+    }
+
+    "returns 400 when JSON body has wrong types" in new Setup {
+      val invalidJson         = Json.obj(
+        "instanceId"              -> 123,
+        "accountsOfficeReference" -> "123456789",
+        "taxOfficeNumber"         -> "0001",
+        "taxOfficeReference"      -> "AB12345"
+      )
+      val req                 = FakeRequest(POST, "/scheme").withBody(invalidJson)
+      val res: Future[Result] = controller.createScheme(req)
+
+      status(res) mustBe BAD_REQUEST
+      contentType(res) mustBe Some(JSON)
+      (contentAsJson(res) \ "message").as[String] mustBe "Invalid JSON body"
+      verifyNoInteractions(mockService)
+    }
+
+    "propagates UpstreamErrorResponse (status & message)" in new Setup {
+      val createParams = testCreateParams
+      val err          = UpstreamErrorResponse("formp failed", BAD_GATEWAY, BAD_GATEWAY)
+      when(mockService.createScheme(eqTo(createParams)))
+        .thenReturn(Future.failed(err))
+
+      val req                 = FakeRequest(POST, "/scheme").withBody(Json.toJson(createParams))
+      val res: Future[Result] = controller.createScheme(req)
+
+      status(res) mustBe BAD_GATEWAY
+      (contentAsJson(res) \ "message").as[String] must include("formp failed")
+      verify(mockService).createScheme(eqTo(createParams))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 500 with generic message on unexpected exception" in new Setup {
+      val createParams = testCreateParams
+      when(mockService.createScheme(eqTo(createParams)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val req                 = FakeRequest(POST, "/scheme").withBody(Json.toJson(createParams))
+      val res: Future[Result] = controller.createScheme(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
+      verify(mockService).createScheme(eqTo(createParams))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "accepts CreateContractorSchemeParams with no optional fields" in new Setup {
+      val createParams = testCreateParamsMinimal
+      when(mockService.createScheme(eqTo(createParams)))
+        .thenReturn(Future.successful(789))
+
+      val req                 = FakeRequest(POST, "/scheme").withBody(Json.toJson(createParams))
+      val res: Future[Result] = controller.createScheme(req)
+
+      status(res) mustBe OK
+      (contentAsJson(res) \ "schemeId").as[Int] mustBe 789
+      verify(mockService).createScheme(eqTo(createParams))
+      verifyNoMoreInteractions(mockService)
+    }
+  }
+
   trait Setup {
     implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.global
     private val cc: ControllerComponents = stubControllerComponents()
@@ -195,6 +283,26 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       verificationBatchCounter = Some(1),
       lastUpdate = Some(Instant.parse("2025-11-01T14:30:00Z")),
       version = Some(2)
+    )
+
+    val testCreateParams: CreateContractorSchemeParams = CreateContractorSchemeParams(
+      instanceId = "abc-123",
+      accountsOfficeReference = "111111111",
+      taxOfficeNumber = "0003",
+      taxOfficeReference = "EF23456",
+      utr = Some("9876543210"),
+      name = Some("Test Contractor"),
+      emailAddress = Some("test@example.com"),
+      displayWelcomePage = Some("Y"),
+      prePopCount = Some(5),
+      prePopSuccessful = Some("Y")
+    )
+
+    val testCreateParamsMinimal: CreateContractorSchemeParams = CreateContractorSchemeParams(
+      instanceId = "ghi-789",
+      accountsOfficeReference = "555555555",
+      taxOfficeNumber = "0005",
+      taxOfficeReference = "XX99999"
     )
   }
 }

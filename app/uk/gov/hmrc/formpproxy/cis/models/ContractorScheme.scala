@@ -41,3 +41,33 @@ case class ContractorScheme(
 object ContractorScheme {
   given OFormat[ContractorScheme] = Json.format[ContractorScheme]
 }
+
+case class CreateContractorSchemeParams(
+  instanceId: String,
+  accountsOfficeReference: String,
+  taxOfficeNumber: String,
+  taxOfficeReference: String,
+  utr: Option[String] = None,
+  name: Option[String] = None,
+  emailAddress: Option[String] = None,
+  displayWelcomePage: Option[String] = None,
+  prePopCount: Option[Int] = None,
+  prePopSuccessful: Option[String] = None
+)
+
+/*
+  "instanceId": "5",
+  "accountsOfficeReference": "123",
+  "taxOfficeNumber": "123",
+  "taxOfficeReference": "AB12345",
+  "utr": "123123123",
+  "name": "Top Contractors",
+  "emailAddress": "test@topcontractors.com",
+  "displayWelcomePage": "Y",
+  "prePopCount": 0,
+  "prePopSuccessful": "N"
+ */
+
+object CreateContractorSchemeParams {
+  given OFormat[CreateContractorSchemeParams] = Json.format[CreateContractorSchemeParams]
+}

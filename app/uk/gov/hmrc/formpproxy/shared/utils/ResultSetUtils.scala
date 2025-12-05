@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.cis.utils
+package uk.gov.hmrc.formpproxy.shared.utils
 
 import java.sql.ResultSet
 

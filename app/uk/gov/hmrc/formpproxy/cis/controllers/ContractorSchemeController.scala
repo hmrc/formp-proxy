@@ -18,9 +18,9 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 
 import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
-import uk.gov.hmrc.formpproxy.cis.models.UserMonthlyReturns
+import uk.gov.hmrc.formpproxy.cis.models.{CreateContractorSchemeParams, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateNilMonthlyReturnRequest, InstanceIdRequest}
 import uk.gov.hmrc.formpproxy.cis.services.{ContractorSchemeService, MonthlyReturnService}
 import uk.gov.hmrc.http.UpstreamErrorResponse
@@ -51,5 +51,32 @@ class ContractorSchemeController @Inject() (
             logger.error("[getScheme] failed", t)
             InternalServerError(Json.obj("message" -> "Unexpected error"))
         }
+    }
+
+  def createScheme: Action[JsValue] =
+    authorise.async(parse.json) { implicit request =>
+      request.body
+        .validate[CreateContractorSchemeParams]
+        .fold[Future[Result]](
+          errs =>
+            Future.successful(
+              BadRequest(
+                Json.obj(
+                  "message" -> "Invalid JSON body",
+                  "errors"  -> JsError.toJson(errs)
+                )
+              )
+            ),
+          contractorScheme =>
+            service
+              .createScheme(contractorScheme)
+              .map(id => Ok(Json.obj("schemeId" -> id)))
+              .recover {
+                case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
+                case t: Throwable             =>
+                  logger.error("[getScheme] failed", t)
+                  InternalServerError(Json.obj("message" -> "Unexpected error"))
+              }
+        )
     }
 }

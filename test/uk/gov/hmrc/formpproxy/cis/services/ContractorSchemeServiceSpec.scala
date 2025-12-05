@@ -19,7 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.services
 import org.mockito.ArgumentMatchers.eq as eqTo
 import org.mockito.Mockito.*
 import uk.gov.hmrc.formpproxy.base.SpecBase
-import uk.gov.hmrc.formpproxy.cis.models.ContractorScheme
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
 import java.time.Instant
@@ -157,6 +157,73 @@ final class ContractorSchemeServiceSpec extends SpecBase {
       out.get.utr mustBe None
       out.get.name mustBe None
       out.get.version mustBe None
+    }
+  }
+
+  "ContractorSchemeService createScheme" - {
+
+    "returns schemeId when repository successfully creates a scheme (happy path)" in {
+      val c            = Ctx()
+      val createParams = CreateContractorSchemeParams(
+        instanceId = "abc-123",
+        accountsOfficeReference = "111111111",
+        taxOfficeNumber = "0001",
+        taxOfficeReference = "AB12345",
+        utr = Some("1234567890"),
+        name = Some("Test Contractor"),
+        emailAddress = Some("test@example.com"),
+        displayWelcomePage = Some("Y"),
+        prePopCount = Some(5),
+        prePopSuccessful = Some("Y")
+      )
+
+      when(c.repo.createScheme(eqTo(createParams)))
+        .thenReturn(Future.successful(123))
+
+      val out = c.service.createScheme(createParams).futureValue
+      out mustBe 123
+
+      verify(c.repo).createScheme(eqTo(createParams))
+      verifyNoMoreInteractions(c.repo)
+    }
+
+    "creates scheme with no optional fields" in {
+      val c            = Ctx()
+      val createParams = CreateContractorSchemeParams(
+        instanceId = "sparse-123",
+        accountsOfficeReference = "555555555",
+        taxOfficeNumber = "0055",
+        taxOfficeReference = "YY55555"
+      )
+
+      when(c.repo.createScheme(eqTo(createParams)))
+        .thenReturn(Future.successful(777))
+
+      val out = c.service.createScheme(createParams).futureValue
+      out mustBe 777
+
+      verify(c.repo).createScheme(eqTo(createParams))
+      verifyNoMoreInteractions(c.repo)
+    }
+
+    "propagates failures from the repository" in {
+      val c            = Ctx()
+      val boom         = new RuntimeException("database failed")
+      val createParams = CreateContractorSchemeParams(
+        instanceId = "abc-123",
+        accountsOfficeReference = "111111111",
+        taxOfficeNumber = "0001",
+        taxOfficeReference = "AB12345"
+      )
+
+      when(c.repo.createScheme(eqTo(createParams)))
+        .thenReturn(Future.failed(boom))
+
+      val ex = c.service.createScheme(createParams).failed.futureValue
+      ex mustBe boom
+
+      verify(c.repo).createScheme(eqTo(createParams))
+      verifyNoMoreInteractions(c.repo)
     }
   }
 }
