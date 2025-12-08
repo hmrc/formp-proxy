@@ -269,7 +269,7 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       val req                 = FakeRequest(POST, "/scheme").withBody(Json.toJson(createParams))
       val res: Future[Result] = controller.createScheme(req)
 
-      status(res) mustBe OK
+      status(res) mustBe CREATED
       contentType(res) mustBe Some(JSON)
       (contentAsJson(res) \ "schemeId").as[Int] mustBe 123
       verify(mockService).createScheme(eqTo(createParams))
@@ -340,7 +340,7 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       val req                 = FakeRequest(POST, "/scheme").withBody(Json.toJson(createParams))
       val res: Future[Result] = controller.createScheme(req)
 
-      status(res) mustBe OK
+      status(res) mustBe CREATED
       (contentAsJson(res) \ "schemeId").as[Int] mustBe 789
       verify(mockService).createScheme(eqTo(createParams))
       verifyNoMoreInteractions(mockService)

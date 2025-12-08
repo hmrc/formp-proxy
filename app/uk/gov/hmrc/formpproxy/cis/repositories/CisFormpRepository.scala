@@ -122,7 +122,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         Using.resource(conn.prepareCall(CallCreateScheme)) { cs =>
           cs.setString(1, contractorScheme.instanceId)
           cs.setString(2, contractorScheme.accountsOfficeReference)
-          cs.setString(3, contractorScheme.taxOfficeReference)
+          cs.setString(3, contractorScheme.taxOfficeNumber)
           cs.setString(4, contractorScheme.taxOfficeReference)
           cs.setString(5, contractorScheme.utr.orNull)
           cs.setString(6, contractorScheme.name.orNull)
@@ -148,7 +148,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           cs.setInt(1, contractorScheme.schemeId)
           cs.setString(2, contractorScheme.instanceId)
           cs.setString(3, contractorScheme.accountsOfficeReference)
-          cs.setString(4, contractorScheme.taxOfficeReference)
+          cs.setString(4, contractorScheme.taxOfficeNumber)
           cs.setString(5, contractorScheme.taxOfficeReference)
           cs.setString(6, contractorScheme.utr.orNull)
           cs.setString(7, contractorScheme.name.orNull)

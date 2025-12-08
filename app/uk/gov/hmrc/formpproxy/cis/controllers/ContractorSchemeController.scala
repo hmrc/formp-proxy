@@ -70,7 +70,7 @@ class ContractorSchemeController @Inject() (
           contractorScheme =>
             service
               .createScheme(contractorScheme)
-              .map(id => Ok(Json.obj("schemeId" -> id)))
+              .map(id => Created(Json.obj("schemeId" -> id)))
               .recover {
                 case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
                 case t: Throwable             =>
