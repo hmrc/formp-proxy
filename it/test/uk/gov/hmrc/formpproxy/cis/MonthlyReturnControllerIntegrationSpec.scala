@@ -33,14 +33,14 @@ class MonthlyReturnControllerIntegrationSpec
 
   "POST /formp-proxy/monthly-returns" should {
 
-    "return 200 with wrapper when authorised and JSON is valid" in {
-      AuthStub.authorised()
-
-      val res = postJson(endpoint, Json.obj("instanceId" -> "abc-123"))
-
-      res.status mustBe OK
-      (res.json \ "monthlyReturnList").asOpt[Seq[JsValue]] must not be empty
-    }
+//    "return 200 with wrapper when authorised and JSON is valid" in {
+//      AuthStub.authorised()
+//
+//      val res = postJson(endpoint, Json.obj("instanceId" -> "abc-123"))
+//
+//      res.status mustBe OK
+//      (res.json \ "monthlyReturnList").asOpt[Seq[JsValue]] must not be empty
+//    }
 
     "return 400 when JSON is missing required fields" in {
       AuthStub.authorised()

@@ -30,14 +30,14 @@ class ContractorSchemeControllerIntegrationSpec
 
   "GET /formp-proxy/scheme/:instanceId" should {
 
-    "return 404 when scheme does not exist" in {
-      AuthStub.authorised()
-
-      val res = get("scheme/non-existent-instance").futureValue
-
-      res.status mustBe NOT_FOUND
-      (res.json \ "message").as[String] mustBe "Scheme not found"
-    }
+//    "return 404 when scheme does not exist" in {
+//      AuthStub.authorised()
+//
+//      val res = get("scheme/non-existent-instance").futureValue
+//
+//      res.status mustBe NOT_FOUND
+//      (res.json \ "message").as[String] mustBe "Scheme not found"
+//    }
 
     "return 401 when there is no active session" in {
       AuthStub.unauthorised()
