@@ -16,12 +16,15 @@
 
 package uk.gov.hmrc.formpproxy.cis.repositories
 
+import oracle.jdbc.OracleTypes
 import org.mockito.ArgumentMatchers.{any as anyArg, eq as eqTo}
 import org.mockito.Mockito.*
 import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
+import uk.gov.hmrc.formpproxy.cis.models.{CreateContractorSchemeParams, UpdateContractorSchemeParams}
 import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubmissionRequest}
 
+import java.time.Instant
 import java.sql.*
 
 final class CisFormpRepositorySpec extends SpecBase {
@@ -465,6 +468,374 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       verify(cs).execute()
       verify(rs).close()
+    }
+  }
+
+  "getScheme" - {
+
+    "returns Some(ContractorScheme) with all fields when result set has data" in {
+      val db   = mock[Database]
+      val conn = mock[java.sql.Connection]
+      val cs   = mock[CallableStatement]
+      val rs   = mock[ResultSet]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")).thenReturn(cs)
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rs)
+      when(rs.next()).thenReturn(true, false)
+
+      when(rs.getInt("scheme_id")).thenReturn(123)
+      when(rs.getString("instance_id")).thenReturn("abc-123")
+      when(rs.getString("aoref")).thenReturn("123456789")
+      when(rs.getString("tax_office_number")).thenReturn("0001")
+      when(rs.getString("tax_office_reference")).thenReturn("AB12345")
+      when(rs.getString("utr")).thenReturn("1234567890")
+      when(rs.getString("name")).thenReturn("Test Contractor")
+      when(rs.getString("email_address")).thenReturn("test@example.com")
+      when(rs.getString("display_welcome_page")).thenReturn("Y")
+      when(rs.getInt("pre_pop_count")).thenReturn(5)
+      when(rs.wasNull()).thenReturn(false)
+      when(rs.getString("pre_pop_successful")).thenReturn("Y")
+      when(rs.getInt("subcontractor_counter")).thenReturn(10)
+      when(rs.wasNull()).thenReturn(false)
+      when(rs.getInt("verif_batch_counter")).thenReturn(2)
+      when(rs.wasNull()).thenReturn(false)
+      when(rs.getString("last_update")).thenReturn("2025-12-04T10:15:30Z")
+      when(rs.getInt("version")).thenReturn(1)
+      when(rs.wasNull()).thenReturn(false)
+
+      val repo   = new CisFormpRepository(db)
+      val result = repo.getScheme("abc-123").futureValue
+
+      result must be(Symbol("defined"))
+      val scheme = result.get
+      scheme.schemeId mustBe 123
+      scheme.instanceId mustBe "abc-123"
+      scheme.accountsOfficeReference mustBe "123456789"
+      scheme.taxOfficeNumber mustBe "0001"
+      scheme.taxOfficeReference mustBe "AB12345"
+      scheme.utr mustBe Some("1234567890")
+      scheme.name mustBe Some("Test Contractor")
+      scheme.emailAddress mustBe Some("test@example.com")
+      scheme.displayWelcomePage mustBe Some("Y")
+      scheme.prePopCount mustBe Some(5)
+      scheme.prePopSuccessful mustBe Some("Y")
+      scheme.subcontractorCounter mustBe Some(10)
+      scheme.verificationBatchCounter mustBe Some(2)
+      scheme.lastUpdate mustBe Some(Instant.parse("2025-12-04T10:15:30Z"))
+      scheme.version mustBe Some(1)
+
+      verify(cs).execute()
+      verify(rs).close()
+    }
+
+    "returns None when result set is empty" in {
+      val db   = mock[Database]
+      val conn = mock[java.sql.Connection]
+      val cs   = mock[CallableStatement]
+      val rs   = mock[ResultSet]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")).thenReturn(cs)
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rs)
+      when(rs.next()).thenReturn(false)
+
+      val repo   = new CisFormpRepository(db)
+      val result = repo.getScheme("unknown-123").futureValue
+
+      result mustBe None
+
+      verify(cs).execute()
+      verify(rs).close()
+    }
+
+    "handles null optional fields correctly" in {
+      val db   = mock[Database]
+      val conn = mock[java.sql.Connection]
+      val cs   = mock[CallableStatement]
+      val rs   = mock[ResultSet]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")).thenReturn(cs)
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rs)
+      when(rs.next()).thenReturn(true, false)
+
+      when(rs.getInt("scheme_id")).thenReturn(456)
+      when(rs.getString("instance_id")).thenReturn("def-456")
+      when(rs.getString("aoref")).thenReturn("987654321")
+      when(rs.getString("tax_office_number")).thenReturn("0002")
+      when(rs.getString("tax_office_reference")).thenReturn("CD67890")
+      when(rs.getString("utr")).thenReturn(null)
+      when(rs.getString("name")).thenReturn(null)
+      when(rs.getString("email_address")).thenReturn(null)
+      when(rs.getString("display_welcome_page")).thenReturn(null)
+      when(rs.getInt("pre_pop_count")).thenReturn(0)
+      when(rs.wasNull()).thenReturn(true)
+      when(rs.getString("pre_pop_successful")).thenReturn(null)
+      when(rs.getInt("subcontractor_counter")).thenReturn(0)
+      when(rs.wasNull()).thenReturn(true)
+      when(rs.getInt("verif_batch_counter")).thenReturn(0)
+      when(rs.wasNull()).thenReturn(true)
+      when(rs.getString("last_update")).thenReturn(null)
+      when(rs.getInt("version")).thenReturn(0)
+      when(rs.wasNull()).thenReturn(true)
+
+      val repo   = new CisFormpRepository(db)
+      val result = repo.getScheme("def-456").futureValue
+
+      result must be(Symbol("defined"))
+      val scheme = result.get
+      scheme.schemeId mustBe 456
+      scheme.instanceId mustBe "def-456"
+      scheme.utr mustBe None
+      scheme.name mustBe None
+      scheme.emailAddress mustBe None
+      scheme.displayWelcomePage mustBe None
+      scheme.prePopCount mustBe None
+      scheme.prePopSuccessful mustBe None
+      scheme.subcontractorCounter mustBe None
+      scheme.verificationBatchCounter mustBe None
+      scheme.lastUpdate mustBe None
+      scheme.version mustBe None
+
+      verify(cs).execute()
+      verify(rs).close()
+    }
+
+    "throws RuntimeException when result set cursor is null" in {
+      val db   = mock[Database]
+      val conn = mock[java.sql.Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")).thenReturn(cs)
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(null)
+
+      val repo   = new CisFormpRepository(db)
+      val result = repo.getScheme("null-cursor-123").failed.futureValue
+
+      result mustBe a[RuntimeException]
+      result.getMessage must include("int_Get_Scheme returned null cursor")
+
+      verify(cs).execute()
+    }
+  }
+
+  "updateScheme" - {
+
+    "call SCHEME_PROCS.Update_Scheme with correct parameters and return version" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall(eqTo("{ call SCHEME_PROCS.Update_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")))
+        .thenReturn(cs)
+      when(cs.getInt(12)).thenReturn(2)
+
+      val repo         = new CisFormpRepository(db)
+      val updateParams = UpdateContractorSchemeParams(
+        schemeId = 123,
+        instanceId = "abc-123",
+        accountsOfficeReference = "111111111",
+        taxOfficeNumber = "0001",
+        taxOfficeReference = "AB12345",
+        utr = Some("1234567890"),
+        name = Some("Updated Contractor"),
+        emailAddress = Some("updated@example.com"),
+        displayWelcomePage = Some("Y"),
+        prePopCount = Some(10),
+        prePopSuccessful = Some("Y"),
+        version = Some(1)
+      )
+
+      val result = repo.updateScheme(updateParams).futureValue
+      result mustBe 2
+
+      verify(conn).prepareCall(eqTo("{ call SCHEME_PROCS.Update_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"))
+      verify(cs).setInt(1, 123)
+      verify(cs).setString(2, "abc-123")
+      verify(cs).setString(3, "111111111")
+      verify(cs).setString(4, "0001")
+      verify(cs).setString(5, "AB12345")
+      verify(cs).setString(6, "1234567890")
+      verify(cs).setString(7, "Updated Contractor")
+      verify(cs).setString(8, "updated@example.com")
+      verify(cs).setString(9, "Y")
+      verify(cs).setString(11, "Y")
+      verify(cs).registerOutParameter(12, OracleTypes.INTEGER)
+      verify(cs).execute()
+      verify(cs).getInt(12)
+      verify(cs).close()
+    }
+
+    "call SCHEME_PROCS.Update_Scheme with null optional fields" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall(eqTo("{ call SCHEME_PROCS.Update_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")))
+        .thenReturn(cs)
+      when(cs.getInt(12)).thenReturn(3)
+
+      val repo         = new CisFormpRepository(db)
+      val updateParams = UpdateContractorSchemeParams(
+        schemeId = 456,
+        instanceId = "sparse-123",
+        accountsOfficeReference = "555555555",
+        taxOfficeNumber = "0055",
+        taxOfficeReference = "YY55555",
+        version = Some(2)
+      )
+
+      val result = repo.updateScheme(updateParams).futureValue
+      result mustBe 3
+
+      verify(conn).prepareCall(eqTo("{ call SCHEME_PROCS.Update_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"))
+      verify(cs).setInt(1, 456)
+      verify(cs).setString(2, "sparse-123")
+      verify(cs).setString(3, "555555555")
+      verify(cs).setString(4, "0055")
+      verify(cs).setString(5, "YY55555")
+      verify(cs).setString(6, null)
+      verify(cs).setString(7, null)
+      verify(cs).setString(8, null)
+      verify(cs).setString(9, null)
+      verify(cs).setString(11, null)
+      verify(cs).registerOutParameter(12, OracleTypes.INTEGER)
+      verify(cs).execute()
+      verify(cs).getInt(12)
+      verify(cs).close()
+    }
+  }
+
+  "createScheme" - {
+
+    "call SCHEME_PROCS.Create_Scheme with correct parameters and return schemeId" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall(eqTo("{ call SCHEME_PROCS.Create_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")))
+        .thenReturn(cs)
+      when(cs.getInt(11)).thenReturn(123)
+
+      val repo         = new CisFormpRepository(db)
+      val createParams = CreateContractorSchemeParams(
+        instanceId = "abc-123",
+        accountsOfficeReference = "111111111",
+        taxOfficeNumber = "0001",
+        taxOfficeReference = "AB12345",
+        utr = Some("1234567890"),
+        name = Some("Test Contractor"),
+        emailAddress = Some("test@example.com"),
+        displayWelcomePage = Some("Y"),
+        prePopCount = Some(5),
+        prePopSuccessful = Some("Y")
+      )
+
+      val result = repo.createScheme(createParams).futureValue
+      result mustBe 123
+
+      verify(conn).prepareCall(eqTo("{ call SCHEME_PROCS.Create_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"))
+      verify(cs).setString(1, "abc-123")
+      verify(cs).setString(2, "111111111")
+      verify(cs).setString(3, "0001")
+      verify(cs).setString(4, "AB12345")
+      verify(cs).setString(5, "1234567890")
+      verify(cs).setString(6, "Test Contractor")
+      verify(cs).setString(7, "test@example.com")
+      verify(cs).setString(8, "Y")
+      verify(cs).setString(10, "Y")
+      verify(cs).registerOutParameter(11, OracleTypes.INTEGER)
+      verify(cs).execute()
+      verify(cs).getInt(11)
+      verify(cs).close()
+    }
+
+    "call SCHEME_PROCS.Create_Scheme with null optional fields" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall(eqTo("{ call SCHEME_PROCS.Create_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")))
+        .thenReturn(cs)
+      when(cs.getInt(11)).thenReturn(456)
+
+      val repo         = new CisFormpRepository(db)
+      val createParams = CreateContractorSchemeParams(
+        instanceId = "sparse-123",
+        accountsOfficeReference = "555555555",
+        taxOfficeNumber = "0055",
+        taxOfficeReference = "YY55555"
+      )
+
+      val result = repo.createScheme(createParams).futureValue
+      result mustBe 456
+
+      verify(conn).prepareCall(eqTo("{ call SCHEME_PROCS.Create_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"))
+      verify(cs).setString(1, "sparse-123")
+      verify(cs).setString(2, "555555555")
+      verify(cs).setString(3, "0055")
+      verify(cs).setString(4, "YY55555")
+      verify(cs).setString(5, null)
+      verify(cs).setString(6, null)
+      verify(cs).setString(7, null)
+      verify(cs).setString(8, null)
+      verify(cs).setString(10, null)
+      verify(cs).registerOutParameter(11, OracleTypes.INTEGER)
+      verify(cs).execute()
+      verify(cs).getInt(11)
+      verify(cs).close()
+    }
+
+    "call SCHEME_PROCS.Create_Scheme with Some(prePopCount)" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall(eqTo("{ call SCHEME_PROCS.Create_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")))
+        .thenReturn(cs)
+      when(cs.getInt(11)).thenReturn(789)
+
+      val repo         = new CisFormpRepository(db)
+      val createParams = CreateContractorSchemeParams(
+        instanceId = "count-123",
+        accountsOfficeReference = "999999999",
+        taxOfficeNumber = "0099",
+        taxOfficeReference = "ZZ99999",
+        prePopCount = Some(100)
+      )
+
+      val result = repo.createScheme(createParams).futureValue
+      result mustBe 789
+
+      verify(conn).prepareCall(eqTo("{ call SCHEME_PROCS.Create_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"))
+      verify(cs).execute()
+      verify(cs).getInt(11)
+      verify(cs).close()
     }
   }
 }

@@ -20,46 +20,38 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.http.Status.*
-import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, AuthStub}
 
-class MonthlyReturnControllerIntegrationSpec
+class ContractorSchemeControllerIntegrationSpec
   extends Matchers
     with ScalaFutures
     with IntegrationPatience
     with ApplicationWithWiremock {
 
-  private val endpoint = "monthly-returns"
+  "GET /formp-proxy/scheme/:instanceId" should {
 
-  "POST /formp-proxy/monthly-returns" should {
-
-//    "return 200 with wrapper when authorised and JSON is valid" in {
+//    "return 404 when scheme does not exist" in {
 //      AuthStub.authorised()
 //
-//      val res = postJson(endpoint, Json.obj("instanceId" -> "abc-123"))
+//      val res = get("scheme/non-existent-instance").futureValue
 //
-//      res.status mustBe OK
-//      (res.json \ "monthlyReturnList").asOpt[Seq[JsValue]] must not be empty
+//      res.status mustBe NOT_FOUND
+//      (res.json \ "message").as[String] mustBe "Scheme not found"
 //    }
-
-    "return 400 when JSON is missing required fields" in {
-      AuthStub.authorised()
-
-      val res1 = postJson(endpoint, Json.obj())
-      res1.status mustBe BAD_REQUEST
-      (res1.json \ "message").as[String].toLowerCase must include("invalid json")
-    }
 
     "return 401 when there is no active session" in {
       AuthStub.unauthorised()
 
-      val res = postJson(endpoint, Json.obj("instanceId" -> "abc-123"))
+      val res = get("scheme/abc-123").futureValue
+
       res.status mustBe UNAUTHORIZED
     }
 
     "return 404 for unknown endpoint (routing sanity)" in {
       AuthStub.authorised()
-      val res = postJson("/does-not-exist", Json.obj("instanceId" -> "abc-123"))
+
+      val res = get("does-not-exist").futureValue
+
       res.status mustBe NOT_FOUND
     }
   }

@@ -20,7 +20,7 @@ import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
-import play.api.Application
+import play.api.{Application, inject}
 import play.api.http.HeaderNames as PlayHeaders
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsValue
@@ -46,7 +46,6 @@ trait ApplicationWithWiremock
     Map[String, Any](
       "microservice.services.auth.host" -> WireMockConstants.stubHost,
       "microservice.services.auth.port" -> WireMockConstants.stubPort,
-      "feature-switch.cis-formp-stubbed" -> true
     )
   }
 
@@ -78,11 +77,13 @@ trait ApplicationWithWiremock
       HeaderNames.xSessionId -> "sessionId"
     )
 
-  protected def get(path: String): Future[HttpResponse] =
+  protected def get(path: String): Future[HttpResponse] = {
+    val fullUrl = s"$baseUrl/$path"
     httpClient
-      .get(url"$baseUrl/$path")
+      .get(url"$fullUrl")
       .setHeader(commonHeaders *)
       .execute[HttpResponse]
+  }
 
   protected def post(path: String, body: JsValue): Future[HttpResponse] = {
     val url = s"$baseUrl/$path"

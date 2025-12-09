@@ -24,6 +24,7 @@ import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
 import uk.gov.hmrc.formpproxy.sdlt.models.organisation.*
 import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnSummary, SdltReturnRecordResponse}
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
+import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 
 import java.lang.Long
 import java.sql.{CallableStatement, Connection, ResultSet, Types}
@@ -125,30 +126,18 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       cs.setString(1, p_storn)
       cs.setString(2, p_purchaser_is_company)
       cs.setString(3, p_surname_comp_name)
-      setOptionalString(cs, 4, p_land_house_number)
+      cs.setOptionalString(4, p_land_house_number)
       cs.setString(5, p_land_address_1)
-      setOptionalString(cs, 6, p_land_address_2)
-      setOptionalString(cs, 7, p_land_address_3)
-      setOptionalString(cs, 8, p_land_address_4)
-      setOptionalString(cs, 9, p_land_postcode)
+      cs.setOptionalString(6, p_land_address_2)
+      cs.setOptionalString(7, p_land_address_3)
+      cs.setOptionalString(8, p_land_address_4)
+      cs.setOptionalString(9, p_land_postcode)
       cs.setString(10, p_transaction_type)
       cs.registerOutParameter(11, Types.NUMERIC)
       cs.execute()
       cs.getLong(11)
     } finally cs.close()
   }
-
-  private def setOptionalString(cs: CallableStatement, index: Int, value: Option[String]): Unit =
-    value match {
-      case Some(v) if v != null => cs.setString(index, v)
-      case _                    => cs.setNull(index, Types.VARCHAR)
-    }
-
-  private def setOptionalInt(cs: CallableStatement, index: Int, value: Option[Int]): Unit =
-    value match {
-      case Some(v) => cs.setInt(index, v)
-      case None    => cs.setNull(index, Types.NUMERIC)
-    }
 
   override def sdltGetReturn(returnResourceRef: String, storn: String): Future[GetReturnRequest] = {
     logger.info(s"[SDLT] sdltGetReturn(returnResourceRef=$returnResourceRef, storn=$storn)")
@@ -229,7 +218,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
           cs.setNull(2, Types.VARCHAR) // p_utrn
           cs.setNull(3, Types.VARCHAR) // p_min_letter
           cs.setNull(4, Types.VARCHAR) // p_max_letter
-          setOptionalString(cs, 5, request.status) // p_status
+          cs.setOptionalString(5, request.status) // p_status
           cs.setNull(6, Types.VARCHAR)
           if (request.deletionFlag) {
             cs.setString(7, "TRUE")
@@ -239,7 +228,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
           cs.setString(8, "1") // p_order
           cs.setString(9, "ASC") // p_order_by
           cs.setLong(10, request.pageNumber.map(_.toLong).getOrElse(1L))
-          setOptionalString(cs, 11, request.pageType)
+          cs.setOptionalString(11, request.pageType)
           // Output
           cs.registerOutParameter(12, OracleTypes.CURSOR)
           cs.registerOutParameter(13, OracleTypes.NUMERIC)
@@ -658,16 +647,16 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     try {
       cs.setString(1, p_storn)
       cs.setLong(2, p_return_resource_ref)
-      setOptionalString(cs, 3, p_title)
-      setOptionalString(cs, 4, p_forename1)
-      setOptionalString(cs, 5, p_forename2)
+      cs.setOptionalString(3, p_title)
+      cs.setOptionalString(4, p_forename1)
+      cs.setOptionalString(5, p_forename2)
       cs.setString(6, p_name)
-      setOptionalString(cs, 7, p_house_number)
+      cs.setOptionalString(7, p_house_number)
       cs.setString(8, p_address_1)
-      setOptionalString(cs, 9, p_address_2)
-      setOptionalString(cs, 10, p_address_3)
-      setOptionalString(cs, 11, p_address_4)
-      setOptionalString(cs, 12, p_postcode)
+      cs.setOptionalString(9, p_address_2)
+      cs.setOptionalString(10, p_address_3)
+      cs.setOptionalString(11, p_address_4)
+      cs.setOptionalString(12, p_postcode)
       cs.setString(13, p_is_represented_by_agent)
 
       cs.registerOutParameter(14, Types.NUMERIC)
@@ -731,19 +720,19 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     try {
       cs.setString(1, p_storn)
       cs.setLong(2, p_return_resource_ref)
-      setOptionalString(cs, 3, p_title)
-      setOptionalString(cs, 4, p_forename1)
-      setOptionalString(cs, 5, p_forename2)
+      cs.setOptionalString(3, p_title)
+      cs.setOptionalString(4, p_forename1)
+      cs.setOptionalString(5, p_forename2)
       cs.setString(6, p_name)
-      setOptionalString(cs, 7, p_house_number)
+      cs.setOptionalString(7, p_house_number)
       cs.setString(8, p_address_1)
-      setOptionalString(cs, 9, p_address_2)
-      setOptionalString(cs, 10, p_address_3)
-      setOptionalString(cs, 11, p_address_4)
-      setOptionalString(cs, 12, p_postcode)
+      cs.setOptionalString(9, p_address_2)
+      cs.setOptionalString(10, p_address_3)
+      cs.setOptionalString(11, p_address_4)
+      cs.setOptionalString(12, p_postcode)
       cs.setString(13, p_is_represented_by_agent)
       cs.setLong(14, p_vendor_resource_ref)
-      setOptionalString(cs, 15, p_next_vendor_id)
+      cs.setOptionalString(15, p_next_vendor_id)
 
       cs.execute()
 
@@ -836,17 +825,17 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       cs.setLong(2, p_return_resource_ref)
       cs.setString(3, p_agent_type)
       cs.setString(4, p_name)
-      setOptionalString(cs, 5, p_house_number)
+      cs.setOptionalString(5, p_house_number)
       cs.setString(6, p_address_1)
-      setOptionalString(cs, 7, p_address_2)
-      setOptionalString(cs, 8, p_address_3)
-      setOptionalString(cs, 9, p_address_4)
+      cs.setOptionalString(7, p_address_2)
+      cs.setOptionalString(8, p_address_3)
+      cs.setOptionalString(9, p_address_4)
       cs.setString(10, p_postcode)
-      setOptionalString(cs, 11, p_phone)
-      setOptionalString(cs, 12, p_email)
-      setOptionalString(cs, 13, p_dx_address)
-      setOptionalString(cs, 14, p_reference)
-      setOptionalString(cs, 15, p_is_authorised)
+      cs.setOptionalString(11, p_phone)
+      cs.setOptionalString(12, p_email)
+      cs.setOptionalString(13, p_dx_address)
+      cs.setOptionalString(14, p_reference)
+      cs.setOptionalString(15, p_is_authorised)
 
       cs.registerOutParameter(16, Types.NUMERIC)
 
@@ -910,17 +899,17 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       cs.setLong(2, p_return_resource_ref)
       cs.setString(3, p_agent_type)
       cs.setString(4, p_name)
-      setOptionalString(cs, 5, p_house_number)
+      cs.setOptionalString(5, p_house_number)
       cs.setString(6, p_address_1)
-      setOptionalString(cs, 7, p_address_2)
-      setOptionalString(cs, 8, p_address_3)
-      setOptionalString(cs, 9, p_address_4)
+      cs.setOptionalString(7, p_address_2)
+      cs.setOptionalString(8, p_address_3)
+      cs.setOptionalString(9, p_address_4)
       cs.setString(10, p_postcode)
-      setOptionalString(cs, 11, p_phone)
-      setOptionalString(cs, 12, p_email)
-      setOptionalString(cs, 13, p_dx_address)
-      setOptionalString(cs, 14, p_reference)
-      setOptionalString(cs, 15, p_is_authorised)
+      cs.setOptionalString(11, p_phone)
+      cs.setOptionalString(12, p_email)
+      cs.setOptionalString(13, p_dx_address)
+      cs.setOptionalString(14, p_reference)
+      cs.setOptionalString(15, p_is_authorised)
       cs.execute()
 
       UpdateReturnAgentReturn(
@@ -1036,15 +1025,15 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       cs.setString(1, p_storn)
       cs.setLong(2, p_agent_resource_ref)
       cs.setString(3, p_name)
-      setOptionalString(cs, 4, p_house_number)
-      setOptionalString(cs, 5, p_address_1)
-      setOptionalString(cs, 6, p_address_2)
-      setOptionalString(cs, 7, p_address_3)
-      setOptionalString(cs, 8, p_address_4)
-      setOptionalString(cs, 9, p_postcode)
-      setOptionalString(cs, 10, p_phone)
-      setOptionalString(cs, 11, p_email)
-      setOptionalString(cs, 12, p_dx_address)
+      cs.setOptionalString(4, p_house_number)
+      cs.setOptionalString(5, p_address_1)
+      cs.setOptionalString(6, p_address_2)
+      cs.setOptionalString(7, p_address_3)
+      cs.setOptionalString(8, p_address_4)
+      cs.setOptionalString(9, p_postcode)
+      cs.setOptionalString(10, p_phone)
+      cs.setOptionalString(11, p_email)
+      cs.setOptionalString(12, p_dx_address)
       cs.execute()
       UpdatePredefinedAgentResponse(updated = true)
     } finally cs.close()
@@ -1120,15 +1109,15 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     try {
       cs.setString(1, p_storn)
       cs.setString(2, p_name)
-      setOptionalString(cs, 3, p_house_number)
-      setOptionalString(cs, 4, p_address_1)
-      setOptionalString(cs, 5, p_address_2)
-      setOptionalString(cs, 6, p_address_3)
-      setOptionalString(cs, 7, p_address_4)
-      setOptionalString(cs, 8, p_postcode)
-      setOptionalString(cs, 9, p_phone)
-      setOptionalString(cs, 10, p_email)
-      setOptionalString(cs, 11, p_dx_address)
+      cs.setOptionalString(3, p_house_number)
+      cs.setOptionalString(4, p_address_1)
+      cs.setOptionalString(5, p_address_2)
+      cs.setOptionalString(6, p_address_3)
+      cs.setOptionalString(7, p_address_4)
+      cs.setOptionalString(8, p_postcode)
+      cs.setOptionalString(9, p_phone)
+      cs.setOptionalString(10, p_email)
+      cs.setOptionalString(11, p_dx_address)
 
       cs.registerOutParameter(12, Types.NUMERIC)
       cs.registerOutParameter(13, Types.NUMERIC)

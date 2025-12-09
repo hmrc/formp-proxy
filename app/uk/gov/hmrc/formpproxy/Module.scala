@@ -20,7 +20,6 @@ import play.api.inject.{Binding, Module as AppModule}
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.formpproxy.actions.{AuthAction, DefaultAuthAction}
 import uk.gov.hmrc.formpproxy.cis.repositories.{CisFormpRepository, CisMonthlyReturnSource}
-import uk.gov.hmrc.formpproxy.cis.utils.CisFormpStub
 import uk.gov.hmrc.formpproxy.sdlt.repositories.{SdltFormpRepository, SdltSource}
 
 class Module extends AppModule:
@@ -29,11 +28,8 @@ class Module extends AppModule:
     environment: Environment,
     configuration: Configuration
   ): Seq[Binding[_]] =
-    lazy val cisFormpStubbed = configuration.get[Boolean]("feature-switch.cis-formp-stubbed")
-    lazy val cisDatasource   = if (cisFormpStubbed) classOf[CisFormpStub] else classOf[CisFormpRepository]
-
     List(
       bind[AuthAction].to(classOf[DefaultAuthAction]),
-      bind[CisMonthlyReturnSource].to(cisDatasource),
+      bind[CisMonthlyReturnSource].to(classOf[CisFormpRepository]),
       bind[SdltSource].to(classOf[SdltFormpRepository])
     )
