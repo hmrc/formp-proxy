@@ -21,7 +21,7 @@ import org.mockito.ArgumentMatchers.{any as anyArg, eq as eqTo}
 import org.mockito.Mockito.*
 import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
-import uk.gov.hmrc.formpproxy.cis.models.{CreateContractorSchemeParams, UpdateContractorSchemeParams}
+import uk.gov.hmrc.formpproxy.cis.models.{Company, CreateContractorSchemeParams, Partnership, SoleTrader, Trust, UpdateContractorSchemeParams}
 import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubmissionRequest}
 
 import java.time.Instant
@@ -836,6 +836,124 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(cs).execute()
       verify(cs).getInt(11)
       verify(cs).close()
+    }
+  }
+
+  "updateSchemeVersion" - {
+
+    "call SCHEME_PROCS.Update_Version_Number with correct parameters and return version" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall(eqTo("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }")))
+        .thenReturn(cs)
+      when(cs.getInt(2)).thenReturn(2)
+
+      val repo   = new CisFormpRepository(db)
+      val result = repo.updateSchemeVersion("abc-123", 1).futureValue
+      result mustBe 2
+
+      verify(conn).prepareCall(eqTo("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"))
+      verify(cs).setString(1, "abc-123")
+      verify(cs).setInt(2, 1)
+      verify(cs).registerOutParameter(2, Types.INTEGER)
+      verify(cs).execute()
+      verify(cs).getInt(2)
+      verify(cs).close()
+    }
+  }
+
+  "createSubcontractor" - {
+
+    "call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR with correct parameters for SoleTrader and return version" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall(eqTo("{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }")))
+        .thenReturn(cs)
+      when(cs.getInt(4)).thenReturn(2)
+
+      val repo   = new CisFormpRepository(db)
+      val result = repo.createSubcontractor(123, SoleTrader, 1).futureValue
+      result mustBe 2
+
+      verify(conn).prepareCall(eqTo("{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }"))
+      verify(cs).setInt(1, 123)
+      verify(cs).setInt(2, 1)
+      verify(cs).setString(3, "soletrader")
+      verify(cs).registerOutParameter(4, OracleTypes.INTEGER)
+      verify(cs).execute()
+      verify(cs).getInt(4)
+      verify(cs).close()
+    }
+
+    "call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR with correct parameters for Company" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall(eqTo("{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }")))
+        .thenReturn(cs)
+      when(cs.getInt(4)).thenReturn(4)
+
+      val repo   = new CisFormpRepository(db)
+      val result = repo.createSubcontractor(456, Company, 3).futureValue
+      result mustBe 4
+
+      verify(cs).setInt(1, 456)
+      verify(cs).setInt(2, 3)
+      verify(cs).setString(3, "company")
+      verify(cs).execute()
+      verify(cs).getInt(4)
+    }
+
+    "call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR with correct parameters for Partnership" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall(eqTo("{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }")))
+        .thenReturn(cs)
+      when(cs.getInt(4)).thenReturn(6)
+
+      val repo   = new CisFormpRepository(db)
+      val result = repo.createSubcontractor(789, Partnership, 5).futureValue
+      result mustBe 6
+
+      verify(cs).setString(3, "partnership")
+    }
+
+    "call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR with correct parameters for Trust" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall(eqTo("{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }")))
+        .thenReturn(cs)
+      when(cs.getInt(4)).thenReturn(8)
+
+      val repo   = new CisFormpRepository(db)
+      val result = repo.createSubcontractor(999, Trust, 7).futureValue
+      result mustBe 8
+
+      verify(cs).setString(3, "trust")
     }
   }
 }
