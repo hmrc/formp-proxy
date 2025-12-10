@@ -18,7 +18,7 @@ package uk.gov.hmrc.formpproxy.cis.models.requests
 
 import play.api.libs.json.{Json, OFormat}
 
-case class UpdateSchemeVersionRequest(version: Int)
+case class UpdateSchemeVersionRequest(instanceId: String, version: Int)
 
 object UpdateSchemeVersionRequest {
   given format: OFormat[UpdateSchemeVersionRequest] = Json.format[UpdateSchemeVersionRequest]

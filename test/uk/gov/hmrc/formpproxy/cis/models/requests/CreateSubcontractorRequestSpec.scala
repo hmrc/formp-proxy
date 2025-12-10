@@ -28,6 +28,7 @@ class CreateSubcontractorRequestSpec extends AnyWordSpec with Matchers {
     "read and write with SoleTrader type" in {
       val json = Json.parse("""
           |{
+          |  "schemeId": 123,
           |  "subcontractorType": "soletrader",
           |  "version": 1
           |}
@@ -43,6 +44,7 @@ class CreateSubcontractorRequestSpec extends AnyWordSpec with Matchers {
     "read and write with Company type" in {
       val json = Json.parse("""
           |{
+          |  "schemeId": 123,
           |  "subcontractorType": "company",
           |  "version": 2
           |}
@@ -58,6 +60,7 @@ class CreateSubcontractorRequestSpec extends AnyWordSpec with Matchers {
     "read and write with Partnership type" in {
       val json = Json.parse("""
           |{
+          |  "schemeId": 123,
           |  "subcontractorType": "partnership",
           |  "version": 3
           |}
@@ -73,6 +76,7 @@ class CreateSubcontractorRequestSpec extends AnyWordSpec with Matchers {
     "read and write with Trust type" in {
       val json = Json.parse("""
           |{
+          |  "schemeId": 123,
           |  "subcontractorType": "trust",
           |  "version": 4
           |}
@@ -88,6 +92,7 @@ class CreateSubcontractorRequestSpec extends AnyWordSpec with Matchers {
     "fail to read invalid subcontractor type" in {
       val json = Json.parse("""
           |{
+          |  "schemeId": 123,
           |  "subcontractorType": "invalid",
           |  "version": 1
           |}
@@ -100,6 +105,7 @@ class CreateSubcontractorRequestSpec extends AnyWordSpec with Matchers {
     "fail to read missing subcontractorType" in {
       val json = Json.parse("""
           |{
+          |  "schemeId": 123,
           |  "version": 1
           |}
         """.stripMargin)
@@ -111,7 +117,20 @@ class CreateSubcontractorRequestSpec extends AnyWordSpec with Matchers {
     "fail to read missing version" in {
       val json = Json.parse("""
           |{
+          |  "schemeId": 123,
           |  "subcontractorType": "soletrader"
+          |}
+        """.stripMargin)
+
+      val result = json.validate[CreateSubcontractorRequest]
+      result.isError mustBe true
+    }
+
+    "fail to read missing schemeId" in {
+      val json = Json.parse("""
+          |{
+          |  "schemeId": 123,
+          |  "version": 1
           |}
         """.stripMargin)
 

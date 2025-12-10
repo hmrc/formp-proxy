@@ -19,7 +19,11 @@ package uk.gov.hmrc.formpproxy.cis.models.requests
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.formpproxy.cis.models.SubcontractorType
 
-case class CreateSubcontractorRequest(subcontractorType: SubcontractorType, version: Int)
+case class CreateSubcontractorRequest(
+  schemeId: Int,
+  subcontractorType: SubcontractorType,
+  version: Int
+)
 
 object CreateSubcontractorRequest {
   given format: OFormat[CreateSubcontractorRequest] = Json.format[CreateSubcontractorRequest]

@@ -24,9 +24,10 @@ class UpdateSchemeVersionRequestSpec extends AnyWordSpec with Matchers {
 
   "UpdateSchemeVersionRequest (JSON)" should {
 
-    "read and write with version" in {
+    "read and write with version and instance Id" in {
       val json = Json.parse("""
           |{
+          |  "instanceId": "abc-123",
           |  "version": 5
           |}
         """.stripMargin)
@@ -37,9 +38,10 @@ class UpdateSchemeVersionRequestSpec extends AnyWordSpec with Matchers {
       Json.toJson(model) mustBe json
     }
 
-    "read and write with version 0" in {
+    "read and write with version 0 and instanceId empty" in {
       val json = Json.parse("""
           |{
+          |  "instanceId": "",
           |  "version": 0
           |}
         """.stripMargin)
@@ -53,6 +55,18 @@ class UpdateSchemeVersionRequestSpec extends AnyWordSpec with Matchers {
     "fail to read missing version" in {
       val json = Json.parse("""
           |{
+          |  "instanceId": "abc-123"
+          |}
+        """.stripMargin)
+
+      val result = json.validate[UpdateSchemeVersionRequest]
+      result.isError mustBe true
+    }
+
+    "fail to read missing instanceId" in {
+      val json = Json.parse("""
+          |{
+          |  "version": 1
           |}
         """.stripMargin)
 
@@ -63,7 +77,20 @@ class UpdateSchemeVersionRequestSpec extends AnyWordSpec with Matchers {
     "fail to read version with wrong type" in {
       val json = Json.parse("""
           |{
+          |  "instanceId": "abc-123",
           |  "version": "not-a-number"
+          |}
+        """.stripMargin)
+
+      val result = json.validate[UpdateSchemeVersionRequest]
+      result.isError mustBe true
+    }
+
+    "fail to read instanceId with wrong type" in {
+      val json = Json.parse("""
+          |{
+          |  "instanceId": 123,
+          |  "version": 1
           |}
         """.stripMargin)
 

@@ -353,8 +353,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       when(mockService.updateSchemeVersion(eqTo("abc-123"), eqTo(1)))
         .thenReturn(Future.successful(2))
 
-      val req                 = FakeRequest(PUT, "/scheme/abc-123/version").withBody(Json.obj("version" -> 1))
-      val res: Future[Result] = controller.updateSchemeVersion("abc-123")(req)
+      val req                 =
+        FakeRequest(PUT, "/scheme/abc-123/version").withBody(Json.obj("instanceId" -> "abc-123", "version" -> 1))
+      val res: Future[Result] = controller.updateSchemeVersion(req)
 
       status(res) mustBe OK
       contentType(res) mustBe Some(JSON)
@@ -366,7 +367,7 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
     "returns 400 when JSON body is invalid" in new Setup {
       val invalidJson         = Json.obj("wrongField" -> 1)
       val req                 = FakeRequest(PUT, "/scheme/abc-123/version").withBody(invalidJson)
-      val res: Future[Result] = controller.updateSchemeVersion("abc-123")(req)
+      val res: Future[Result] = controller.updateSchemeVersion(req)
 
       status(res) mustBe BAD_REQUEST
       contentType(res) mustBe Some(JSON)
@@ -375,9 +376,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
     }
 
     "returns 400 when JSON body has wrong types" in new Setup {
-      val invalidJson         = Json.obj("version" -> "not-a-number")
+      val invalidJson         = Json.obj("instanceId" -> "abc-123", "version" -> "not-a-number")
       val req                 = FakeRequest(PUT, "/scheme/abc-123/version").withBody(invalidJson)
-      val res: Future[Result] = controller.updateSchemeVersion("abc-123")(req)
+      val res: Future[Result] = controller.updateSchemeVersion(req)
 
       status(res) mustBe BAD_REQUEST
       contentType(res) mustBe Some(JSON)
@@ -390,8 +391,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       when(mockService.updateSchemeVersion(eqTo("abc-123"), eqTo(1)))
         .thenReturn(Future.failed(err))
 
-      val req                 = FakeRequest(PUT, "/scheme/abc-123/version").withBody(Json.obj("version" -> 1))
-      val res: Future[Result] = controller.updateSchemeVersion("abc-123")(req)
+      val req                 =
+        FakeRequest(PUT, "/scheme/abc-123/version").withBody(Json.obj("instanceId" -> "abc-123", "version" -> 1))
+      val res: Future[Result] = controller.updateSchemeVersion(req)
 
       status(res) mustBe BAD_GATEWAY
       (contentAsJson(res) \ "message").as[String] must include("formp failed")
@@ -403,8 +405,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       when(mockService.updateSchemeVersion(eqTo("abc-123"), eqTo(1)))
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
-      val req                 = FakeRequest(PUT, "/scheme/abc-123/version").withBody(Json.obj("version" -> 1))
-      val res: Future[Result] = controller.updateSchemeVersion("abc-123")(req)
+      val req                 =
+        FakeRequest(PUT, "/scheme/abc-123/version").withBody(Json.obj("instanceId" -> "abc-123", "version" -> 1))
+      val res: Future[Result] = controller.updateSchemeVersion(req)
 
       status(res) mustBe INTERNAL_SERVER_ERROR
       (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
@@ -420,14 +423,14 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
         .thenReturn(Future.successful(2))
 
       val req                 =
-        FakeRequest(POST, "/scheme/123/subcontractor").withBody(
-          Json.obj("subcontractorType" -> "soletrader", "version" -> 1)
+        FakeRequest(POST, "/subcontractor/create").withBody(
+          Json.obj("schemeId" -> 123, "subcontractorType" -> "soletrader", "version" -> 1)
         )
-      val res: Future[Result] = controller.createSubcontractor(123)(req)
+      val res: Future[Result] = controller.createSubcontractor(req)
 
       status(res) mustBe OK
       contentType(res) mustBe Some(JSON)
-      (contentAsJson(res) \ "version").as[Int] mustBe 2
+      (contentAsJson(res) \ "subbieResourceRef").as[Int] mustBe 2
       verify(mockService).createSubcontractor(eqTo(123), eqTo(SoleTrader), eqTo(1))
       verifyNoMoreInteractions(mockService)
     }
@@ -437,13 +440,13 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
         .thenReturn(Future.successful(4))
 
       val req                 =
-        FakeRequest(POST, "/scheme/456/subcontractor").withBody(
-          Json.obj("subcontractorType" -> "company", "version" -> 3)
+        FakeRequest(POST, "/subcontractor/create").withBody(
+          Json.obj("schemeId" -> 456, "subcontractorType" -> "company", "version" -> 3)
         )
-      val res: Future[Result] = controller.createSubcontractor(456)(req)
+      val res: Future[Result] = controller.createSubcontractor(req)
 
       status(res) mustBe OK
-      (contentAsJson(res) \ "version").as[Int] mustBe 4
+      (contentAsJson(res) \ "subbieResourceRef").as[Int] mustBe 4
       verify(mockService).createSubcontractor(eqTo(456), eqTo(Company), eqTo(3))
       verifyNoMoreInteractions(mockService)
     }
@@ -453,13 +456,13 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
         .thenReturn(Future.successful(6))
 
       val req                 =
-        FakeRequest(POST, "/scheme/789/subcontractor").withBody(
-          Json.obj("subcontractorType" -> "partnership", "version" -> 5)
+        FakeRequest(POST, "/subcontractor/create").withBody(
+          Json.obj("schemeId" -> 789, "subcontractorType" -> "partnership", "version" -> 5)
         )
-      val res: Future[Result] = controller.createSubcontractor(789)(req)
+      val res: Future[Result] = controller.createSubcontractor(req)
 
       status(res) mustBe OK
-      (contentAsJson(res) \ "version").as[Int] mustBe 6
+      (contentAsJson(res) \ "subbieResourceRef").as[Int] mustBe 6
       verify(mockService).createSubcontractor(eqTo(789), eqTo(Partnership), eqTo(5))
       verifyNoMoreInteractions(mockService)
     }
@@ -469,21 +472,21 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
         .thenReturn(Future.successful(8))
 
       val req                 =
-        FakeRequest(POST, "/scheme/999/subcontractor").withBody(
-          Json.obj("subcontractorType" -> "trust", "version" -> 7)
+        FakeRequest(POST, "/subcontractor/create").withBody(
+          Json.obj("schemeId" -> 999, "subcontractorType" -> "trust", "version" -> 7)
         )
-      val res: Future[Result] = controller.createSubcontractor(999)(req)
+      val res: Future[Result] = controller.createSubcontractor(req)
 
       status(res) mustBe OK
-      (contentAsJson(res) \ "version").as[Int] mustBe 8
+      (contentAsJson(res) \ "subbieResourceRef").as[Int] mustBe 8
       verify(mockService).createSubcontractor(eqTo(999), eqTo(Trust), eqTo(7))
       verifyNoMoreInteractions(mockService)
     }
 
     "returns 400 when JSON body is invalid" in new Setup {
       val invalidJson         = Json.obj("subcontractorType" -> "soletrader")
-      val req                 = FakeRequest(POST, "/scheme/123/subcontractor").withBody(invalidJson)
-      val res: Future[Result] = controller.createSubcontractor(123)(req)
+      val req                 = FakeRequest(POST, "/subcontractor/create").withBody(invalidJson)
+      val res: Future[Result] = controller.createSubcontractor(req)
 
       status(res) mustBe BAD_REQUEST
       contentType(res) mustBe Some(JSON)
@@ -492,9 +495,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
     }
 
     "returns 400 when JSON body has wrong types" in new Setup {
-      val invalidJson         = Json.obj("subcontractorType" -> "soletrader", "version" -> "not-a-number")
-      val req                 = FakeRequest(POST, "/scheme/123/subcontractor").withBody(invalidJson)
-      val res: Future[Result] = controller.createSubcontractor(123)(req)
+      val invalidJson         = Json.obj("schemeId" -> 123, "subcontractorType" -> "soletrader", "version" -> "not-a-number")
+      val req                 = FakeRequest(POST, "/subcontractor/create").withBody(invalidJson)
+      val res: Future[Result] = controller.createSubcontractor(req)
 
       status(res) mustBe BAD_REQUEST
       contentType(res) mustBe Some(JSON)
@@ -508,10 +511,10 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
         .thenReturn(Future.failed(err))
 
       val req                 =
-        FakeRequest(POST, "/scheme/123/subcontractor").withBody(
-          Json.obj("subcontractorType" -> "soletrader", "version" -> 1)
+        FakeRequest(POST, "/subcontractor/create").withBody(
+          Json.obj("schemeId" -> 123, "subcontractorType" -> "soletrader", "version" -> 1)
         )
-      val res: Future[Result] = controller.createSubcontractor(123)(req)
+      val res: Future[Result] = controller.createSubcontractor(req)
 
       status(res) mustBe BAD_GATEWAY
       (contentAsJson(res) \ "message").as[String] must include("formp failed")
@@ -524,10 +527,10 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req                 =
-        FakeRequest(POST, "/scheme/123/subcontractor").withBody(
-          Json.obj("subcontractorType" -> "soletrader", "version" -> 1)
+        FakeRequest(POST, "/subcontractor/create").withBody(
+          Json.obj("schemeId" -> 123, "subcontractorType" -> "soletrader", "version" -> 1)
         )
-      val res: Future[Result] = controller.createSubcontractor(123)(req)
+      val res: Future[Result] = controller.createSubcontractor(req)
 
       status(res) mustBe INTERNAL_SERVER_ERROR
       (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"

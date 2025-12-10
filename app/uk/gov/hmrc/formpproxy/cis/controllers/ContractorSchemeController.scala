@@ -88,11 +88,11 @@ class ContractorSchemeController @Inject() (
         )
     }
 
-  def updateSchemeVersion(instanceId: String): Action[JsValue] =
+  def updateSchemeVersion: Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
       request.body
         .validate[UpdateSchemeVersionRequest]
-        .foldErrorsIntoBadRequest { case UpdateSchemeVersionRequest(version) =>
+        .foldErrorsIntoBadRequest { case UpdateSchemeVersionRequest(instanceId, version) =>
           service
             .updateSchemeVersion(instanceId, version)
             .map(version => Ok(Json.obj("version" -> version)))
@@ -105,14 +105,14 @@ class ContractorSchemeController @Inject() (
         }
     }
 
-  def createSubcontractor(schemeId: Int): Action[JsValue] =
+  def createSubcontractor: Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
       request.body
         .validate[CreateSubcontractorRequest]
-        .foldErrorsIntoBadRequest { case CreateSubcontractorRequest(subcontractorType, version) =>
+        .foldErrorsIntoBadRequest { case CreateSubcontractorRequest(schemeId, subcontractorType, version) =>
           service
             .createSubcontractor(schemeId, subcontractorType, version)
-            .map(version => Ok(Json.obj("version" -> version)))
+            .map(version => Ok(Json.obj("subbieResourceRef" -> version)))
             .recover {
               case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
               case t: Throwable             =>
