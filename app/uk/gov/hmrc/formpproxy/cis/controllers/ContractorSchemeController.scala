@@ -16,18 +16,19 @@
 
 package uk.gov.hmrc.formpproxy.cis.controllers
 
+import uk.gov.hmrc.formpproxy.cis.utils.JsResultUtils.*
 import play.api.Logging
-import play.api.libs.json.{JsError, JsValue, Json}
+import play.api.libs.json.{JsError, JsObject, JsResult, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
 import uk.gov.hmrc.formpproxy.cis.models.{CreateContractorSchemeParams, UpdateContractorSchemeParams, UserMonthlyReturns}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateNilMonthlyReturnRequest, InstanceIdRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateNilMonthlyReturnRequest, CreateSubcontractorRequest, InstanceIdRequest, UpdateSchemeVersionRequest, given}
 import uk.gov.hmrc.formpproxy.cis.services.{ContractorSchemeService, MonthlyReturnService}
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 class ContractorSchemeController @Inject() (
   authorise: AuthAction,
@@ -57,26 +58,16 @@ class ContractorSchemeController @Inject() (
     authorise.async(parse.json) { implicit request =>
       request.body
         .validate[CreateContractorSchemeParams]
-        .fold[Future[Result]](
-          errs =>
-            Future.successful(
-              BadRequest(
-                Json.obj(
-                  "message" -> "Invalid JSON body",
-                  "errors"  -> JsError.toJson(errs)
-                )
-              )
-            ),
-          contractorScheme =>
-            service
-              .createScheme(contractorScheme)
-              .map(id => Created(Json.obj("schemeId" -> id)))
-              .recover {
-                case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
-                case t: Throwable             =>
-                  logger.error("[createScheme] failed", t)
-                  InternalServerError(Json.obj("message" -> "Unexpected error"))
-              }
+        .foldErrorsIntoBadRequest(contractorScheme =>
+          service
+            .createScheme(contractorScheme)
+            .map(id => Created(Json.obj("schemeId" -> id)))
+            .recover {
+              case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
+              case t: Throwable             =>
+                logger.error("[createScheme] failed", t)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
+            }
         )
     }
 
@@ -84,26 +75,52 @@ class ContractorSchemeController @Inject() (
     authorise.async(parse.json) { implicit request =>
       request.body
         .validate[UpdateContractorSchemeParams]
-        .fold[Future[Result]](
-          errs =>
-            Future.successful(
-              BadRequest(
-                Json.obj(
-                  "message" -> "Invalid JSON body",
-                  "errors"  -> JsError.toJson(errs)
-                )
-              )
-            ),
-          contractorScheme =>
-            service
-              .updateScheme(contractorScheme)
-              .map(version => Ok(Json.obj("version" -> version)))
-              .recover {
-                case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
-                case t: Throwable             =>
-                  logger.error("[updateScheme] failed", t)
-                  InternalServerError(Json.obj("message" -> "Unexpected error"))
-              }
+        .foldErrorsIntoBadRequest(contractorScheme =>
+          service
+            .updateScheme(contractorScheme)
+            .map(version => Ok(Json.obj("version" -> version)))
+            .recover {
+              case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
+              case t: Throwable             =>
+                logger.error("[updateScheme] failed", t)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
+            }
         )
     }
+
+  def updateSchemeVersion: Action[JsValue] =
+    authorise.async(parse.json) { implicit request =>
+      request.body
+        .validate[UpdateSchemeVersionRequest]
+        .foldErrorsIntoBadRequest { case UpdateSchemeVersionRequest(instanceId, version) =>
+          service
+            .updateSchemeVersion(instanceId, version)
+            .map(version => Ok(Json.obj("version" -> version)))
+            .recover {
+              case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
+              case t: Throwable             =>
+                logger.error("[updateSchemeVersion] failed", t)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
+            }
+        }
+    }
+
+  def createSubcontractor: Action[JsValue] =
+    authorise.async(parse.json) { implicit request =>
+      request.body
+        .validate[CreateSubcontractorRequest]
+        .foldErrorsIntoBadRequest { case CreateSubcontractorRequest(schemeId, subcontractorType, version) =>
+          service
+            .createSubcontractor(schemeId, subcontractorType, version)
+            .map(version => Ok(Json.obj("subbieResourceRef" -> version)))
+            .recover {
+              case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
+              case t: Throwable             =>
+                logger.error("[createSubcontractor] failed", t)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
+            }
+        }
+
+    }
+
 }

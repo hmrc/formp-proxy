@@ -7,6 +7,9 @@ POST       /scheme/email                                            uk.gov.hmrc.
 GET        /scheme/:instanceId                                      uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.getScheme(instanceId: String)
 POST       /scheme                                                  uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.createScheme
 POST       /scheme/update                                           uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.updateScheme
+POST       /scheme/version-update                                   uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.updateSchemeVersion
+POST       /subcontractor/create                                    uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.createSubcontractor
+
 
 POST       /submissions/create                                      uk.gov.hmrc.formpproxy.cis.controllers.SubmissionController.createSubmission()
 POST       /submissions/update                                      uk.gov.hmrc.formpproxy.cis.controllers.SubmissionController.updateSubmission()
