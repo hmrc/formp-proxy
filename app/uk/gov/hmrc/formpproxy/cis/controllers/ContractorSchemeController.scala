@@ -22,7 +22,7 @@ import play.api.libs.json.{JsError, JsObject, JsResult, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
 import uk.gov.hmrc.formpproxy.cis.models.{CreateContractorSchemeParams, UpdateContractorSchemeParams, UserMonthlyReturns}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateNilMonthlyReturnRequest, CreateSubcontractorRequest, InstanceIdRequest, UpdateSchemeVersionRequest, given}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateNilMonthlyReturnRequest, CreateSubcontractorRequest, InstanceIdRequest, UpdateSchemeVersionRequest, given}
 import uk.gov.hmrc.formpproxy.cis.services.{ContractorSchemeService, MonthlyReturnService}
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -121,6 +121,23 @@ class ContractorSchemeController @Inject() (
             }
         }
 
+    }
+
+  def applyPrepopulation: Action[JsValue] =
+    authorise.async(parse.json) { implicit request =>
+      request.body
+        .validate[ApplyPrepopulationRequest]
+        .foldErrorsIntoBadRequest { prepopReq =>
+          service
+            .applyPrepopulation(prepopReq)
+            .map(version => Ok(Json.obj("version" -> version)))
+            .recover {
+              case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
+              case t: Throwable             =>
+                logger.error("[applyPrepopulation] failed", t)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
+            }
+        }
     }
 
 }

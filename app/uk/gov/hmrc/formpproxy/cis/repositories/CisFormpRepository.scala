@@ -19,7 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.repositories
 import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubmissionRequest}
 import uk.gov.hmrc.formpproxy.cis.models.response.CreateNilMonthlyReturnResponse
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, MonthlyReturn, SubcontractorType, UpdateContractorSchemeParams, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.setOptionalInt
@@ -44,6 +44,7 @@ trait CisMonthlyReturnSource {
   def updateScheme(contractorScheme: UpdateContractorSchemeParams): Future[Int]
   def updateSchemeVersion(instanceId: String, version: Int): Future[Int]
   def createSubcontractor(schemeId: Int, subcontractorType: SubcontractorType, version: Int): Future[Int]
+  def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -347,6 +348,49 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
         CreateNilMonthlyReturnResponse(status = "STARTED")
       }
+    }
+  }
+
+  override def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int] = Future {
+    logger.info(
+      s"[CIS] applyPrepopulation(schemeId=${req.schemeId}, instanceId=${req.instanceId}, version=${req.version}, subs=${req.subcontractorTypes.size})"
+    )
+
+    db.withTransaction { conn =>
+      // 1) Update_Scheme – set name/UTR/prePopCount/prePopSuccessful (but NOT version)
+      Using.resource(conn.prepareCall(CallUpdateScheme)) { cs =>
+        cs.setInt(1, req.schemeId)
+        cs.setString(2, req.instanceId)
+        cs.setString(3, req.accountsOfficeReference)
+        cs.setString(4, req.taxOfficeNumber)
+        cs.setString(5, req.taxOfficeReference)
+        cs.setString(6, req.utr.orNull)
+        cs.setString(7, req.name)
+        cs.setString(8, req.emailAddress.orNull)
+        cs.setString(9, req.displayWelcomePage.orNull)
+        cs.setInt(10, req.prePopCount)
+        cs.setString(11, req.prePopSuccessful)
+        cs.setInt(12, req.version)
+        cs.registerOutParameter(12, OracleTypes.INTEGER)
+
+        cs.execute()
+      }
+
+      // 2) Create_Subcontractor for each subcontractorType
+      req.subcontractorTypes.foreach { subcontractorType =>
+        Using.resource(conn.prepareCall(CallCreateSubcontractor)) { cs =>
+          cs.setInt(1, req.schemeId)
+          cs.setInt(2, req.version)
+          cs.setString(3, subcontractorType.toString)
+          cs.registerOutParameter(4, OracleTypes.INTEGER)
+
+          cs.execute()
+        }
+      }
+
+      // 3) Update_Version_Number – increment version atomically in same transaction
+      val newVersion = callUpdateSchemeVersion(conn, req.instanceId, req.version)
+      newVersion
     }
   }
 
