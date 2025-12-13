@@ -33,7 +33,7 @@ import scala.util.Using
 
 trait CharitiesSource {
   def getTotalUnregulatedDonations(charityReference: String): Future[Option[BigDecimal]]
-  def saveUnregulatedDonation(request: SaveUnregulatedDonationRequest): Future[Unit]
+  def saveUnregulatedDonation(charityReference: String, request: SaveUnregulatedDonationRequest): Future[Unit]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -56,29 +56,32 @@ class CharitiesFormpRepository @Inject() (@NamedDatabase("charities") db: Databa
           cs.execute()
 
           val resultSet = cs.getObject(2, classOf[ResultSet])
-          if (resultSet == null)
+          if resultSet == null
           then None
-          else Using.resource(resultSet) { resultSet =>
-            if (resultSet != null && resultSet.next())
-            then Some(resultSet.getBigDecimal("p_total"))
-            else None
-          }
+          else
+            Using.resource(resultSet) { resultSet =>
+              if resultSet != null && resultSet.next()
+              then Some(resultSet.getBigDecimal("p_total"))
+              else None
+            }
         } finally cs.close()
       }
     }
   }
 
-  override def saveUnregulatedDonation(request: SaveUnregulatedDonationRequest): Future[Unit] = {
+  override def saveUnregulatedDonation(
+    charityReference: String,
+    request: SaveUnregulatedDonationRequest
+  ): Future[Unit] =
     Future {
       db.withConnection { conn =>
         Using.resource(conn.prepareCall("{ call UNREGULATED_DONATIONS_PK.createUnregulatedDonation(?, ?, ?) }")) { cs =>
-          cs.setString(1, request.charityReference)
-          cs.setString(2, request.claimId)
+          cs.setString(1, charityReference)
+          cs.setInt(2, request.claimId)
           cs.setBigDecimal(3, request.amount.underlying())
           cs.execute()
         }
       }
     }
-  }
 
 }

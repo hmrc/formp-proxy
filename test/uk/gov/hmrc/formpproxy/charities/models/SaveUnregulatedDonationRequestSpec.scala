@@ -16,13 +16,29 @@
 
 package uk.gov.hmrc.formpproxy.charities.models
 
-import play.api.libs.json.{Json, OFormat}
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import play.api.libs.json.Json
 
-case class SaveUnregulatedDonationRequest(
-  claimId: Int,
-  amount: BigDecimal
-)
+class SaveUnregulatedDonationRequestSpec extends AnyWordSpec with Matchers {
 
-object SaveUnregulatedDonationRequest {
-  implicit val format: OFormat[SaveUnregulatedDonationRequest] = Json.format[SaveUnregulatedDonationRequest]
+  "SaveUnregulatedDonationRequest (JSON)" should {
+
+    "read and write a fully-populated object" in {
+      val json = Json.parse(
+        s"""
+           |{
+           |  "claimId": 123,
+           |  "amount": 1234.56
+           |}
+        """.stripMargin
+      )
+
+      val model = json.as[SaveUnregulatedDonationRequest]
+      model.claimId mustBe 123
+      model.amount mustBe BigDecimal("1234.56")
+
+      Json.toJson(model) mustBe json
+    }
+  }
 }

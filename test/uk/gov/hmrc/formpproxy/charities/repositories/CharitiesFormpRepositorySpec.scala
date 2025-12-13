@@ -54,7 +54,7 @@ final class CharitiesFormpRepositorySpec extends SpecBase {
       verify(cs).execute()
     }
 
-    "return empty when cursor has no rows" in {
+    "return empty when cursor is null" in {
       val db        = mock[Database]
       val conn      = mock[Connection]
       val cs        = mock[CallableStatement]
@@ -74,13 +74,37 @@ final class CharitiesFormpRepositorySpec extends SpecBase {
       verify(conn).prepareCall(eqTo("{ call UNREGULATED_DONATIONS_PK.getTotalUnregulatedDonations(?) }"))
       verify(cs).execute()
     }
+
+    "return empty when cursor has no rows" in {
+      val db        = mock[Database]
+      val conn      = mock[Connection]
+      val cs        = mock[CallableStatement]
+      val resultSet = mock[ResultSet]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(resultSet)
+
+      when(resultSet.next()).thenReturn(false)
+
+      val repo = new CharitiesFormpRepository(db)
+      val out  = repo.getTotalUnregulatedDonations("abc-123").futureValue
+
+      out mustBe None
+
+      verify(conn).prepareCall("{ call UNREGULATED_DONATIONS_PK.getTotalUnregulatedDonations(?) }")
+      verify(cs).execute()
+    }
   }
 
   "saveUnregulatedDonation" - {
     "save a donation and close resources" in {
-      val db        = mock[Database]
-      val conn      = mock[Connection]
-      val cs        = mock[CallableStatement]
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
 
       when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
@@ -89,12 +113,16 @@ final class CharitiesFormpRepositorySpec extends SpecBase {
       when(conn.prepareCall(eqTo("{ call UNREGULATED_DONATIONS_PK.createUnregulatedDonation(?, ?, ?) }")))
         .thenReturn(cs)
 
-       val repo = new CharitiesFormpRepository(db)
-       repo.saveUnregulatedDonation(SaveUnregulatedDonationRequest( 
-        charityReference = "abc-123",
-        claimId = "claim-123",
-        amount = BigDecimal("1234.56")
-      )).futureValue
+      val repo = new CharitiesFormpRepository(db)
+      repo
+        .saveUnregulatedDonation(
+          charityReference = "abc-123",
+          SaveUnregulatedDonationRequest(
+            claimId = 123,
+            amount = BigDecimal("1234.56")
+          )
+        )
+        .futureValue
 
       verify(conn).prepareCall(eqTo("{ call UNREGULATED_DONATIONS_PK.createUnregulatedDonation(?, ?, ?) }"))
       verify(cs).execute()
