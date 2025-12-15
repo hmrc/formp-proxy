@@ -19,6 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.services
 import org.mockito.ArgumentMatchers.eq as eqTo
 import org.mockito.Mockito.*
 import uk.gov.hmrc.formpproxy.base.SpecBase
+import uk.gov.hmrc.formpproxy.cis.models.requests.ApplyPrepopulationRequest
 import uk.gov.hmrc.formpproxy.cis.models.{Company, ContractorScheme, CreateContractorSchemeParams, Partnership, SoleTrader, Trust, UpdateContractorSchemeParams}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
@@ -54,6 +55,23 @@ final class ContractorSchemeServiceSpec extends SpecBase {
       verificationBatchCounter = Some(2),
       lastUpdate = Some(Instant.parse("2025-12-04T10:15:30Z")),
       version = Some(1)
+    )
+
+  private def mkApplyReq: ApplyPrepopulationRequest =
+    ApplyPrepopulationRequest(
+      schemeId = 789,
+      instanceId = "abc-123",
+      accountsOfficeReference = "111111111",
+      taxOfficeNumber = "123",
+      taxOfficeReference = "AB456",
+      utr = Some("9876543210"),
+      name = "Test Contractor",
+      emailAddress = Some("test@test.com"),
+      displayWelcomePage = Some("N"),
+      prePopCount = 5,
+      prePopSuccessful = "Y",
+      version = 1,
+      subcontractorTypes = Seq(SoleTrader, Company)
     )
 
   "ContractorSchemeService getScheme" - {
@@ -395,6 +413,38 @@ final class ContractorSchemeServiceSpec extends SpecBase {
       ex mustBe boom
 
       verify(c.repo).createSubcontractor(eqTo(123), eqTo(SoleTrader), eqTo(1))
+      verifyNoMoreInteractions(c.repo)
+    }
+  }
+
+  "ContractorSchemeService applyPrepopulation" - {
+
+    "returns version when repository successfully applies prepopulation (happy path)" in {
+      val c   = Ctx()
+      val req = mkApplyReq
+
+      when(c.repo.applyPrepopulation(eqTo(req)))
+        .thenReturn(Future.successful(2))
+
+      val out = c.service.applyPrepopulation(req).futureValue
+      out mustBe 2
+
+      verify(c.repo).applyPrepopulation(eqTo(req))
+      verifyNoMoreInteractions(c.repo)
+    }
+
+    "propagates failures from the repository" in {
+      val c    = Ctx()
+      val req  = mkApplyReq
+      val boom = new RuntimeException("database failed")
+
+      when(c.repo.applyPrepopulation(eqTo(req)))
+        .thenReturn(Future.failed(boom))
+
+      val ex = c.service.applyPrepopulation(req).failed.futureValue
+      ex mustBe boom
+
+      verify(c.repo).applyPrepopulation(eqTo(req))
       verifyNoMoreInteractions(c.repo)
     }
   }

@@ -18,7 +18,7 @@ package uk.gov.hmrc.formpproxy.cis.models.requests
 
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.libs.json.{JsSuccess, Json}
+import play.api.libs.json.Json
 import uk.gov.hmrc.formpproxy.cis.models.{Company, Partnership, SoleTrader, Trust}
 
 class CreateSubcontractorRequestSpec extends AnyWordSpec with Matchers {

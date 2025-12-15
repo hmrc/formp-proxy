@@ -35,7 +35,6 @@ package uk.gov.hmrc.formpproxy.sdlt.models.agents
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import play.api.libs.json.{JsSuccess, Json}
-import uk.gov.hmrc.formpproxy.sdlt.models.agents.{UpdatePredefinedAgentRequest, UpdatePredefinedAgentResponse}
 
 class UpdatePredefinedAgentModelsSpec extends AnyFreeSpec with Matchers {
 
