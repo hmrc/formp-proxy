@@ -24,7 +24,6 @@ import uk.gov.hmrc.formpproxy.charities.models.*
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 
 import java.lang.Long
-import java.sql.ResultSet
 import javax.inject.Inject
 import javax.inject.Singleton
 import scala.concurrent.ExecutionContext
@@ -48,22 +47,17 @@ class CharitiesFormpRepository @Inject() (@NamedDatabase("charities") db: Databa
     Future {
       db.withConnection { conn =>
         val cs = conn.prepareCall(
-          "{ call UNREGULATED_DONATIONS_PK.getTotalUnregulatedDonations(?) }"
+          "{ call UNREGULATED_DONATIONS_PK.getTotalUnregulatedDonations(?, ?) }"
         )
         try {
           cs.setString(1, charityReference)
-          cs.registerOutParameter(2, OracleTypes.CURSOR)
+          cs.registerOutParameter(2, OracleTypes.NUMBER)
           cs.execute()
 
-          val resultSet = cs.getObject(2, classOf[ResultSet])
-          if resultSet == null
+          val amount = cs.getBigDecimal(2)
+          if amount == null
           then None
-          else
-            Using.resource(resultSet) { resultSet =>
-              if resultSet != null && resultSet.next()
-              then Some(resultSet.getBigDecimal("p_total"))
-              else None
-            }
+          else Some(amount)
         } finally cs.close()
       }
     }

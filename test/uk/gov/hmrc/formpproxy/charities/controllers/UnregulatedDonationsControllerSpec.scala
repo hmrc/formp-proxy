@@ -48,10 +48,10 @@ class UnregulatedDonationsControllerSpec extends AnyFreeSpec with Matchers with 
         when(mockService.getTotalUnregulatedDonations(eqTo("abc-123")))
           .thenReturn(Future.successful(Some(BigDecimal("1234.56"))))
 
-        val req: FakeRequest[AnyContent] = 
+        val req: FakeRequest[AnyContent] =
           FakeRequest(GET, "/formp-proxy/charities/abc-123/unregulated-donations")
 
-        val res: Future[Result]       = controller.getTotalUnregulatedDonations("abc-123")(req)
+        val res: Future[Result] = controller.getTotalUnregulatedDonations("abc-123")(req)
 
         status(res) mustBe OK
         contentType(res) mustBe Some(JSON)
@@ -65,10 +65,10 @@ class UnregulatedDonationsControllerSpec extends AnyFreeSpec with Matchers with 
         when(mockService.getTotalUnregulatedDonations(eqTo("abc-123")))
           .thenReturn(Future.successful(None))
 
-        val req: FakeRequest[AnyContent] = 
+        val req: FakeRequest[AnyContent] =
           FakeRequest(GET, "/formp-proxy/charities/abc-123/unregulated-donations")
 
-        val res: Future[Result]       = controller.getTotalUnregulatedDonations("abc-123")(req)
+        val res: Future[Result] = controller.getTotalUnregulatedDonations("abc-123")(req)
 
         status(res) mustBe NOT_FOUND
         contentType(res) mustBe Some(JSON)
@@ -93,12 +93,15 @@ class UnregulatedDonationsControllerSpec extends AnyFreeSpec with Matchers with 
     "saveUnregulatedDonation" - {
 
       "returns 200 when service succeeds (happy path)" in new Setup {
-        when(mockService.saveUnregulatedDonation(eqTo("abc-123"), eqTo(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56")))))
+        when(
+          mockService
+            .saveUnregulatedDonation(eqTo("abc-123"), eqTo(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56"))))
+        )
           .thenReturn(Future.successful(()))
 
-        val req: FakeRequest[SaveUnregulatedDonationRequest] = 
+        val req: FakeRequest[SaveUnregulatedDonationRequest] =
           FakeRequest(POST, "/formp-proxy/charities/abc-123/unregulated-donations")
-          .withBody(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56")))
+            .withBody(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56")))
 
         val res = controller.saveUnregulatedDonation("abc-123")(req)
 
@@ -106,28 +109,31 @@ class UnregulatedDonationsControllerSpec extends AnyFreeSpec with Matchers with 
         contentType(res) mustBe Some(JSON)
         contentAsJson(res) mustBe Json.obj("success" -> true)
 
-        verify(mockService).saveUnregulatedDonation(eqTo("abc-123"), eqTo(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56"))))
+        verify(mockService)
+          .saveUnregulatedDonation(eqTo("abc-123"), eqTo(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56"))))
       }
 
       "returns 500 with generic message on unexpected exception" in new Setup {
-        when(mockService.saveUnregulatedDonation(eqTo("abc-123"), eqTo(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56")))))
+        when(
+          mockService
+            .saveUnregulatedDonation(eqTo("abc-123"), eqTo(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56"))))
+        )
           .thenReturn(Future.failed(new RuntimeException("boom")))
 
-        val req: FakeRequest[SaveUnregulatedDonationRequest] = 
+        val req: FakeRequest[SaveUnregulatedDonationRequest] =
           FakeRequest(POST, "/formp-proxy/charities/abc-123/unregulated-donations")
-          .withBody(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56")))
+            .withBody(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56")))
 
         val res = controller.saveUnregulatedDonation("abc-123")(req)
 
         status(res) mustBe INTERNAL_SERVER_ERROR
         (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
 
-        verify(mockService).saveUnregulatedDonation(eqTo("abc-123"), eqTo(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56"))))
+        verify(mockService)
+          .saveUnregulatedDonation(eqTo("abc-123"), eqTo(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56"))))
       }
     }
   }
-
-  
 
   private trait Setup {
     implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.global
@@ -137,6 +143,6 @@ class UnregulatedDonationsControllerSpec extends AnyFreeSpec with Matchers with 
 
     val mockService: UnregulatedDonationsService = mock[UnregulatedDonationsService]
 
-    val controller = new UnregulatedDonationsController(fakeAuth, mockService, cc)      
+    val controller = new UnregulatedDonationsController(fakeAuth, mockService, cc)
   }
 }
