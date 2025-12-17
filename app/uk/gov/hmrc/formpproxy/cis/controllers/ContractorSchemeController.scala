@@ -20,7 +20,7 @@ import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateSubcontractorRequest, UpdateSchemeVersionRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateSubcontractorRequest, UpdateSchemeVersionRequest}
 import uk.gov.hmrc.formpproxy.cis.models.{CreateContractorSchemeParams, UpdateContractorSchemeParams}
 import uk.gov.hmrc.formpproxy.cis.services.ContractorSchemeService
 import uk.gov.hmrc.formpproxy.cis.utils.JsResultUtils.*
@@ -121,6 +121,23 @@ class ContractorSchemeController @Inject() (
             }
         }
 
+    }
+
+  def applyPrepopulation: Action[JsValue] =
+    authorise.async(parse.json) { implicit request =>
+      request.body
+        .validate[ApplyPrepopulationRequest]
+        .foldErrorsIntoBadRequest { prepopReq =>
+          service
+            .applyPrepopulation(prepopReq)
+            .map(version => Ok(Json.obj("version" -> version)))
+            .recover {
+              case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
+              case t: Throwable             =>
+                logger.error("[applyPrepopulation] failed", t)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
+            }
+        }
     }
 
 }

@@ -22,11 +22,12 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{AnyContent, ControllerComponents, PlayBodyParsers, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
+import uk.gov.hmrc.formpproxy.cis.models.requests.ApplyPrepopulationRequest
 import uk.gov.hmrc.formpproxy.cis.models.{Company, ContractorScheme, CreateContractorSchemeParams, Partnership, SoleTrader, Trust, UpdateContractorSchemeParams}
 import uk.gov.hmrc.formpproxy.cis.services.ContractorSchemeService
 import uk.gov.hmrc.http.UpstreamErrorResponse
@@ -539,6 +540,77 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
     }
   }
 
+  "ContractorSchemeController.applyPrepopulation" - {
+
+    "returns 200 with version when service succeeds (happy path)" in new Setup {
+      val prepopReq = testApplyPrepopulationReq
+      when(mockService.applyPrepopulation(eqTo(prepopReq)))
+        .thenReturn(Future.successful(2))
+
+      val req: FakeRequest[JsValue] =
+        FakeRequest(POST, "/prepopulation/apply").withBody(Json.toJson(prepopReq))
+
+      val res: Future[Result] = controller.applyPrepopulation(req)
+
+      status(res) mustBe OK
+      contentType(res) mustBe Some(JSON)
+      (contentAsJson(res) \ "version").as[Int] mustBe 2
+      verify(mockService).applyPrepopulation(eqTo(prepopReq))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 400 when JSON body is invalid" in new Setup {
+      val invalidJson: JsValue = Json.obj("schemeId" -> 789) // missing required fields
+
+      val req: FakeRequest[JsValue] =
+        FakeRequest(POST, "/prepopulation/apply").withBody(invalidJson)
+
+      val res: Future[Result] = controller.applyPrepopulation(req)
+
+      status(res) mustBe BAD_REQUEST
+      contentType(res) mustBe Some(JSON)
+      (contentAsJson(res) \ "message").as[String] mustBe "Invalid JSON body"
+      verifyNoInteractions(mockService)
+    }
+
+    "propagates UpstreamErrorResponse (status & message)" in new Setup {
+      val prepopReq = testApplyPrepopulationReq
+      val err       = UpstreamErrorResponse("formp failed", BAD_GATEWAY, BAD_GATEWAY)
+
+      when(mockService.applyPrepopulation(eqTo(prepopReq)))
+        .thenReturn(Future.failed(err))
+
+      val req: FakeRequest[JsValue] =
+        FakeRequest(POST, "/prepopulation/apply").withBody(Json.toJson(prepopReq))
+
+      val res: Future[Result] = controller.applyPrepopulation(req)
+
+      status(res) mustBe BAD_GATEWAY
+      contentType(res) mustBe Some(JSON)
+      (contentAsJson(res) \ "message").as[String] must include("formp failed")
+      verify(mockService).applyPrepopulation(eqTo(prepopReq))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 500 with generic message on unexpected exception" in new Setup {
+      val prepopReq = testApplyPrepopulationReq
+
+      when(mockService.applyPrepopulation(eqTo(prepopReq)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val req: FakeRequest[JsValue] =
+        FakeRequest(POST, "/prepopulation/apply").withBody(Json.toJson(prepopReq))
+
+      val res: Future[Result] = controller.applyPrepopulation(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      contentType(res) mustBe Some(JSON)
+      (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
+      verify(mockService).applyPrepopulation(eqTo(prepopReq))
+      verifyNoMoreInteractions(mockService)
+    }
+  }
+
   trait Setup {
     implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.global
     private val cc: ControllerComponents = stubControllerComponents()
@@ -609,5 +681,23 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       taxOfficeReference = "XX99999",
       version = Some(2)
     )
+
+    val testApplyPrepopulationReq: ApplyPrepopulationRequest =
+      ApplyPrepopulationRequest(
+        schemeId = 789,
+        instanceId = "abc-123",
+        accountsOfficeReference = "111111111",
+        taxOfficeNumber = "123",
+        taxOfficeReference = "AB456",
+        utr = Some("9876543210"),
+        name = "Test Contractor",
+        emailAddress = Some("test@test.com"),
+        displayWelcomePage = Some("N"),
+        prePopCount = 5,
+        prePopSuccessful = "Y",
+        version = 1,
+        subcontractorTypes = Seq(SoleTrader, Company)
+      )
+
   }
 }
