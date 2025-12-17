@@ -18,8 +18,8 @@ package uk.gov.hmrc.formpproxy.sdlt.models.agents
 
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
-import play.api.libs.json.{JsSuccess, Json}
-import uk.gov.hmrc.formpproxy.sdlt.models.agents.{DeletePredefinedAgentRequest, DeletePredefinedAgentResponse}
+import play.api.libs.json.JsSuccess
+import play.api.libs.json.Json
 
 class DeletePredefinedAgentModelsSpec extends AnyFreeSpec with Matchers {
 
