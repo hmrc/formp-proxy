@@ -17,17 +17,11 @@
 package uk.gov.hmrc.formpproxy.cis.controllers
 
 import play.api.Logging
-import play.api.libs.json.JsValue
-import play.api.libs.json.Json
-import play.api.mvc.Action
-import play.api.mvc.AnyContent
-import play.api.mvc.ControllerComponents
-import play.api.mvc.Result
+import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
-import uk.gov.hmrc.formpproxy.cis.models.CreateContractorSchemeParams
-import uk.gov.hmrc.formpproxy.cis.models.UpdateContractorSchemeParams
-import uk.gov.hmrc.formpproxy.cis.models.requests.CreateSubcontractorRequest
-import uk.gov.hmrc.formpproxy.cis.models.requests.UpdateSchemeVersionRequest
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateSubcontractorRequest, UpdateSchemeVersionRequest}
+import uk.gov.hmrc.formpproxy.cis.models.{CreateContractorSchemeParams, UpdateContractorSchemeParams}
 import uk.gov.hmrc.formpproxy.cis.services.ContractorSchemeService
 import uk.gov.hmrc.formpproxy.cis.utils.JsResultUtils.*
 import uk.gov.hmrc.http.UpstreamErrorResponse

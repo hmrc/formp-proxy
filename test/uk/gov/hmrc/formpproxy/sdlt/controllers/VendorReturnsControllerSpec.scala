@@ -22,22 +22,16 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
-import play.api.libs.json.JsObject
-import play.api.libs.json.JsValue
-import play.api.libs.json.Json
-import play.api.mvc.ControllerComponents
-import play.api.mvc.PlayBodyParsers
-import play.api.mvc.Result
+import play.api.libs.json.{JsObject, JsValue, Json}
+import play.api.mvc.{ControllerComponents, PlayBodyParsers, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import uk.gov.hmrc.formpproxy.actions.AuthAction
-import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
+import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
 import uk.gov.hmrc.formpproxy.sdlt.controllers.returns.VendorReturnsController
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.services.ReturnService
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class VendorReturnsControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures with MockitoSugar {
 
