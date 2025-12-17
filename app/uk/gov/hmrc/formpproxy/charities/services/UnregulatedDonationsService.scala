@@ -26,30 +26,33 @@ import com.google.inject.ImplementedBy
 @ImplementedBy(classOf[UnregulatedDonationsServiceImpl])
 trait UnregulatedDonationsService {
 
-  /**
-    * Sum of all the unregulated donations for the given charity reference
+  /** Sum of all the unregulated donations for the given charity reference
     *
     * @param charityReference
-    * @return The total of all the unregulated donations for the given charity reference
+    * @return
+    *   The total of all the unregulated donations for the given charity reference
     */
   def getTotalUnregulatedDonations(charityReference: String): Future[Option[BigDecimal]]
 
-  /**
-    * Save a unregulated donation for the given charity reference
+  /** Save a unregulated donation for the given charity reference
     *
-    * @param request - The request containing the charity reference, claim id and amount
-    * @return nothing
+    * @param request
+    *   \- The request containing the charity reference, claim id and amount
+    * @return
+    *   nothing
     */
   def saveUnregulatedDonation(charityReference: String, request: SaveUnregulatedDonationRequest): Future[Unit]
 }
 
 @Singleton
 class UnregulatedDonationsServiceImpl @Inject() (repo: CharitiesFormpRepository) extends UnregulatedDonationsService {
-  
+
   override def getTotalUnregulatedDonations(charityReference: String): Future[Option[BigDecimal]] =
     repo.getTotalUnregulatedDonations(charityReference)
-  
-  override def saveUnregulatedDonation(charityReference: String, request: SaveUnregulatedDonationRequest): Future[Unit] =
+
+  override def saveUnregulatedDonation(
+    charityReference: String,
+    request: SaveUnregulatedDonationRequest
+  ): Future[Unit] =
     repo.saveUnregulatedDonation(charityReference, request)
 }
-

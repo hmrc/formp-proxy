@@ -29,73 +29,42 @@ final class CharitiesFormpRepositorySpec extends SpecBase {
 
   "getTotalUnregulatedDonations" - {
 
-    "parse one row and close resources" in {
-      val db        = mock[Database]
-      val conn      = mock[Connection]
-      val cs        = mock[CallableStatement]
-      val resultSet = mock[ResultSet]
+    "return some total when the query succeeds" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
 
       when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
       }
       when(conn.prepareCall(anyArg[String])).thenReturn(cs)
-
-      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(resultSet)
-
-      when(resultSet.next()).thenReturn(true, false)
-      when(resultSet.getBigDecimal("p_total")).thenReturn(BigDecimal("1234.56").underlying())
+      when(cs.getBigDecimal(eqTo(2))).thenReturn(BigDecimal("1234.56").underlying())
 
       val repo = new CharitiesFormpRepository(db)
       val out  = repo.getTotalUnregulatedDonations("abc-123").futureValue
 
       out mustBe Some(BigDecimal("1234.56"))
 
-      verify(conn).prepareCall("{ call UNREGULATED_DONATIONS_PK.getTotalUnregulatedDonations(?) }")
+      verify(conn).prepareCall("{ call UNREGULATED_DONATIONS_PK.getTotalUnregulatedDonations(?, ?) }")
       verify(cs).execute()
     }
 
-    "return empty when cursor is null" in {
-      val db        = mock[Database]
-      val conn      = mock[Connection]
-      val cs        = mock[CallableStatement]
-      val resultSet = mock[ResultSet]
+    "return empty when result is null" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
 
       when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
       }
       when(conn.prepareCall(anyArg[String])).thenReturn(cs)
-      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(null)
-      when(resultSet.next()).thenReturn(false)
+      when(cs.getBigDecimal(eqTo(2))).thenReturn(null)
 
       val repo = new CharitiesFormpRepository(db)
       val out  = repo.getTotalUnregulatedDonations("abc-123").futureValue
 
       out mustBe None
-      verify(conn).prepareCall(eqTo("{ call UNREGULATED_DONATIONS_PK.getTotalUnregulatedDonations(?) }"))
-      verify(cs).execute()
-    }
-
-    "return empty when cursor has no rows" in {
-      val db        = mock[Database]
-      val conn      = mock[Connection]
-      val cs        = mock[CallableStatement]
-      val resultSet = mock[ResultSet]
-
-      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
-        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
-      }
-      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
-
-      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(resultSet)
-
-      when(resultSet.next()).thenReturn(false)
-
-      val repo = new CharitiesFormpRepository(db)
-      val out  = repo.getTotalUnregulatedDonations("abc-123").futureValue
-
-      out mustBe None
-
-      verify(conn).prepareCall("{ call UNREGULATED_DONATIONS_PK.getTotalUnregulatedDonations(?) }")
+      verify(conn).prepareCall(eqTo("{ call UNREGULATED_DONATIONS_PK.getTotalUnregulatedDonations(?, ?) }"))
       verify(cs).execute()
     }
   }
