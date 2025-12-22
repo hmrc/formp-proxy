@@ -24,6 +24,7 @@ import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
 import uk.gov.hmrc.formpproxy.sdlt.models.organisation.*
 import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnSummary, SdltReturnRecordResponse}
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
+import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.*
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 
 import java.lang.Long
@@ -48,6 +49,12 @@ trait SdltSource {
   def sdltUpdatePredefinedAgent(req: UpdatePredefinedAgentRequest): Future[UpdatePredefinedAgentResponse]
   def sdltCreatePredefinedAgent(request: CreatePredefinedAgentRequest): Future[CreatePredefinedAgentResponse]
   def sdltDeletePredefinedAgent(req: DeletePredefinedAgentRequest): Future[DeletePredefinedAgentResponse]
+  def sdltCreatePurchaser(request: CreatePurchaserRequest): Future[CreatePurchaserReturn]
+  def sdltUpdatePurchaser(request: UpdatePurchaserRequest): Future[UpdatePurchaserReturn]
+  def sdltDeletePurchaser(request: DeletePurchaserRequest): Future[DeletePurchaserReturn]
+  def sdltCreateCompanyDetails(request: CreateCompanyDetailsRequest): Future[CreateCompanyDetailsReturn]
+  def sdltUpdateCompanyDetails(request: UpdateCompanyDetailsRequest): Future[UpdateCompanyDetailsReturn]
+  def sdltDeleteCompanyDetails(request: DeleteCompanyDetailsRequest): Future[DeleteCompanyDetailsReturn]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -1129,6 +1136,453 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       CreatePredefinedAgentResponse(
         agentResourceRef = Some(tempAgentResourceRef.toString),
         agentId = Some(tempAgentId.toString)
+      )
+    } finally cs.close()
+  }
+
+  override def sdltCreatePurchaser(request: CreatePurchaserRequest): Future[CreatePurchaserReturn] = Future {
+    db.withTransaction { conn =>
+      callCreatePurchaser(
+        conn = conn,
+        p_storn = request.stornId,
+        p_return_resource_ref = request.returnResourceRef.toLong,
+        p_is_company = request.isCompany,
+        p_is_trustee = request.isTrustee,
+        p_is_connected_to_vendor = request.isConnectedToVendor,
+        p_is_represented_by_agent = request.isRepresentedByAgent,
+        p_title = request.title,
+        p_surname = request.surname,
+        p_forename1 = request.forename1,
+        p_forename2 = request.forename2,
+        p_company_name = request.companyName,
+        p_house_number = request.houseNumber,
+        p_address_1 = request.address1,
+        p_address_2 = request.address2,
+        p_address_3 = request.address3,
+        p_address_4 = request.address4,
+        p_postcode = request.postcode,
+        p_phone = request.phone,
+        p_nino = request.nino,
+        p_has_nino = request.hasNino,
+        p_date_of_birth = request.dateOfBirth,
+        p_is_uk_company = request.isUkCompany,
+        p_registration_number = request.registrationNumber,
+        p_place_of_registration = request.placeOfRegistration
+      )
+    }
+  }
+
+  private def callCreatePurchaser(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_is_company: String,
+    p_is_trustee: String,
+    p_is_connected_to_vendor: String,
+    p_is_represented_by_agent: String,
+    p_title: Option[String],
+    p_surname: Option[String],
+    p_forename1: Option[String],
+    p_forename2: Option[String],
+    p_company_name: Option[String],
+    p_house_number: Option[String],
+    p_address_1: String,
+    p_address_2: Option[String],
+    p_address_3: Option[String],
+    p_address_4: Option[String],
+    p_postcode: Option[String],
+    p_phone: Option[String],
+    p_nino: Option[String],
+    p_has_nino: Option[String],
+    p_date_of_birth: Option[String],
+    p_is_uk_company: Option[String],
+    p_registration_number: Option[String],
+    p_place_of_registration: Option[String]
+  ): CreatePurchaserReturn = {
+
+    val cs = conn.prepareCall(
+      "{ call PURCHASER_PROCS.Create_Purchaser(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+    )
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.setString(3, p_is_company)
+      cs.setString(4, p_is_trustee)
+      cs.setString(5, p_is_connected_to_vendor)
+      cs.setString(6, p_is_represented_by_agent)
+      cs.setOptionalString(7, p_title)
+      cs.setOptionalString(8, p_surname)
+      cs.setOptionalString(9, p_forename1)
+      cs.setOptionalString(10, p_forename2)
+      cs.setOptionalString(11, p_company_name)
+      cs.setOptionalString(12, p_house_number)
+      cs.setString(13, p_address_1)
+      cs.setOptionalString(14, p_address_2)
+      cs.setOptionalString(15, p_address_3)
+      cs.setOptionalString(16, p_address_4)
+      cs.setOptionalString(17, p_postcode)
+      cs.setOptionalString(18, p_phone)
+      cs.setOptionalString(19, p_nino)
+      cs.setOptionalString(20, p_has_nino)
+      cs.setOptionalString(21, p_date_of_birth)
+      cs.setOptionalString(22, p_is_uk_company)
+      cs.setOptionalString(23, p_registration_number)
+      cs.setOptionalString(24, p_place_of_registration)
+
+      cs.registerOutParameter(25, Types.NUMERIC)
+      cs.registerOutParameter(26, Types.NUMERIC)
+
+      cs.execute()
+
+      val purchaserResourceRef = cs.getLong(25)
+      val purchaserId          = cs.getLong(26)
+
+      CreatePurchaserReturn(
+        purchaserResourceRef = purchaserResourceRef.toString,
+        purchaserId = purchaserId.toString
+      )
+    } finally cs.close()
+  }
+
+  override def sdltUpdatePurchaser(request: UpdatePurchaserRequest): Future[UpdatePurchaserReturn] = Future {
+    db.withTransaction { conn =>
+      callUpdatePurchaser(
+        conn = conn,
+        p_storn = request.stornId,
+        p_return_resource_ref = request.returnResourceRef.toLong,
+        p_purchaser_resource_ref = request.purchaserResourceRef.toLong,
+        p_is_company = request.isCompany,
+        p_is_trustee = request.isTrustee,
+        p_is_connected_to_vendor = request.isConnectedToVendor,
+        p_is_represented_by_agent = request.isRepresentedByAgent,
+        p_title = request.title,
+        p_surname = request.surname,
+        p_forename1 = request.forename1,
+        p_forename2 = request.forename2,
+        p_company_name = request.companyName,
+        p_house_number = request.houseNumber,
+        p_address_1 = request.address1,
+        p_address_2 = request.address2,
+        p_address_3 = request.address3,
+        p_address_4 = request.address4,
+        p_postcode = request.postcode,
+        p_phone = request.phone,
+        p_nino = request.nino,
+        p_next_purchaser_id = request.nextPurchaserId,
+        p_has_nino = request.hasNino,
+        p_date_of_birth = request.dateOfBirth,
+        p_is_uk_company = request.isUkCompany,
+        p_registration_number = request.registrationNumber,
+        p_place_of_registration = request.placeOfRegistration
+      )
+    }
+  }
+
+  private def callUpdatePurchaser(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_purchaser_resource_ref: Long,
+    p_is_company: String,
+    p_is_trustee: String,
+    p_is_connected_to_vendor: String,
+    p_is_represented_by_agent: String,
+    p_title: Option[String],
+    p_surname: Option[String],
+    p_forename1: Option[String],
+    p_forename2: Option[String],
+    p_company_name: Option[String],
+    p_house_number: Option[String],
+    p_address_1: String,
+    p_address_2: Option[String],
+    p_address_3: Option[String],
+    p_address_4: Option[String],
+    p_postcode: Option[String],
+    p_phone: Option[String],
+    p_nino: Option[String],
+    p_next_purchaser_id: Option[String],
+    p_has_nino: Option[String],
+    p_date_of_birth: Option[String],
+    p_is_uk_company: Option[String],
+    p_registration_number: Option[String],
+    p_place_of_registration: Option[String]
+  ): UpdatePurchaserReturn = {
+
+    val cs = conn.prepareCall(
+      "{ call PURCHASER_PROCS.Update_Purchaser(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+    )
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.setLong(3, p_purchaser_resource_ref)
+      cs.setString(4, p_is_company)
+      cs.setString(5, p_is_trustee)
+      cs.setString(6, p_is_connected_to_vendor)
+      cs.setString(7, p_is_represented_by_agent)
+      cs.setOptionalString(8, p_title)
+      cs.setOptionalString(9, p_surname)
+      cs.setOptionalString(10, p_forename1)
+      cs.setOptionalString(11, p_forename2)
+      cs.setOptionalString(12, p_company_name)
+      cs.setOptionalString(13, p_house_number)
+      cs.setString(14, p_address_1)
+      cs.setOptionalString(15, p_address_2)
+      cs.setOptionalString(16, p_address_3)
+      cs.setOptionalString(17, p_address_4)
+      cs.setOptionalString(18, p_postcode)
+      cs.setOptionalString(19, p_phone)
+      cs.setOptionalString(20, p_nino)
+      cs.setOptionalString(21, p_next_purchaser_id)
+      cs.setOptionalString(22, p_has_nino)
+      cs.setOptionalString(23, p_date_of_birth)
+      cs.setOptionalString(24, p_is_uk_company)
+      cs.setOptionalString(25, p_registration_number)
+      cs.setOptionalString(26, p_place_of_registration)
+
+      cs.execute()
+
+      UpdatePurchaserReturn(
+        updated = true
+      )
+
+    } finally cs.close()
+  }
+
+  override def sdltDeletePurchaser(request: DeletePurchaserRequest): Future[DeletePurchaserReturn] = Future {
+    db.withTransaction { conn =>
+      callDeletePurchaser(
+        conn = conn,
+        p_storn = request.storn,
+        p_return_resource_ref = request.returnResourceRef.toLong,
+        p_purchaser_resource_ref = request.purchaserResourceRef.toLong
+      )
+    }
+  }
+
+  private def callDeletePurchaser(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_purchaser_resource_ref: Long
+  ): DeletePurchaserReturn = {
+
+    val cs = conn.prepareCall("{ call PURCHASER_PROCS.Delete_Purchaser(?, ?, ?) }")
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.setLong(3, p_purchaser_resource_ref)
+
+      cs.execute()
+
+      DeletePurchaserReturn(
+        deleted = true
+      )
+    } finally cs.close()
+  }
+
+  override def sdltCreateCompanyDetails(request: CreateCompanyDetailsRequest): Future[CreateCompanyDetailsReturn] =
+    Future {
+      db.withTransaction { conn =>
+        callCreateCompanyDetails(
+          conn = conn,
+          p_storn = request.stornId,
+          p_return_resource_ref = request.returnResourceRef.toLong,
+          p_purchaser_resource_ref = request.purchaserResourceRef.toLong,
+          p_utr = request.utr,
+          p_vat_reference = request.vatReference,
+          p_comp_type_bank = request.compTypeBank,
+          p_comp_type_builder = request.compTypeBuilder,
+          p_comp_type_buildsoc = request.compTypeBuildsoc,
+          p_comp_type_centgov = request.compTypeCentgov,
+          p_comp_type_individual = request.compTypeIndividual,
+          p_comp_type_insurance = request.compTypeInsurance,
+          p_comp_type_localauth = request.compTypeLocalauth,
+          p_comp_type_ocharity = request.compTypeOcharity,
+          p_comp_type_ocompany = request.compTypeOcompany,
+          p_comp_type_ofinancial = request.compTypeOfinancial,
+          p_comp_type_partship = request.compTypePartship,
+          p_comp_type_property = request.compTypeProperty,
+          p_comp_type_publiccorp = request.compTypePubliccorp,
+          p_comp_type_soletrader = request.compTypeSoletrader,
+          p_comp_type_penfund = request.compTypePenfund
+        )
+      }
+    }
+
+  private def callCreateCompanyDetails(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_purchaser_resource_ref: Long,
+    p_utr: Option[String],
+    p_vat_reference: Option[String],
+    p_comp_type_bank: Option[String],
+    p_comp_type_builder: Option[String],
+    p_comp_type_buildsoc: Option[String],
+    p_comp_type_centgov: Option[String],
+    p_comp_type_individual: Option[String],
+    p_comp_type_insurance: Option[String],
+    p_comp_type_localauth: Option[String],
+    p_comp_type_ocharity: Option[String],
+    p_comp_type_ocompany: Option[String],
+    p_comp_type_ofinancial: Option[String],
+    p_comp_type_partship: Option[String],
+    p_comp_type_property: Option[String],
+    p_comp_type_publiccorp: Option[String],
+    p_comp_type_soletrader: Option[String],
+    p_comp_type_penfund: Option[String]
+  ): CreateCompanyDetailsReturn = {
+
+    val cs = conn.prepareCall(
+      "{ call PURCHASER_PROCS.Create_Company_Details(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+    )
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.setLong(3, p_purchaser_resource_ref)
+      cs.setOptionalString(4, p_utr)
+      cs.setOptionalString(5, p_vat_reference)
+      cs.setOptionalString(6, p_comp_type_bank)
+      cs.setOptionalString(7, p_comp_type_builder)
+      cs.setOptionalString(8, p_comp_type_buildsoc)
+      cs.setOptionalString(9, p_comp_type_centgov)
+      cs.setOptionalString(10, p_comp_type_individual)
+      cs.setOptionalString(11, p_comp_type_insurance)
+      cs.setOptionalString(12, p_comp_type_localauth)
+      cs.setOptionalString(13, p_comp_type_ocharity)
+      cs.setOptionalString(14, p_comp_type_ocompany)
+      cs.setOptionalString(15, p_comp_type_ofinancial)
+      cs.setOptionalString(16, p_comp_type_partship)
+      cs.setOptionalString(17, p_comp_type_property)
+      cs.setOptionalString(18, p_comp_type_publiccorp)
+      cs.setOptionalString(19, p_comp_type_soletrader)
+      cs.setOptionalString(20, p_comp_type_penfund)
+
+      cs.registerOutParameter(21, Types.NUMERIC)
+
+      cs.execute()
+
+      val companyDetailsId = cs.getLong(21)
+
+      CreateCompanyDetailsReturn(
+        companyDetailsId = companyDetailsId.toString
+      )
+    } finally cs.close()
+  }
+
+  override def sdltUpdateCompanyDetails(request: UpdateCompanyDetailsRequest): Future[UpdateCompanyDetailsReturn] =
+    Future {
+      db.withTransaction { conn =>
+        callUpdateCompanyDetails(
+          conn = conn,
+          p_storn = request.stornId,
+          p_return_resource_ref = request.returnResourceRef.toLong,
+          p_purchaser_resource_ref = request.purchaserResourceRef.toLong,
+          p_utr = request.utr,
+          p_vat_reference = request.vatReference,
+          p_comp_type_bank = request.compTypeBank,
+          p_comp_type_builder = request.compTypeBuilder,
+          p_comp_type_buildsoc = request.compTypeBuildsoc,
+          p_comp_type_centgov = request.compTypeCentgov,
+          p_comp_type_individual = request.compTypeIndividual,
+          p_comp_type_insurance = request.compTypeInsurance,
+          p_comp_type_localauth = request.compTypeLocalauth,
+          p_comp_type_ocharity = request.compTypeOcharity,
+          p_comp_type_ocompany = request.compTypeOcompany,
+          p_comp_type_ofinancial = request.compTypeOfinancial,
+          p_comp_type_partship = request.compTypePartship,
+          p_comp_type_property = request.compTypeProperty,
+          p_comp_type_publiccorp = request.compTypePubliccorp,
+          p_comp_type_soletrader = request.compTypeSoletrader,
+          p_comp_type_penfund = request.compTypePenfund
+        )
+      }
+    }
+
+  private def callUpdateCompanyDetails(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_purchaser_resource_ref: Long,
+    p_utr: Option[String],
+    p_vat_reference: Option[String],
+    p_comp_type_bank: Option[String],
+    p_comp_type_builder: Option[String],
+    p_comp_type_buildsoc: Option[String],
+    p_comp_type_centgov: Option[String],
+    p_comp_type_individual: Option[String],
+    p_comp_type_insurance: Option[String],
+    p_comp_type_localauth: Option[String],
+    p_comp_type_ocharity: Option[String],
+    p_comp_type_ocompany: Option[String],
+    p_comp_type_ofinancial: Option[String],
+    p_comp_type_partship: Option[String],
+    p_comp_type_property: Option[String],
+    p_comp_type_publiccorp: Option[String],
+    p_comp_type_soletrader: Option[String],
+    p_comp_type_penfund: Option[String]
+  ): UpdateCompanyDetailsReturn = {
+
+    val cs = conn.prepareCall(
+      "{ call PURCHASER_PROCS.Update_Company_Details(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+    )
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.setLong(3, p_purchaser_resource_ref)
+      cs.setOptionalString(4, p_utr)
+      cs.setOptionalString(5, p_vat_reference)
+      cs.setOptionalString(6, p_comp_type_bank)
+      cs.setOptionalString(7, p_comp_type_builder)
+      cs.setOptionalString(8, p_comp_type_buildsoc)
+      cs.setOptionalString(9, p_comp_type_centgov)
+      cs.setOptionalString(10, p_comp_type_individual)
+      cs.setOptionalString(11, p_comp_type_insurance)
+      cs.setOptionalString(12, p_comp_type_localauth)
+      cs.setOptionalString(13, p_comp_type_ocharity)
+      cs.setOptionalString(14, p_comp_type_ocompany)
+      cs.setOptionalString(15, p_comp_type_ofinancial)
+      cs.setOptionalString(16, p_comp_type_partship)
+      cs.setOptionalString(17, p_comp_type_property)
+      cs.setOptionalString(18, p_comp_type_publiccorp)
+      cs.setOptionalString(19, p_comp_type_soletrader)
+      cs.setOptionalString(20, p_comp_type_penfund)
+
+      cs.execute()
+
+      UpdateCompanyDetailsReturn(
+        updated = true
+      )
+
+    } finally cs.close()
+  }
+
+  override def sdltDeleteCompanyDetails(request: DeleteCompanyDetailsRequest): Future[DeleteCompanyDetailsReturn] =
+    Future {
+      db.withTransaction { conn =>
+        callDeleteCompanyDetails(
+          conn = conn,
+          p_storn = request.storn,
+          p_return_resource_ref = request.returnResourceRef.toLong
+        )
+      }
+    }
+
+  private def callDeleteCompanyDetails(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long
+  ): DeleteCompanyDetailsReturn = {
+
+    val cs = conn.prepareCall("{ call PURCHASER_PROCS.Delete_Company_Details(?, ?) }")
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+
+      cs.execute()
+
+      DeleteCompanyDetailsReturn(
+        deleted = true
       )
     } finally cs.close()
   }

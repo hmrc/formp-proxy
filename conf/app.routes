@@ -38,6 +38,15 @@ POST       /filing/update/return-version                            uk.gov.hmrc.
 
 POST       /create/predefined-agent                                 uk.gov.hmrc.formpproxy.sdlt.controllers.agents.CreatePredefinedAgentController.createPredefinedAgent()
 
+POST       /filing/create/purchaser                                 uk.gov.hmrc.formpproxy.sdlt.controllers.returns.PurchaserReturnsController.createPurchaser()
+POST       /filing/update/purchaser                                 uk.gov.hmrc.formpproxy.sdlt.controllers.returns.PurchaserReturnsController.updatePurchaser()
+POST       /filing/delete/purchaser                                 uk.gov.hmrc.formpproxy.sdlt.controllers.returns.PurchaserReturnsController.deletePurchaser()
+
+POST       /filing/create/company-details                           uk.gov.hmrc.formpproxy.sdlt.controllers.returns.PurchaserReturnsController.createCompanyDetails()
+POST       /filing/update/company-details                           uk.gov.hmrc.formpproxy.sdlt.controllers.returns.PurchaserReturnsController.updateCompanyDetails()
+POST       /filing/delete/company-details                           uk.gov.hmrc.formpproxy.sdlt.controllers.returns.PurchaserReturnsController.deleteCompanyDetails()
+
+
 # CHARITIES routes
 
 GET        /charities/:charityReference/unregulated-donations       uk.gov.hmrc.formpproxy.charities.controllers.UnregulatedDonationsController.getTotalUnregulatedDonations(charityReference: String)
