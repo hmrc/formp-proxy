@@ -22,6 +22,7 @@ import org.scalatest.freespec.AnyFreeSpec
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
+import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.*
 import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
 import uk.gov.hmrc.formpproxy.sdlt.models.returns.SdltReturnRecordResponse
 import uk.gov.hmrc.formpproxy.sdlt.repositories.{SdltFormpRepoDataHelper, SdltFormpRepository}
@@ -1256,4 +1257,616 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
       verifyNoMoreInteractions(repo)
     }
   }
+
+  "ReturnService createPurchaser" - {
+
+    "must delegate to repository " in {
+      val repo                                    = mock[SdltFormpRepository]
+      val service                                 = new ReturnService(repo)
+      val request: CreatePurchaserRequest         = CreatePurchaserRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        isCompany = "N",
+        isTrustee = "N",
+        isConnectedToVendor = "N",
+        isRepresentedByAgent = "N",
+        title = Some("Mr"),
+        surname = Some("Smith"),
+        forename1 = Some("John"),
+        forename2 = Some("James"),
+        companyName = None,
+        houseNumber = Some("123"),
+        address1 = "Main Street",
+        address2 = Some("Apartment 4B"),
+        address3 = Some("City Center"),
+        address4 = None,
+        postcode = Some("SW1A 1AA"),
+        phone = Some("07777123456"),
+        nino = Some("AB123456C"),
+        isUkCompany = None,
+        hasNino = Some("Y"),
+        dateOfBirth = Some("1980-01-15"),
+        registrationNumber = None,
+        placeOfRegistration = None
+      )
+      val expectedResponse: CreatePurchaserReturn = CreatePurchaserReturn(
+        purchaserResourceRef = "P100001",
+        purchaserId = "PID123"
+      )
+
+      when(repo.sdltCreatePurchaser(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: CreatePurchaserReturn = service.createPurchaser(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltCreatePurchaser(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must handle minimal purchaser request" in {
+      val repo                                    = mock[SdltFormpRepository]
+      val service                                 = new ReturnService(repo)
+      val request: CreatePurchaserRequest         = CreatePurchaserRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        isCompany = "N",
+        isTrustee = "N",
+        isConnectedToVendor = "N",
+        isRepresentedByAgent = "N",
+        title = None,
+        surname = None,
+        forename1 = None,
+        forename2 = None,
+        companyName = None,
+        houseNumber = None,
+        address1 = "Business Park",
+        address2 = None,
+        address3 = None,
+        address4 = None,
+        postcode = None,
+        phone = None,
+        nino = None,
+        isUkCompany = None,
+        hasNino = None,
+        dateOfBirth = None,
+        registrationNumber = None,
+        placeOfRegistration = None
+      )
+      val expectedResponse: CreatePurchaserReturn = CreatePurchaserReturn(
+        purchaserResourceRef = "P100002",
+        purchaserId = "PID456"
+      )
+
+      when(repo.sdltCreatePurchaser(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: CreatePurchaserReturn = service.createPurchaser(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltCreatePurchaser(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must handle company purchaser request" in {
+      val repo                                    = mock[SdltFormpRepository]
+      val service                                 = new ReturnService(repo)
+      val request: CreatePurchaserRequest         = CreatePurchaserRequest(
+        stornId = "STORN77777",
+        returnResourceRef = "100003",
+        isCompany = "Y",
+        isTrustee = "N",
+        isConnectedToVendor = "N",
+        isRepresentedByAgent = "N",
+        title = None,
+        surname = None,
+        forename1 = None,
+        forename2 = None,
+        companyName = Some("Tech Corp Ltd"),
+        houseNumber = None,
+        address1 = "Business Park",
+        address2 = None,
+        address3 = None,
+        address4 = None,
+        postcode = Some("EC1A 1BB"),
+        phone = Some("02012345678"),
+        nino = None,
+        isUkCompany = Some("Y"),
+        hasNino = Some("N"),
+        dateOfBirth = None,
+        registrationNumber = Some("12345678"),
+        placeOfRegistration = None
+      )
+      val expectedResponse: CreatePurchaserReturn = CreatePurchaserReturn(
+        purchaserResourceRef = "P100003",
+        purchaserId = "PID789"
+      )
+
+      when(repo.sdltCreatePurchaser(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: CreatePurchaserReturn = service.createPurchaser(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltCreatePurchaser(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must propagate failures from repository" in {
+      val repo                            = mock[SdltFormpRepository]
+      val service                         = new ReturnService(repo)
+      val request: CreatePurchaserRequest = CreatePurchaserRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        isCompany = "N",
+        isTrustee = "N",
+        isConnectedToVendor = "N",
+        isRepresentedByAgent = "N",
+        address1 = "Main Street"
+      )
+      val boom                            = new RuntimeException("database connection failed")
+
+      when(repo.sdltCreatePurchaser(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      val ex: Throwable = service.createPurchaser(request).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).sdltCreatePurchaser(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "ReturnService updatePurchaser" - {
+
+    "must delegate to repository " in {
+      val repo                                    = mock[SdltFormpRepository]
+      val service                                 = new ReturnService(repo)
+      val request: UpdatePurchaserRequest         = UpdatePurchaserRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        purchaserResourceRef = "P100001",
+        isCompany = "N",
+        isTrustee = "N",
+        isConnectedToVendor = "Y",
+        isRepresentedByAgent = "Y",
+        title = Some("Mrs"),
+        surname = Some("Doe"),
+        forename1 = Some("Jane"),
+        forename2 = None,
+        companyName = None,
+        houseNumber = Some("456"),
+        address1 = "Oak Avenue",
+        address2 = Some("Suite 10"),
+        address3 = None,
+        address4 = None,
+        postcode = Some("W1A 1AA"),
+        phone = Some("07777654321"),
+        nino = Some("CD987654B"),
+        nextPurchaserId = None,
+        isUkCompany = None,
+        hasNino = Some("Y"),
+        dateOfBirth = Some("1985-05-20"),
+        registrationNumber = None,
+        placeOfRegistration = None
+      )
+      val expectedResponse: UpdatePurchaserReturn = UpdatePurchaserReturn(updated = true)
+
+      when(repo.sdltUpdatePurchaser(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: UpdatePurchaserReturn = service.updatePurchaser(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltUpdatePurchaser(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must return false when update fails" in {
+      val repo                                    = mock[SdltFormpRepository]
+      val service                                 = new ReturnService(repo)
+      val request: UpdatePurchaserRequest         = UpdatePurchaserRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        purchaserResourceRef = "P100002",
+        isCompany = "Y",
+        isTrustee = "N",
+        isConnectedToVendor = "N",
+        isRepresentedByAgent = "N",
+        companyName = Some("Updated Corp"),
+        address1 = "New Street"
+      )
+      val expectedResponse: UpdatePurchaserReturn = UpdatePurchaserReturn(updated = false)
+
+      when(repo.sdltUpdatePurchaser(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: UpdatePurchaserReturn = service.updatePurchaser(request).futureValue
+      result.updated mustBe false
+
+      verify(repo).sdltUpdatePurchaser(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must propagate failures from repository" in {
+      val repo                            = mock[SdltFormpRepository]
+      val service                         = new ReturnService(repo)
+      val request: UpdatePurchaserRequest = UpdatePurchaserRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        purchaserResourceRef = "P100001",
+        isCompany = "N",
+        isTrustee = "N",
+        isConnectedToVendor = "N",
+        isRepresentedByAgent = "N",
+        address1 = "Oak Avenue"
+      )
+      val boom                            = new RuntimeException("database timeout")
+
+      when(repo.sdltUpdatePurchaser(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      val ex: Throwable = service.updatePurchaser(request).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).sdltUpdatePurchaser(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "ReturnService deletePurchaser" - {
+
+    "must delegate to repository " in {
+      val repo                                    = mock[SdltFormpRepository]
+      val service                                 = new ReturnService(repo)
+      val request: DeletePurchaserRequest         = DeletePurchaserRequest(
+        storn = "STORN12345",
+        purchaserResourceRef = "P100001",
+        returnResourceRef = "100001"
+      )
+      val expectedResponse: DeletePurchaserReturn = DeletePurchaserReturn(deleted = true)
+
+      when(repo.sdltDeletePurchaser(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: DeletePurchaserReturn = service.deletePurchaser(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltDeletePurchaser(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must return false when delete fails" in {
+      val repo                                    = mock[SdltFormpRepository]
+      val service                                 = new ReturnService(repo)
+      val request: DeletePurchaserRequest         = DeletePurchaserRequest(
+        storn = "STORN99999",
+        purchaserResourceRef = "P999999",
+        returnResourceRef = "100002"
+      )
+      val expectedResponse: DeletePurchaserReturn = DeletePurchaserReturn(deleted = false)
+
+      when(repo.sdltDeletePurchaser(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: DeletePurchaserReturn = service.deletePurchaser(request).futureValue
+      result.deleted mustBe false
+
+      verify(repo).sdltDeletePurchaser(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must propagate failures from repository" in {
+      val repo                            = mock[SdltFormpRepository]
+      val service                         = new ReturnService(repo)
+      val request: DeletePurchaserRequest = DeletePurchaserRequest(
+        storn = "STORN12345",
+        purchaserResourceRef = "P100001",
+        returnResourceRef = "100001"
+      )
+      val boom                            = new RuntimeException("database error")
+
+      when(repo.sdltDeletePurchaser(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      val ex: Throwable = service.deletePurchaser(request).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).sdltDeletePurchaser(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "ReturnService createCompanyDetails" - {
+
+    "must delegate to repository " in {
+      val repo                                         = mock[SdltFormpRepository]
+      val service                                      = new ReturnService(repo)
+      val request: CreateCompanyDetailsRequest         = CreateCompanyDetailsRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        purchaserResourceRef = "P100001",
+        utr = Some("1234567890"),
+        vatReference = Some("GB123456789"),
+        compTypeBank = Some("N"),
+        compTypeBuilder = Some("N"),
+        compTypeBuildsoc = Some("N"),
+        compTypeCentgov = Some("N"),
+        compTypeIndividual = Some("N"),
+        compTypeInsurance = Some("N"),
+        compTypeLocalauth = Some("N"),
+        compTypeOcharity = Some("N"),
+        compTypeOcompany = Some("Y"),
+        compTypeOfinancial = Some("N"),
+        compTypePartship = Some("N"),
+        compTypeProperty = Some("N"),
+        compTypePubliccorp = Some("N"),
+        compTypeSoletrader = Some("N"),
+        compTypePenfund = Some("N")
+      )
+      val expectedResponse: CreateCompanyDetailsReturn = CreateCompanyDetailsReturn(
+        companyDetailsId = "CDID123"
+      )
+
+      when(repo.sdltCreateCompanyDetails(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: CreateCompanyDetailsReturn = service.createCompanyDetails(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltCreateCompanyDetails(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must handle minimal company details request" in {
+      val repo                                         = mock[SdltFormpRepository]
+      val service                                      = new ReturnService(repo)
+      val request: CreateCompanyDetailsRequest         = CreateCompanyDetailsRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        purchaserResourceRef = "P100002",
+        utr = None,
+        vatReference = None,
+        compTypeBank = None,
+        compTypeBuilder = None,
+        compTypeBuildsoc = None,
+        compTypeCentgov = None,
+        compTypeIndividual = None,
+        compTypeInsurance = None,
+        compTypeLocalauth = None,
+        compTypeOcharity = None,
+        compTypeOcompany = None,
+        compTypeOfinancial = None,
+        compTypePartship = None,
+        compTypeProperty = None,
+        compTypePubliccorp = None,
+        compTypeSoletrader = None,
+        compTypePenfund = None
+      )
+      val expectedResponse: CreateCompanyDetailsReturn = CreateCompanyDetailsReturn(
+        companyDetailsId = "CDID456"
+      )
+
+      when(repo.sdltCreateCompanyDetails(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: CreateCompanyDetailsReturn = service.createCompanyDetails(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltCreateCompanyDetails(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must propagate failures from repository" in {
+      val repo                                 = mock[SdltFormpRepository]
+      val service                              = new ReturnService(repo)
+      val request: CreateCompanyDetailsRequest = CreateCompanyDetailsRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        purchaserResourceRef = "P100001",
+        utr = Some("1234567890"),
+        vatReference = None,
+        compTypeBank = None,
+        compTypeBuilder = None,
+        compTypeBuildsoc = None,
+        compTypeCentgov = None,
+        compTypeIndividual = None,
+        compTypeInsurance = None,
+        compTypeLocalauth = None,
+        compTypeOcharity = None,
+        compTypeOcompany = Some("Y"),
+        compTypeOfinancial = None,
+        compTypePartship = None,
+        compTypeProperty = None,
+        compTypePubliccorp = None,
+        compTypeSoletrader = None,
+        compTypePenfund = None
+      )
+      val boom                                 = new RuntimeException("database connection failed")
+
+      when(repo.sdltCreateCompanyDetails(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      val ex: Throwable = service.createCompanyDetails(request).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).sdltCreateCompanyDetails(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "ReturnService updateCompanyDetails" - {
+
+    "must delegate to repository " in {
+      val repo                                         = mock[SdltFormpRepository]
+      val service                                      = new ReturnService(repo)
+      val request: UpdateCompanyDetailsRequest         = UpdateCompanyDetailsRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        purchaserResourceRef = "P100001",
+        utr = Some("9876543210"),
+        vatReference = Some("GB987654321"),
+        compTypeBank = Some("N"),
+        compTypeBuilder = Some("Y"),
+        compTypeBuildsoc = Some("N"),
+        compTypeCentgov = Some("N"),
+        compTypeIndividual = Some("N"),
+        compTypeInsurance = Some("N"),
+        compTypeLocalauth = Some("N"),
+        compTypeOcharity = Some("N"),
+        compTypeOcompany = Some("Y"),
+        compTypeOfinancial = Some("N"),
+        compTypePartship = Some("N"),
+        compTypeProperty = Some("Y"),
+        compTypePubliccorp = Some("N"),
+        compTypeSoletrader = Some("N"),
+        compTypePenfund = Some("N")
+      )
+      val expectedResponse: UpdateCompanyDetailsReturn = UpdateCompanyDetailsReturn(updated = true)
+
+      when(repo.sdltUpdateCompanyDetails(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: UpdateCompanyDetailsReturn = service.updateCompanyDetails(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltUpdateCompanyDetails(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must return false when update fails" in {
+      val repo                                         = mock[SdltFormpRepository]
+      val service                                      = new ReturnService(repo)
+      val request: UpdateCompanyDetailsRequest         = UpdateCompanyDetailsRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        purchaserResourceRef = "P100002",
+        utr = None,
+        vatReference = None,
+        compTypeBank = None,
+        compTypeBuilder = None,
+        compTypeBuildsoc = None,
+        compTypeCentgov = None,
+        compTypeIndividual = None,
+        compTypeInsurance = None,
+        compTypeLocalauth = None,
+        compTypeOcharity = None,
+        compTypeOcompany = None,
+        compTypeOfinancial = None,
+        compTypePartship = None,
+        compTypeProperty = None,
+        compTypePubliccorp = None,
+        compTypeSoletrader = None,
+        compTypePenfund = None
+      )
+      val expectedResponse: UpdateCompanyDetailsReturn = UpdateCompanyDetailsReturn(updated = false)
+
+      when(repo.sdltUpdateCompanyDetails(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: UpdateCompanyDetailsReturn = service.updateCompanyDetails(request).futureValue
+      result.updated mustBe false
+
+      verify(repo).sdltUpdateCompanyDetails(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must propagate failures from repository" in {
+      val repo                                 = mock[SdltFormpRepository]
+      val service                              = new ReturnService(repo)
+      val request: UpdateCompanyDetailsRequest = UpdateCompanyDetailsRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        purchaserResourceRef = "P100001",
+        utr = Some("1234567890"),
+        vatReference = None,
+        compTypeBank = None,
+        compTypeBuilder = None,
+        compTypeBuildsoc = None,
+        compTypeCentgov = None,
+        compTypeIndividual = None,
+        compTypeInsurance = None,
+        compTypeLocalauth = None,
+        compTypeOcharity = None,
+        compTypeOcompany = Some("Y"),
+        compTypeOfinancial = None,
+        compTypePartship = None,
+        compTypeProperty = None,
+        compTypePubliccorp = None,
+        compTypeSoletrader = None,
+        compTypePenfund = None
+      )
+      val boom                                 = new RuntimeException("database timeout")
+
+      when(repo.sdltUpdateCompanyDetails(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      val ex: Throwable = service.updateCompanyDetails(request).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).sdltUpdateCompanyDetails(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "ReturnService deleteCompanyDetails" - {
+
+    "must delegate to repository " in {
+      val repo                                         = mock[SdltFormpRepository]
+      val service                                      = new ReturnService(repo)
+      val request: DeleteCompanyDetailsRequest         = DeleteCompanyDetailsRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001"
+      )
+      val expectedResponse: DeleteCompanyDetailsReturn = DeleteCompanyDetailsReturn(deleted = true)
+
+      when(repo.sdltDeleteCompanyDetails(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: DeleteCompanyDetailsReturn = service.deleteCompanyDetails(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltDeleteCompanyDetails(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must return false when delete fails" in {
+      val repo                                         = mock[SdltFormpRepository]
+      val service                                      = new ReturnService(repo)
+      val request: DeleteCompanyDetailsRequest         = DeleteCompanyDetailsRequest(
+        storn = "STORN99999",
+        returnResourceRef = "100002"
+      )
+      val expectedResponse: DeleteCompanyDetailsReturn = DeleteCompanyDetailsReturn(deleted = false)
+
+      when(repo.sdltDeleteCompanyDetails(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: DeleteCompanyDetailsReturn = service.deleteCompanyDetails(request).futureValue
+      result.deleted mustBe false
+
+      verify(repo).sdltDeleteCompanyDetails(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must propagate failures from repository" in {
+      val repo                                 = mock[SdltFormpRepository]
+      val service                              = new ReturnService(repo)
+      val request: DeleteCompanyDetailsRequest = DeleteCompanyDetailsRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001"
+      )
+      val boom                                 = new RuntimeException("database error")
+
+      when(repo.sdltDeleteCompanyDetails(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      val ex: Throwable = service.deleteCompanyDetails(request).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).sdltDeleteCompanyDetails(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
 }
