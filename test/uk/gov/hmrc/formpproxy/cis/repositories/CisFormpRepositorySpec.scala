@@ -22,7 +22,7 @@ import org.mockito.Mockito.*
 import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.{Company, CreateContractorSchemeParams, Partnership, SoleTrader, Trust, UpdateContractorSchemeParams}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubmissionRequest}
 
 import java.time.Instant
 import java.sql.*
@@ -954,6 +954,62 @@ final class CisFormpRepositorySpec extends SpecBase {
       result mustBe 8
 
       verify(cs).setString(3, "trust")
+    }
+  }
+
+  "applyPrepopulation" - {
+
+    "calls update scheme + creates subcontractors + updates version and returns new version" in {
+      val db          = mock[Database]
+      val conn        = mock[Connection]
+      val csUpdate    = mock[CallableStatement]
+      val csSub       = mock[CallableStatement]
+      val csUpdateVer = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call SCHEME_PROCS.Update_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")))
+        .thenReturn(csUpdate)
+
+      when(conn.prepareCall(eqTo("{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }")))
+        .thenReturn(csSub)
+
+      when(conn.prepareCall(eqTo("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }")))
+        .thenReturn(csUpdateVer)
+
+      when(csUpdateVer.getInt(2)).thenReturn(2)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = ApplyPrepopulationRequest(
+        schemeId = 789,
+        instanceId = "abc-123",
+        accountsOfficeReference = "111111111",
+        taxOfficeNumber = "123",
+        taxOfficeReference = "AB456",
+        utr = Some("9876543210"),
+        name = "Test Contractor",
+        emailAddress = Some("test@test.com"),
+        displayWelcomePage = Some("Y"),
+        prePopCount = 5,
+        prePopSuccessful = "Y",
+        version = 1,
+        subcontractorTypes = Seq(SoleTrader, Company)
+      )
+
+      val out = repo.applyPrepopulation(req).futureValue
+      out mustBe 2
+
+      verify(conn).prepareCall(eqTo("{ call SCHEME_PROCS.Update_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"))
+      verify(conn, times(req.subcontractorTypes.size))
+        .prepareCall(eqTo("{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }"))
+      verify(conn).prepareCall(eqTo("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"))
+
+      verify(csUpdate).execute()
+      verify(csSub, times(req.subcontractorTypes.size)).execute()
+      verify(csUpdateVer).execute()
     }
   }
 }
