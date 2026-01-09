@@ -23,6 +23,7 @@ import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnSummary, SdltReturnRecordResponse}
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
+import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.*
 import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
 
 import java.sql.*
@@ -57,7 +58,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       val request = CreateReturnRequest(
         stornId = "STORN12345",
-        purchaserIsCompany = "N",
+        purchaserIsCompany = "NO",
         surNameOrCompanyName = "Smith",
         houseNumber = Some(42),
         addressLine1 = "High Street",
@@ -74,7 +75,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       verify(conn).prepareCall("{ call RETURN_PROCS.Create_Return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
       verify(cs).setString(1, "STORN12345")
-      verify(cs).setString(2, "N")
+      verify(cs).setString(2, "NO")
       verify(cs).setString(3, "Smith")
       verify(cs).setString(4, "42")
       verify(cs).setString(5, "High Street")
@@ -104,7 +105,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       val request = CreateReturnRequest(
         stornId = "STORN99999",
-        purchaserIsCompany = "Y",
+        purchaserIsCompany = "YES",
         surNameOrCompanyName = "ABC Property Ltd",
         houseNumber = Some(100),
         addressLine1 = "Business Park",
@@ -120,7 +121,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       result mustBe "100002"
 
       verify(cs).setString(1, "STORN99999")
-      verify(cs).setString(2, "Y")
+      verify(cs).setString(2, "YES")
       verify(cs).setString(3, "ABC Property Ltd")
       verify(cs).execute()
     }
@@ -141,7 +142,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       val request = CreateReturnRequest(
         stornId = "STORN88888",
-        purchaserIsCompany = "N",
+        purchaserIsCompany = "NO",
         surNameOrCompanyName = "Johnson",
         houseNumber = None,
         addressLine1 = "Oak Street",
@@ -215,8 +216,8 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       when(cs.getObject(eqTo(16), eqTo(classOf[ResultSet]))).thenReturn(rsRes)
 
       when(rsOrg.next()).thenReturn(true, false)
-      when(rsOrg.getString("IS_RETURN_USER")).thenReturn("Y")
-      when(rsOrg.getString("DO_NOT_DISPLAY_WELCOME_PAGE")).thenReturn("N")
+      when(rsOrg.getString("IS_RETURN_USER")).thenReturn("YES")
+      when(rsOrg.getString("DO_NOT_DISPLAY_WELCOME_PAGE")).thenReturn("NO")
       when(rsOrg.getString("STORN")).thenReturn("STORN12345")
       when(rsOrg.getString("VERSION")).thenReturn("1")
 
@@ -228,7 +229,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       when(rsPurchaser.next()).thenReturn(true, false)
       when(rsPurchaser.getString("PURCHASER_ID")).thenReturn("1")
-      when(rsPurchaser.getString("IS_COMPANY")).thenReturn("N")
+      when(rsPurchaser.getString("IS_COMPANY")).thenReturn("NO")
       when(rsPurchaser.getString("SURNAME")).thenReturn("Smith")
 
       when(rsCompany.next()).thenReturn(false)
@@ -471,14 +472,14 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       when(cs.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsPurchaser)
       when(rsPurchaser.next()).thenReturn(true, false)
       when(rsPurchaser.getString("PURCHASER_ID")).thenReturn("1")
-      when(rsPurchaser.getString("IS_COMPANY")).thenReturn("Y")
+      when(rsPurchaser.getString("IS_COMPANY")).thenReturn("YES")
       when(rsPurchaser.getString("COMPANY_NAME")).thenReturn("ABC Property Ltd")
 
       when(cs.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsCompany)
       when(rsCompany.next()).thenReturn(true, false)
       when(rsCompany.getString("COMPANY_DETAILS_ID")).thenReturn("1")
       when(rsCompany.getString("UTR")).thenReturn("1234567890")
-      when(rsCompany.getString("COMPANY_TYPE_OTHERCOMPANY")).thenReturn("Y")
+      when(rsCompany.getString("COMPANY_TYPE_OTHERCOMPANY")).thenReturn("YES")
 
       (3 to 16).foreach { pos =>
         if (pos != 5 && pos != 6) {
@@ -491,7 +492,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       val result = repo.sdltGetReturn("100001", "STORN12345").futureValue
 
       result.purchaser      must not be None
-      result.purchaser.get.head.isCompany mustBe Some("Y")
+      result.purchaser.get.head.isCompany mustBe Some("YES")
       result.purchaser.get.head.companyName mustBe Some("ABC Property Ltd")
       result.companyDetails must not be None
       result.companyDetails.get.UTR mustBe Some("1234567890")
@@ -525,7 +526,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       when(rsRetAgent.getString("EMAIL")).thenReturn("agent@legal.com")
       when(rsRetAgent.getString("DX_ADDRESS")).thenReturn("DX 12345")
       when(rsRetAgent.getString("REFERENCE")).thenReturn("REF123")
-      when(rsRetAgent.getString("IS_AUTHORISED")).thenReturn("Y")
+      when(rsRetAgent.getString("IS_AUTHORISED")).thenReturn("YES")
 
       (3 to 16).foreach { pos =>
         if (pos != 10) {
@@ -547,7 +548,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       agent.address1 mustBe Some("Law Street")
       agent.postcode mustBe Some("LE1 1AW")
       agent.email mustBe Some("agent@legal.com")
-      agent.isAuthorised mustBe Some("Y")
+      agent.isAuthorised mustBe Some("YES")
     }
 
     "process multiple ReturnAgents correctly" in {
@@ -648,7 +649,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       when(rsLease.next()).thenReturn(true, false)
       when(rsLease.getString("LEASE_ID")).thenReturn("1")
       when(rsLease.getString("RETURN_ID")).thenReturn("100001")
-      when(rsLease.getString("IS_ANNUAL_RENT_OVER_1000")).thenReturn("Y")
+      when(rsLease.getString("IS_ANNUAL_RENT_OVER_1000")).thenReturn("YES")
       when(rsLease.getString("BREAK_CLAUSE_TYPE")).thenReturn("TENANT")
       when(rsLease.getString("CONTRACT_START_DATE")).thenReturn("2025-01-01")
       when(rsLease.getString("CONTRACT_END_DATE")).thenReturn("2030-12-31")
@@ -673,7 +674,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       val lease = result.lease.get
       lease.leaseID mustBe Some("1")
       lease.returnID mustBe Some("100001")
-      lease.isAnnualRentOver1000 mustBe Some("Y")
+      lease.isAnnualRentOver1000 mustBe Some("YES")
       lease.breakClauseType mustBe Some("TENANT")
       lease.contractStartDate mustBe Some("2025-01-01")
       lease.contractEndDate mustBe Some("2030-12-31")
@@ -898,7 +899,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         addressLine3 = Some("City Center"),
         addressLine4 = Some("Greater London"),
         postcode = Some("SW1A 1AA"),
-        isRepresentedByAgent = "N"
+        isRepresentedByAgent = "NO"
       )
 
       val result = repo.sdltCreateVendor(request).futureValue
@@ -919,7 +920,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).setString(10, "City Center")
       verify(cs).setString(11, "Greater London")
       verify(cs).setString(12, "SW1A 1AA")
-      verify(cs).setString(13, "N")
+      verify(cs).setString(13, "NO")
       verify(cs).registerOutParameter(14, Types.NUMERIC)
       verify(cs).registerOutParameter(15, Types.NUMERIC)
       verify(cs).execute()
@@ -954,7 +955,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         addressLine3 = None,
         addressLine4 = None,
         postcode = None,
-        isRepresentedByAgent = "Y"
+        isRepresentedByAgent = "YES"
       )
 
       val result = repo.sdltCreateVendor(request).futureValue
@@ -974,7 +975,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).setNull(10, Types.VARCHAR)
       verify(cs).setNull(11, Types.VARCHAR)
       verify(cs).setNull(12, Types.VARCHAR)
-      verify(cs).setString(13, "Y")
+      verify(cs).setString(13, "YES")
       verify(cs).execute()
     }
   }
@@ -1008,7 +1009,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         addressLine3 = None,
         addressLine4 = None,
         postcode = Some("W1A 1AA"),
-        isRepresentedByAgent = "Y",
+        isRepresentedByAgent = "YES",
         vendorResourceRef = "100001",
         nextVendorId = Some("100002")
       )
@@ -1030,7 +1031,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).setNull(10, Types.VARCHAR)
       verify(cs).setNull(11, Types.VARCHAR)
       verify(cs).setString(12, "W1A 1AA")
-      verify(cs).setString(13, "Y")
+      verify(cs).setString(13, "YES")
       verify(cs).setLong(14, 100001L)
       verify(cs).setString(15, "100002")
       verify(cs).execute()
@@ -1063,7 +1064,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         addressLine3 = None,
         addressLine4 = None,
         postcode = None,
-        isRepresentedByAgent = "N",
+        isRepresentedByAgent = "NO",
         vendorResourceRef = "100002",
         nextVendorId = None
       )
@@ -1084,7 +1085,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).setNull(10, Types.VARCHAR)
       verify(cs).setNull(11, Types.VARCHAR)
       verify(cs).setNull(12, Types.VARCHAR)
-      verify(cs).setString(13, "N")
+      verify(cs).setString(13, "NO")
       verify(cs).setLong(14, 100002L)
       verify(cs).setNull(15, Types.VARCHAR)
       verify(cs).execute()
@@ -1189,7 +1190,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         phoneNumber = Some("0161234567"),
         email = Some("agent@smithpartners.com"),
         agentReference = Some("AGT123456"),
-        isAuthorised = Some("Y")
+        isAuthorised = Some("YES")
       )
 
       val result = repo.sdltCreateReturnAgent(request).futureValue
@@ -1213,7 +1214,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).setString(12, "agent@smithpartners.com")
       verify(cs).setNull(13, Types.VARCHAR)
       verify(cs).setString(14, "AGT123456")
-      verify(cs).setString(15, "Y")
+      verify(cs).setString(15, "YES")
       verify(cs).registerOutParameter(16, Types.NUMERIC)
       verify(cs).execute()
       verify(cs).close()
@@ -1307,7 +1308,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         phoneNumber = Some("0161999888"),
         email = Some("updated@smithpartners.com"),
         agentReference = Some("AGT999999"),
-        isAuthorised = Some("Y")
+        isAuthorised = Some("YES")
       )
 
       val result = repo.sdltUpdateReturnAgent(request).futureValue
@@ -1331,7 +1332,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).setString(12, "updated@smithpartners.com")
       verify(cs).setNull(13, Types.VARCHAR)
       verify(cs).setString(14, "AGT999999")
-      verify(cs).setString(15, "Y")
+      verify(cs).setString(15, "YES")
       verify(cs).execute()
       verify(cs).close()
     }
@@ -1600,7 +1601,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsAgents)
 
       when(rsOrg.next()).thenReturn(true, false)
-      when(rsOrg.getString("IS_RETURN_USER")).thenReturn("Y")
+      when(rsOrg.getString("IS_RETURN_USER")).thenReturn("YES")
       when(rsOrg.getString("DO_NOT_DISPLAY_WELCOME_PAGE")).thenReturn("N")
       when(rsOrg.getString("STORN")).thenReturn("STORN12345")
       when(rsOrg.getString("VERSION")).thenReturn("1")
@@ -1625,7 +1626,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       result.storn mustBe Some("STORN12345")
       result.version mustBe Some("1")
-      result.isReturnUser mustBe Some("Y")
+      result.isReturnUser mustBe Some("YES")
       result.doNotDisplayWelcomePage mustBe Some("N")
 
       result.agents must have size 1
@@ -1895,4 +1896,681 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
     }
   }
+
+  "sdltCreatePurchaser" - {
+
+    "call Create_Purchaser stored procedure with correct parameters and return purchaser IDs" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo(
+            "{ call PURCHASER_PROCS.Create_Purchaser(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+          )
+        )
+      )
+        .thenReturn(cs)
+      when(cs.getLong(25)).thenReturn(100001L)
+      when(cs.getLong(26)).thenReturn(1L)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = CreatePurchaserRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        isCompany = "NO",
+        isTrustee = "NO",
+        isConnectedToVendor = "NO",
+        isRepresentedByAgent = "NO",
+        title = Some("Mr"),
+        surname = Some("Smith"),
+        forename1 = Some("John"),
+        forename2 = Some("James"),
+        companyName = None,
+        houseNumber = Some("123"),
+        address1 = "Main Street",
+        address2 = Some("Apartment 4B"),
+        address3 = Some("City Center"),
+        address4 = Some("Greater London"),
+        postcode = Some("SW1A 1AA"),
+        phone = Some("07777123456"),
+        nino = Some("AB123456C"),
+        isUkCompany = None,
+        hasNino = Some("YES"),
+        dateOfBirth = Some("1980-01-15"),
+        registrationNumber = None,
+        placeOfRegistration = None
+      )
+
+      val result = repo.sdltCreatePurchaser(request).futureValue
+
+      result.purchaserResourceRef mustBe "100001"
+      result.purchaserId mustBe "1"
+
+      verify(conn).prepareCall(
+        "{ call PURCHASER_PROCS.Create_Purchaser(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+      )
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setString(3, "NO")
+      verify(cs).setString(4, "NO")
+      verify(cs).setString(5, "NO")
+      verify(cs).setString(6, "NO")
+      verify(cs).setString(7, "Mr")
+      verify(cs).setString(8, "Smith")
+      verify(cs).setString(9, "John")
+      verify(cs).setString(10, "James")
+      verify(cs).setNull(11, Types.VARCHAR)
+      verify(cs).setString(12, "123")
+      verify(cs).setString(13, "Main Street")
+      verify(cs).setString(14, "Apartment 4B")
+      verify(cs).setString(15, "City Center")
+      verify(cs).setString(16, "Greater London")
+      verify(cs).setString(17, "SW1A 1AA")
+      verify(cs).setString(18, "07777123456")
+      verify(cs).setString(19, "AB123456C")
+      verify(cs).setString(20, "YES")
+      verify(cs).setString(21, "1980-01-15")
+      verify(cs).setNull(22, Types.VARCHAR)
+      verify(cs).setNull(23, Types.VARCHAR)
+      verify(cs).setNull(24, Types.VARCHAR)
+      verify(cs).registerOutParameter(25, Types.NUMERIC)
+      verify(cs).registerOutParameter(26, Types.NUMERIC)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "handle company purchaser with optional fields" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+      when(cs.getLong(25)).thenReturn(100002L)
+      when(cs.getLong(26)).thenReturn(2L)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = CreatePurchaserRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        isCompany = "YES",
+        isTrustee = "NO",
+        isConnectedToVendor = "NO",
+        isRepresentedByAgent = "NO",
+        title = None,
+        surname = None,
+        forename1 = None,
+        forename2 = None,
+        companyName = Some("Tech Corp Ltd"),
+        houseNumber = None,
+        address1 = "Business Park",
+        address2 = None,
+        address3 = None,
+        address4 = None,
+        postcode = Some("EC1A 1BB"),
+        phone = Some("02012345678"),
+        nino = None,
+        isUkCompany = Some("YES"),
+        hasNino = Some("NO"),
+        dateOfBirth = None,
+        registrationNumber = Some("12345678"),
+        placeOfRegistration = None
+      )
+
+      val result = repo.sdltCreatePurchaser(request).futureValue
+
+      result.purchaserResourceRef mustBe "100002"
+      result.purchaserId mustBe "2"
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).setString(3, "YES")
+      verify(cs).setNull(7, Types.VARCHAR)
+      verify(cs).setNull(8, Types.VARCHAR)
+      verify(cs).setNull(9, Types.VARCHAR)
+      verify(cs).setNull(10, Types.VARCHAR)
+      verify(cs).setString(11, "Tech Corp Ltd")
+      verify(cs).setString(22, "YES")
+      verify(cs).setString(23, "12345678")
+      verify(cs).execute()
+    }
+  }
+
+  "sdltUpdatePurchaser" - {
+
+    "call Update_Purchaser stored procedure with correct parameters" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo(
+            "{ call PURCHASER_PROCS.Update_Purchaser(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+          )
+        )
+      )
+        .thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdatePurchaserRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        purchaserResourceRef = "100001",
+        isCompany = "NO",
+        isTrustee = "NO",
+        isConnectedToVendor = "YES",
+        isRepresentedByAgent = "YES",
+        title = Some("Mrs"),
+        surname = Some("Doe"),
+        forename1 = Some("Jane"),
+        forename2 = None,
+        companyName = None,
+        houseNumber = Some("456"),
+        address1 = "Oak Avenue",
+        address2 = Some("Suite 10"),
+        address3 = None,
+        address4 = None,
+        postcode = Some("W1A 1AA"),
+        phone = Some("07777654321"),
+        nino = Some("CD987654B"),
+        nextPurchaserId = Some("100002"),
+        isUkCompany = None,
+        hasNino = Some("YES"),
+        dateOfBirth = Some("1985-05-20"),
+        registrationNumber = None,
+        placeOfRegistration = None
+      )
+
+      val result = repo.sdltUpdatePurchaser(request).futureValue
+
+      result.updated mustBe true
+
+      verify(conn).prepareCall(
+        "{ call PURCHASER_PROCS.Update_Purchaser(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+      )
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setLong(3, 100001L)
+      verify(cs).setString(4, "NO")
+      verify(cs).setString(5, "NO")
+      verify(cs).setString(6, "YES")
+      verify(cs).setString(7, "YES")
+      verify(cs).setString(8, "Mrs")
+      verify(cs).setString(9, "Doe")
+      verify(cs).setString(10, "Jane")
+      verify(cs).setNull(11, Types.VARCHAR)
+      verify(cs).setNull(12, Types.VARCHAR)
+      verify(cs).setString(13, "456")
+      verify(cs).setString(14, "Oak Avenue")
+      verify(cs).setString(15, "Suite 10")
+      verify(cs).setNull(16, Types.VARCHAR)
+      verify(cs).setNull(17, Types.VARCHAR)
+      verify(cs).setString(18, "W1A 1AA")
+      verify(cs).setString(19, "07777654321")
+      verify(cs).setString(20, "CD987654B")
+      verify(cs).setString(21, "100002")
+      verify(cs).setString(22, "YES")
+      verify(cs).setString(23, "1985-05-20")
+      verify(cs).setNull(24, Types.VARCHAR)
+      verify(cs).setNull(25, Types.VARCHAR)
+      verify(cs).setNull(26, Types.VARCHAR)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "handle minimal update with no optional fields" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdatePurchaserRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        purchaserResourceRef = "100002",
+        isCompany = "YES",
+        isTrustee = "NO",
+        isConnectedToVendor = "NO",
+        isRepresentedByAgent = "NO",
+        title = None,
+        surname = None,
+        forename1 = None,
+        forename2 = None,
+        companyName = Some("Updated Corp"),
+        houseNumber = None,
+        address1 = "New Street",
+        address2 = None,
+        address3 = None,
+        address4 = None,
+        postcode = None,
+        phone = None,
+        nino = None,
+        nextPurchaserId = None,
+        isUkCompany = Some("YES"),
+        hasNino = Some("NO"),
+        dateOfBirth = None,
+        registrationNumber = Some("87654321"),
+        placeOfRegistration = None
+      )
+
+      val result = repo.sdltUpdatePurchaser(request).futureValue
+
+      result.updated mustBe true
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).setLong(3, 100002L)
+      verify(cs).setString(4, "YES")
+      verify(cs).setNull(8, Types.VARCHAR)
+      verify(cs).setNull(9, Types.VARCHAR)
+      verify(cs).setString(12, "Updated Corp")
+      verify(cs).setString(14, "New Street")
+      verify(cs).execute()
+    }
+  }
+
+  "sdltDeletePurchaser" - {
+
+    "call Delete_Purchaser stored procedure with correct parameters" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call PURCHASER_PROCS.Delete_Purchaser(?, ?, ?) }"))).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = DeletePurchaserRequest(
+        storn = "STORN12345",
+        purchaserResourceRef = "100001",
+        returnResourceRef = "100001"
+      )
+
+      val result = repo.sdltDeletePurchaser(request).futureValue
+
+      result.deleted mustBe true
+
+      verify(conn).prepareCall("{ call PURCHASER_PROCS.Delete_Purchaser(?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setLong(3, 100001L)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "handle different purchaser resource references" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = DeletePurchaserRequest(
+        storn = "STORN99999",
+        purchaserResourceRef = "999999",
+        returnResourceRef = "100002"
+      )
+
+      val result = repo.sdltDeletePurchaser(request).futureValue
+
+      result.deleted mustBe true
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).setLong(3, 999999L)
+      verify(cs).execute()
+    }
+  }
+
+  "sdltCreateCompanyDetails" - {
+
+    "call Create_Company_Details stored procedure with correct parameters and return company details ID" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo(
+            "{ call PURCHASER_PROCS.Create_Company_Details(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+          )
+        )
+      )
+        .thenReturn(cs)
+      when(cs.getLong(21)).thenReturn(100001L)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = CreateCompanyDetailsRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        purchaserResourceRef = "100001",
+        utr = Some("1234567890"),
+        vatReference = Some("GB123456789"),
+        compTypeBank = Some("NO"),
+        compTypeBuilder = Some("NO"),
+        compTypeBuildsoc = Some("NO"),
+        compTypeCentgov = Some("NO"),
+        compTypeIndividual = Some("NO"),
+        compTypeInsurance = Some("NO"),
+        compTypeLocalauth = Some("NO"),
+        compTypeOcharity = Some("NO"),
+        compTypeOcompany = Some("YES"),
+        compTypeOfinancial = Some("NO"),
+        compTypePartship = Some("NO"),
+        compTypeProperty = Some("NO"),
+        compTypePubliccorp = Some("NO"),
+        compTypeSoletrader = Some("NO"),
+        compTypePenfund = Some("NO")
+      )
+
+      val result = repo.sdltCreateCompanyDetails(request).futureValue
+
+      result.companyDetailsId mustBe "100001"
+
+      verify(conn).prepareCall(
+        "{ call PURCHASER_PROCS.Create_Company_Details(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+      )
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setLong(3, 100001L)
+      verify(cs).setString(4, "1234567890")
+      verify(cs).setString(5, "GB123456789")
+      verify(cs).setString(6, "NO")
+      verify(cs).setString(7, "NO")
+      verify(cs).setString(8, "NO")
+      verify(cs).setString(9, "NO")
+      verify(cs).setString(10, "NO")
+      verify(cs).setString(11, "NO")
+      verify(cs).setString(12, "NO")
+      verify(cs).setString(13, "NO")
+      verify(cs).setString(14, "YES")
+      verify(cs).setString(15, "NO")
+      verify(cs).setString(16, "NO")
+      verify(cs).setString(17, "NO")
+      verify(cs).setString(18, "NO")
+      verify(cs).setString(19, "NO")
+      verify(cs).setString(20, "NO")
+      verify(cs).registerOutParameter(21, Types.NUMERIC)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "handle optional fields being None" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+      when(cs.getLong(21)).thenReturn(100002L)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = CreateCompanyDetailsRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        purchaserResourceRef = "100002",
+        utr = None,
+        vatReference = None,
+        compTypeBank = None,
+        compTypeBuilder = None,
+        compTypeBuildsoc = None,
+        compTypeCentgov = None,
+        compTypeIndividual = None,
+        compTypeInsurance = None,
+        compTypeLocalauth = None,
+        compTypeOcharity = None,
+        compTypeOcompany = None,
+        compTypeOfinancial = None,
+        compTypePartship = None,
+        compTypeProperty = None,
+        compTypePubliccorp = None,
+        compTypeSoletrader = None,
+        compTypePenfund = None
+      )
+
+      val result = repo.sdltCreateCompanyDetails(request).futureValue
+
+      result.companyDetailsId mustBe "100002"
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).setLong(3, 100002L)
+      verify(cs).setNull(4, Types.VARCHAR)
+      verify(cs).setNull(5, Types.VARCHAR)
+      verify(cs).setNull(6, Types.VARCHAR)
+      verify(cs).setNull(7, Types.VARCHAR)
+      verify(cs).setNull(8, Types.VARCHAR)
+      verify(cs).setNull(9, Types.VARCHAR)
+      verify(cs).setNull(10, Types.VARCHAR)
+      verify(cs).setNull(11, Types.VARCHAR)
+      verify(cs).setNull(12, Types.VARCHAR)
+      verify(cs).setNull(13, Types.VARCHAR)
+      verify(cs).setNull(14, Types.VARCHAR)
+      verify(cs).setNull(15, Types.VARCHAR)
+      verify(cs).setNull(16, Types.VARCHAR)
+      verify(cs).setNull(17, Types.VARCHAR)
+      verify(cs).setNull(18, Types.VARCHAR)
+      verify(cs).setNull(19, Types.VARCHAR)
+      verify(cs).setNull(20, Types.VARCHAR)
+      verify(cs).execute()
+    }
+  }
+
+  "sdltUpdateCompanyDetails" - {
+
+    "call Update_Company_Details stored procedure with correct parameters" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo(
+            "{ call PURCHASER_PROCS.Update_Company_Details(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+          )
+        )
+      )
+        .thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateCompanyDetailsRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        purchaserResourceRef = "100001",
+        utr = Some("9876543210"),
+        vatReference = Some("GB987654321"),
+        compTypeBank = Some("NO"),
+        compTypeBuilder = Some("YES"),
+        compTypeBuildsoc = Some("NO"),
+        compTypeCentgov = Some("NO"),
+        compTypeIndividual = Some("NO"),
+        compTypeInsurance = Some("NO"),
+        compTypeLocalauth = Some("NO"),
+        compTypeOcharity = Some("NO"),
+        compTypeOcompany = Some("YES"),
+        compTypeOfinancial = Some("NO"),
+        compTypePartship = Some("NO"),
+        compTypeProperty = Some("YES"),
+        compTypePubliccorp = Some("NO"),
+        compTypeSoletrader = Some("NO"),
+        compTypePenfund = Some("NO")
+      )
+
+      val result = repo.sdltUpdateCompanyDetails(request).futureValue
+
+      result.updated mustBe true
+
+      verify(conn).prepareCall(
+        "{ call PURCHASER_PROCS.Update_Company_Details(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+      )
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setLong(3, 100001L)
+      verify(cs).setString(4, "9876543210")
+      verify(cs).setString(5, "GB987654321")
+      verify(cs).setString(6, "NO")
+      verify(cs).setString(7, "YES")
+      verify(cs).setString(8, "NO")
+      verify(cs).setString(14, "YES")
+      verify(cs).setString(17, "YES")
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "handle minimal update with no optional fields" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateCompanyDetailsRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        purchaserResourceRef = "100002",
+        utr = None,
+        vatReference = None,
+        compTypeBank = None,
+        compTypeBuilder = None,
+        compTypeBuildsoc = None,
+        compTypeCentgov = None,
+        compTypeIndividual = None,
+        compTypeInsurance = None,
+        compTypeLocalauth = None,
+        compTypeOcharity = None,
+        compTypeOcompany = None,
+        compTypeOfinancial = None,
+        compTypePartship = None,
+        compTypeProperty = None,
+        compTypePubliccorp = None,
+        compTypeSoletrader = None,
+        compTypePenfund = None
+      )
+
+      val result = repo.sdltUpdateCompanyDetails(request).futureValue
+
+      result.updated mustBe true
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).setLong(3, 100002L)
+      verify(cs).setNull(4, Types.VARCHAR)
+      verify(cs).setNull(5, Types.VARCHAR)
+      verify(cs).execute()
+    }
+  }
+
+  "sdltDeleteCompanyDetails" - {
+
+    "call Delete_Company_Details stored procedure with correct parameters" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call PURCHASER_PROCS.Delete_Company_Details(?, ?) }"))).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = DeleteCompanyDetailsRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001"
+      )
+
+      val result = repo.sdltDeleteCompanyDetails(request).futureValue
+
+      result.deleted mustBe true
+
+      verify(conn).prepareCall("{ call PURCHASER_PROCS.Delete_Company_Details(?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "handle different return resource references" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = DeleteCompanyDetailsRequest(
+        storn = "STORN99999",
+        returnResourceRef = "100002"
+      )
+
+      val result = repo.sdltDeleteCompanyDetails(request).futureValue
+
+      result.deleted mustBe true
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).execute()
+    }
+  }
+
 }
