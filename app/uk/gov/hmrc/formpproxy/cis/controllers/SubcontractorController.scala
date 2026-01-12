@@ -28,11 +28,13 @@ import uk.gov.hmrc.formpproxy.cis.models.response.UpdateSubcontractorResponse
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class SubcontractorController @Inject()(
-    authorise: AuthAction,
-    service: SubcontractorService,
-    cc: ControllerComponents
-)(implicit ec: ExecutionContext) extends BackendController(cc) with Logging {
+class SubcontractorController @Inject() (
+  authorise: AuthAction,
+  service: SubcontractorService,
+  cc: ControllerComponents
+)(implicit ec: ExecutionContext)
+    extends BackendController(cc)
+    with Logging {
 
   def updateSubcontractor(): Action[JsValue] =
     authorise.async(parse.json) { implicit request =>

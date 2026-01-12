@@ -18,7 +18,6 @@ package uk.gov.hmrc.formpproxy.cis.models.response
 
 import play.api.libs.json.{Format, Json}
 
-
 final case class UpdateSubcontractorResponse(newVersion: Int)
 
 object UpdateSubcontractorResponse {

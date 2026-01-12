@@ -19,7 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.models.requests
 import java.time.LocalDateTime
 import play.api.libs.json.{Format, Json, Reads, Writes}
 
-final case class UpdateSubcontractorRequest (
+final case class UpdateSubcontractorRequest(
   utr: String,
   pageVisited: Int,
   partnerUtr: Option[String],
@@ -50,10 +50,8 @@ final case class UpdateSubcontractorRequest (
   verificationDate: Option[LocalDateTime],
   updatedTaxTreatment: Option[String],
   currentVersion: Int
-
 )
 
 object UpdateSubcontractorRequest {
   given Format[UpdateSubcontractorRequest] = Json.format[UpdateSubcontractorRequest]
 }
-

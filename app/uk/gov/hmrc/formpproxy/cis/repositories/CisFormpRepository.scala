@@ -473,7 +473,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
 
-  private val CallUpdateSubcontractor                                                =
+  private val CallUpdateSubcontractor =
     "{ call SUBCONTRACTOR_PROCS.UpdateSubcontractorSp(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
 
   override def updateSubcontractor(request: UpdateSubcontractorRequest): Future[Int] = Future {
