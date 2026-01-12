@@ -10,6 +10,8 @@ POST       /scheme/update                                           uk.gov.hmrc.
 POST       /scheme/version-update                                   uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.updateSchemeVersion
 POST       /subcontractor/create                                    uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.createSubcontractor
 
+POST       /subcontractor/update                                    uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.updateSubcontractor()
+
 
 POST       /submissions/create                                      uk.gov.hmrc.formpproxy.cis.controllers.SubmissionController.createSubmission()
 POST       /submissions/update                                      uk.gov.hmrc.formpproxy.cis.controllers.SubmissionController.updateSubmission()
