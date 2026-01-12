@@ -21,7 +21,7 @@ import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
 import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubmissionRequest}
 import uk.gov.hmrc.formpproxy.cis.models.response.CreateNilMonthlyReturnResponse
-import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, MonthlyReturn, SubcontractorType, UpdateContractorSchemeParams, UserMonthlyReturns}
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, MonthlyReturn, SubcontractorType, UnsubmittedMonthlyReturns, UpdateContractorSchemeParams, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.setOptionalInt
 import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
 
@@ -35,6 +35,7 @@ import scala.util.{Try, Using}
 
 trait CisMonthlyReturnSource {
   def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns]
+  def getUnsubmittedMonthlyReturns(instanceId: String): Future[UnsubmittedMonthlyReturns]
   def createSubmission(request: CreateSubmissionRequest): Future[String]
   def updateMonthlyReturnSubmission(request: UpdateSubmissionRequest): Future[Unit]
   def createNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[CreateNilMonthlyReturnResponse]
@@ -80,6 +81,33 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
+  override def getUnsubmittedMonthlyReturns(instanceId: String): Future[UnsubmittedMonthlyReturns] = {
+    logger.info(s"[CIS] getUnsubmittedMonthlyReturns(instanceId=$instanceId)")
+    Future {
+      db.withConnection { conn =>
+        val cs = conn.prepareCall(CallGetUnsubmittedMonthlyReturns)
+        try {
+          cs.setString(1, instanceId)
+          cs.registerOutParameter(2, OracleTypes.CURSOR)
+          cs.registerOutParameter(3, OracleTypes.CURSOR)
+          cs.execute()
+
+          val rsScheme = cs.getObject(2, classOf[ResultSet])
+          val scheme   =
+            try readSingleSchemeRow(rsScheme, instanceId)
+            finally if (rsScheme != null) rsScheme.close()
+
+          val rsReturns = cs.getObject(3, classOf[ResultSet])
+          val returns   =
+            try collectMonthlyReturns(rsReturns)
+            finally if (rsReturns != null) rsReturns.close()
+
+          UnsubmittedMonthlyReturns(scheme, returns)
+        } finally cs.close()
+      }
+    }
+  }
+
   def getScheme(instanceId: String): Future[Option[ContractorScheme]] = Future {
     db.withConnection { conn =>
       Using.resource(conn.prepareCall(CallGetScheme)) { cs =>
@@ -93,25 +121,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
         Using.resource(resultSet) { resultSet =>
           if (resultSet != null && resultSet.next()) {
-            Some(
-              ContractorScheme(
-                resultSet.getInt("scheme_id"),
-                resultSet.getString("instance_id"),
-                resultSet.getString("aoref"),
-                resultSet.getString("tax_office_number"),
-                resultSet.getString("tax_office_reference"),
-                Option(resultSet.getString("utr")),
-                Option(resultSet.getString("name")),
-                Option(resultSet.getString("email_address")),
-                Option(resultSet.getString("display_welcome_page")),
-                resultSet.getOptionalInt("pre_pop_count"),
-                Option(resultSet.getString("pre_pop_successful")),
-                resultSet.getOptionalInt("subcontractor_counter"),
-                resultSet.getOptionalInt("verif_batch_counter"),
-                Option(resultSet.getString("last_update")).flatMap(x => Try(Instant.parse(x)).toOption),
-                resultSet.getOptionalInt("version")
-              )
-            )
+            Some(readContractorScheme(resultSet))
           } else None
         }
       }
@@ -394,15 +404,16 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
-  private val CallCreateMonthlyReturn  = "{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }"
-  private val CallUpdateSchemeVersion  = "{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"
-  private val CallUpdateMonthlyReturn  =
+  private val CallCreateMonthlyReturn          = "{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }"
+  private val CallUpdateSchemeVersion          = "{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"
+  private val CallUpdateMonthlyReturn          =
     "{ call MONTHLY_RETURN_PROCS_2016.Update_Monthly_Return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
-  private val CallGetScheme            = "{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"
-  private val CallCreateScheme         = "{ call SCHEME_PROCS.Create_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
-  private val CallUpdateScheme         = "{ call SCHEME_PROCS.Update_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
-  private val CallCreateSubcontractor  = "{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }"
-  private val CallGetAllMonthlyReturns = "{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }"
+  private val CallGetScheme                    = "{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"
+  private val CallCreateScheme                 = "{ call SCHEME_PROCS.Create_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+  private val CallUpdateScheme                 = "{ call SCHEME_PROCS.Update_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+  private val CallCreateSubcontractor          = "{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }"
+  private val CallGetAllMonthlyReturns         = "{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }"
+  private val CallGetUnsubmittedMonthlyReturns = "{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Returns(?, ?, ?) }"
 
   private def callCreateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit = {
     val cs = conn.prepareCall(CallCreateMonthlyReturn)
@@ -514,6 +525,32 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
             s"No MONTHLY_RETURN for instance_id=$instanceId year=$taxYear month=$taxMonth"
           )
       }
+    }
+
+  private def readContractorScheme(rs: ResultSet): ContractorScheme =
+    ContractorScheme(
+      schemeId = rs.getInt("scheme_id"),
+      instanceId = rs.getString("instance_id"),
+      accountsOfficeReference = rs.getString("aoref"),
+      taxOfficeNumber = rs.getString("tax_office_number"),
+      taxOfficeReference = rs.getString("tax_office_reference"),
+      utr = Option(rs.getString("utr")),
+      name = Option(rs.getString("name")),
+      emailAddress = Option(rs.getString("email_address")),
+      displayWelcomePage = Option(rs.getString("display_welcome_page")),
+      prePopCount = rs.getOptionalInt("pre_pop_count"),
+      prePopSuccessful = Option(rs.getString("pre_pop_successful")),
+      subcontractorCounter = rs.getOptionalInt("subcontractor_counter"),
+      verificationBatchCounter = rs.getOptionalInt("verif_batch_counter"),
+      lastUpdate = Option(rs.getString("last_update")).flatMap(x => Try(Instant.parse(x)).toOption),
+      version = rs.getOptionalInt("version")
+    )
+
+  private def readSingleSchemeRow(rs: ResultSet, instanceId: String): ContractorScheme =
+    if (rs != null && rs.next()) {
+      readContractorScheme(rs)
+    } else {
+      throw new RuntimeException(s"No SCHEME row for instance_id=$instanceId")
     }
 
 }
