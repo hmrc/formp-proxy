@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.formpproxy.cis.services
 
+import uk.gov.hmrc.formpproxy.cis.models.requests.ApplyPrepopulationRequest
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, SubcontractorType, UpdateContractorSchemeParams}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
@@ -39,4 +40,7 @@ class ContractorSchemeService @Inject() (repo: CisMonthlyReturnSource) {
 
   def createSubcontractor(schemeId: Int, subcontractorType: SubcontractorType, version: Int): Future[Int] =
     repo.createSubcontractor(schemeId, subcontractorType, version)
+
+  def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int] =
+    repo.applyPrepopulation(req)
 }

@@ -9,6 +9,7 @@ POST       /scheme                                                  uk.gov.hmrc.
 POST       /scheme/update                                           uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.updateScheme
 POST       /scheme/version-update                                   uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.updateSchemeVersion
 POST       /subcontractor/create                                    uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.createSubcontractor
+POST       /scheme/prepopulate                                      uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.applyPrepopulation
 
 POST       /subcontractor/update                                    uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.updateSubcontractor()
 
