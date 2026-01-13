@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.formpproxy.cis.controllers
 
-
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import play.api.libs.json.Json
@@ -156,4 +155,3 @@ class SubcontractorControllerSpec extends SpecBase {
     }
   }
 }
-
