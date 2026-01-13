@@ -19,7 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.repositories
 import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubmissionRequest, UpdateSubcontractorRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubcontractorRequest, UpdateSubmissionRequest}
 import uk.gov.hmrc.formpproxy.cis.models.response.CreateNilMonthlyReturnResponse
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, MonthlyReturn, SubcontractorType, UpdateContractorSchemeParams, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.setOptionalInt
@@ -44,6 +44,8 @@ trait CisMonthlyReturnSource {
   def updateScheme(contractorScheme: UpdateContractorSchemeParams): Future[Int]
   def updateSchemeVersion(instanceId: String, version: Int): Future[Int]
   def createSubcontractor(schemeId: Int, subcontractorType: SubcontractorType, version: Int): Future[Int]
+  def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int]
+  def updateSubcontractor(result: UpdateSubcontractorRequest): Future[Int]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -350,6 +352,49 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
+  override def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int] = Future {
+    logger.info(
+      s"[CIS] applyPrepopulation(schemeId=${req.schemeId}, instanceId=${req.instanceId}, version=${req.version}, subs=${req.subcontractorTypes.size})"
+    )
+
+    db.withTransaction { conn =>
+      // 1) Update_Scheme – set name/UTR/prePopCount/prePopSuccessful (but NOT version)
+      Using.resource(conn.prepareCall(CallUpdateScheme)) { cs =>
+        cs.setInt(1, req.schemeId)
+        cs.setString(2, req.instanceId)
+        cs.setString(3, req.accountsOfficeReference)
+        cs.setString(4, req.taxOfficeNumber)
+        cs.setString(5, req.taxOfficeReference)
+        cs.setString(6, req.utr.orNull)
+        cs.setString(7, req.name)
+        cs.setString(8, req.emailAddress.orNull)
+        cs.setString(9, req.displayWelcomePage.orNull)
+        cs.setInt(10, req.prePopCount)
+        cs.setString(11, req.prePopSuccessful)
+        cs.setInt(12, req.version)
+        cs.registerOutParameter(12, OracleTypes.INTEGER)
+
+        cs.execute()
+      }
+
+      // 2) Create_Subcontractor for each subcontractorType
+      req.subcontractorTypes.foreach { subcontractorType =>
+        Using.resource(conn.prepareCall(CallCreateSubcontractor)) { cs =>
+          cs.setInt(1, req.schemeId)
+          cs.setInt(2, req.version)
+          cs.setString(3, subcontractorType.toString)
+          cs.registerOutParameter(4, OracleTypes.INTEGER)
+
+          cs.execute()
+        }
+      }
+
+      // 3) Update_Version_Number – increment version atomically in same transaction
+      val newVersion = callUpdateSchemeVersion(conn, req.instanceId, req.version)
+      newVersion
+    }
+  }
+
   private val CallCreateMonthlyReturn  = "{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }"
   private val CallUpdateSchemeVersion  = "{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"
   private val CallUpdateMonthlyReturn  =
@@ -471,5 +516,67 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           )
       }
     }
+
+  private val CallUpdateSubcontractor =
+    "{ call SUBCONTRACTOR_PROCS.UpdateSubcontractorSp(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+
+  override def updateSubcontractor(request: UpdateSubcontractorRequest): Future[Int] = Future {
+    db.withConnection { conn =>
+      Using.resource(conn.prepareCall(CallUpdateSubcontractor)) { cs =>
+
+        def setOptString(i: Int, v: Option[String]): Unit =
+          v match {
+            case Some(x) => cs.setString(i, x)
+            case None    => cs.setNull(i, Types.VARCHAR)
+          }
+
+        def setOptTimestamp(i: Int, v: Option[java.time.LocalDateTime]): Unit =
+          v match {
+            case Some(dt) => cs.setTimestamp(i, Timestamp.valueOf(dt))
+            case None     => cs.setNull(i, Types.TIMESTAMP)
+          }
+
+        cs.setString(1, request.utr)
+        cs.setInt(2, request.pageVisited)
+
+        setOptString(3, request.partnerUtr)
+        setOptString(4, request.crn)
+        setOptString(5, request.firstName)
+        setOptString(6, request.nino)
+        setOptString(7, request.secondName)
+        setOptString(8, request.surname)
+        setOptString(9, request.partnershipTradingName)
+        setOptString(10, request.tradingName)
+        setOptString(11, request.addressLine1)
+        setOptString(12, request.addressLine2)
+        setOptString(13, request.addressLine3)
+        setOptString(14, request.addressLine4)
+        setOptString(15, request.country)
+        setOptString(16, request.postcode)
+        setOptString(17, request.emailAddress)
+        setOptString(18, request.phoneNumber)
+        setOptString(19, request.mobilePhoneNumber)
+        setOptString(20, request.worksReferenceNumber)
+
+        cs.setInt(21, request.schemeId)
+        cs.setInt(22, request.subbieResourceRef)
+
+        setOptString(23, request.matched)
+        setOptString(24, request.autoVerified)
+        setOptString(25, request.verified)
+        setOptString(26, request.verificationNumber)
+        setOptString(27, request.taxTreatment)
+        setOptTimestamp(28, request.verificationDate)
+        setOptString(29, request.updatedTaxTreatment)
+
+        cs.setInt(30, request.currentVersion)
+
+        cs.registerOutParameter(31, Types.INTEGER)
+
+        cs.execute()
+        cs.getInt(31)
+      }
+    }
+  }
 
 }
