@@ -176,15 +176,25 @@ final class MonthlyReturnServiceSpec extends SpecBase {
         taxOfficeReference = "AB12345"
       )
 
-      val payload = UnsubmittedMonthlyReturns(
+      val original = UnsubmittedMonthlyReturns(
         scheme = scheme,
-        monthlyReturn = Seq(mkReturn(66666L, 1), mkReturn(66667L, 7))
+        monthlyReturn = Seq(
+          mkReturn(66666L, 1).copy(status = Some("DEPARTMENTAL_ERROR")),
+          mkReturn(66667L, 7).copy(status = Some("ACCEPTED"))
+        )
+      )
+
+      val expected = original.copy(
+        monthlyReturn = Seq(
+          original.monthlyReturn.head.copy(status = Some("REJECTED")),
+          original.monthlyReturn(1).copy(status = Some("PENDING"))
+        )
       )
 
       when(repo.getUnsubmittedMonthlyReturns(eqTo(id)))
-        .thenReturn(Future.successful(payload))
+        .thenReturn(Future.successful(original))
 
-      service.getUnsubmittedMonthlyReturns(id).futureValue mustBe payload
+      service.getUnsubmittedMonthlyReturns(id).futureValue mustBe expected
 
       verify(repo).getUnsubmittedMonthlyReturns(eqTo(id))
       verifyNoMoreInteractions(repo)
