@@ -50,8 +50,7 @@ final class SubcontractorControllerIntegrationSpec
           "utr"              -> "1234567890",
           "pageVisited"      -> 1,
           "schemeId"         -> 999,
-          "subbieResourceRef"-> 1,
-          "currentVersion"   -> 0
+          "subbieResourceRef"-> 1
         )
 
         val res = postJson(updatePath, json)
@@ -66,8 +65,7 @@ final class SubcontractorControllerIntegrationSpec
           "utr"              -> "1234567890",
           "pageVisited"      -> 1,
           "schemeId"         -> 999,
-          "subbieResourceRef"-> 1,
-          "currentVersion"   -> 0
+          "subbieResourceRef"-> 1
         ))
 
         res.status mustBe NOT_FOUND

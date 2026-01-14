@@ -23,7 +23,6 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.requests.UpdateSubcontractorRequest
-import uk.gov.hmrc.formpproxy.cis.models.response.UpdateSubcontractorResponse
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 
 import java.time.LocalDateTime
@@ -41,11 +40,11 @@ class SubcontractorControllerSpec extends SpecBase {
 
   "POST /subcontractor/update (updateSubcontractor)" - {
 
-    "return 200 OK with newVersion on valid payload" in {
+    "returns 204 NoContent on valid payload" in {
       val s = setup; import s.*
 
       when(service.updateSubcontractor(any[UpdateSubcontractorRequest]))
-        .thenReturn(Future.successful(12))
+        .thenReturn(Future.successful(()))
 
       val json = Json.toJson(
         UpdateSubcontractorRequest(
@@ -77,8 +76,7 @@ class SubcontractorControllerSpec extends SpecBase {
           verificationNumber = None,
           taxTreatment = None,
           verificationDate = Some(LocalDateTime.of(2026, 1, 12, 10, 15, 30)),
-          updatedTaxTreatment = None,
-          currentVersion = 7
+          updatedTaxTreatment = None
         )
       )
 
@@ -86,8 +84,7 @@ class SubcontractorControllerSpec extends SpecBase {
         .updateSubcontractor()
         .apply(postJson("/subcontractor/update", json))
 
-      status(result) mustBe OK
-      contentAsJson(result) mustBe Json.toJson(UpdateSubcontractorResponse(newVersion = 12))
+      status(result) mustBe NO_CONTENT
       verify(service).updateSubcontractor(any[UpdateSubcontractorRequest])
     }
 
@@ -141,8 +138,7 @@ class SubcontractorControllerSpec extends SpecBase {
           verificationNumber = None,
           taxTreatment = None,
           verificationDate = None,
-          updatedTaxTreatment = None,
-          currentVersion = 0
+          updatedTaxTreatment = None
         )
       )
 

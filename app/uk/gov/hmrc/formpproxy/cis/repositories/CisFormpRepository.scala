@@ -19,6 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.repositories
 import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
+import play.api.libs.json.Json
 import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubcontractorRequest, UpdateSubmissionRequest}
 import uk.gov.hmrc.formpproxy.cis.models.response.CreateNilMonthlyReturnResponse
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, MonthlyReturn, SubcontractorType, UpdateContractorSchemeParams, UserMonthlyReturns}
@@ -45,7 +46,7 @@ trait CisMonthlyReturnSource {
   def updateSchemeVersion(instanceId: String, version: Int): Future[Int]
   def createSubcontractor(schemeId: Int, subcontractorType: SubcontractorType, version: Int): Future[Int]
   def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int]
-  def updateSubcontractor(result: UpdateSubcontractorRequest): Future[Int]
+  def updateSubcontractor(result: UpdateSubcontractorRequest): Future[Unit]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -518,9 +519,9 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
 
   private val CallUpdateSubcontractor =
-    "{ call SUBCONTRACTOR_PROCS.UpdateSubcontractorSp(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+    "{ call SUBCONTRACTOR_PROCS.Update_Subcontractor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
 
-  override def updateSubcontractor(request: UpdateSubcontractorRequest): Future[Int] = Future {
+  override def updateSubcontractor(request: UpdateSubcontractorRequest): Future[Unit] = Future {
     db.withConnection { conn =>
       Using.resource(conn.prepareCall(CallUpdateSubcontractor)) { cs =>
 
@@ -536,45 +537,41 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
             case None     => cs.setNull(i, Types.TIMESTAMP)
           }
 
-        cs.setString(1, request.utr)
-        cs.setInt(2, request.pageVisited)
+        cs.setInt(1, request.schemeId)
 
-        setOptString(3, request.partnerUtr)
-        setOptString(4, request.crn)
-        setOptString(5, request.firstName)
-        setOptString(6, request.nino)
-        setOptString(7, request.secondName)
-        setOptString(8, request.surname)
-        setOptString(9, request.partnershipTradingName)
-        setOptString(10, request.tradingName)
-        setOptString(11, request.addressLine1)
-        setOptString(12, request.addressLine2)
-        setOptString(13, request.addressLine3)
-        setOptString(14, request.addressLine4)
-        setOptString(15, request.country)
-        setOptString(16, request.postcode)
-        setOptString(17, request.emailAddress)
-        setOptString(18, request.phoneNumber)
-        setOptString(19, request.mobilePhoneNumber)
-        setOptString(20, request.worksReferenceNumber)
+        cs.setInt(2, request.subbieResourceRef)
+        cs.setString(3, request.utr)
+        cs.setInt(4, request.pageVisited)
+        setOptString(5, request.partnerUtr)
+        setOptString(6, request.crn)
+        setOptString(7, request.firstName)
+        setOptString(8, request.nino)
+        setOptString(9, request.secondName)
+        setOptString(10, request.surname)
 
-        cs.setInt(21, request.schemeId)
-        cs.setInt(22, request.subbieResourceRef)
+        setOptString(11, request.partnershipTradingName)
+        setOptString(12, request.tradingName)
+        setOptString(13, request.addressLine1)
+        setOptString(14, request.addressLine2)
+        setOptString(15, request.addressLine3)
+        setOptString(16, request.addressLine4)
+        setOptString(17, request.country)
+        setOptString(18, request.postcode)
+        setOptString(19, request.emailAddress)
+        setOptString(20, request.phoneNumber)
+        setOptString(21, request.mobilePhoneNumber)
+        setOptString(22, request.worksReferenceNumber)
 
         setOptString(23, request.matched)
         setOptString(24, request.autoVerified)
         setOptString(25, request.verified)
         setOptString(26, request.verificationNumber)
         setOptString(27, request.taxTreatment)
-        setOptTimestamp(28, request.verificationDate)
-        setOptString(29, request.updatedTaxTreatment)
-
-        cs.setInt(30, request.currentVersion)
-
-        cs.registerOutParameter(31, Types.INTEGER)
+        setOptString(28, request.updatedTaxTreatment)
+        setOptTimestamp(29, request.verificationDate)
 
         cs.execute()
-        cs.getInt(31)
+
       }
     }
   }

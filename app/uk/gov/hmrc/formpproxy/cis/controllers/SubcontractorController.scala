@@ -23,7 +23,6 @@ import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.cis.models.requests.UpdateSubcontractorRequest
-import uk.gov.hmrc.formpproxy.cis.models.response.UpdateSubcontractorResponse
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -46,7 +45,7 @@ class SubcontractorController @Inject() (
           body =>
             service
               .updateSubcontractor(body)
-              .map(newVersion => Ok(Json.toJson(UpdateSubcontractorResponse(newVersion))))
+              .map(_ => NoContent)
               .recover { case t =>
                 logger.error("[updateSubcontractor] failed", t)
                 InternalServerError(Json.obj("message" -> "Unexpected error"))

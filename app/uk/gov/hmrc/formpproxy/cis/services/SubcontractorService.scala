@@ -25,7 +25,7 @@ import scala.concurrent.Future
 @Singleton
 class SubcontractorService @Inject() (repo: CisMonthlyReturnSource) {
 
-  def updateSubcontractor(req: UpdateSubcontractorRequest): Future[Int] =
+  def updateSubcontractor(req: UpdateSubcontractorRequest): Future[Unit] =
     repo.updateSubcontractor(req)
 
 }

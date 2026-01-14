@@ -48,8 +48,7 @@ final case class UpdateSubcontractorRequest(
   verificationNumber: Option[String],
   taxTreatment: Option[String],
   verificationDate: Option[LocalDateTime],
-  updatedTaxTreatment: Option[String],
-  currentVersion: Int
+  updatedTaxTreatment: Option[String]
 )
 
 object UpdateSubcontractorRequest {
