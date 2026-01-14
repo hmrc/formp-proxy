@@ -570,6 +570,9 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         setOptString(28, request.updatedTaxTreatment)
         setOptTimestamp(29, request.verificationDate)
 
+        cs.setNull(30, Types.INTEGER)
+        cs.registerOutParameter(30, Types.INTEGER)
+
         cs.execute()
 
       }
