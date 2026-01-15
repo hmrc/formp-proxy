@@ -188,4 +188,3 @@ class UpdateSubcontractorRequestSpec extends AnyWordSpec with Matchers {
     }
   }
 }
-
