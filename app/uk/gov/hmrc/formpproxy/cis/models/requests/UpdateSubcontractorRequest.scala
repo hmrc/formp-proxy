@@ -20,8 +20,8 @@ import java.time.LocalDateTime
 import play.api.libs.json.{Format, Json, Reads, Writes}
 
 final case class UpdateSubcontractorRequest(
-  utr: String,
-  pageVisited: Int,
+  utr: Option[String],
+  pageVisited: Option[Int],
   partnerUtr: Option[String],
   crn: Option[String],
   firstName: Option[String],
