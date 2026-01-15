@@ -537,11 +537,17 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
             case None     => cs.setNull(i, Types.TIMESTAMP)
           }
 
+        def setOptInt(index: Int, value: Option[Int]): Unit =
+          value match {
+            case Some(v) => cs.setInt(index, v)
+            case None    => cs.setNull(index, Types.NUMERIC)
+          }
+
         cs.setInt(1, request.schemeId)
 
         cs.setInt(2, request.subbieResourceRef)
-        cs.setString(3, request.utr)
-        cs.setInt(4, request.pageVisited)
+        setOptString(3, request.utr)
+        setOptInt(4, request.pageVisited)
         setOptString(5, request.partnerUtr)
         setOptString(6, request.crn)
         setOptString(7, request.firstName)

@@ -1039,8 +1039,8 @@ final class CisFormpRepositorySpec extends SpecBase {
       val repo = new CisFormpRepository(db)
 
       val req = UpdateSubcontractorRequest(
-        utr = "1234567890",
-        pageVisited = 3,
+        utr = Some("1234567890"),
+        pageVisited = Some(3),
         partnerUtr = None,
         crn = Some("CRN-1"),
         firstName = Some("John"),

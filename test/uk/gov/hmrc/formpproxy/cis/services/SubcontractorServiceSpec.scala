@@ -39,8 +39,8 @@ class SubcontractorServiceSpec extends SpecBase {
       val s = setup; import s.*
 
       val req = UpdateSubcontractorRequest(
-        utr = "1234567890",
-        pageVisited = 1,
+        utr = Some("1234567890"),
+        pageVisited = Some(1),
         partnerUtr = None,
         crn = None,
         firstName = Some("John"),
@@ -82,8 +82,8 @@ class SubcontractorServiceSpec extends SpecBase {
       val s = setup; import s.*
 
       val req = UpdateSubcontractorRequest(
-        utr = "1234567890",
-        pageVisited = 1,
+        utr = Some("1234567890"),
+        pageVisited = Some(1),
         partnerUtr = None,
         crn = None,
         firstName = None,

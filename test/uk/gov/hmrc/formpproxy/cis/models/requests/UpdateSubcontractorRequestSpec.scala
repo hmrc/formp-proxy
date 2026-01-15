@@ -78,32 +78,6 @@ class UpdateSubcontractorRequestSpec extends AnyWordSpec with Matchers {
       Json.toJson(model) mustBe json
     }
 
-    "fail to read missing utr" in {
-      val json = Json.parse("""
-                              |{
-                              |  "pageVisited": 1,
-                              |  "schemeId": 999,
-                              |  "subbieResourceRef": 123
-                              |}
-        """.stripMargin)
-
-      val result = json.validate[UpdateSubcontractorRequest]
-      result.isError mustBe true
-    }
-
-    "fail to read missing pageVisited" in {
-      val json = Json.parse("""
-                              |{
-                              |  "utr": "1234567890",
-                              |  "schemeId": 999,
-                              |  "subbieResourceRef": 123
-                              |}
-        """.stripMargin)
-
-      val result = json.validate[UpdateSubcontractorRequest]
-      result.isError mustBe true
-    }
-
     "fail to read missing schemeId" in {
       val json = Json.parse("""
                               |{
