@@ -21,13 +21,14 @@ import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
 import uk.gov.hmrc.formpproxy.cis.models.UserMonthlyReturns
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateNilMonthlyReturnRequest, InstanceIdRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest, InstanceIdRequest}
 import uk.gov.hmrc.formpproxy.cis.services.MonthlyReturnService
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 class MonthlyReturnController @Inject() (
   authorise: AuthAction,
@@ -74,6 +75,19 @@ class MonthlyReturnController @Inject() (
           case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
           case t: Throwable             =>
             logger.error("[createNilMonthlyReturn] failed", t)
+            InternalServerError(Json.obj("message" -> "Unexpected error"))
+        }
+    }
+
+  def createMonthlyReturn: Action[CreateMonthlyReturnRequest] =
+    authorise.async(parse.json[CreateMonthlyReturnRequest]) { implicit request =>
+      service
+        .createMonthlyReturn(request.body)
+        .map(_ => Created)
+        .recover {
+          case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
+          case NonFatal(t)              =>
+            logger.error("[createMonthlyReturn] failed", t)
             InternalServerError(Json.obj("message" -> "Unexpected error"))
         }
     }

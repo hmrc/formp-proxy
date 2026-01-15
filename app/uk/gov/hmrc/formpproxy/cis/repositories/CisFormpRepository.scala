@@ -19,7 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.repositories
 import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubmissionRequest}
 import uk.gov.hmrc.formpproxy.cis.models.response.CreateNilMonthlyReturnResponse
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, MonthlyReturn, SubcontractorType, UpdateContractorSchemeParams, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.setOptionalInt
@@ -38,6 +38,7 @@ trait CisMonthlyReturnSource {
   def createSubmission(request: CreateSubmissionRequest): Future[String]
   def updateMonthlyReturnSubmission(request: UpdateSubmissionRequest): Future[Unit]
   def createNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[CreateNilMonthlyReturnResponse]
+  def createMonthlyReturn(request: CreateMonthlyReturnRequest): Future[Unit]
   def getSchemeEmail(instanceId: String): Future[Option[String]]
   def getScheme(instanceId: String): Future[Option[ContractorScheme]]
   def createScheme(contractorScheme: CreateContractorSchemeParams): Future[Int]
@@ -347,6 +348,23 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         callUpdateMonthlyReturn(conn, request)
 
         CreateNilMonthlyReturnResponse(status = "STARTED")
+      }
+    }
+  }
+
+  override def createMonthlyReturn(request: CreateMonthlyReturnRequest): Future[Unit] = {
+    logger.info(
+      s"[CIS] createMonthlyReturn(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
+    )
+    Future {
+      db.withConnection { conn =>
+        Using.resource(conn.prepareCall(CallCreateMonthlyReturn)) { cs =>
+          cs.setString(1, request.instanceId)
+          cs.setInt(2, request.taxYear)
+          cs.setInt(3, request.taxMonth)
+          cs.setString(4, "N")
+          cs.execute()
+        }
       }
     }
   }
