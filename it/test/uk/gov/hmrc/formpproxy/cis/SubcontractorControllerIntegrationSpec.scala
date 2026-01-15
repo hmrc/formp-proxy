@@ -28,7 +28,7 @@ final class SubcontractorControllerIntegrationSpec
     with IntegrationPatience
     with ApplicationWithWiremock {
 
-  private val updatePath = "subcontractor/update"
+  private val updatePath = "cis/subcontractor/update"
 
   "SubcontractorController" should {
 
