@@ -28,7 +28,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
 import uk.gov.hmrc.formpproxy.cis.models.requests.ApplyPrepopulationRequest
-import uk.gov.hmrc.formpproxy.cis.models.{Company, ContractorScheme, CreateContractorSchemeParams, Partnership, SoleTrader, Trust, UpdateContractorSchemeParams}
+import uk.gov.hmrc.formpproxy.cis.models.{Company, ContractorScheme, CreateContractorSchemeParams, SoleTrader, UpdateContractorSchemeParams}
 import uk.gov.hmrc.formpproxy.cis.services.ContractorSchemeService
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
@@ -413,129 +413,6 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       status(res) mustBe INTERNAL_SERVER_ERROR
       (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
       verify(mockService).updateSchemeVersion(eqTo("abc-123"), eqTo(1))
-      verifyNoMoreInteractions(mockService)
-    }
-  }
-
-  "ContractorSchemeController.createSubcontractor" - {
-
-    "returns 200 with version when service succeeds with SoleTrader (happy path)" in new Setup {
-      when(mockService.createSubcontractor(eqTo(123), eqTo(SoleTrader), eqTo(1)))
-        .thenReturn(Future.successful(2))
-
-      val req                 =
-        FakeRequest(POST, "/subcontractor/create").withBody(
-          Json.obj("schemeId" -> 123, "subcontractorType" -> "soletrader", "version" -> 1)
-        )
-      val res: Future[Result] = controller.createSubcontractor(req)
-
-      status(res) mustBe OK
-      contentType(res) mustBe Some(JSON)
-      (contentAsJson(res) \ "subbieResourceRef").as[Int] mustBe 2
-      verify(mockService).createSubcontractor(eqTo(123), eqTo(SoleTrader), eqTo(1))
-      verifyNoMoreInteractions(mockService)
-    }
-
-    "returns 200 with version when service succeeds with Company" in new Setup {
-      when(mockService.createSubcontractor(eqTo(456), eqTo(Company), eqTo(3)))
-        .thenReturn(Future.successful(4))
-
-      val req                 =
-        FakeRequest(POST, "/subcontractor/create").withBody(
-          Json.obj("schemeId" -> 456, "subcontractorType" -> "company", "version" -> 3)
-        )
-      val res: Future[Result] = controller.createSubcontractor(req)
-
-      status(res) mustBe OK
-      (contentAsJson(res) \ "subbieResourceRef").as[Int] mustBe 4
-      verify(mockService).createSubcontractor(eqTo(456), eqTo(Company), eqTo(3))
-      verifyNoMoreInteractions(mockService)
-    }
-
-    "returns 200 with version when service succeeds with Partnership" in new Setup {
-      when(mockService.createSubcontractor(eqTo(789), eqTo(Partnership), eqTo(5)))
-        .thenReturn(Future.successful(6))
-
-      val req                 =
-        FakeRequest(POST, "/subcontractor/create").withBody(
-          Json.obj("schemeId" -> 789, "subcontractorType" -> "partnership", "version" -> 5)
-        )
-      val res: Future[Result] = controller.createSubcontractor(req)
-
-      status(res) mustBe OK
-      (contentAsJson(res) \ "subbieResourceRef").as[Int] mustBe 6
-      verify(mockService).createSubcontractor(eqTo(789), eqTo(Partnership), eqTo(5))
-      verifyNoMoreInteractions(mockService)
-    }
-
-    "returns 200 with version when service succeeds with Trust" in new Setup {
-      when(mockService.createSubcontractor(eqTo(999), eqTo(Trust), eqTo(7)))
-        .thenReturn(Future.successful(8))
-
-      val req                 =
-        FakeRequest(POST, "/subcontractor/create").withBody(
-          Json.obj("schemeId" -> 999, "subcontractorType" -> "trust", "version" -> 7)
-        )
-      val res: Future[Result] = controller.createSubcontractor(req)
-
-      status(res) mustBe OK
-      (contentAsJson(res) \ "subbieResourceRef").as[Int] mustBe 8
-      verify(mockService).createSubcontractor(eqTo(999), eqTo(Trust), eqTo(7))
-      verifyNoMoreInteractions(mockService)
-    }
-
-    "returns 400 when JSON body is invalid" in new Setup {
-      val invalidJson         = Json.obj("subcontractorType" -> "soletrader")
-      val req                 = FakeRequest(POST, "/subcontractor/create").withBody(invalidJson)
-      val res: Future[Result] = controller.createSubcontractor(req)
-
-      status(res) mustBe BAD_REQUEST
-      contentType(res) mustBe Some(JSON)
-      (contentAsJson(res) \ "message").as[String] mustBe "Invalid JSON body"
-      verifyNoInteractions(mockService)
-    }
-
-    "returns 400 when JSON body has wrong types" in new Setup {
-      val invalidJson         = Json.obj("schemeId" -> 123, "subcontractorType" -> "soletrader", "version" -> "not-a-number")
-      val req                 = FakeRequest(POST, "/subcontractor/create").withBody(invalidJson)
-      val res: Future[Result] = controller.createSubcontractor(req)
-
-      status(res) mustBe BAD_REQUEST
-      contentType(res) mustBe Some(JSON)
-      (contentAsJson(res) \ "message").as[String] mustBe "Invalid JSON body"
-      verifyNoInteractions(mockService)
-    }
-
-    "propagates UpstreamErrorResponse (status & message)" in new Setup {
-      val err = UpstreamErrorResponse("formp failed", BAD_GATEWAY, BAD_GATEWAY)
-      when(mockService.createSubcontractor(eqTo(123), eqTo(SoleTrader), eqTo(1)))
-        .thenReturn(Future.failed(err))
-
-      val req                 =
-        FakeRequest(POST, "/subcontractor/create").withBody(
-          Json.obj("schemeId" -> 123, "subcontractorType" -> "soletrader", "version" -> 1)
-        )
-      val res: Future[Result] = controller.createSubcontractor(req)
-
-      status(res) mustBe BAD_GATEWAY
-      (contentAsJson(res) \ "message").as[String] must include("formp failed")
-      verify(mockService).createSubcontractor(eqTo(123), eqTo(SoleTrader), eqTo(1))
-      verifyNoMoreInteractions(mockService)
-    }
-
-    "returns 500 with generic message on unexpected exception" in new Setup {
-      when(mockService.createSubcontractor(eqTo(123), eqTo(SoleTrader), eqTo(1)))
-        .thenReturn(Future.failed(new RuntimeException("boom")))
-
-      val req                 =
-        FakeRequest(POST, "/subcontractor/create").withBody(
-          Json.obj("schemeId" -> 123, "subcontractorType" -> "soletrader", "version" -> 1)
-        )
-      val res: Future[Result] = controller.createSubcontractor(req)
-
-      status(res) mustBe INTERNAL_SERVER_ERROR
-      (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
-      verify(mockService).createSubcontractor(eqTo(123), eqTo(SoleTrader), eqTo(1))
       verifyNoMoreInteractions(mockService)
     }
   }

@@ -28,16 +28,57 @@ final class SubcontractorControllerIntegrationSpec
     with IntegrationPatience
     with ApplicationWithWiremock {
 
-  private val updatePath = "cis/subcontractor/update"
+  private val createPath = "/cis/subcontractor/create"
+  private val updatePath = "/cis/subcontractor/update"
 
   "SubcontractorController" should {
 
-    "POST /formp-proxy/subcontractor/update (updateSubcontractor)" should {
+    "POST /cis/subcontractor/create (createSubcontractor)" should {
+
+//      "returns 200 and subcontractor ID when request is valid" in {
+//        AuthStub.authorised()
+//
+//        val json = Json.obj(
+//          "schemeId"         -> 999,
+//          "subcontractorType"-> "soletrader",
+//          "version"          -> 1
+//        )
+//
+//        val res = postJson(createPath, json)
+//
+//        res.status mustBe OK
+//        (res.json \ "subbieResourceRef").as[Int] must(be > 0)
+//      }
+//
+      "returns 400 when JSON is missing required fields" in {
+        AuthStub.authorised()
+
+        val res = postAwait(createPath, Json.obj())
+        res.status mustBe BAD_REQUEST
+        (res.json \ "message").as[String].toLowerCase must include("invalid")
+      }
+
+      "returns 401 when there is no active session" in {
+        AuthStub.unauthorised()
+
+        val json = Json.obj(
+        "schemeId"         -> 999,
+        "subcontractorType"-> "soletrader",
+        "version"          -> 1
+        )
+
+        val res = postAwait(createPath, json)
+
+        res.status mustBe UNAUTHORIZED
+      }
+    }
+
+    "POST /cis/subcontractor/update (updateSubcontractor)" should {
 
       "returns 400 when JSON is missing required fields" in {
         AuthStub.authorised()
 
-        val res = postJson(updatePath, Json.obj())
+        val res = postAwait(updatePath, Json.obj())
 
         res.status mustBe BAD_REQUEST
         (res.json \ "message").as[String].toLowerCase must include("invalid")
@@ -53,7 +94,7 @@ final class SubcontractorControllerIntegrationSpec
           "subbieResourceRef"-> 1
         )
 
-        val res = postJson(updatePath, json)
+        val res = postAwait(updatePath, json)
 
         res.status mustBe UNAUTHORIZED
       }
@@ -61,7 +102,7 @@ final class SubcontractorControllerIntegrationSpec
       "returns 404 for unknown endpoint (routing sanity)" in {
         AuthStub.authorised()
 
-        val res = postJson("/does-not-exist", Json.obj(
+        val res = postAwait("/does-not-exist", Json.obj(
           "utr"              -> "1234567890",
           "pageVisited"      -> 1,
           "schemeId"         -> 999,

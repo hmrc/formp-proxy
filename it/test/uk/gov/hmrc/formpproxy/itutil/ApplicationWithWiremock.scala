@@ -85,8 +85,8 @@ trait ApplicationWithWiremock
       .execute[HttpResponse]
   }
 
-  protected def post(path: String, body: JsValue): Future[HttpResponse] = {
-    val url = s"$baseUrl/$path"
+  protected def post(uri: String, body: JsValue): Future[HttpResponse] = {
+    val url = if (uri.startsWith("/")) s"$baseUrl$uri" else s"$baseUrl/$uri"
     httpClient.post(url"$url")
       .setHeader(
         commonHeaders ++ Seq(
@@ -98,19 +98,8 @@ trait ApplicationWithWiremock
       .execute[HttpResponse]
   }
 
-  protected def postRaw(uri: String, body: JsValue): Future[HttpResponse] = {
-    val fullUrl = if (uri.startsWith("/")) s"$baseUrl$uri" else s"$baseUrl/$uri"
-    httpClient.post(new java.net.URL(fullUrl))
-      .setHeader(
-        commonHeaders ++ Seq(
-          "Accept"       -> "application/json",
-          "Content-Type" -> "application/json"
-        )*
-      )
-      .withBody(body)
-      .execute[HttpResponse]
-  }
-
-  protected def postJson(uri: String, body: JsValue): HttpResponse =
+  protected def postAwait(uri: String, body: JsValue): HttpResponse =
     post(uri, body).futureValue
+
+
 }

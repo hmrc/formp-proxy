@@ -19,7 +19,6 @@ package uk.gov.hmrc.formpproxy.cis.repositories
 import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
-import play.api.libs.json.Json
 import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubcontractorRequest, UpdateSubmissionRequest}
 import uk.gov.hmrc.formpproxy.cis.models.response.CreateNilMonthlyReturnResponse
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, MonthlyReturn, SubcontractorType, UpdateContractorSchemeParams, UserMonthlyReturns}
@@ -480,9 +479,6 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       loadScheme(conn, instanceId).email
     }
   }
-
-  private def getSchemeId(conn: Connection, instanceId: String): Long =
-    loadScheme(conn, instanceId).schemeId
 
   private def getMonthlyReturnId(
     conn: Connection,
