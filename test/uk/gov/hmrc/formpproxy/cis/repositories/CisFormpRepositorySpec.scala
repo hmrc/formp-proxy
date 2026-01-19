@@ -1016,9 +1016,9 @@ final class CisFormpRepositorySpec extends SpecBase {
   "createMonthlyReturn" - {
 
     "call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return with correct parameters and execute" in {
-      val db = mock[Database]
+      val db   = mock[Database]
       val conn = mock[Connection]
-      val cs = mock[CallableStatement]
+      val cs   = mock[CallableStatement]
 
       when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)

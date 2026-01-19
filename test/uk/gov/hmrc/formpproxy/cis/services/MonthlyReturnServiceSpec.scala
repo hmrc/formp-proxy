@@ -189,7 +189,7 @@ final class MonthlyReturnServiceSpec extends SpecBase {
         taxYear = 2025,
         taxMonth = 2
       )
-      val boom = new RuntimeException("db failed")
+      val boom    = new RuntimeException("db failed")
 
       when(repo.createMonthlyReturn(eqTo(request)))
         .thenReturn(Future.failed(boom))

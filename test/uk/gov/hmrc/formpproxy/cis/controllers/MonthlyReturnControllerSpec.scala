@@ -231,7 +231,7 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         taxYear = 2025,
         taxMonth = 2
       )
-      val err = UpstreamErrorResponse("formp failed", BAD_GATEWAY, BAD_GATEWAY)
+      val err     = UpstreamErrorResponse("formp failed", BAD_GATEWAY, BAD_GATEWAY)
 
       when(mockService.createMonthlyReturn(eqTo(request)))
         .thenReturn(Future.failed(err))
