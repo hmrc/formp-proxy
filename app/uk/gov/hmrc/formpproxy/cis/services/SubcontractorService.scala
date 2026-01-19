@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.formpproxy.cis.services
 
+import uk.gov.hmrc.formpproxy.cis.models.SubcontractorType
 import uk.gov.hmrc.formpproxy.cis.models.requests.UpdateSubcontractorRequest
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
@@ -24,6 +25,9 @@ import scala.concurrent.Future
 
 @Singleton
 class SubcontractorService @Inject() (repo: CisMonthlyReturnSource) {
+
+  def createSubcontractor(schemeId: Int, subcontractorType: SubcontractorType, version: Int): Future[Int] =
+    repo.createSubcontractor(schemeId, subcontractorType, version)
 
   def updateSubcontractor(req: UpdateSubcontractorRequest): Future[Unit] =
     repo.updateSubcontractor(req)

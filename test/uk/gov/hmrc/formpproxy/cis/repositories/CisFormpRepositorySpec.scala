@@ -23,9 +23,6 @@ import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.{Company, CreateContractorSchemeParams, Partnership, SoleTrader, Trust, UpdateContractorSchemeParams}
 import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubmissionRequest}
-import uk.gov.hmrc.formpproxy.cis.models.requests.UpdateSubcontractorRequest
-import java.time.LocalDateTime
-import java.sql.{CallableStatement, Connection, DatabaseMetaData, ResultSet, Timestamp, Types}
 
 import java.time.Instant
 import java.sql.*
@@ -1018,7 +1015,7 @@ final class CisFormpRepositorySpec extends SpecBase {
 
   import uk.gov.hmrc.formpproxy.cis.models.requests.UpdateSubcontractorRequest
   import java.time.LocalDateTime
-  import java.sql.{CallableStatement, Connection, DatabaseMetaData, ResultSet, Timestamp, Types}
+  import java.sql.{CallableStatement, Connection, ResultSet, Timestamp, Types}
 
   "updateSubcontractor" - {
 
