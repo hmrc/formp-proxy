@@ -2,6 +2,7 @@
 
 # CIS routes
 POST       /monthly-returns                                         uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.retrieveMonthlyReturns
+POST       /cis/retrieve-unsubmitted-monthly-returns                uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.retrieveUnsubmittedMonthlyReturns
 POST       /monthly-return/nil/create                               uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.createNilMonthlyReturn
 POST       /monthly-return/standard/create                          uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.createMonthlyReturn
 POST       /scheme/email                                            uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.getSchemeEmail
@@ -9,11 +10,10 @@ GET        /scheme/:instanceId                                      uk.gov.hmrc.
 POST       /scheme                                                  uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.createScheme
 POST       /scheme/update                                           uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.updateScheme
 POST       /scheme/version-update                                   uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.updateSchemeVersion
-POST       /cis/subcontractor/create                                    uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.createSubcontractor
 POST       /scheme/prepopulate                                      uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.applyPrepopulation
 
-POST       /cis/subcontractor/update                                    uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.updateSubcontractor()
-
+POST       /cis/subcontractor/create                                uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.createSubcontractor()
+POST       /cis/subcontractor/update                                uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.updateSubcontractor()
 
 POST       /submissions/create                                      uk.gov.hmrc.formpproxy.cis.controllers.SubmissionController.createSubmission()
 POST       /submissions/update                                      uk.gov.hmrc.formpproxy.cis.controllers.SubmissionController.updateSubmission()

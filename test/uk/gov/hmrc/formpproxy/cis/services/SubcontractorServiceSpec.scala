@@ -19,6 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.services
 import org.mockito.ArgumentMatchers.{any, eq as eqTo}
 import org.mockito.Mockito.*
 import uk.gov.hmrc.formpproxy.base.SpecBase
+import uk.gov.hmrc.formpproxy.cis.models.{Company, Partnership, SoleTrader, Trust}
 import uk.gov.hmrc.formpproxy.cis.models.requests.UpdateSubcontractorRequest
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
@@ -27,16 +28,83 @@ import scala.concurrent.Future
 
 class SubcontractorServiceSpec extends SpecBase {
 
-  trait Setup {
+  case class Ctx() {
     val repo: CisMonthlyReturnSource = mock[CisMonthlyReturnSource]
     lazy val service                 = new SubcontractorService(repo)
   }
-  def setup: Setup = new Setup {}
+  "ContractorSchemeService createSubcontractor" - {
+
+    "returns version when repository successfully creates subcontractor (happy path)" in {
+      val c = Ctx()
+
+      when(c.repo.createSubcontractor(eqTo(123), eqTo(SoleTrader), eqTo(1)))
+        .thenReturn(Future.successful(2))
+
+      val out = c.service.createSubcontractor(123, SoleTrader, 1).futureValue
+      out mustBe 2
+
+      verify(c.repo).createSubcontractor(eqTo(123), eqTo(SoleTrader), eqTo(1))
+      verifyNoMoreInteractions(c.repo)
+    }
+
+    "creates subcontractor with Company type" in {
+      val c = Ctx()
+
+      when(c.repo.createSubcontractor(eqTo(456), eqTo(Company), eqTo(3)))
+        .thenReturn(Future.successful(4))
+
+      val out = c.service.createSubcontractor(456, Company, 3).futureValue
+      out mustBe 4
+
+      verify(c.repo).createSubcontractor(eqTo(456), eqTo(Company), eqTo(3))
+      verifyNoMoreInteractions(c.repo)
+    }
+
+    "creates subcontractor with Partnership type" in {
+      val c = Ctx()
+
+      when(c.repo.createSubcontractor(eqTo(789), eqTo(Partnership), eqTo(5)))
+        .thenReturn(Future.successful(6))
+
+      val out = c.service.createSubcontractor(789, Partnership, 5).futureValue
+      out mustBe 6
+
+      verify(c.repo).createSubcontractor(eqTo(789), eqTo(Partnership), eqTo(5))
+      verifyNoMoreInteractions(c.repo)
+    }
+
+    "creates subcontractor with Trust type" in {
+      val c = Ctx()
+
+      when(c.repo.createSubcontractor(eqTo(999), eqTo(Trust), eqTo(7)))
+        .thenReturn(Future.successful(8))
+
+      val out = c.service.createSubcontractor(999, Trust, 7).futureValue
+      out mustBe 8
+
+      verify(c.repo).createSubcontractor(eqTo(999), eqTo(Trust), eqTo(7))
+      verifyNoMoreInteractions(c.repo)
+    }
+
+    "propagates failures from the repository" in {
+      val c    = Ctx()
+      val boom = new RuntimeException("database failed")
+
+      when(c.repo.createSubcontractor(eqTo(123), eqTo(SoleTrader), eqTo(1)))
+        .thenReturn(Future.failed(boom))
+
+      val ex = c.service.createSubcontractor(123, SoleTrader, 1).failed.futureValue
+      ex mustBe boom
+
+      verify(c.repo).createSubcontractor(eqTo(123), eqTo(SoleTrader), eqTo(1))
+      verifyNoMoreInteractions(c.repo)
+    }
+  }
 
   "SubcontractorService#updateSubcontractor" - {
 
     "delegates to repo and returns Unit" in {
-      val s = setup; import s.*
+      val c = Ctx(); import c.*
 
       val req = UpdateSubcontractorRequest(
         utr = Some("1234567890"),
@@ -79,7 +147,7 @@ class SubcontractorServiceSpec extends SpecBase {
     }
 
     "propagates failure from repo" in {
-      val s = setup; import s.*
+      val c = Ctx(); import c.*
 
       val req = UpdateSubcontractorRequest(
         utr = Some("1234567890"),

@@ -22,7 +22,7 @@ import org.scalatest.freespec.AnyFreeSpec
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest}
 import uk.gov.hmrc.formpproxy.cis.models.response.CreateNilMonthlyReturnResponse
-import uk.gov.hmrc.formpproxy.cis.models.{MonthlyReturn, UserMonthlyReturns}
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, UnsubmittedMonthlyReturns, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
 import java.time.LocalDateTime
@@ -197,6 +197,54 @@ final class MonthlyReturnServiceSpec extends SpecBase {
       service.createMonthlyReturn(request).failed.futureValue mustBe boom
 
       verify(repo).createMonthlyReturn(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "MonthlyReturnService getUnsubmittedMonthlyReturns" - {
+
+    "returns wrapper when repository returns row (happy path)" in new Ctx {
+      val scheme = ContractorScheme(
+        schemeId = 1,
+        instanceId = id,
+        accountsOfficeReference = "AOR123",
+        taxOfficeNumber = "123",
+        taxOfficeReference = "AB12345"
+      )
+
+      val original = UnsubmittedMonthlyReturns(
+        scheme = scheme,
+        monthlyReturn = Seq(
+          mkReturn(66666L, 1).copy(status = Some("DEPARTMENTAL_ERROR")),
+          mkReturn(66667L, 7).copy(status = Some("ACCEPTED"))
+        )
+      )
+
+      val expected = original.copy(
+        monthlyReturn = Seq(
+          original.monthlyReturn.head.copy(status = Some("REJECTED")),
+          original.monthlyReturn(1).copy(status = Some("PENDING"))
+        )
+      )
+
+      when(repo.getUnsubmittedMonthlyReturns(eqTo(id)))
+        .thenReturn(Future.successful(original))
+
+      service.getUnsubmittedMonthlyReturns(id).futureValue mustBe expected
+
+      verify(repo).getUnsubmittedMonthlyReturns(eqTo(id))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failures from repo" in new Ctx {
+      val boom = new RuntimeException("db failed")
+
+      when(repo.getUnsubmittedMonthlyReturns(eqTo(id)))
+        .thenReturn(Future.failed(boom))
+
+      service.getUnsubmittedMonthlyReturns(id).failed.futureValue mustBe boom
+
+      verify(repo).getUnsubmittedMonthlyReturns(eqTo(id))
       verifyNoMoreInteractions(repo)
     }
   }
