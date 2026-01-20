@@ -2,6 +2,7 @@
 
 # CIS routes
 POST       /monthly-returns                                         uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.retrieveMonthlyReturns
+POST       /cis/retrieve-unsubmitted-monthly-returns                uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.retrieveUnsubmittedMonthlyReturns
 POST       /monthly-return/nil/create                               uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.createNilMonthlyReturn
 POST       /scheme/email                                            uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.getSchemeEmail
 GET        /scheme/:instanceId                                      uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.getScheme(instanceId: String)

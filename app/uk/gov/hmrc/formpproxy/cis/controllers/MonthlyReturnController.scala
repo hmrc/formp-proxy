@@ -20,7 +20,7 @@ import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
-import uk.gov.hmrc.formpproxy.cis.models.UserMonthlyReturns
+import uk.gov.hmrc.formpproxy.cis.models.{UnsubmittedMonthlyReturns, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateNilMonthlyReturnRequest, InstanceIdRequest}
 import uk.gov.hmrc.formpproxy.cis.services.MonthlyReturnService
 import uk.gov.hmrc.http.UpstreamErrorResponse
@@ -28,6 +28,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 class MonthlyReturnController @Inject() (
   authorise: AuthAction,
@@ -61,6 +62,31 @@ class MonthlyReturnController @Inject() (
                 case t: Throwable             =>
                   logger.error("[retrieveMonthlyReturns] failed", t)
                   InternalServerError(Json.obj("message" -> "Unexpected error"))
+              }
+        )
+    }
+
+  def retrieveUnsubmittedMonthlyReturns: Action[JsValue] =
+    authorise.async(parse.json) { implicit request =>
+      request.body
+        .validate[InstanceIdRequest]
+        .fold(
+          errs =>
+            Future.successful(
+              BadRequest(
+                Json.obj(
+                  "message" -> "Invalid JSON body",
+                  "errors"  -> JsError.toJson(errs)
+                )
+              )
+            ),
+          instanceIdRequest =>
+            service
+              .getUnsubmittedMonthlyReturns(instanceIdRequest.instanceId)
+              .map((payload: UnsubmittedMonthlyReturns) => Ok(Json.toJson(payload)))
+              .recover { case NonFatal(e) =>
+                logger.error("[retrieveUnsubmittedMonthlyReturns] failed", e)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )
     }

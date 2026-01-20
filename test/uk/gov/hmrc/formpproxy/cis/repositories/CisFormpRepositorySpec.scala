@@ -1013,6 +1013,45 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
   }
 
+  "getUnsubmittedMonthlyReturns" - {
+
+    "calls MONTHLY_RETURN_PROCS_2016.Get_Unsubmitted_Monthly_Returns and returns list of instance IDs" in {
+      val db        = mock[Database]
+      val conn      = mock[java.sql.Connection]
+      val cs        = mock[CallableStatement]
+      val rsScheme  = mock[ResultSet]
+      val rsMonthly = mock[ResultSet]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Returns(?, ?, ?) }")).thenReturn(cs)
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+      when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsMonthly)
+
+      when(rsScheme.next()).thenReturn(true, false)
+      when(rsScheme.getString("instance_id")).thenReturn("abc-123")
+      when(rsScheme.getString("aoref")).thenReturn("123pa132456789")
+      when(rsScheme.getString("tax_office_number")).thenReturn("123")
+      when(rsScheme.getString("tax_office_reference")).thenReturn("AB456")
+
+      when(rsMonthly.next()).thenReturn(true, false)
+      when(rsMonthly.getString("tax_year")).thenReturn("2025")
+      when(rsMonthly.getString("tax_month")).thenReturn("2")
+      when(rsMonthly.getString("nil_return_indicator")).thenReturn("Y")
+      when(rsMonthly.getString("status")).thenReturn("PENDING")
+      when(rsMonthly.getTimestamp("last_update")).thenReturn(Timestamp.valueOf("2025-01-31 12:34:56"))
+
+      val repo   = new CisFormpRepository(db)
+      val result = repo.getUnsubmittedMonthlyReturns("abc-123").futureValue
+
+      result.scheme.instanceId mustBe "abc-123"
+      result.monthlyReturn must have size 1
+      result.monthlyReturn.head.nilReturnIndicator mustBe Some("Y")
+      result.monthlyReturn.head.status mustBe Some("PENDING")
+    }
+  }
+
   import uk.gov.hmrc.formpproxy.cis.models.requests.UpdateSubcontractorRequest
   import java.time.LocalDateTime
   import java.sql.{CallableStatement, Connection, ResultSet, Timestamp, Types}
