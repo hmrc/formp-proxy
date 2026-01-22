@@ -43,11 +43,5 @@ object ResultSetUtils {
 
     def getOptionalInstant(columnName: String): Option[java.time.Instant] =
       getOptionalTimestamp(columnName).map(_.toInstant)
-
-    def setOptionalString(i: Int, v: Option[String]): Unit =
-      v match {
-        case Some(x) => cs.setString(i, x)
-        case None => cs.setNull(i, Types.VARCHAR)
-      }
   }
 }
