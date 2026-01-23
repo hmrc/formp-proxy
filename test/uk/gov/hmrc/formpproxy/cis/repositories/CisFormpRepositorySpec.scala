@@ -75,21 +75,30 @@ final class CisFormpRepositorySpec extends SpecBase {
       val db        = mock[Database]
       val conn      = mock[Connection]
       val cs        = mock[CallableStatement]
+      val rsIgnored = mock[ResultSet]
       val rsMonthly = mock[ResultSet]
 
       when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
       }
+
       when(conn.prepareCall(anyArg[String])).thenReturn(cs)
-      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(null)
-      when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsMonthly)
+
+      when(cs.getObject(2, classOf[ResultSet])).thenReturn(rsIgnored)
+      when(rsIgnored.next()).thenReturn(false)
+
+      when(cs.getObject(3, classOf[ResultSet])).thenReturn(rsMonthly)
       when(rsMonthly.next()).thenReturn(false)
 
       val repo = new CisFormpRepository(db)
       val out  = repo.getAllMonthlyReturns("abc-123").futureValue
 
       out.monthlyReturnList mustBe empty
-      verify(conn).prepareCall(eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }"))
+
+      verify(conn).prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }")
+      verify(cs).setString(1, "abc-123")
+      verify(cs).registerOutParameter(2, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(3, OracleTypes.CURSOR)
       verify(cs).execute()
     }
   }
@@ -157,6 +166,7 @@ final class CisFormpRepositorySpec extends SpecBase {
     "look up ids, call SPs, return the submission id, and close resources" in {
       val db        = mock[Database]
       val conn      = mock[Connection]
+      val rsIgnored = mock[ResultSet]
       val rsMonthly = mock[ResultSet]
       val csAll     = mock[CallableStatement]
       val csCreate  = mock[CallableStatement]
@@ -165,15 +175,19 @@ final class CisFormpRepositorySpec extends SpecBase {
         val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
       }
 
-      when(conn.prepareCall(eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }")))
+      when(conn.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }"))
         .thenReturn(csAll)
-      when(csAll.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsMonthly)
+
+      when(csAll.getObject(2, classOf[ResultSet])).thenReturn(rsIgnored)
+      when(rsIgnored.next()).thenReturn(false)
+
+      when(csAll.getObject(3, classOf[ResultSet])).thenReturn(rsMonthly)
       when(rsMonthly.next()).thenReturn(true, false)
       when(rsMonthly.getInt("tax_year")).thenReturn(2024)
       when(rsMonthly.getInt("tax_month")).thenReturn(4)
       when(rsMonthly.getLong("monthly_return_id")).thenReturn(7777L)
 
-      when(conn.prepareCall(eqTo("{ call SUBMISSION_PROCS.Create_Submission(?, ?, ?, ?, ?, ?, ?, ?, ?) }")))
+      when(conn.prepareCall("{ call SUBMISSION_PROCS.Create_Submission(?, ?, ?, ?, ?, ?, ?, ?, ?) }"))
         .thenReturn(csCreate)
       when(csCreate.getLong(9)).thenReturn(12345L)
 
@@ -204,6 +218,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       val db        = mock[Database]
       val conn      = mock[Connection]
       val rsScheme  = mock[ResultSet]
+      val rsIgnored = mock[ResultSet]
       val rsMonthly = mock[ResultSet]
       val csScheme  = mock[CallableStatement]
       val csAll     = mock[CallableStatement]
@@ -213,14 +228,18 @@ final class CisFormpRepositorySpec extends SpecBase {
         val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
       }
 
-      when(conn.prepareCall(eqTo("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"))).thenReturn(csScheme)
-      when(csScheme.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+      when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")).thenReturn(csScheme)
+      when(csScheme.getObject(2, classOf[ResultSet])).thenReturn(rsScheme)
       when(rsScheme.next()).thenReturn(true)
       when(rsScheme.getLong("scheme_id")).thenReturn(9999L)
 
-      when(conn.prepareCall(eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }")))
+      when(conn.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }"))
         .thenReturn(csAll)
-      when(csAll.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsMonthly)
+
+      when(csAll.getObject(2, classOf[ResultSet])).thenReturn(rsIgnored)
+      when(rsIgnored.next()).thenReturn(false)
+
+      when(csAll.getObject(3, classOf[ResultSet])).thenReturn(rsMonthly)
       when(rsMonthly.next()).thenReturn(true, false)
       when(rsMonthly.getInt("tax_year")).thenReturn(2024)
       when(rsMonthly.getInt("tax_month")).thenReturn(4)
@@ -228,10 +247,9 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       when(
         conn.prepareCall(
-          eqTo("{ call SUBMISSION_PROCS_2016.UPDATE_MR_SUBMISSION(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+          "{ call SUBMISSION_PROCS_2016.UPDATE_MR_SUBMISSION(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
         )
-      )
-        .thenReturn(csUpdate)
+      ).thenReturn(csUpdate)
 
       val repo = new CisFormpRepository(db)
 
@@ -256,7 +274,7 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       verify(csUpdate).execute()
       verify(conn).prepareCall(
-        eqTo("{ call SUBMISSION_PROCS_2016.UPDATE_MR_SUBMISSION(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+        "{ call SUBMISSION_PROCS_2016.UPDATE_MR_SUBMISSION(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
       )
     }
   }
@@ -314,17 +332,24 @@ final class CisFormpRepositorySpec extends SpecBase {
 
   "getMonthlyReturnId" - {
 
-    "throw when Get_All_Monthly_Returns returns null monthly cursor (outer null check)" in {
+    "throw when Get_All_Monthly_Returns returns null monthly cursor" in {
       val db         = mock[Database]
       val connection = mock[Connection]
       val cs         = mock[CallableStatement]
+      val rsIgnored  = mock[ResultSet]
 
       when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[java.sql.Connection => Any])
         f(connection)
       }
-      when(connection.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }")).thenReturn(cs)
-      when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(null) // ← null monthly cursor
+
+      when(connection.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }"))
+        .thenReturn(cs)
+
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsIgnored)
+      when(rsIgnored.next()).thenReturn(false)
+
+      when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(null)
 
       val repo   = new CisFormpRepository(db)
       val method = classOf[CisFormpRepository].getDeclaredMethod(
@@ -335,24 +360,33 @@ final class CisFormpRepositorySpec extends SpecBase {
         classOf[Int]
       )
       method.setAccessible(true)
+
       val thrown = intercept[java.lang.reflect.InvocationTargetException] {
         method.invoke(repo, connection, "abc-123", Int.box(2025), Int.box(2))
       }
-      val cause  = thrown.getCause.asInstanceOf[RuntimeException]
-      cause.getMessage must include("null monthly cursor")
+
+      val cause = thrown.getCause.asInstanceOf[RuntimeException]
+      cause.getMessage must include("SP returned null cursor at index 3")
     }
 
     "throw when no MONTHLY_RETURN matches the requested year/month" in {
       val db         = mock[Database]
       val connection = mock[Connection]
       val cs         = mock[CallableStatement]
+      val rsIgnored  = mock[ResultSet]
       val rs         = mock[ResultSet]
 
       when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[java.sql.Connection => Any])
         f(connection)
       }
-      when(connection.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }")).thenReturn(cs)
+
+      when(connection.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }"))
+        .thenReturn(cs)
+
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsIgnored)
+      when(rsIgnored.next()).thenReturn(false)
+
       when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rs)
 
       when(rs.next()).thenReturn(true, true, false)
@@ -368,10 +402,12 @@ final class CisFormpRepositorySpec extends SpecBase {
         classOf[Int]
       )
       method.setAccessible(true)
+
       val thrown = intercept[java.lang.reflect.InvocationTargetException] {
         method.invoke(repo, connection, "abc-123", Int.box(2025), Int.box(2))
       }
-      val cause  = thrown.getCause.asInstanceOf[RuntimeException]
+
+      val cause = thrown.getCause.asInstanceOf[RuntimeException]
       cause.getMessage must include("No MONTHLY_RETURN for instance_id=abc-123 year=2025 month=2")
     }
   }
@@ -502,7 +538,9 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rs.wasNull()).thenReturn(false)
       when(rs.getInt("verif_batch_counter")).thenReturn(2)
       when(rs.wasNull()).thenReturn(false)
-      when(rs.getString("last_update")).thenReturn("2025-12-04T10:15:30Z")
+      when(rs.getTimestamp("last_update")).thenReturn(Timestamp.from(Instant.parse("2025-12-04T10:15:30Z")))
+      when(rs.getInt("version")).thenReturn(1)
+      when(rs.wasNull()).thenReturn(false)
       when(rs.getInt("version")).thenReturn(1)
       when(rs.wasNull()).thenReturn(false)
 
@@ -619,11 +657,11 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")).thenReturn(cs)
       when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(null)
 
-      val repo   = new CisFormpRepository(db)
-      val result = repo.getScheme("null-cursor-123").failed.futureValue
+      val repo = new CisFormpRepository(db)
+      val ex   = repo.getScheme("null-cursor-123").failed.futureValue
 
-      result mustBe a[RuntimeException]
-      result.getMessage must include("int_Get_Scheme returned null cursor")
+      ex mustBe a[RuntimeException]
+      ex.getMessage must include("SP returned null cursor at index 2")
 
       verify(cs).execute()
     }
@@ -1049,6 +1087,68 @@ final class CisFormpRepositorySpec extends SpecBase {
       result.monthlyReturn must have size 1
       result.monthlyReturn.head.nilReturnIndicator mustBe Some("Y")
       result.monthlyReturn.head.status mustBe Some("PENDING")
+    }
+  }
+
+  "getMonthlyReturnForEdit" - {
+
+    "calls SP and returns empty response when all cursors are empty" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      val rsScheme         = mock[ResultSet]
+      val rsMonthlyReturn  = mock[ResultSet]
+      val rsItems          = mock[ResultSet]
+      val rsSubcontractors = mock[ResultSet]
+      val rsSubmission     = mock[ResultSet]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_For_Edit(?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+        )
+      )
+        .thenReturn(cs)
+
+      when(cs.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+      when(cs.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsMonthlyReturn)
+      when(cs.getObject(eqTo(7), eqTo(classOf[ResultSet]))).thenReturn(rsItems)
+      when(cs.getObject(eqTo(8), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
+      when(cs.getObject(eqTo(9), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+
+      when(rsScheme.next()).thenReturn(false)
+      when(rsMonthlyReturn.next()).thenReturn(false)
+      when(rsItems.next()).thenReturn(false)
+      when(rsSubcontractors.next()).thenReturn(false)
+      when(rsSubmission.next()).thenReturn(false)
+
+      val repo = new CisFormpRepository(db)
+
+      val out = repo.getMonthlyReturnForEdit("abc-123", 2025, 1).futureValue
+
+      out.scheme mustBe empty
+      out.monthlyReturn mustBe empty
+      out.monthlyReturnItems mustBe empty
+      out.subcontractors mustBe empty
+      out.submission mustBe empty
+
+      verify(conn).prepareCall(
+        eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_For_Edit(?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+      )
+      verify(cs).setString(1, "abc-123")
+      verify(cs).setInt(2, 2025)
+      verify(cs).setInt(3, 1)
+      verify(cs).setString(4, "N")
+      verify(cs).registerOutParameter(5, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(6, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(7, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(8, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(9, OracleTypes.CURSOR)
+      verify(cs).execute()
     }
   }
 

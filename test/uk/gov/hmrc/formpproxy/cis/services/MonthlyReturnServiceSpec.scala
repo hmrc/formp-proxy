@@ -20,8 +20,8 @@ import org.mockito.ArgumentMatchers.eq as eqTo
 import org.mockito.Mockito.*
 import org.scalatest.freespec.AnyFreeSpec
 import uk.gov.hmrc.formpproxy.base.SpecBase
-import uk.gov.hmrc.formpproxy.cis.models.requests.CreateNilMonthlyReturnRequest
-import uk.gov.hmrc.formpproxy.cis.models.response.CreateNilMonthlyReturnResponse
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateNilMonthlyReturnRequest, GetMonthlyReturnForEditRequest}
+import uk.gov.hmrc.formpproxy.cis.models.response.{CreateNilMonthlyReturnResponse, GetMonthlyReturnForEditResponse}
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, UnsubmittedMonthlyReturns, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
@@ -209,6 +209,42 @@ final class MonthlyReturnServiceSpec extends SpecBase {
       service.getUnsubmittedMonthlyReturns(id).failed.futureValue mustBe boom
 
       verify(repo).getUnsubmittedMonthlyReturns(eqTo(id))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "MonthlyReturnService getMonthlyReturnForEdit" - {
+
+    "delegates to repo and returns response" in new Ctx {
+      val request = GetMonthlyReturnForEditRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 1
+      )
+
+      val response = GetMonthlyReturnForEditResponse(
+        scheme = Seq.empty,
+        monthlyReturn = Seq.empty,
+        subcontractors = Seq.empty,
+        monthlyReturnItems = Seq.empty,
+        submission = Seq.empty
+      )
+
+      when(
+        repo.getMonthlyReturnForEdit(
+          instanceId = eqTo("abc-123"),
+          taxYear = eqTo(2025),
+          taxMonth = eqTo(1)
+        )
+      ).thenReturn(Future.successful(response))
+
+      service.getMonthlyReturnForEdit(request).futureValue mustBe response
+
+      verify(repo).getMonthlyReturnForEdit(
+        instanceId = eqTo("abc-123"),
+        taxYear = eqTo(2025),
+        taxMonth = eqTo(1)
+      )
       verifyNoMoreInteractions(repo)
     }
   }
