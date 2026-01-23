@@ -82,7 +82,7 @@ class SubcontractorController @Inject() (
             Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
           body =>
             service
-              .updateSubcontractor(body)
+              .createAndUpdateSubcontractor(body)
               .map(_ => NoContent)
               .recover { case t =>
                 logger.error("[updateSubcontractor] failed", t)

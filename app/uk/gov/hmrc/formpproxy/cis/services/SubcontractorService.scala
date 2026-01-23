@@ -17,7 +17,7 @@
 package uk.gov.hmrc.formpproxy.cis.services
 
 import uk.gov.hmrc.formpproxy.cis.models.SubcontractorType
-import uk.gov.hmrc.formpproxy.cis.models.requests.UpdateSubcontractorRequest
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, UpdateSubcontractorRequest}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
 import javax.inject.{Inject, Singleton}

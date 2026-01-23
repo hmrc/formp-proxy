@@ -19,10 +19,8 @@ package uk.gov.hmrc.formpproxy.cis.models.requests
 import play.api.libs.json.{Format, Json, Reads, Writes}
 import uk.gov.hmrc.formpproxy.cis.models.SubcontractorType
 
-import java.time.LocalDateTime
-
 final case class CreateAndUpdateSubcontractorRequest(
-  cisId: Int,
+  cisId: String,
   subcontractorType: SubcontractorType,
   firstName: Option[String],
   secondName: Option[String],

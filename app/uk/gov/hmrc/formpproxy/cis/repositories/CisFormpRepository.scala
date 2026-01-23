@@ -624,17 +624,17 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       s"[CIS] createAndUpdateSubcontractor(instanceId=${request.cisId})"
     )
     db.withTransaction { conn =>
-      val scheme = loadScheme(conn, request.cisId)
+      val scheme            = loadScheme(conn, request.cisId)
       val subbieResourceRef = callCreateSubcontractor(conn, scheme.schemeId, request.subcontractorType)
-      callUpdateSchemeVersion(conn, request.cisId, scheme.version)
-      callUpdateSubcontractor(conn, scheme.schemeId, request.subcontractorType)
+      callUpdateSchemeVersion(conn, request.cisId, scheme.version.getOrElse(0))
+      callUpdateSubcontractor(conn, scheme.schemeId, subbieResourceRef, request)
     }
   }
 
-  private def callCreateSubcontractor(conn: Connection, schemeId: Int, subcontractorType: SubcontractorType): Int = {
+  private def callCreateSubcontractor(conn: Connection, schemeId: Long, subcontractorType: SubcontractorType): Int = {
     val cs = conn.prepareCall(CallCreateSubcontractor)
     try {
-      cs.setInt(1, schemeId)
+      cs.setLong(1, schemeId)
       cs.setInt(2, 0) // initial version is 0
       cs.setString(3, subcontractorType.toString)
       cs.registerOutParameter(4, OracleTypes.INTEGER)
@@ -647,67 +647,68 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
   private def callUpdateSubcontractor(
     conn: Connection,
-    schemeId: Int,
+    schemeId: Long,
     subbieResourceRef: Int,
     request: CreateAndUpdateSubcontractorRequest
-  ): Unit = {
-    val cs = conn.prepareCall(CallUpdateSubcontractor)
-    try {
-      def setOptString(i: Int, v: Option[String]): Unit =
-        v match {
-          case Some(x) => cs.setString(i, x)
-          case None    => cs.setNull(i, Types.VARCHAR)
-        }
+  ): Future[Unit] =
+    Future {
+      val cs = conn.prepareCall(CallUpdateSubcontractor)
+      try {
+        def setOptString(i: Int, v: Option[String]): Unit =
+          v match {
+            case Some(x) => cs.setString(i, x)
+            case None    => cs.setNull(i, Types.VARCHAR)
+          }
 
-      def setOptTimestamp(i: Int, v: Option[java.time.LocalDateTime]): Unit =
-        v match {
-          case Some(dt) => cs.setTimestamp(i, Timestamp.valueOf(dt))
-          case None     => cs.setNull(i, Types.TIMESTAMP)
-        }
+        def setOptTimestamp(i: Int, v: Option[java.time.LocalDateTime]): Unit =
+          v match {
+            case Some(dt) => cs.setTimestamp(i, Timestamp.valueOf(dt))
+            case None     => cs.setNull(i, Types.TIMESTAMP)
+          }
 
-      def setOptInt(index: Int, value: Option[Int]): Unit =
-        value match {
-          case Some(v) => cs.setInt(index, v)
-          case None    => cs.setNull(index, Types.NUMERIC)
-        }
+        def setOptInt(index: Int, value: Option[Int]): Unit =
+          value match {
+            case Some(v) => cs.setInt(index, v)
+            case None    => cs.setNull(index, Types.NUMERIC)
+          }
 
-      cs.setInt(1, request.schemeId)
+        cs.setLong(1, schemeId)
 
-      cs.setInt(2, request.subbieResourceRef)
-      setOptString(3, request.utr)
-      setOptInt(4, None)
-      setOptString(5, None)
-      setOptString(6, None)
-      setOptString(7, request.firstName)
-      setOptString(8, request.nino)
-      setOptString(9, request.secondName)
-      setOptString(10, request.surname)
+        cs.setInt(2, subbieResourceRef)
+        setOptString(3, request.utr)
+        setOptInt(4, None)
+        setOptString(5, None)
+        setOptString(6, None)
+        setOptString(7, request.firstName)
+        setOptString(8, request.nino)
+        setOptString(9, request.secondName)
+        setOptString(10, request.surname)
 
-      setOptString(11, None)
-      setOptString(12, request.tradingName)
-      setOptString(13, request.addressLine1)
-      setOptString(14, request.addressLine2)
-      setOptString(15, request.addressLine3)
-      setOptString(16, request.addressLine4)
-      setOptString(17, request.country)
-      setOptString(18, request.postcode)
-      setOptString(19, request.emailAddress)
-      setOptString(20, request.phoneNumber)
-      setOptString(21, None)
-      setOptString(22, request.worksReferenceNumber)
+        setOptString(11, None)
+        setOptString(12, request.tradingName)
+        setOptString(13, request.addressLine1)
+        setOptString(14, request.addressLine2)
+        setOptString(15, request.addressLine3)
+        setOptString(16, request.addressLine4)
+        setOptString(17, request.country)
+        setOptString(18, request.postcode)
+        setOptString(19, request.emailAddress)
+        setOptString(20, request.phoneNumber)
+        setOptString(21, None)
+        setOptString(22, request.worksReferenceNumber)
 
-      setOptString(23, None)
-      setOptString(24, None)
-      setOptString(25, None)
-      setOptString(26, None)
-      setOptString(27, None)
-      setOptString(28, None)
-      setOptTimestamp(29, None)
+        setOptString(23, None)
+        setOptString(24, None)
+        setOptString(25, None)
+        setOptString(26, None)
+        setOptString(27, None)
+        setOptString(28, None)
+        setOptTimestamp(29, None)
 
-      cs.setNull(30, Types.INTEGER)
-      cs.registerOutParameter(30, Types.INTEGER)
+        cs.setNull(30, Types.INTEGER)
+        cs.registerOutParameter(30, Types.INTEGER)
 
-      cs.execute()
-    } finally cs.close()
-  }
+        cs.execute()
+      } finally cs.close()
+    }
 }
