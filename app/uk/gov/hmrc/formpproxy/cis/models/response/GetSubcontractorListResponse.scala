@@ -64,7 +64,7 @@ object Subcontractor {
 }
 
 final case class GetSubcontractorListResponse(subcontractors: List[Subcontractor])
+
 object GetSubcontractorListResponse {
   given Format[GetSubcontractorListResponse] = Json.format[GetSubcontractorListResponse]
 }
-

@@ -78,10 +78,10 @@ trait ApplicationWithWiremock
     )
 
   protected def getResponse(path: String): Future[HttpResponse] = {
-    val url = if (path.startsWith("/")) s"$baseUrl$path" else s"$baseUrl/$path"
+    val fullUrl = s"$baseUrl/$path"
     httpClient
-      .get(url"$url")
-      .setHeader(commonHeaders*)
+      .get(url"$fullUrl")
+      .setHeader(commonHeaders *)
       .execute[HttpResponse]
   }
 

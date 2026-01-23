@@ -655,11 +655,6 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     if (rs.wasNull()) None else Some(v)
   }
 
-  private def optLong(rs: ResultSet, col: String): Option[Long] = {
-    val v = rs.getLong(col)
-    if (rs.wasNull()) None else Some(v)
-  }
-
   private def optLdt(rs: ResultSet, col: String): Option[LocalDateTime] =
     Option(rs.getTimestamp(col)).map(_.toLocalDateTime)
 
