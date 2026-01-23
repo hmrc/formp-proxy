@@ -32,4 +32,6 @@ class SubcontractorService @Inject() (repo: CisMonthlyReturnSource) {
   def updateSubcontractor(req: UpdateSubcontractorRequest): Future[Unit] =
     repo.updateSubcontractor(req)
 
+  def createAndUpdateSubcontractor(req: CreateAndUpdateSubcontractorRequest): Future[Unit] =
+    repo.createAndUpdateSubcontractor(req)
 }

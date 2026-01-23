@@ -22,7 +22,7 @@ import uk.gov.hmrc.formpproxy.actions.AuthAction
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateSubcontractorRequest, UpdateSubcontractorRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, CreateSubcontractorRequest, UpdateSubcontractorRequest}
 import uk.gov.hmrc.formpproxy.cis.utils.JsResultUtils.foldErrorsIntoBadRequest
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
@@ -59,6 +59,24 @@ class SubcontractorController @Inject() (
     authorise.async(parse.json) { implicit request =>
       request.body
         .validate[UpdateSubcontractorRequest]
+        .fold(
+          errs =>
+            Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
+          body =>
+            service
+              .updateSubcontractor(body)
+              .map(_ => NoContent)
+              .recover { case t =>
+                logger.error("[updateSubcontractor] failed", t)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
+              }
+        )
+    }
+
+  def createAndUpdateSubcontractor(): Action[JsValue] =
+    authorise.async(parse.json) { implicit request =>
+      request.body
+        .validate[CreateAndUpdateSubcontractorRequest]
         .fold(
           errs =>
             Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
