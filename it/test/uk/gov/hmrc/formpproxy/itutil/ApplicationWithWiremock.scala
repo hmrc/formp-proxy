@@ -77,11 +77,11 @@ trait ApplicationWithWiremock
       HeaderNames.xSessionId -> "sessionId"
     )
 
-  protected def get(path: String): Future[HttpResponse] = {
-    val fullUrl = s"$baseUrl/$path"
+  protected def getResponse(path: String): Future[HttpResponse] = {
+    val url = if (path.startsWith("/")) s"$baseUrl$path" else s"$baseUrl/$path"
     httpClient
-      .get(url"$fullUrl")
-      .setHeader(commonHeaders *)
+      .get(url"$url")
+      .setHeader(commonHeaders*)
       .execute[HttpResponse]
   }
 
@@ -101,5 +101,6 @@ trait ApplicationWithWiremock
   protected def postAwait(uri: String, body: JsValue): HttpResponse =
     post(uri, body).futureValue
 
-
+  protected def getAwait(path: String): HttpResponse =
+    getResponse(path).futureValue
 }

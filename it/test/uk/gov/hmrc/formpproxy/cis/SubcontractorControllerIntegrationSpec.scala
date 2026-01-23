@@ -21,15 +21,37 @@ import org.scalatest.matchers.must.Matchers
 import play.api.http.Status.*
 import play.api.libs.json.Json
 import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, AuthStub}
+import com.github.tomakehurst.wiremock.client.WireMock.*
+import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.Mockito.{verify, when}
+import play.api.inject.bind
+import play.api.inject.guice.GuiceApplicationBuilder
+import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
+import uk.gov.hmrc.formpproxy.cis.models.response.{Subcontractor, GetSubcontractorListResponse}
+import scala.concurrent.Future
+
 
 final class SubcontractorControllerIntegrationSpec
   extends Matchers
     with ScalaFutures
     with IntegrationPatience
-    with ApplicationWithWiremock {
+    with ApplicationWithWiremock
+    with MockitoSugar {
+
 
   private val createPath = "/cis/subcontractor/create"
   private val updatePath = "/cis/subcontractor/update"
+  private val listPath = "/cis/subcontractors/cis-123"
+
+  private val mockRepo: CisMonthlyReturnSource = mock[CisMonthlyReturnSource]
+
+  override lazy val app = new GuiceApplicationBuilder()
+    .configure(extraConfig)
+    .overrides(
+      bind[CisMonthlyReturnSource].toInstance(mockRepo)
+    )
+    .build()
+
 
   "SubcontractorController" should {
 
@@ -73,6 +95,8 @@ final class SubcontractorControllerIntegrationSpec
       }
     }
 
+
+
     "POST /cis/subcontractor/update (updateSubcontractor)" should {
 
       "returns 400 when JSON is missing required fields" in {
@@ -113,4 +137,75 @@ final class SubcontractorControllerIntegrationSpec
       }
     }
   }
+
+  "GET /cis/subcontractors/:cisId (getSubcontractorList)" should {
+
+    "returns 401 when there is no active session" in {
+      AuthStub.unauthorised()
+
+      val res = getAwait(listPath)
+
+      res.status mustBe UNAUTHORIZED
+    }
+
+    "returns 200 and subcontractor list when authorised" in {
+      AuthStub.authorised()
+
+      val response = GetSubcontractorListResponse(
+        subcontractors = List(
+          Subcontractor(
+            subcontractorId = 1L,
+            subbieResourceRef = 10,
+            `type` = "soletrader",
+            utr = Some("1234567890"),
+            pageVisited = None,
+            partnerUtr = None,
+            crn = None,
+            firstName = None,
+            nino = None,
+            secondName = None,
+            surname = None,
+            partnershipTradingName = None,
+            tradingName = None,
+            addressLine1 = None,
+            addressLine2 = None,
+            addressLine3 = None,
+            addressLine4 = None,
+            country = None,
+            postcode = None,
+            emailAddress = None,
+            phoneNumber = None,
+            mobilePhoneNumber = None,
+            worksReferenceNumber = None,
+            version = None,
+            taxTreatment = None,
+            updatedTaxTreatment = None,
+            verificationNumber = None,
+            createDate = None,
+            lastUpdate = None,
+            matched = None,
+            verified = None,
+            autoVerified = None,
+            verificationDate = None,
+            lastMonthlyReturnDate = None,
+            pendingVerifications = None
+          )
+        )
+      )
+
+      when(mockRepo.getSubcontractorList("cis-123"))
+        .thenReturn(Future.successful(response))
+
+      val res = getAwait(listPath)
+
+      res.status mustBe OK
+      (res.json \ "subcontractors").as[Seq[play.api.libs.json.JsValue]] must have size 1
+      ((res.json \ "subcontractors")(0) \ "subbieResourceRef").as[Int] mustBe 10
+      ((res.json \ "subcontractors")(0) \ "type").as[String] mustBe "soletrader"
+      ((res.json \ "subcontractors")(0) \ "utr").as[String] mustBe "1234567890"
+
+      verify(mockRepo).getSubcontractorList("cis-123")
+    }
+  }
+
 }

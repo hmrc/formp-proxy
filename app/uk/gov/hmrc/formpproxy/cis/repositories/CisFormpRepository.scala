@@ -20,7 +20,7 @@ import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
 import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubcontractorRequest, UpdateSubmissionRequest}
-import uk.gov.hmrc.formpproxy.cis.models.response.CreateNilMonthlyReturnResponse
+import uk.gov.hmrc.formpproxy.cis.models.response.{CreateNilMonthlyReturnResponse, GetSubcontractorListResponse, Subcontractor}
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, MonthlyReturn, SubcontractorType, UnsubmittedMonthlyReturns, UpdateContractorSchemeParams, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.setOptionalInt
 import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
@@ -32,6 +32,7 @@ import javax.inject.{Inject, Singleton}
 import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Try, Using}
+import java.time.LocalDateTime
 
 trait CisMonthlyReturnSource {
   def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns]
@@ -47,6 +48,7 @@ trait CisMonthlyReturnSource {
   def createSubcontractor(schemeId: Int, subcontractorType: SubcontractorType, version: Int): Future[Int]
   def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int]
   def updateSubcontractor(result: UpdateSubcontractorRequest): Future[Unit]
+  def getSubcontractorList(cisId: String): Future[GetSubcontractorListResponse]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -617,5 +619,95 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
   }
+
+  private val CallGetSubcontractorList =
+    "{ call SUBCONTRACTOR_PROCS.Get_Subcontractor_List(?, ?, ?) }"
+
+  override def getSubcontractorList(cisId: String): Future[GetSubcontractorListResponse] = Future {
+    logger.info(s"[CIS] getSubcontractorList(cisId=$cisId)")
+
+    db.withConnection { conn =>
+      Using.resource(conn.prepareCall(CallGetSubcontractorList)) { cs =>
+        cs.setString(1, cisId)
+        cs.registerOutParameter(2, OracleTypes.CURSOR)
+        cs.registerOutParameter(3, OracleTypes.CURSOR)
+        cs.execute()
+
+        val rsScheme = cs.getObject(2, classOf[ResultSet])
+        try ()
+        finally if (rsScheme != null) rsScheme.close()
+
+        val rsSubs = cs.getObject(3, classOf[ResultSet])
+        val subs   =
+          try collectSubcontractors(rsSubs)
+          finally if (rsSubs != null) rsSubs.close()
+
+        GetSubcontractorListResponse(subcontractors = subs.toList)
+      }
+    }
+  }
+
+  private def optString(rs: ResultSet, col: String): Option[String] =
+    Option(rs.getString(col))
+
+  private def optInt(rs: ResultSet, col: String): Option[Int] = {
+    val v = rs.getInt(col)
+    if (rs.wasNull()) None else Some(v)
+  }
+
+  private def optLong(rs: ResultSet, col: String): Option[Long] = {
+    val v = rs.getLong(col)
+    if (rs.wasNull()) None else Some(v)
+  }
+
+  private def optLdt(rs: ResultSet, col: String): Option[LocalDateTime] =
+    Option(rs.getTimestamp(col)).map(_.toLocalDateTime)
+
+  private def readSubcontractorRow(rs: ResultSet): Subcontractor =
+    Subcontractor(
+      subcontractorId = rs.getLong("subcontractor_id"),
+      subbieResourceRef = rs.getInt("subbie_resource_ref"),
+      `type` = rs.getString("type"),
+      utr = optString(rs, "utr"),
+      pageVisited = optInt(rs, "page_visited"),
+      partnerUtr = optString(rs, "partner_utr"),
+      crn = optString(rs, "crn"),
+      firstName = optString(rs, "firstname"),
+      nino = optString(rs, "nino"),
+      secondName = optString(rs, "secondname"),
+      surname = optString(rs, "surname"),
+      partnershipTradingName = optString(rs, "partnership_tradingname"),
+      tradingName = optString(rs, "tradingname"),
+      addressLine1 = optString(rs, "address_line_1"),
+      addressLine2 = optString(rs, "address_line_2"),
+      addressLine3 = optString(rs, "address_line_3"),
+      addressLine4 = optString(rs, "address_line_4"),
+      country = optString(rs, "country"),
+      postcode = optString(rs, "postcode"),
+      emailAddress = optString(rs, "email_address"),
+      phoneNumber = optString(rs, "phone_number"),
+      mobilePhoneNumber = optString(rs, "mobile_phone_number"),
+      worksReferenceNumber = optString(rs, "works_reference_number"),
+      version = optInt(rs, "version"),
+      taxTreatment = optString(rs, "tax_treatment"),
+      updatedTaxTreatment = optString(rs, "updated_tax_treatment"),
+      verificationNumber = optString(rs, "verification_number"),
+      createDate = optLdt(rs, "create_date"),
+      lastUpdate = optLdt(rs, "last_update"),
+      matched = optString(rs, "matched"),
+      verified = optString(rs, "verified"),
+      autoVerified = optString(rs, "auto_verified"),
+      verificationDate = optLdt(rs, "verification_date"),
+      lastMonthlyReturnDate = optLdt(rs, "last_monthly_return_date"),
+      pendingVerifications = optInt(rs, "pending_verifications")
+    )
+
+  private def collectSubcontractors(rs: ResultSet): Seq[Subcontractor] =
+    if (rs == null) Seq.empty
+    else {
+      val b = Vector.newBuilder[Subcontractor]
+      while (rs.next()) b += readSubcontractorRow(rs)
+      b.result()
+    }
 
 }
