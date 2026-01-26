@@ -16,15 +16,32 @@
 
 package uk.gov.hmrc.formpproxy.shared.utils
 
-import java.sql.ResultSet
+import java.sql.{ResultSet, Timestamp}
 
 object ResultSetUtils {
 
   extension (resultSet: ResultSet) {
+
     def getOptionalInt(columnName: String): Option[Int] = {
       val intValue = resultSet.getInt(columnName)
-
       if (resultSet.wasNull()) None else Some(intValue)
     }
+
+    def getOptionalLong(columnName: String): Option[Long] = {
+      val longValue = resultSet.getLong(columnName)
+      if (resultSet.wasNull()) None else Some(longValue)
+    }
+
+    def getOptionalString(columnName: String): Option[String] =
+      Option(resultSet.getString(columnName))
+
+    def getOptionalTimestamp(columnName: String): Option[Timestamp] =
+      Option(resultSet.getTimestamp(columnName))
+
+    def getOptionalLocalDateTime(columnName: String): Option[java.time.LocalDateTime] =
+      getOptionalTimestamp(columnName).map(_.toLocalDateTime)
+
+    def getOptionalInstant(columnName: String): Option[java.time.Instant] =
+      getOptionalTimestamp(columnName).map(_.toInstant)
   }
 }
