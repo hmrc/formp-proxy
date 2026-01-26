@@ -32,6 +32,18 @@ object CallableStatementUtils {
         case Some(v) => cs.setInt(index, v)
         case None    => cs.setNull(index, Types.NUMERIC)
       }
+
+    def setOptionalLong(index: Int, value: Option[Long]): Unit =
+      value match {
+        case Some(v) => cs.setLong(index, v)
+        case None    => cs.setNull(index, Types.NUMERIC)
+      }
+
+    def setOptionalTimestamp(index: Int, value: Option[java.time.LocalDateTime]): Unit =
+      value match {
+        case Some(v) => cs.setTimestamp(index, java.sql.Timestamp.valueOf(v))
+        case None    => cs.setNull(index, Types.TIMESTAMP)
+      }
   }
 
 }
