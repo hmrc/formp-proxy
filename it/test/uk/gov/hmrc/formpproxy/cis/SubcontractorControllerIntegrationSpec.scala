@@ -30,7 +30,6 @@ final class SubcontractorControllerIntegrationSpec
 
   private val createPath = "/cis/subcontractor/create"
   private val updatePath = "/cis/subcontractor/update"
-  private val listPath = "/cis/subcontractors/cis-123"
 
   "SubcontractorController" should {
 
@@ -116,6 +115,6 @@ final class SubcontractorControllerIntegrationSpec
       }
     }
   }
-  
+
 
 }
