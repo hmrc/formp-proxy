@@ -42,7 +42,7 @@ class ContractorSchemeControllerIntegrationSpec
     "return 401 when there is no active session" in {
       AuthStub.unauthorised()
 
-      val res = get("scheme/abc-123").futureValue
+      val res = getResponse("scheme/abc-123").futureValue
 
       res.status mustBe UNAUTHORIZED
     }
@@ -50,7 +50,7 @@ class ContractorSchemeControllerIntegrationSpec
     "return 404 for unknown endpoint (routing sanity)" in {
       AuthStub.authorised()
 
-      val res = get("does-not-exist").futureValue
+      val res = getResponse("does-not-exist").futureValue
 
       res.status mustBe NOT_FOUND
     }
