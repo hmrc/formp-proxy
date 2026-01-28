@@ -30,7 +30,6 @@ final case class CreateAndUpdateSubcontractorRequest(
   addressLine2: Option[String],
   addressLine3: Option[String],
   addressLine4: Option[String],
-  country: Option[String],
   postcode: Option[String],
   nino: Option[String],
   utr: Option[String],

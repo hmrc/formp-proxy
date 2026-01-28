@@ -23,62 +23,21 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, AuthStub}
 
 final class SubcontractorControllerIntegrationSpec
-  extends Matchers
+    extends Matchers
     with ScalaFutures
     with IntegrationPatience
     with ApplicationWithWiremock {
 
-  private val createPath = "/cis/subcontractor/create"
-  private val updatePath = "/cis/subcontractor/update"
+  private val createAndUpdatePath = "/cis/subcontractor/create-and-update"
 
   "SubcontractorController" should {
 
-    "POST /cis/subcontractor/create (createSubcontractor)" should {
-
-//      "returns 200 and subcontractor ID when request is valid" in {
-//        AuthStub.authorised()
-//
-//        val json = Json.obj(
-//          "schemeId"         -> 999,
-//          "subcontractorType"-> "soletrader",
-//          "version"          -> 1
-//        )
-//
-//        val res = postJson(createPath, json)
-//
-//        res.status mustBe OK
-//        (res.json \ "subbieResourceRef").as[Int] must(be > 0)
-//      }
-//
-      "returns 400 when JSON is missing required fields" in {
-        AuthStub.authorised()
-
-        val res = postAwait(createPath, Json.obj())
-        res.status mustBe BAD_REQUEST
-        (res.json \ "message").as[String].toLowerCase must include("invalid")
-      }
-
-      "returns 401 when there is no active session" in {
-        AuthStub.unauthorised()
-
-        val json = Json.obj(
-        "schemeId"         -> 999,
-        "subcontractorType"-> "soletrader",
-        "version"          -> 1
-        )
-
-        val res = postAwait(createPath, json)
-
-        res.status mustBe UNAUTHORIZED
-      }
-    }
-
-    "POST /cis/subcontractor/update (updateSubcontractor)" should {
+    "POST /cis/subcontractor/create-and-update (createAndUpdateSubcontractor)" should {
 
       "returns 400 when JSON is missing required fields" in {
         AuthStub.authorised()
 
-        val res = postAwait(updatePath, Json.obj())
+        val res = postAwait(createAndUpdatePath, Json.obj())
 
         res.status mustBe BAD_REQUEST
         (res.json \ "message").as[String].toLowerCase must include("invalid")
@@ -88,13 +47,19 @@ final class SubcontractorControllerIntegrationSpec
         AuthStub.unauthorised()
 
         val json = Json.obj(
-          "utr"              -> "1234567890",
-          "pageVisited"      -> 1,
-          "schemeId"         -> 999,
-          "subbieResourceRef"-> 1
+          "cisId"                -> "1234567890",
+          "subcontractorType"    -> "soletrader",
+          "firstName"            -> "John",
+          "surname"              -> "Smith",
+          "tradingName"          -> "ACME",
+          "addressLine1"         -> "1 Main Street",
+          "postcode"             -> "AA1 1AA",
+          "nino"                 -> "AA123456A",
+          "utr"                  -> "1234567890",
+          "worksReferenceNumber" -> "34567"
         )
 
-        val res = postAwait(updatePath, json)
+        val res = postAwait(createAndUpdatePath, json)
 
         res.status mustBe UNAUTHORIZED
       }
@@ -102,12 +67,21 @@ final class SubcontractorControllerIntegrationSpec
       "returns 404 for unknown endpoint (routing sanity)" in {
         AuthStub.authorised()
 
-        val res = postAwait("/does-not-exist", Json.obj(
-          "utr"              -> "1234567890",
-          "pageVisited"      -> 1,
-          "schemeId"         -> 999,
-          "subbieResourceRef"-> 1
-        ))
+        val res = postAwait(
+          "/does-not-exist",
+          Json.obj(
+            "cisId"                -> "1234567890",
+            "subcontractorType"    -> "soletrader",
+            "firstName"            -> "John",
+            "surname"              -> "Smith",
+            "tradingName"          -> "ACME",
+            "addressLine1"         -> "1 Main Street",
+            "postcode"             -> "AA1 1AA",
+            "nino"                 -> "AA123456A",
+            "utr"                  -> "1234567890",
+            "worksReferenceNumber" -> "34567"
+          )
+        )
 
         res.status mustBe NOT_FOUND
       }

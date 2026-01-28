@@ -46,7 +46,6 @@ trait CisMonthlyReturnSource {
   def updateSchemeVersion(instanceId: String, version: Int): Future[Int]
   def createSubcontractor(schemeId: Int, subcontractorType: SubcontractorType, version: Int): Future[Int]
   def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int]
-  def updateSubcontractor(result: UpdateSubcontractorRequest): Future[Unit]
   def createAndUpdateSubcontractor(request: CreateAndUpdateSubcontractorRequest): Future[Unit]
 }
 
@@ -555,70 +554,6 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   private val CallUpdateSubcontractor =
     "{ call SUBCONTRACTOR_PROCS.Update_Subcontractor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
 
-  override def updateSubcontractor(request: UpdateSubcontractorRequest): Future[Unit] = Future {
-    db.withConnection { conn =>
-      Using.resource(conn.prepareCall(CallUpdateSubcontractor)) { cs =>
-
-        def setOptString(i: Int, v: Option[String]): Unit =
-          v match {
-            case Some(x) => cs.setString(i, x)
-            case None    => cs.setNull(i, Types.VARCHAR)
-          }
-
-        def setOptTimestamp(i: Int, v: Option[java.time.LocalDateTime]): Unit =
-          v match {
-            case Some(dt) => cs.setTimestamp(i, Timestamp.valueOf(dt))
-            case None     => cs.setNull(i, Types.TIMESTAMP)
-          }
-
-        def setOptInt(index: Int, value: Option[Int]): Unit =
-          value match {
-            case Some(v) => cs.setInt(index, v)
-            case None    => cs.setNull(index, Types.NUMERIC)
-          }
-
-        cs.setInt(1, request.schemeId)
-
-        cs.setInt(2, request.subbieResourceRef)
-        setOptString(3, request.utr)
-        setOptInt(4, request.pageVisited)
-        setOptString(5, request.partnerUtr)
-        setOptString(6, request.crn)
-        setOptString(7, request.firstName)
-        setOptString(8, request.nino)
-        setOptString(9, request.secondName)
-        setOptString(10, request.surname)
-
-        setOptString(11, request.partnershipTradingName)
-        setOptString(12, request.tradingName)
-        setOptString(13, request.addressLine1)
-        setOptString(14, request.addressLine2)
-        setOptString(15, request.addressLine3)
-        setOptString(16, request.addressLine4)
-        setOptString(17, request.country)
-        setOptString(18, request.postcode)
-        setOptString(19, request.emailAddress)
-        setOptString(20, request.phoneNumber)
-        setOptString(21, request.mobilePhoneNumber)
-        setOptString(22, request.worksReferenceNumber)
-
-        setOptString(23, request.matched)
-        setOptString(24, request.autoVerified)
-        setOptString(25, request.verified)
-        setOptString(26, request.verificationNumber)
-        setOptString(27, request.taxTreatment)
-        setOptString(28, request.updatedTaxTreatment)
-        setOptTimestamp(29, request.verificationDate)
-
-        cs.setNull(30, Types.INTEGER)
-        cs.registerOutParameter(30, Types.INTEGER)
-
-        cs.execute()
-
-      }
-    }
-  }
-
   override def createAndUpdateSubcontractor(request: CreateAndUpdateSubcontractorRequest): Future[Unit] = {
     logger.info(
       s"[CIS] createAndUpdateSubcontractor(instanceId=${request.cisId})"
@@ -690,7 +625,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         setOptString(14, request.addressLine2)
         setOptString(15, request.addressLine3)
         setOptString(16, request.addressLine4)
-        setOptString(17, request.country)
+        setOptString(17, None)
         setOptString(18, request.postcode)
         setOptString(19, request.emailAddress)
         setOptString(20, request.phoneNumber)
