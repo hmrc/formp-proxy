@@ -19,11 +19,12 @@ package uk.gov.hmrc.formpproxy.cis.repositories
 import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubcontractorRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.CreateNilMonthlyReturnResponse
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, MonthlyReturn, SubcontractorType, UnsubmittedMonthlyReturns, UpdateContractorSchemeParams, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.setOptionalInt
 import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
+import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 
 import java.lang.Long
 import java.sql.{Connection, ResultSet, Timestamp, Types}
@@ -45,9 +46,8 @@ trait CisMonthlyReturnSource {
   def createScheme(contractorScheme: CreateContractorSchemeParams): Future[Int]
   def updateScheme(contractorScheme: UpdateContractorSchemeParams): Future[Int]
   def updateSchemeVersion(instanceId: String, version: Int): Future[Int]
-  def createSubcontractor(schemeId: Int, subcontractorType: SubcontractorType, version: Int): Future[Int]
   def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int]
-  def updateSubcontractor(result: UpdateSubcontractorRequest): Future[Unit]
+  def createAndUpdateSubcontractor(request: CreateAndUpdateSubcontractorRequest): Future[Unit]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -184,21 +184,6 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     logger.info(s"[CIS] updateSchemeVersion(instanceId=$instanceId, version=$version)")
     db.withConnection { conn =>
       callUpdateSchemeVersion(conn, instanceId, version)
-    }
-  }
-
-  def createSubcontractor(schemeId: Int, subcontractorType: SubcontractorType, version: Int): Future[Int] = Future {
-    db.withConnection { conn =>
-      Using.resource(conn.prepareCall(CallCreateSubcontractor)) { cs =>
-        cs.setInt(1, schemeId)
-        cs.setInt(2, version)
-        cs.setString(3, subcontractorType.toString)
-        cs.registerOutParameter(4, OracleTypes.INTEGER)
-
-        cs.execute()
-
-        cs.getInt(4)
-      }
     }
   }
 
@@ -430,9 +415,12 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   private val CallGetScheme                    = "{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"
   private val CallCreateScheme                 = "{ call SCHEME_PROCS.Create_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
   private val CallUpdateScheme                 = "{ call SCHEME_PROCS.Update_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
-  private val CallCreateSubcontractor          = "{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }"
   private val CallGetAllMonthlyReturns         = "{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }"
   private val CallGetUnsubmittedMonthlyReturns = "{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Returns(?, ?, ?) }"
+
+  private val CallUpdateSubcontractor =
+    "{ call SUBCONTRACTOR_PROCS.Update_Subcontractor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+  private val CallCreateSubcontractor = "{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }"
 
   private def callCreateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit = {
     val cs = conn.prepareCall(CallCreateMonthlyReturn)
@@ -569,71 +557,78 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       throw new RuntimeException(s"No SCHEME row for instance_id=$instanceId")
     }
 
-  private val CallUpdateSubcontractor =
-    "{ call SUBCONTRACTOR_PROCS.Update_Subcontractor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
-
-  override def updateSubcontractor(request: UpdateSubcontractorRequest): Future[Unit] = Future {
-    db.withConnection { conn =>
-      Using.resource(conn.prepareCall(CallUpdateSubcontractor)) { cs =>
-
-        def setOptString(i: Int, v: Option[String]): Unit =
-          v match {
-            case Some(x) => cs.setString(i, x)
-            case None    => cs.setNull(i, Types.VARCHAR)
-          }
-
-        def setOptTimestamp(i: Int, v: Option[java.time.LocalDateTime]): Unit =
-          v match {
-            case Some(dt) => cs.setTimestamp(i, Timestamp.valueOf(dt))
-            case None     => cs.setNull(i, Types.TIMESTAMP)
-          }
-
-        def setOptInt(index: Int, value: Option[Int]): Unit =
-          value match {
-            case Some(v) => cs.setInt(index, v)
-            case None    => cs.setNull(index, Types.NUMERIC)
-          }
-
-        cs.setInt(1, request.schemeId)
-
-        cs.setInt(2, request.subbieResourceRef)
-        setOptString(3, request.utr)
-        setOptInt(4, request.pageVisited)
-        setOptString(5, request.partnerUtr)
-        setOptString(6, request.crn)
-        setOptString(7, request.firstName)
-        setOptString(8, request.nino)
-        setOptString(9, request.secondName)
-        setOptString(10, request.surname)
-
-        setOptString(11, request.partnershipTradingName)
-        setOptString(12, request.tradingName)
-        setOptString(13, request.addressLine1)
-        setOptString(14, request.addressLine2)
-        setOptString(15, request.addressLine3)
-        setOptString(16, request.addressLine4)
-        setOptString(17, request.country)
-        setOptString(18, request.postcode)
-        setOptString(19, request.emailAddress)
-        setOptString(20, request.phoneNumber)
-        setOptString(21, request.mobilePhoneNumber)
-        setOptString(22, request.worksReferenceNumber)
-
-        setOptString(23, request.matched)
-        setOptString(24, request.autoVerified)
-        setOptString(25, request.verified)
-        setOptString(26, request.verificationNumber)
-        setOptString(27, request.taxTreatment)
-        setOptString(28, request.updatedTaxTreatment)
-        setOptTimestamp(29, request.verificationDate)
-
-        cs.setNull(30, Types.INTEGER)
-        cs.registerOutParameter(30, Types.INTEGER)
-
-        cs.execute()
-
-      }
+  override def createAndUpdateSubcontractor(request: CreateAndUpdateSubcontractorRequest): Future[Unit] = {
+    logger.info(
+      s"[CIS] createAndUpdateSubcontractor(instanceId=${request.cisId})"
+    )
+    db.withTransaction { conn =>
+      val scheme            = loadScheme(conn, request.cisId)
+      val subbieResourceRef = callCreateSubcontractor(conn, scheme.schemeId, request.subcontractorType)
+      callUpdateSchemeVersion(conn, request.cisId, scheme.version.getOrElse(0))
+      callUpdateSubcontractor(conn, scheme.schemeId, subbieResourceRef, request)
     }
   }
 
+  private def callCreateSubcontractor(conn: Connection, schemeId: Long, subcontractorType: SubcontractorType): Int = {
+    val cs = conn.prepareCall(CallCreateSubcontractor)
+    try {
+      cs.setLong(1, schemeId)
+      cs.setInt(2, 0) // initial version is 0
+      cs.setString(3, subcontractorType.toString)
+      cs.registerOutParameter(4, OracleTypes.INTEGER)
+
+      cs.execute()
+
+      cs.getInt(4)
+    } finally cs.close()
+  }
+
+  private def callUpdateSubcontractor(
+    conn: Connection,
+    schemeId: Long,
+    subbieResourceRef: Int,
+    request: CreateAndUpdateSubcontractorRequest
+  ): Future[Unit] =
+    Future {
+      val cs = conn.prepareCall(CallUpdateSubcontractor)
+      try {
+        cs.setLong(1, schemeId)
+
+        cs.setInt(2, subbieResourceRef)
+        cs.setOptionalString(3, request.utr)
+        cs.setOptionalInt(4, None)
+        cs.setOptionalString(5, None)
+        cs.setOptionalString(6, None)
+        cs.setOptionalString(7, request.firstName)
+        cs.setOptionalString(8, request.nino)
+        cs.setOptionalString(9, request.secondName)
+        cs.setOptionalString(10, request.surname)
+
+        cs.setOptionalString(11, None)
+        cs.setOptionalString(12, request.tradingName)
+        cs.setOptionalString(13, request.addressLine1)
+        cs.setOptionalString(14, request.addressLine2)
+        cs.setOptionalString(15, request.addressLine3)
+        cs.setOptionalString(16, request.addressLine4)
+        cs.setOptionalString(17, None)
+        cs.setOptionalString(18, request.postcode)
+        cs.setOptionalString(19, request.emailAddress)
+        cs.setOptionalString(20, request.phoneNumber)
+        cs.setOptionalString(21, None)
+        cs.setOptionalString(22, request.worksReferenceNumber)
+
+        cs.setOptionalString(23, None)
+        cs.setOptionalString(24, None)
+        cs.setOptionalString(25, None)
+        cs.setOptionalString(26, None)
+        cs.setOptionalString(27, None)
+        cs.setOptionalString(28, None)
+
+        cs.setOptionalTimestamp(29, None)
+        cs.setOptionalInt(30, None)
+        cs.registerOutParameter(30, Types.INTEGER)
+
+        cs.execute()
+      } finally cs.close()
+    }
 }

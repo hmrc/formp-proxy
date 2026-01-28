@@ -16,41 +16,28 @@
 
 package uk.gov.hmrc.formpproxy.cis.models.requests
 
-import java.time.LocalDateTime
 import play.api.libs.json.{Format, Json, Reads, Writes}
+import uk.gov.hmrc.formpproxy.cis.models.SubcontractorType
 
-final case class UpdateSubcontractorRequest(
-  utr: Option[String],
-  pageVisited: Option[Int],
-  partnerUtr: Option[String],
-  crn: Option[String],
+final case class CreateAndUpdateSubcontractorRequest(
+  cisId: String,
+  subcontractorType: SubcontractorType,
   firstName: Option[String],
-  nino: Option[String],
   secondName: Option[String],
   surname: Option[String],
-  partnershipTradingName: Option[String],
   tradingName: Option[String],
   addressLine1: Option[String],
   addressLine2: Option[String],
   addressLine3: Option[String],
   addressLine4: Option[String],
-  country: Option[String],
   postcode: Option[String],
-  emailAddress: Option[String],
-  phoneNumber: Option[String],
-  mobilePhoneNumber: Option[String],
+  nino: Option[String],
+  utr: Option[String],
   worksReferenceNumber: Option[String],
-  schemeId: Int,
-  subbieResourceRef: Int,
-  matched: Option[String],
-  autoVerified: Option[String],
-  verified: Option[String],
-  verificationNumber: Option[String],
-  taxTreatment: Option[String],
-  verificationDate: Option[LocalDateTime],
-  updatedTaxTreatment: Option[String]
+  emailAddress: Option[String],
+  phoneNumber: Option[String]
 )
 
-object UpdateSubcontractorRequest {
-  given Format[UpdateSubcontractorRequest] = Json.format[UpdateSubcontractorRequest]
+object CreateAndUpdateSubcontractorRequest {
+  given Format[CreateAndUpdateSubcontractorRequest] = Json.format[CreateAndUpdateSubcontractorRequest]
 }
