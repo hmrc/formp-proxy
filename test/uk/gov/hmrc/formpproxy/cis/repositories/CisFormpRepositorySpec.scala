@@ -22,7 +22,7 @@ import org.mockito.Mockito.*
 import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
-import uk.gov.hmrc.formpproxy.cis.models.{Company, CreateContractorSchemeParams, SoleTrader, UpdateContractorSchemeParams}
+import uk.gov.hmrc.formpproxy.cis.models.*
 
 import java.sql.*
 import java.time.Instant
