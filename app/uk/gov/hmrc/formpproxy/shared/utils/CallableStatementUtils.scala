@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.formpproxy.shared.utils
 
-import java.sql.{CallableStatement, Types}
+import java.sql.{CallableStatement, Timestamp, Types}
 
 object CallableStatementUtils {
 
@@ -31,6 +31,12 @@ object CallableStatementUtils {
       value match {
         case Some(v) => cs.setInt(index, v)
         case None    => cs.setNull(index, Types.NUMERIC)
+      }
+
+    def setOptionalTimestamp(index: Int, value: Option[java.time.LocalDateTime]): Unit =
+      value match {
+        case Some(v) => cs.setTimestamp(index, Timestamp.valueOf(v))
+        case None    => cs.setNull(index, Types.TIMESTAMP)
       }
   }
 

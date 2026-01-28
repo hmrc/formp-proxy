@@ -24,6 +24,7 @@ import uk.gov.hmrc.formpproxy.cis.models.response.CreateNilMonthlyReturnResponse
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, MonthlyReturn, SubcontractorType, UnsubmittedMonthlyReturns, UpdateContractorSchemeParams, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.setOptionalInt
 import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
+import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 
 import java.lang.Long
 import java.sql.{Connection, ResultSet, Timestamp, Types}
@@ -44,7 +45,6 @@ trait CisMonthlyReturnSource {
   def createScheme(contractorScheme: CreateContractorSchemeParams): Future[Int]
   def updateScheme(contractorScheme: UpdateContractorSchemeParams): Future[Int]
   def updateSchemeVersion(instanceId: String, version: Int): Future[Int]
-  def createSubcontractor(schemeId: Int, subcontractorType: SubcontractorType, version: Int): Future[Int]
   def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int]
   def createAndUpdateSubcontractor(request: CreateAndUpdateSubcontractorRequest): Future[Unit]
 }
@@ -183,21 +183,6 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     logger.info(s"[CIS] updateSchemeVersion(instanceId=$instanceId, version=$version)")
     db.withConnection { conn =>
       callUpdateSchemeVersion(conn, instanceId, version)
-    }
-  }
-
-  def createSubcontractor(schemeId: Int, subcontractorType: SubcontractorType, version: Int): Future[Int] = Future {
-    db.withConnection { conn =>
-      Using.resource(conn.prepareCall(CallCreateSubcontractor)) { cs =>
-        cs.setInt(1, schemeId)
-        cs.setInt(2, version)
-        cs.setString(3, subcontractorType.toString)
-        cs.registerOutParameter(4, OracleTypes.INTEGER)
-
-        cs.execute()
-
-        cs.getInt(4)
-      }
     }
   }
 
@@ -412,9 +397,12 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   private val CallGetScheme                    = "{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"
   private val CallCreateScheme                 = "{ call SCHEME_PROCS.Create_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
   private val CallUpdateScheme                 = "{ call SCHEME_PROCS.Update_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
-  private val CallCreateSubcontractor          = "{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }"
   private val CallGetAllMonthlyReturns         = "{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }"
   private val CallGetUnsubmittedMonthlyReturns = "{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Returns(?, ?, ?) }"
+
+  private val CallUpdateSubcontractor =
+    "{ call SUBCONTRACTOR_PROCS.Update_Subcontractor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+  private val CallCreateSubcontractor = "{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }"
 
   private def callCreateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit = {
     val cs = conn.prepareCall(CallCreateMonthlyReturn)
@@ -551,9 +539,6 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       throw new RuntimeException(s"No SCHEME row for instance_id=$instanceId")
     }
 
-  private val CallUpdateSubcontractor =
-    "{ call SUBCONTRACTOR_PROCS.Update_Subcontractor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
-
   override def createAndUpdateSubcontractor(request: CreateAndUpdateSubcontractorRequest): Future[Unit] = {
     logger.info(
       s"[CIS] createAndUpdateSubcontractor(instanceId=${request.cisId})"
@@ -589,58 +574,40 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     Future {
       val cs = conn.prepareCall(CallUpdateSubcontractor)
       try {
-        def setOptString(i: Int, v: Option[String]): Unit =
-          v match {
-            case Some(x) => cs.setString(i, x)
-            case None    => cs.setNull(i, Types.VARCHAR)
-          }
-
-        def setOptTimestamp(i: Int, v: Option[java.time.LocalDateTime]): Unit =
-          v match {
-            case Some(dt) => cs.setTimestamp(i, Timestamp.valueOf(dt))
-            case None     => cs.setNull(i, Types.TIMESTAMP)
-          }
-
-        def setOptInt(index: Int, value: Option[Int]): Unit =
-          value match {
-            case Some(v) => cs.setInt(index, v)
-            case None    => cs.setNull(index, Types.NUMERIC)
-          }
-
         cs.setLong(1, schemeId)
 
         cs.setInt(2, subbieResourceRef)
-        setOptString(3, request.utr)
-        setOptInt(4, None)
-        setOptString(5, None)
-        setOptString(6, None)
-        setOptString(7, request.firstName)
-        setOptString(8, request.nino)
-        setOptString(9, request.secondName)
-        setOptString(10, request.surname)
+        cs.setOptionalString(3, request.utr)
+        cs.setOptionalInt(4, None)
+        cs.setOptionalString(5, None)
+        cs.setOptionalString(6, None)
+        cs.setOptionalString(7, request.firstName)
+        cs.setOptionalString(8, request.nino)
+        cs.setOptionalString(9, request.secondName)
+        cs.setOptionalString(10, request.surname)
 
-        setOptString(11, None)
-        setOptString(12, request.tradingName)
-        setOptString(13, request.addressLine1)
-        setOptString(14, request.addressLine2)
-        setOptString(15, request.addressLine3)
-        setOptString(16, request.addressLine4)
-        setOptString(17, None)
-        setOptString(18, request.postcode)
-        setOptString(19, request.emailAddress)
-        setOptString(20, request.phoneNumber)
-        setOptString(21, None)
-        setOptString(22, request.worksReferenceNumber)
+        cs.setOptionalString(11, None)
+        cs.setOptionalString(12, request.tradingName)
+        cs.setOptionalString(13, request.addressLine1)
+        cs.setOptionalString(14, request.addressLine2)
+        cs.setOptionalString(15, request.addressLine3)
+        cs.setOptionalString(16, request.addressLine4)
+        cs.setOptionalString(17, None)
+        cs.setOptionalString(18, request.postcode)
+        cs.setOptionalString(19, request.emailAddress)
+        cs.setOptionalString(20, request.phoneNumber)
+        cs.setOptionalString(21, None)
+        cs.setOptionalString(22, request.worksReferenceNumber)
 
-        setOptString(23, None)
-        setOptString(24, None)
-        setOptString(25, None)
-        setOptString(26, None)
-        setOptString(27, None)
-        setOptString(28, None)
-        setOptTimestamp(29, None)
+        cs.setOptionalString(23, None)
+        cs.setOptionalString(24, None)
+        cs.setOptionalString(25, None)
+        cs.setOptionalString(26, None)
+        cs.setOptionalString(27, None)
+        cs.setOptionalString(28, None)
 
-        cs.setNull(30, Types.INTEGER)
+        cs.setOptionalTimestamp(29, None)
+        cs.setOptionalInt(30, None)
         cs.registerOutParameter(30, Types.INTEGER)
 
         cs.execute()
