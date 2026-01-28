@@ -22,7 +22,7 @@ import org.mockito.Mockito.*
 import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.{Company, CreateContractorSchemeParams, Partnership, SoleTrader, Trust, UpdateContractorSchemeParams}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubmissionRequest}
 
 import java.time.Instant
 import java.sql.*
@@ -1010,6 +1010,39 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdate).execute()
       verify(csSub, times(req.subcontractorTypes.size)).execute()
       verify(csUpdateVer).execute()
+    }
+  }
+
+  "createMonthlyReturn" - {
+
+    "call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return with correct parameters and execute" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall(eqTo("{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }")))
+        .thenReturn(cs)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = CreateMonthlyReturnRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 2
+      )
+
+      repo.createMonthlyReturn(req).futureValue mustBe ()
+
+      verify(conn).prepareCall(eqTo("{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }"))
+      verify(cs).setString(1, "abc-123")
+      verify(cs).setInt(2, 2025)
+      verify(cs).setInt(3, 2)
+      verify(cs).setString(4, "N")
+      verify(cs).execute()
+      verify(cs).close()
     }
   }
 
