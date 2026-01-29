@@ -20,8 +20,8 @@ import org.mockito.ArgumentMatchers.eq as eqTo
 import org.mockito.Mockito.*
 import org.scalatest.freespec.AnyFreeSpec
 import uk.gov.hmrc.formpproxy.base.SpecBase
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateNilMonthlyReturnRequest, GetMonthlyReturnForEditRequest}
-import uk.gov.hmrc.formpproxy.cis.models.response.{CreateNilMonthlyReturnResponse, GetMonthlyReturnForEditResponse}
+import uk.gov.hmrc.formpproxy.cis.models.requests.*
+import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, UnsubmittedMonthlyReturns, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
@@ -161,6 +161,42 @@ final class MonthlyReturnServiceSpec extends SpecBase {
 
       service.getSchemeEmail(id).failed.futureValue mustBe boom
       verify(repo).getSchemeEmail(eqTo(id))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "MonthlyReturnService createMonthlyReturn" - {
+
+    "delegates to repo (happy path)" in new Ctx {
+      val request = CreateMonthlyReturnRequest(
+        instanceId = id,
+        taxYear = 2025,
+        taxMonth = 2
+      )
+
+      when(repo.createMonthlyReturn(eqTo(request)))
+        .thenReturn(Future.successful(()))
+
+      service.createMonthlyReturn(request).futureValue mustBe ()
+
+      verify(repo).createMonthlyReturn(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failures from the repository" in new Ctx {
+      val request = CreateMonthlyReturnRequest(
+        instanceId = id,
+        taxYear = 2025,
+        taxMonth = 2
+      )
+      val boom    = new RuntimeException("db failed")
+
+      when(repo.createMonthlyReturn(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      service.createMonthlyReturn(request).failed.futureValue mustBe boom
+
+      verify(repo).createMonthlyReturn(eqTo(request))
       verifyNoMoreInteractions(repo)
     }
   }
