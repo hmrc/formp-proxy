@@ -219,8 +219,6 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     logger.info(
       s"[CIS] createAndUpdateSubcontractor(instanceId=${request.cisId})"
     )
-    println("my data")
-    println(request)
     db.withTransaction { conn =>
       val scheme            = loadScheme(conn, request.cisId)
       val subbieResourceRef = callCreateSubcontractor(conn, scheme.schemeId, request.subcontractorType)
