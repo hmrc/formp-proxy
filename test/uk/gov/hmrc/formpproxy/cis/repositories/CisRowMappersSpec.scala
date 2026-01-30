@@ -20,7 +20,6 @@ import org.mockito.Mockito._
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
-import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
 
 import java.sql.ResultSet
 
