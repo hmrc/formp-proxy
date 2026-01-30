@@ -21,7 +21,7 @@ import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
-import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, MonthlyReturn, SubcontractorType, UnsubmittedMonthlyReturns, UpdateContractorSchemeParams, UserMonthlyReturns}
+import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
 import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.*
@@ -166,7 +166,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
-// Scheme
+  // Scheme
 
   override def getScheme(instanceId: String): Future[Option[ContractorScheme]] =
     Future {
@@ -213,12 +213,14 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
 
-// Subcontractor
+  // Subcontractor
 
   override def createAndUpdateSubcontractor(request: CreateAndUpdateSubcontractorRequest): Future[Unit] = {
     logger.info(
       s"[CIS] createAndUpdateSubcontractor(instanceId=${request.cisId})"
     )
+    println("my data")
+    println(request)
     db.withTransaction { conn =>
       val scheme            = loadScheme(conn, request.cisId)
       val subbieResourceRef = callCreateSubcontractor(conn, scheme.schemeId, request.subcontractorType)
@@ -227,7 +229,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
-// Submission
+  // Submission
 
   override def createSubmission(request: CreateSubmissionRequest): Future[String] =
     Future {
@@ -278,7 +280,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
 
-// Nil monthly return
+  // Nil monthly return
 
   override def createNilMonthlyReturn(
     request: CreateNilMonthlyReturnRequest
@@ -299,7 +301,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
-// Prepopulation
+  // Prepopulation
 
   override def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int] =
     Future {
@@ -345,7 +347,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
 
-// private helpers
+  // private helpers
   private def callCreateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit =
     withCall(conn, CallCreateMonthlyReturn) { cs =>
       cs.setString(1, req.instanceId)
@@ -550,11 +552,11 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   }
 
   private def callUpdateSubcontractor(
-                                       conn: Connection,
-                                       schemeId: Long,
-                                       subbieResourceRef: Int,
-                                       request: CreateAndUpdateSubcontractorRequest
-                                     ): Future[Unit] =
+    conn: Connection,
+    schemeId: Long,
+    subbieResourceRef: Int,
+    request: CreateAndUpdateSubcontractorRequest
+  ): Future[Unit] =
     Future {
       val cs = conn.prepareCall(CallUpdateSubcontractor)
       try {
