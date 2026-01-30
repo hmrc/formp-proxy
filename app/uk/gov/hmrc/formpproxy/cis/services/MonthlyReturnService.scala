@@ -17,8 +17,8 @@
 package uk.gov.hmrc.formpproxy.cis.services
 
 import uk.gov.hmrc.formpproxy.cis.models.{UnsubmittedMonthlyReturns, UserMonthlyReturns}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest}
-import uk.gov.hmrc.formpproxy.cis.models.response.CreateNilMonthlyReturnResponse
+import uk.gov.hmrc.formpproxy.cis.models.requests.*
+import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
 import javax.inject.{Inject, Singleton}
@@ -58,4 +58,11 @@ class MonthlyReturnService @Inject() (repo: CisMonthlyReturnSource)(implicit ec:
 
   def getSchemeEmail(instanceId: String): Future[Option[String]] =
     repo.getSchemeEmail(instanceId)
+
+  def getMonthlyReturnForEdit(request: GetMonthlyReturnForEditRequest): Future[GetMonthlyReturnForEditResponse] =
+    repo.getMonthlyReturnForEdit(
+      instanceId = request.instanceId,
+      taxYear = request.taxYear,
+      taxMonth = request.taxMonth
+    )
 }

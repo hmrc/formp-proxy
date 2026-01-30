@@ -4,6 +4,7 @@
 POST       /monthly-returns                                         uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.retrieveMonthlyReturns
 POST       /cis/retrieve-unsubmitted-monthly-returns                uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.retrieveUnsubmittedMonthlyReturns
 POST       /monthly-return/nil/create                               uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.createNilMonthlyReturn
+POST       /cis/monthly-return-edit                                 uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.getMonthlyReturnForEdit
 POST       /cis/monthly-return/standard/create                      uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.createMonthlyReturn
 POST       /scheme/email                                            uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.getSchemeEmail
 GET        /scheme/:instanceId                                      uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.getScheme(instanceId: String)

@@ -20,19 +20,18 @@ import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
-import uk.gov.hmrc.formpproxy.cis.models.response.CreateNilMonthlyReturnResponse
+import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, MonthlyReturn, SubcontractorType, UnsubmittedMonthlyReturns, UpdateContractorSchemeParams, UserMonthlyReturns}
-import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.setOptionalInt
-import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
-
+import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
+import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.*
+import uk.gov.hmrc.formpproxy.cis.repositories.CisRowMappers.*
 import java.lang.Long
-import java.sql.{Connection, ResultSet, Timestamp, Types}
+import java.sql.{CallableStatement, Connection, ResultSet, Timestamp, Types}
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
-import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Try, Using}
+import scala.util.Using
 
 trait CisMonthlyReturnSource {
   def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns]
@@ -48,6 +47,7 @@ trait CisMonthlyReturnSource {
   def updateSchemeVersion(instanceId: String, version: Int): Future[Int]
   def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int]
   def createAndUpdateSubcontractor(request: CreateAndUpdateSubcontractorRequest): Future[Unit]
+  def getMonthlyReturnForEdit(instanceId: String, taxYear: Int, taxMonth: Int): Future[GetMonthlyReturnForEditResponse]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -57,28 +57,37 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     extends CisMonthlyReturnSource
     with Logging {
 
+  // JDBC Helpers
+
+  private def withCall[A](conn: Connection, sql: String)(f: CallableStatement => A): A =
+    Using.resource(conn.prepareCall(sql))(f)
+
+  private def withCursor[A](cs: CallableStatement, index: Int)(f: ResultSet => A): A = {
+    val rs = cs.getObject(index, classOf[ResultSet])
+    if (rs == null) throw new RuntimeException(s"SP returned null cursor at index $index")
+    else Using.resource(rs)(f)
+  }
+
+  private def discardCursor(cs: CallableStatement, index: Int): Unit =
+    withCursor(cs, index)(_ => ())
+
+  // Monthly Returns
+
   override def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns] = {
     logger.info(s"[CIS] getMonthlyReturns(instanceId=$instanceId)")
     Future {
       db.withConnection { conn =>
-        val cs = conn.prepareCall(CallGetAllMonthlyReturns)
-        try {
+        withCall(conn, CallGetAllMonthlyReturns) { cs =>
           cs.setString(1, instanceId)
           cs.registerOutParameter(2, OracleTypes.CURSOR)
           cs.registerOutParameter(3, OracleTypes.CURSOR)
           cs.execute()
 
-          val rsScheme = cs.getObject(2, classOf[ResultSet])
-          try ()
-          finally if (rsScheme != null) rsScheme.close()
+          discardCursor(cs, 2)
 
-          val monthlyReturns = cs.getObject(3, classOf[ResultSet])
-          val returns        =
-            try collectMonthlyReturns(monthlyReturns)
-            finally if (monthlyReturns != null) monthlyReturns.close()
-
+          val returns = withCursor(cs, 3)(collectMonthlyReturns)
           UserMonthlyReturns(returns)
-        } finally cs.close()
+        }
       }
     }
   }
@@ -87,263 +96,55 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     logger.info(s"[CIS] getUnsubmittedMonthlyReturns(instanceId=$instanceId)")
     Future {
       db.withConnection { conn =>
-        val cs = conn.prepareCall(CallGetUnsubmittedMonthlyReturns)
-        try {
+        withCall(conn, CallGetUnsubmittedMonthlyReturns) { cs =>
           cs.setString(1, instanceId)
           cs.registerOutParameter(2, OracleTypes.CURSOR)
           cs.registerOutParameter(3, OracleTypes.CURSOR)
           cs.execute()
 
-          val rsScheme = cs.getObject(2, classOf[ResultSet])
-          val scheme   =
-            try readSingleSchemeRow(rsScheme, instanceId)
-            finally if (rsScheme != null) rsScheme.close()
-
-          val rsReturns = cs.getObject(3, classOf[ResultSet])
-          val returns   =
-            try collectMonthlyReturns(rsReturns)
-            finally if (rsReturns != null) rsReturns.close()
+          val scheme  = withCursor(cs, 2)(rs => readSingleSchemeRow(rs, instanceId))
+          val returns = withCursor(cs, 3)(collectMonthlyReturns)
 
           UnsubmittedMonthlyReturns(scheme, returns)
-        } finally cs.close()
-      }
-    }
-  }
-
-  def getScheme(instanceId: String): Future[Option[ContractorScheme]] = Future {
-    db.withConnection { conn =>
-      Using.resource(conn.prepareCall(CallGetScheme)) { cs =>
-        cs.setString(1, instanceId)
-        cs.registerOutParameter(2, Types.REF_CURSOR)
-        cs.execute()
-
-        val resultSet = cs.getObject(2, classOf[ResultSet])
-        if (resultSet == null)
-          throw new RuntimeException(s"int_Get_Scheme returned null cursor for instance_id=$instanceId")
-
-        Using.resource(resultSet) { resultSet =>
-          if (resultSet != null && resultSet.next()) {
-            Some(readContractorScheme(resultSet))
-          } else None
         }
       }
     }
   }
 
-  def createScheme(contractorScheme: CreateContractorSchemeParams): Future[Int] = Future {
-    db.withConnection { conn =>
-      Using.resource(conn.prepareCall(CallCreateScheme)) { cs =>
-        cs.setString(1, contractorScheme.instanceId)
-        cs.setString(2, contractorScheme.accountsOfficeReference)
-        cs.setString(3, contractorScheme.taxOfficeNumber)
-        cs.setString(4, contractorScheme.taxOfficeReference)
-        cs.setString(5, contractorScheme.utr.orNull)
-        cs.setString(6, contractorScheme.name.orNull)
-        cs.setString(7, contractorScheme.emailAddress.orNull)
-        cs.setString(8, contractorScheme.displayWelcomePage.orNull)
-        cs.setOptionalInt(9, contractorScheme.prePopCount)
-        cs.setString(10, contractorScheme.prePopSuccessful.orNull)
-        cs.registerOutParameter(11, OracleTypes.INTEGER)
-
-        cs.execute()
-
-        val schemeId = cs.getInt(11)
-
-        schemeId
-      }
-    }
-  }
-
-  def updateScheme(contractorScheme: UpdateContractorSchemeParams): Future[Int] = Future {
-    db.withConnection { conn =>
-      Using.resource(conn.prepareCall(CallUpdateScheme)) { cs =>
-        cs.setInt(1, contractorScheme.schemeId)
-        cs.setString(2, contractorScheme.instanceId)
-        cs.setString(3, contractorScheme.accountsOfficeReference)
-        cs.setString(4, contractorScheme.taxOfficeNumber)
-        cs.setString(5, contractorScheme.taxOfficeReference)
-        cs.setString(6, contractorScheme.utr.orNull)
-        cs.setString(7, contractorScheme.name.orNull)
-        cs.setString(8, contractorScheme.emailAddress.orNull)
-        cs.setString(9, contractorScheme.displayWelcomePage.orNull)
-        cs.setOptionalInt(10, contractorScheme.prePopCount)
-        cs.setString(11, contractorScheme.prePopSuccessful.orNull)
-        cs.setOptionalInt(12, contractorScheme.version)
-        cs.registerOutParameter(12, OracleTypes.INTEGER)
-
-        cs.execute()
-
-        val version = cs.getInt(12)
-
-        version
-      }
-    }
-  }
-
-  def updateSchemeVersion(instanceId: String, version: Int): Future[Int] = Future {
-    logger.info(s"[CIS] updateSchemeVersion(instanceId=$instanceId, version=$version)")
-    db.withConnection { conn =>
-      callUpdateSchemeVersion(conn, instanceId, version)
-    }
-  }
-
-  @tailrec
-  private def collectMonthlyReturns(rs: ResultSet, acc: Seq[MonthlyReturn] = Nil): Seq[MonthlyReturn] =
-    if (!rs.next()) acc
-    else {
-      val mr = MonthlyReturn(
-        monthlyReturnId = rs.getLong("monthly_return_id"),
-        taxYear = rs.getInt("tax_year"),
-        taxMonth = rs.getInt("tax_month"),
-        nilReturnIndicator = Option(rs.getString("nil_return_indicator")),
-        decEmpStatusConsidered = Option(rs.getString("dec_emp_status_considered")),
-        decAllSubsVerified = Option(rs.getString("dec_all_subs_verified")),
-        decInformationCorrect = Option(rs.getString("dec_information_correct")),
-        decNoMoreSubPayments = Option(rs.getString("dec_no_more_sub_payments")),
-        decNilReturnNoPayments = Option(rs.getString("dec_nil_return_no_payments")),
-        status = Option(rs.getString("status")),
-        lastUpdate = Option(rs.getTimestamp("last_update")).map(_.toLocalDateTime),
-        amendment = Option(rs.getString("amendment")),
-        supersededBy = {
-          val v = rs.getLong("superseded_by"); if (rs.wasNull()) None else Some(v)
-        }
-      )
-      collectMonthlyReturns(rs, acc :+ mr)
-    }
-
-  override def createSubmission(request: CreateSubmissionRequest): Future[String] = Future {
-    db.withTransaction { conn =>
-      val monthlyReturnId = getMonthlyReturnId(conn, request.instanceId, request.taxYear, request.taxMonth)
-
-      val submissionId = callCreateSubmission(
-        conn,
-        instanceId = request.instanceId,
-        submissionType = "MONTHLY_RETURN",
-        activeObjectId = monthlyReturnId,
-        hmrcMarkGenerated = request.hmrcMarkGenerated.orNull,
-        hmrcMarkGgis = null,
-        emailRecipient = request.emailRecipient.orNull,
-        agentId = request.agentId.orNull,
-        submittableStatus = "PENDING"
-      )
-
-      submissionId.toString
-    }
-  }
-
-  override def updateMonthlyReturnSubmission(request: UpdateSubmissionRequest): Future[Unit] = Future {
-    db.withConnection { conn =>
-      val monthlyReturnId = getMonthlyReturnId(conn, request.instanceId, request.taxYear, request.taxMonth)
-      val amendValue      = request.amendment.getOrElse("N")
-
-      callUpdateMonthlyReturnSubmission(
-        conn,
-        submissionType = "MONTHLY_RETURN",
-        activeObjectId = monthlyReturnId,
-        hmrcMarkGenerated = request.hmrcMarkGenerated,
-        hmrcMarkGgis = request.hmrcMarkGgis.orNull,
-        emailRecipient = request.emailRecipient.orNull,
-        submissionRequestDate = request.submissionRequestDate.map(Timestamp.from).orNull,
-        acceptedTime = request.acceptedTime.orNull,
-        agentId = request.agentId.orNull,
-        submittableStatus = request.submittableStatus,
-        govtalkErrorCode = request.govtalkErrorCode.orNull,
-        govtalkErrorType = request.govtalkErrorType.orNull,
-        govtalkErrorMessage = request.govtalkErrorMessage.orNull,
-        instanceId = request.instanceId,
-        taxYear = request.taxYear,
-        taxMonth = request.taxMonth,
-        amendment = amendValue
-      )
-      ()
-    }
-  }
-
-  private def callCreateSubmission(
-    conn: Connection,
-    instanceId: String,
-    submissionType: String,
-    activeObjectId: Long,
-    hmrcMarkGenerated: String,
-    hmrcMarkGgis: String,
-    emailRecipient: String,
-    agentId: String,
-    submittableStatus: String
-  ): Long = {
-    val cs = conn.prepareCall("{ call SUBMISSION_PROCS.Create_Submission(?, ?, ?, ?, ?, ?, ?, ?, ?) }")
-    try {
-      cs.setString(1, instanceId)
-      cs.setString(2, submissionType)
-      cs.setLong(3, activeObjectId)
-      cs.setString(4, hmrcMarkGenerated)
-      cs.setString(5, hmrcMarkGgis)
-      cs.setString(6, emailRecipient)
-      cs.setString(7, agentId)
-      cs.setString(8, submittableStatus)
-      cs.registerOutParameter(9, Types.NUMERIC)
-      cs.execute()
-      cs.getLong(9)
-    } finally cs.close()
-  }
-
-  private def callUpdateMonthlyReturnSubmission(
-    conn: Connection,
-    submissionType: String,
-    activeObjectId: Long,
-    hmrcMarkGenerated: String,
-    hmrcMarkGgis: String,
-    emailRecipient: String,
-    submissionRequestDate: Timestamp,
-    acceptedTime: String,
-    agentId: String,
-    submittableStatus: String,
-    govtalkErrorCode: String,
-    govtalkErrorType: String,
-    govtalkErrorMessage: String,
+  override def getMonthlyReturnForEdit(
     instanceId: String,
     taxYear: Int,
-    taxMonth: Int,
-    amendment: String
-  ): Unit = {
-    val cs = conn.prepareCall(
-      "{ call SUBMISSION_PROCS_2016.UPDATE_MR_SUBMISSION(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
-    )
-    try {
-      cs.setString(1, submissionType)
-      cs.setLong(2, activeObjectId)
-      cs.setString(3, hmrcMarkGenerated)
-      cs.setString(4, hmrcMarkGgis)
-      cs.setString(5, emailRecipient)
-      cs.setTimestamp(6, submissionRequestDate)
-      cs.setString(7, acceptedTime)
-      cs.setString(8, agentId)
-      cs.setString(9, submittableStatus)
-      cs.setString(10, govtalkErrorCode)
-      cs.setString(11, govtalkErrorType)
-      cs.setString(12, govtalkErrorMessage)
-      cs.setString(13, instanceId)
-      cs.setInt(14, taxYear)
-      cs.setInt(15, taxMonth)
-      cs.setString(16, amendment)
-      cs.execute()
-    } finally cs.close()
-  }
-
-  override def createNilMonthlyReturn(
-    request: CreateNilMonthlyReturnRequest
-  ): Future[CreateNilMonthlyReturnResponse] = {
-    logger.info(
-      s"[CIS] createNilMonthlyReturn(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
-    )
+    taxMonth: Int
+  ): Future[GetMonthlyReturnForEditResponse] = {
+    logger.info(s"[CIS] getMonthlyReturnForEdit(instanceId=$instanceId, taxYear=$taxYear, taxMonth=$taxMonth)")
     Future {
-      db.withTransaction { conn =>
-        val schemeVersionBefore = getSchemeVersion(conn, request.instanceId)
+      db.withConnection { conn =>
+        withCall(conn, CallGetMonthlyReturnForEdit) { cs =>
+          cs.setString(1, instanceId)
+          cs.setInt(2, taxYear)
+          cs.setInt(3, taxMonth)
+          cs.setString(4, "N")
+          cs.registerOutParameter(5, OracleTypes.CURSOR)
+          cs.registerOutParameter(6, OracleTypes.CURSOR)
+          cs.registerOutParameter(7, OracleTypes.CURSOR)
+          cs.registerOutParameter(8, OracleTypes.CURSOR)
+          cs.registerOutParameter(9, OracleTypes.CURSOR)
+          cs.execute()
 
-        callCreateMonthlyReturn(conn, request)
-        callUpdateSchemeVersion(conn, request.instanceId, schemeVersionBefore)
-        callUpdateMonthlyReturn(conn, request)
+          val scheme             = withCursor(cs, 5)(collectSchemes)
+          val monthlyReturn      = withCursor(cs, 6)(collectMonthlyReturns)
+          val monthlyReturnItems = withCursor(cs, 7)(collectMonthlyReturnItems)
+          val subcontractors     = withCursor(cs, 8)(collectSubcontractors)
+          val submission         = withCursor(cs, 9)(collectSubmissions)
 
-        CreateNilMonthlyReturnResponse(status = "STARTED")
+          GetMonthlyReturnForEditResponse(
+            scheme = scheme,
+            monthlyReturn = monthlyReturn,
+            monthlyReturnItems = monthlyReturnItems,
+            subcontractors = subcontractors,
+            submission = submission
+          )
+        }
       }
     }
   }
@@ -365,88 +166,244 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
-  override def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int] = Future {
-    logger.info(
-      s"[CIS] applyPrepopulation(schemeId=${req.schemeId}, instanceId=${req.instanceId}, version=${req.version}, subs=${req.subcontractorTypes.size})"
-    )
+// Scheme
 
-    db.withTransaction { conn =>
-      // 1) Update_Scheme – set name/UTR/prePopCount/prePopSuccessful (but NOT version)
-      Using.resource(conn.prepareCall(CallUpdateScheme)) { cs =>
-        cs.setInt(1, req.schemeId)
-        cs.setString(2, req.instanceId)
-        cs.setString(3, req.accountsOfficeReference)
-        cs.setString(4, req.taxOfficeNumber)
-        cs.setString(5, req.taxOfficeReference)
-        cs.setString(6, req.utr.orNull)
-        cs.setString(7, req.name)
-        cs.setString(8, req.emailAddress.orNull)
-        cs.setString(9, req.displayWelcomePage.orNull)
-        cs.setInt(10, req.prePopCount)
-        cs.setString(11, req.prePopSuccessful)
-        cs.setInt(12, req.version)
-        cs.registerOutParameter(12, OracleTypes.INTEGER)
-
-        cs.execute()
-      }
-
-      // 2) Create_Subcontractor for each subcontractorType
-      req.subcontractorTypes.foreach { subcontractorType =>
-        Using.resource(conn.prepareCall(CallCreateSubcontractor)) { cs =>
-          cs.setInt(1, req.schemeId)
-          cs.setInt(2, req.version)
-          cs.setString(3, subcontractorType.toString)
-          cs.registerOutParameter(4, OracleTypes.INTEGER)
-
+  override def getScheme(instanceId: String): Future[Option[ContractorScheme]] =
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallGetScheme) { cs =>
+          cs.setString(1, instanceId)
+          cs.registerOutParameter(2, Types.REF_CURSOR)
           cs.execute()
+
+          withCursor(cs, 2) { rs =>
+            if (rs != null && rs.next()) Some(readContractorScheme(rs))
+            else None
+          }
         }
       }
+    }
 
-      // 3) Update_Version_Number – increment version atomically in same transaction
-      val newVersion = callUpdateSchemeVersion(conn, req.instanceId, req.version)
-      newVersion
+  override def getSchemeEmail(instanceId: String): Future[Option[String]] =
+    Future {
+      db.withConnection { conn =>
+        loadScheme(conn, instanceId).email
+      }
+    }
+
+  override def createScheme(contractorScheme: CreateContractorSchemeParams): Future[Int] =
+    Future {
+      db.withConnection { conn =>
+        callCreateScheme(conn, contractorScheme)
+      }
+    }
+
+  override def updateScheme(contractorScheme: UpdateContractorSchemeParams): Future[Int] =
+    Future {
+      db.withConnection { conn =>
+        callUpdateScheme(conn, contractorScheme)
+      }
+    }
+
+  override def updateSchemeVersion(instanceId: String, version: Int): Future[Int] =
+    Future {
+      logger.info(s"[CIS] updateSchemeVersion(instanceId=$instanceId, version=$version)")
+      db.withConnection { conn =>
+        callUpdateSchemeVersion(conn, instanceId, version)
+      }
+    }
+
+// Subcontractor
+
+  override def createAndUpdateSubcontractor(request: CreateAndUpdateSubcontractorRequest): Future[Unit] = {
+    logger.info(
+      s"[CIS] createAndUpdateSubcontractor(instanceId=${request.cisId})"
+    )
+    db.withTransaction { conn =>
+      val scheme            = loadScheme(conn, request.cisId)
+      val subbieResourceRef = callCreateSubcontractor(conn, scheme.schemeId, request.subcontractorType)
+      callUpdateSchemeVersion(conn, request.cisId, scheme.version.getOrElse(0))
+      callUpdateSubcontractor(conn, scheme.schemeId, subbieResourceRef, request)
     }
   }
 
-  private val CallCreateMonthlyReturn          = "{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }"
-  private val CallUpdateSchemeVersion          = "{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"
-  private val CallUpdateMonthlyReturn          =
-    "{ call MONTHLY_RETURN_PROCS_2016.Update_Monthly_Return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
-  private val CallGetScheme                    = "{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"
-  private val CallCreateScheme                 = "{ call SCHEME_PROCS.Create_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
-  private val CallUpdateScheme                 = "{ call SCHEME_PROCS.Update_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
-  private val CallGetAllMonthlyReturns         = "{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }"
-  private val CallGetUnsubmittedMonthlyReturns = "{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Returns(?, ?, ?) }"
+// Submission
 
-  private val CallUpdateSubcontractor =
-    "{ call SUBCONTRACTOR_PROCS.Update_Subcontractor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
-  private val CallCreateSubcontractor = "{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }"
+  override def createSubmission(request: CreateSubmissionRequest): Future[String] =
+    Future {
+      db.withTransaction { conn =>
+        val monthlyReturnId = getMonthlyReturnId(conn, request.instanceId, request.taxYear, request.taxMonth)
 
-  private def callCreateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit = {
-    val cs = conn.prepareCall(CallCreateMonthlyReturn)
-    try {
+        val submissionId = callCreateSubmission(
+          conn,
+          instanceId = request.instanceId,
+          submissionType = "MONTHLY_RETURN",
+          activeObjectId = monthlyReturnId,
+          hmrcMarkGenerated = request.hmrcMarkGenerated.orNull,
+          hmrcMarkGgis = null,
+          emailRecipient = request.emailRecipient.orNull,
+          agentId = request.agentId.orNull,
+          submittableStatus = "PENDING"
+        )
+
+        submissionId.toString
+      }
+    }
+
+  override def updateMonthlyReturnSubmission(request: UpdateSubmissionRequest): Future[Unit] =
+    Future {
+      db.withConnection { conn =>
+        val monthlyReturnId = getMonthlyReturnId(conn, request.instanceId, request.taxYear, request.taxMonth)
+        val amendValue      = request.amendment.getOrElse("N")
+
+        callUpdateMonthlyReturnSubmission(
+          conn,
+          submissionType = "MONTHLY_RETURN",
+          activeObjectId = monthlyReturnId,
+          hmrcMarkGenerated = request.hmrcMarkGenerated,
+          hmrcMarkGgis = request.hmrcMarkGgis.orNull,
+          emailRecipient = request.emailRecipient.orNull,
+          submissionRequestDate = request.submissionRequestDate.map(Timestamp.from).orNull,
+          acceptedTime = request.acceptedTime.orNull,
+          agentId = request.agentId.orNull,
+          submittableStatus = request.submittableStatus,
+          govtalkErrorCode = request.govtalkErrorCode.orNull,
+          govtalkErrorType = request.govtalkErrorType.orNull,
+          govtalkErrorMessage = request.govtalkErrorMessage.orNull,
+          instanceId = request.instanceId,
+          taxYear = request.taxYear,
+          taxMonth = request.taxMonth,
+          amendment = amendValue
+        )
+      }
+    }
+
+// Nil monthly return
+
+  override def createNilMonthlyReturn(
+    request: CreateNilMonthlyReturnRequest
+  ): Future[CreateNilMonthlyReturnResponse] = {
+    logger.info(
+      s"[CIS] createNilMonthlyReturn(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
+    )
+    Future {
+      db.withTransaction { conn =>
+        val schemeVersionBefore = getSchemeVersion(conn, request.instanceId)
+
+        callCreateMonthlyReturn(conn, request)
+        callUpdateSchemeVersion(conn, request.instanceId, schemeVersionBefore)
+        callUpdateMonthlyReturn(conn, request)
+
+        CreateNilMonthlyReturnResponse(status = "STARTED")
+      }
+    }
+  }
+
+// Prepopulation
+
+  override def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int] =
+    Future {
+      logger.info(
+        s"[CIS] applyPrepopulation(schemeId=${req.schemeId}, instanceId=${req.instanceId}, version=${req.version}, subs=${req.subcontractorTypes.size})"
+      )
+
+      db.withTransaction { conn =>
+        // 1) Update_Scheme – set name/UTR/prePopCount/prePopSuccessful (but NOT version)
+        withCall(conn, CallUpdateScheme) { cs =>
+          cs.setInt(1, req.schemeId)
+          cs.setString(2, req.instanceId)
+          cs.setString(3, req.accountsOfficeReference)
+          cs.setString(4, req.taxOfficeNumber)
+          cs.setString(5, req.taxOfficeReference)
+          cs.setString(6, req.utr.orNull)
+          cs.setString(7, req.name)
+          cs.setString(8, req.emailAddress.orNull)
+          cs.setString(9, req.displayWelcomePage.orNull)
+          cs.setInt(10, req.prePopCount)
+          cs.setString(11, req.prePopSuccessful)
+          cs.setInt(12, req.version)
+          cs.registerOutParameter(12, OracleTypes.INTEGER)
+
+          cs.execute()
+        }
+
+        // 2) Create_Subcontractor for each subcontractorType
+        req.subcontractorTypes.foreach { subcontractorType =>
+          withCall(conn, CallCreateSubcontractor) { cs =>
+            cs.setInt(1, req.schemeId)
+            cs.setInt(2, req.version)
+            cs.setString(3, subcontractorType.toString)
+            cs.registerOutParameter(4, OracleTypes.INTEGER)
+
+            cs.execute()
+          }
+        }
+
+        // 3) Update_Version_Number – increment version atomically in same transaction
+        val newVersion = callUpdateSchemeVersion(conn, req.instanceId, req.version)
+        newVersion
+      }
+    }
+
+// private helpers
+  private def callCreateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit =
+    withCall(conn, CallCreateMonthlyReturn) { cs =>
       cs.setString(1, req.instanceId)
       cs.setInt(2, req.taxYear)
       cs.setInt(3, req.taxMonth)
       cs.setString(4, "Y")
       cs.execute()
-    } finally cs.close()
-  }
+    }
 
-  private def callUpdateSchemeVersion(conn: Connection, instanceId: String, currentVersion: Int): Int = {
-    val cs = conn.prepareCall(CallUpdateSchemeVersion)
-    try {
+  private def callUpdateSchemeVersion(conn: Connection, instanceId: String, currentVersion: Int): Int =
+    withCall(conn, CallUpdateSchemeVersion) { cs =>
       cs.setString(1, instanceId)
       cs.setInt(2, currentVersion)
       cs.registerOutParameter(2, Types.INTEGER)
       cs.execute()
       cs.getInt(2)
-    } finally cs.close()
-  }
+    }
 
-  private def callUpdateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit = {
-    val cs = conn.prepareCall(CallUpdateMonthlyReturn)
-    try {
+  private def callCreateScheme(conn: Connection, p: CreateContractorSchemeParams): Int =
+    withCall(conn, CallCreateScheme) { cs =>
+      cs.setString(1, p.instanceId)
+      cs.setString(2, p.accountsOfficeReference)
+      cs.setString(3, p.taxOfficeNumber)
+      cs.setString(4, p.taxOfficeReference)
+      cs.setString(5, p.utr.orNull)
+      cs.setString(6, p.name.orNull)
+      cs.setString(7, p.emailAddress.orNull)
+      cs.setString(8, p.displayWelcomePage.orNull)
+      cs.setOptionalInt(9, p.prePopCount)
+      cs.setString(10, p.prePopSuccessful.orNull)
+      cs.registerOutParameter(11, OracleTypes.INTEGER)
+
+      cs.execute()
+      cs.getInt(11)
+    }
+
+  private def callUpdateScheme(conn: Connection, p: UpdateContractorSchemeParams): Int =
+    withCall(conn, CallUpdateScheme) { cs =>
+      cs.setInt(1, p.schemeId)
+      cs.setString(2, p.instanceId)
+      cs.setString(3, p.accountsOfficeReference)
+      cs.setString(4, p.taxOfficeNumber)
+      cs.setString(5, p.taxOfficeReference)
+      cs.setString(6, p.utr.orNull)
+      cs.setString(7, p.name.orNull)
+      cs.setString(8, p.emailAddress.orNull)
+      cs.setString(9, p.displayWelcomePage.orNull)
+      cs.setOptionalInt(10, p.prePopCount)
+      cs.setString(11, p.prePopSuccessful.orNull)
+      cs.setOptionalInt(12, p.version)
+      cs.registerOutParameter(12, OracleTypes.INTEGER)
+
+      cs.execute()
+      cs.getInt(12)
+    }
+
+  private def callUpdateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit =
+    withCall(conn, CallUpdateMonthlyReturn) { cs =>
       cs.setString(1, req.instanceId)
       cs.setInt(2, req.taxYear)
       cs.setInt(3, req.taxMonth)
@@ -461,29 +418,89 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setInt(12, 0)
       cs.registerOutParameter(12, Types.INTEGER)
       cs.execute()
-    } finally cs.close()
-  }
+    }
+
+  private def callCreateSubmission(
+    conn: Connection,
+    instanceId: String,
+    submissionType: String,
+    activeObjectId: Long,
+    hmrcMarkGenerated: String,
+    hmrcMarkGgis: String,
+    emailRecipient: String,
+    agentId: String,
+    submittableStatus: String
+  ): Long =
+    withCall(conn, CallCreateSubmission) { cs =>
+      cs.setString(1, instanceId)
+      cs.setString(2, submissionType)
+      cs.setLong(3, activeObjectId)
+      cs.setString(4, hmrcMarkGenerated)
+      cs.setString(5, hmrcMarkGgis)
+      cs.setString(6, emailRecipient)
+      cs.setString(7, agentId)
+      cs.setString(8, submittableStatus)
+      cs.registerOutParameter(9, Types.NUMERIC)
+
+      cs.execute()
+      cs.getLong(9)
+    }
+
+  private def callUpdateMonthlyReturnSubmission(
+    conn: Connection,
+    submissionType: String,
+    activeObjectId: Long,
+    hmrcMarkGenerated: String,
+    hmrcMarkGgis: String,
+    emailRecipient: String,
+    submissionRequestDate: Timestamp,
+    acceptedTime: String,
+    agentId: String,
+    submittableStatus: String,
+    govtalkErrorCode: String,
+    govtalkErrorType: String,
+    govtalkErrorMessage: String,
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int,
+    amendment: String
+  ): Unit =
+    withCall(conn, CallUpdateMonthlyReturnSubmission) { cs =>
+      cs.setString(1, submissionType)
+      cs.setLong(2, activeObjectId)
+      cs.setString(3, hmrcMarkGenerated)
+      cs.setString(4, hmrcMarkGgis)
+      cs.setString(5, emailRecipient)
+      cs.setTimestamp(6, submissionRequestDate)
+      cs.setString(7, acceptedTime)
+      cs.setString(8, agentId)
+      cs.setString(9, submittableStatus)
+      cs.setString(10, govtalkErrorCode)
+      cs.setString(11, govtalkErrorType)
+      cs.setString(12, govtalkErrorMessage)
+      cs.setString(13, instanceId)
+      cs.setInt(14, taxYear)
+      cs.setInt(15, taxMonth)
+      cs.setString(16, amendment)
+
+      cs.execute()
+    }
 
   private def readSchemeRow(rs: ResultSet): SchemeRow = {
     val id      = rs.getLong("scheme_id")
-    val v       = rs.getInt("version")
-    val version = if (rs.wasNull()) None else Some(v)
-    val email   = Option(rs.getString("email_address")).map(_.trim).filter(_.nonEmpty)
+    val version = rs.getOptionalInt("version")
+    val email   = rs.getOptionalString("email_address").map(_.trim).filter(_.nonEmpty)
     SchemeRow(id, version, email)
   }
 
   private def loadScheme(conn: Connection, instanceId: String): SchemeRow =
-    Using.resource(conn.prepareCall(CallGetScheme)) { cs =>
+    withCall(conn, CallGetScheme) { cs =>
       cs.setString(1, instanceId)
       cs.registerOutParameter(2, Types.REF_CURSOR)
       cs.execute()
 
-      val rs = cs.getObject(2, classOf[ResultSet])
-      if (rs == null)
-        throw new RuntimeException(s"int_Get_Scheme returned null cursor for instance_id=$instanceId")
-
-      Using.resource(rs) { r =>
-        if (r != null && r.next()) readSchemeRow(r)
+      withCursor(cs, 2) { rs =>
+        if (rs != null && rs.next()) readSchemeRow(rs)
         else throw new RuntimeException(s"No SCHEME row for instance_id=$instanceId")
       }
     }
@@ -491,83 +508,32 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   private def getSchemeVersion(conn: Connection, instanceId: String): Int =
     loadScheme(conn, instanceId).version.getOrElse(0)
 
-  override def getSchemeEmail(instanceId: String): Future[Option[String]] = Future {
-    db.withConnection { conn =>
-      loadScheme(conn, instanceId).email
-    }
-  }
-
-  private def getMonthlyReturnId(
-    conn: Connection,
-    instanceId: String,
-    taxYear: Int,
-    taxMonth: Int
-  ): Long =
-    Using.resource(conn.prepareCall(CallGetAllMonthlyReturns)) { cs =>
+  private def getMonthlyReturnId(conn: Connection, instanceId: String, taxYear: Int, taxMonth: Int): Long =
+    withCall(conn, CallGetAllMonthlyReturns) { cs =>
       cs.setString(1, instanceId)
       cs.registerOutParameter(2, OracleTypes.CURSOR)
       cs.registerOutParameter(3, OracleTypes.CURSOR)
       cs.execute()
 
-      val monthlyReturns = cs.getObject(3, classOf[ResultSet])
-      if (monthlyReturns == null)
-        throw new RuntimeException("Get_All_Monthly_Returns returned null monthly cursor")
+      discardCursor(cs, 2)
 
-      Using.resource(monthlyReturns) { rs =>
-        var found: Long = null
-        while (found == null && rs.next()) {
+      withCursor(cs, 3) { rs =>
+        var found: Option[Long] = None
+        while (found.isEmpty && rs.next()) {
           val year  = rs.getInt("tax_year")
           val month = rs.getInt("tax_month")
-          if (year == taxYear && month == taxMonth) {
-            found = rs.getLong("monthly_return_id")
-          }
+          if (year == taxYear && month == taxMonth) found = Some(rs.getLong("monthly_return_id"))
         }
 
-        if (found != null) found.longValue()
-        else
-          throw new RuntimeException(
-            s"No MONTHLY_RETURN for instance_id=$instanceId year=$taxYear month=$taxMonth"
-          )
+        found.getOrElse(
+          throw new RuntimeException(s"No MONTHLY_RETURN for instance_id=$instanceId year=$taxYear month=$taxMonth")
+        )
       }
     }
 
-  private def readContractorScheme(rs: ResultSet): ContractorScheme =
-    ContractorScheme(
-      schemeId = rs.getInt("scheme_id"),
-      instanceId = rs.getString("instance_id"),
-      accountsOfficeReference = rs.getString("aoref"),
-      taxOfficeNumber = rs.getString("tax_office_number"),
-      taxOfficeReference = rs.getString("tax_office_reference"),
-      utr = Option(rs.getString("utr")),
-      name = Option(rs.getString("name")),
-      emailAddress = Option(rs.getString("email_address")),
-      displayWelcomePage = Option(rs.getString("display_welcome_page")),
-      prePopCount = rs.getOptionalInt("pre_pop_count"),
-      prePopSuccessful = Option(rs.getString("pre_pop_successful")),
-      subcontractorCounter = rs.getOptionalInt("subcontractor_counter"),
-      verificationBatchCounter = rs.getOptionalInt("verif_batch_counter"),
-      lastUpdate = Option(rs.getString("last_update")).flatMap(x => Try(Instant.parse(x)).toOption),
-      version = rs.getOptionalInt("version")
-    )
-
   private def readSingleSchemeRow(rs: ResultSet, instanceId: String): ContractorScheme =
-    if (rs != null && rs.next()) {
-      readContractorScheme(rs)
-    } else {
-      throw new RuntimeException(s"No SCHEME row for instance_id=$instanceId")
-    }
-
-  override def createAndUpdateSubcontractor(request: CreateAndUpdateSubcontractorRequest): Future[Unit] = {
-    logger.info(
-      s"[CIS] createAndUpdateSubcontractor(instanceId=${request.cisId})"
-    )
-    db.withTransaction { conn =>
-      val scheme            = loadScheme(conn, request.cisId)
-      val subbieResourceRef = callCreateSubcontractor(conn, scheme.schemeId, request.subcontractorType)
-      callUpdateSchemeVersion(conn, request.cisId, scheme.version.getOrElse(0))
-      callUpdateSubcontractor(conn, scheme.schemeId, subbieResourceRef, request)
-    }
-  }
+    if (rs != null && rs.next()) readContractorScheme(rs)
+    else throw new RuntimeException(s"No SCHEME row for instance_id=$instanceId")
 
   private def callCreateSubcontractor(conn: Connection, schemeId: Long, subcontractorType: SubcontractorType): Int = {
     val cs = conn.prepareCall(CallCreateSubcontractor)
@@ -584,11 +550,11 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   }
 
   private def callUpdateSubcontractor(
-    conn: Connection,
-    schemeId: Long,
-    subbieResourceRef: Int,
-    request: CreateAndUpdateSubcontractorRequest
-  ): Future[Unit] =
+                                       conn: Connection,
+                                       schemeId: Long,
+                                       subbieResourceRef: Int,
+                                       request: CreateAndUpdateSubcontractorRequest
+                                     ): Future[Unit] =
     Future {
       val cs = conn.prepareCall(CallUpdateSubcontractor)
       try {
