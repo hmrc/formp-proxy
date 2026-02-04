@@ -19,6 +19,8 @@ POST       /cis/subcontractor/update                                uk.gov.hmrc.
 POST       /submissions/create                                      uk.gov.hmrc.formpproxy.cis.controllers.SubmissionController.createSubmission()
 POST       /submissions/update                                      uk.gov.hmrc.formpproxy.cis.controllers.SubmissionController.updateSubmission()
 
+POST       /cis/govtalkstatus/get                                   uk.gov.hmrc.formpproxy.cis.controllers.GovTalkController.getGovTalkStatus
+
 # SDLT routes
 
 POST       /create/return                                           uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.createSDLTReturn()
