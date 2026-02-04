@@ -27,8 +27,8 @@ import play.api.mvc.{ControllerComponents, PlayBodyParsers, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateNilMonthlyReturnRequest, InstanceIdRequest}
-import uk.gov.hmrc.formpproxy.cis.models.response.CreateNilMonthlyReturnResponse
+import uk.gov.hmrc.formpproxy.cis.models.requests.*
+import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, UnsubmittedMonthlyReturns, UserMonthlyReturns, requests}
 import uk.gov.hmrc.formpproxy.cis.services.MonthlyReturnService
 import uk.gov.hmrc.http.UpstreamErrorResponse
@@ -91,8 +91,8 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
       val req = makeJsonRequest(Json.obj("instanceId" -> "abc-123"))
       val res = controller.retrieveMonthlyReturns(req)
 
-      status(res) mustBe BAD_GATEWAY
-      (contentAsJson(res) \ "message").as[String] must include("formp failed")
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      (contentAsJson(res) \ "message").as[String] must include("Unexpected error")
     }
 
     "returns 500 with generic message on unexpected exception" in new Setup {
@@ -201,6 +201,76 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
     }
   }
 
+  "MonthlyReturnController createMonthlyReturn" - {
+
+    "returns 201 when service succeeds" in new Setup {
+      val request = CreateMonthlyReturnRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 2
+      )
+
+      when(mockService.createMonthlyReturn(eqTo(request)))
+        .thenReturn(Future.successful(()))
+
+      val req: FakeRequest[CreateMonthlyReturnRequest] =
+        FakeRequest(POST, "/formp-proxy/monthly-return/create").withBody(request)
+
+      val res: Future[Result] = controller.createMonthlyReturn(req)
+
+      status(res) mustBe CREATED
+      contentAsString(res) mustBe ""
+
+      verify(mockService).createMonthlyReturn(eqTo(request))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "propagates UpstreamErrorResponse" in new Setup {
+      val request = CreateMonthlyReturnRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 2
+      )
+      val err     = UpstreamErrorResponse("formp failed", BAD_GATEWAY, BAD_GATEWAY)
+
+      when(mockService.createMonthlyReturn(eqTo(request)))
+        .thenReturn(Future.failed(err))
+
+      val req: FakeRequest[CreateMonthlyReturnRequest] =
+        FakeRequest(POST, "/formp-proxy/monthly-return/create").withBody(request)
+
+      val res: Future[Result] = controller.createMonthlyReturn(req)
+
+      status(res) mustBe BAD_GATEWAY
+      (contentAsJson(res) \ "message").as[String] must include("formp failed")
+
+      verify(mockService).createMonthlyReturn(eqTo(request))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 500 with generic message on unexpected exception" in new Setup {
+      val request = CreateMonthlyReturnRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 2
+      )
+
+      when(mockService.createMonthlyReturn(eqTo(request)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val req: FakeRequest[CreateMonthlyReturnRequest] =
+        FakeRequest(POST, "/formp-proxy/monthly-return/create").withBody(request)
+
+      val res: Future[Result] = controller.createMonthlyReturn(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
+
+      verify(mockService).createMonthlyReturn(eqTo(request))
+      verifyNoMoreInteractions(mockService)
+    }
+  }
+
   "MonthlyReturnController retrieveUnsubmittedMonthlyReturns" - {
 
     "returns 200 with payload when service succeeds" in new Setup {
@@ -257,6 +327,45 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
 
       status(res) mustBe INTERNAL_SERVER_ERROR
       (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
+    }
+  }
+
+  "getMonthlyReturnForEdit" - {
+
+    "returns 200 with json payload when service succeeds" in new Setup {
+      val requestBody = GetMonthlyReturnForEditRequest("abc-123", 2025, 1)
+
+      val payload = GetMonthlyReturnForEditResponse(
+        scheme = Seq.empty,
+        monthlyReturn = Seq.empty,
+        subcontractors = Seq.empty,
+        monthlyReturnItems = Seq.empty,
+        submission = Seq.empty
+      )
+
+      when(mockService.getMonthlyReturnForEdit(eqTo(requestBody)))
+        .thenReturn(Future.successful(payload))
+
+      val request = makeJsonRequest(Json.toJson(requestBody))
+      val result  = controller.getMonthlyReturnForEdit(request)
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe Json.toJson(payload)
+      verify(mockService).getMonthlyReturnForEdit(eqTo(requestBody))
+    }
+
+    "returns 500 with Unexpected error when service fails with NonFatal" in new Setup {
+      val requestBody = GetMonthlyReturnForEditRequest("abc-123", 2025, 1)
+
+      when(mockService.getMonthlyReturnForEdit(eqTo(requestBody)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val request = makeJsonRequest(Json.toJson(requestBody))
+      val result  = controller.getMonthlyReturnForEdit(request)
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
+      verify(mockService).getMonthlyReturnForEdit(eqTo(requestBody))
     }
   }
 
