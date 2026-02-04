@@ -24,6 +24,7 @@ import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.*
 import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
+import uk.gov.hmrc.formpproxy.sdlt.models.land.*
 import uk.gov.hmrc.formpproxy.sdlt.models.returns.SdltReturnRecordResponse
 import uk.gov.hmrc.formpproxy.sdlt.repositories.{SdltFormpRepoDataHelper, SdltFormpRepository}
 
@@ -1865,6 +1866,295 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
       ex mustBe boom
 
       verify(repo).sdltDeleteCompanyDetails(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "ReturnService createLand" - {
+
+    "must delegate to repository " in {
+      val repo                               = mock[SdltFormpRepository]
+      val service                            = new ReturnService(repo)
+      val request: CreateLandRequest         = CreateLandRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        propertyType = "RESIDENTIAL",
+        interestTransferredCreated = "FREEHOLD",
+        houseNumber = Some("123"),
+        addressLine1 = "Main Street",
+        addressLine2 = Some("Apartment 4B"),
+        addressLine3 = Some("City Center"),
+        addressLine4 = Some("Greater London"),
+        postcode = Some("SW1A 1AA"),
+        landArea = Some("500"),
+        areaUnit = Some("SQUARE_METERS"),
+        localAuthorityNumber = Some("LA12345"),
+        mineralRights = Some("YES"),
+        nlpgUprn = Some("100012345678"),
+        willSendPlansByPost = Some("NO"),
+        titleNumber = Some("TN123456")
+      )
+      val expectedResponse: CreateLandReturn = CreateLandReturn(
+        landResourceRef = "L100001",
+        landId = "LID123"
+      )
+
+      when(repo.sdltCreateLand(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: CreateLandReturn = service.createLand(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltCreateLand(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must handle minimal land request" in {
+      val repo                               = mock[SdltFormpRepository]
+      val service                            = new ReturnService(repo)
+      val request: CreateLandRequest         = CreateLandRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        propertyType = "NON_RESIDENTIAL",
+        interestTransferredCreated = "LEASEHOLD",
+        houseNumber = None,
+        addressLine1 = "Business Park",
+        addressLine2 = None,
+        addressLine3 = None,
+        addressLine4 = None,
+        postcode = None,
+        landArea = None,
+        areaUnit = None,
+        localAuthorityNumber = None,
+        mineralRights = None,
+        nlpgUprn = None,
+        willSendPlansByPost = None,
+        titleNumber = None
+      )
+      val expectedResponse: CreateLandReturn = CreateLandReturn(
+        landResourceRef = "L100002",
+        landId = "LID456"
+      )
+
+      when(repo.sdltCreateLand(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: CreateLandReturn = service.createLand(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltCreateLand(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must handle different property types" in {
+      val repo                                     = mock[SdltFormpRepository]
+      val service                                  = new ReturnService(repo)
+      val residentialRequest: CreateLandRequest    = CreateLandRequest(
+        stornId = "STORN11111",
+        returnResourceRef = "100003",
+        propertyType = "RESIDENTIAL",
+        interestTransferredCreated = "FREEHOLD",
+        addressLine1 = "Residential Street"
+      )
+      val nonResidentialRequest: CreateLandRequest = CreateLandRequest(
+        stornId = "STORN22222",
+        returnResourceRef = "100004",
+        propertyType = "NON_RESIDENTIAL",
+        interestTransferredCreated = "LEASEHOLD",
+        addressLine1 = "Commercial Road"
+      )
+      val mixedRequest: CreateLandRequest          = CreateLandRequest(
+        stornId = "STORN33333",
+        returnResourceRef = "100005",
+        propertyType = "MIXED",
+        interestTransferredCreated = "FREEHOLD",
+        addressLine1 = "Mixed Use Avenue"
+      )
+
+      when(repo.sdltCreateLand(eqTo(residentialRequest)))
+        .thenReturn(Future.successful(CreateLandReturn("L100003", "LID789")))
+      when(repo.sdltCreateLand(eqTo(nonResidentialRequest)))
+        .thenReturn(Future.successful(CreateLandReturn("L100004", "LID101")))
+      when(repo.sdltCreateLand(eqTo(mixedRequest)))
+        .thenReturn(Future.successful(CreateLandReturn("L100005", "LID112")))
+
+      service.createLand(residentialRequest).futureValue.landResourceRef mustBe "L100003"
+      service.createLand(nonResidentialRequest).futureValue.landResourceRef mustBe "L100004"
+      service.createLand(mixedRequest).futureValue.landResourceRef mustBe "L100005"
+
+      verify(repo).sdltCreateLand(eqTo(residentialRequest))
+      verify(repo).sdltCreateLand(eqTo(nonResidentialRequest))
+      verify(repo).sdltCreateLand(eqTo(mixedRequest))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must propagate failures from repository" in {
+      val repo                       = mock[SdltFormpRepository]
+      val service                    = new ReturnService(repo)
+      val request: CreateLandRequest = CreateLandRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        propertyType = "RESIDENTIAL",
+        interestTransferredCreated = "FREEHOLD",
+        addressLine1 = "Main Street"
+      )
+      val boom                       = new RuntimeException("database connection failed")
+
+      when(repo.sdltCreateLand(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      val ex: Throwable = service.createLand(request).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).sdltCreateLand(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "ReturnService updateLand" - {
+
+    "must delegate to repository " in {
+      val repo                               = mock[SdltFormpRepository]
+      val service                            = new ReturnService(repo)
+      val request: UpdateLandRequest         = UpdateLandRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        landResourceRef = "L100001",
+        propertyType = "RESIDENTIAL",
+        interestTransferredCreated = "FREEHOLD",
+        houseNumber = Some("456"),
+        addressLine1 = "Oak Avenue",
+        addressLine2 = Some("Suite 10"),
+        addressLine3 = Some("Updated City"),
+        addressLine4 = None,
+        postcode = Some("W1A 1AA"),
+        landArea = Some("750"),
+        areaUnit = Some("SQUARE_METERS"),
+        localAuthorityNumber = Some("LA54321"),
+        mineralRights = Some("NO"),
+        nlpgUprn = Some("100087654321"),
+        willSendPlansByPost = Some("YES"),
+        titleNumber = Some("TN654321"),
+        nextLandId = Some("100002")
+      )
+      val expectedResponse: UpdateLandReturn = UpdateLandReturn(updated = true)
+
+      when(repo.sdltUpdateLand(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: UpdateLandReturn = service.updateLand(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltUpdateLand(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must return false when update fails" in {
+      val repo                               = mock[SdltFormpRepository]
+      val service                            = new ReturnService(repo)
+      val request: UpdateLandRequest         = UpdateLandRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        landResourceRef = "L100002",
+        propertyType = "NON_RESIDENTIAL",
+        interestTransferredCreated = "LEASEHOLD",
+        addressLine1 = "Updated Street"
+      )
+      val expectedResponse: UpdateLandReturn = UpdateLandReturn(updated = false)
+
+      when(repo.sdltUpdateLand(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: UpdateLandReturn = service.updateLand(request).futureValue
+      result.updated mustBe false
+
+      verify(repo).sdltUpdateLand(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must propagate failures from repository" in {
+      val repo                       = mock[SdltFormpRepository]
+      val service                    = new ReturnService(repo)
+      val request: UpdateLandRequest = UpdateLandRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        landResourceRef = "L100001",
+        propertyType = "RESIDENTIAL",
+        interestTransferredCreated = "FREEHOLD",
+        addressLine1 = "Oak Avenue"
+      )
+      val boom                       = new RuntimeException("database timeout")
+
+      when(repo.sdltUpdateLand(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      val ex: Throwable = service.updateLand(request).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).sdltUpdateLand(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "ReturnService deleteLand" - {
+
+    "must delegate to repository " in {
+      val repo                               = mock[SdltFormpRepository]
+      val service                            = new ReturnService(repo)
+      val request: DeleteLandRequest         = DeleteLandRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001",
+        landResourceRef = "L100001"
+      )
+      val expectedResponse: DeleteLandReturn = DeleteLandReturn(deleted = true)
+
+      when(repo.sdltDeleteLand(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: DeleteLandReturn = service.deleteLand(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltDeleteLand(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must return false when delete fails" in {
+      val repo                               = mock[SdltFormpRepository]
+      val service                            = new ReturnService(repo)
+      val request: DeleteLandRequest         = DeleteLandRequest(
+        storn = "STORN99999",
+        returnResourceRef = "100002",
+        landResourceRef = "L999999"
+      )
+      val expectedResponse: DeleteLandReturn = DeleteLandReturn(deleted = false)
+
+      when(repo.sdltDeleteLand(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: DeleteLandReturn = service.deleteLand(request).futureValue
+      result.deleted mustBe false
+
+      verify(repo).sdltDeleteLand(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must propagate failures from repository" in {
+      val repo                       = mock[SdltFormpRepository]
+      val service                    = new ReturnService(repo)
+      val request: DeleteLandRequest = DeleteLandRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001",
+        landResourceRef = "L100001"
+      )
+      val boom                       = new RuntimeException("database error")
+
+      when(repo.sdltDeleteLand(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      val ex: Throwable = service.deleteLand(request).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).sdltDeleteLand(eqTo(request))
       verifyNoMoreInteractions(repo)
     }
   }

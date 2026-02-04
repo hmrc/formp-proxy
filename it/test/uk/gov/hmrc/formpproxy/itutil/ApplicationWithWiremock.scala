@@ -101,5 +101,10 @@ trait ApplicationWithWiremock
   protected def postAwait(uri: String, body: JsValue): HttpResponse =
     post(uri, body).futureValue
 
-
+  protected def postJson(uri: String, body: JsValue): HttpResponse =
+    post(uri, body).futureValue
 }
+
+
+
+
