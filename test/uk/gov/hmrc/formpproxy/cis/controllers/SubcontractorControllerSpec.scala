@@ -29,7 +29,8 @@ import uk.gov.hmrc.formpproxy.cis.models.requests.UpdateSubcontractorRequest
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
-import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorListResponse, Subcontractor}
+import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorListResponse
+import uk.gov.hmrc.formpproxy.cis.models.Subcontractor
 
 import java.time.LocalDateTime
 import scala.concurrent.Future
@@ -293,8 +294,8 @@ class SubcontractorControllerSpec extends SpecBase {
         subcontractors = List(
           Subcontractor(
             subcontractorId = 1L,
-            subbieResourceRef = 10,
-            `type` = "soletrader",
+            subbieResourceRef = Some(10),
+            subcontractorType = Some("soletrader"),
             utr = Some("1234567890"),
             pageVisited = Some(2),
             partnerUtr = None,
@@ -310,7 +311,7 @@ class SubcontractorControllerSpec extends SpecBase {
             addressLine3 = None,
             addressLine4 = None,
             country = Some("GB"),
-            postcode = Some("AA1 1AA"),
+            postCode = Some("AA1 1AA"),
             emailAddress = None,
             phoneNumber = None,
             mobilePhoneNumber = None,

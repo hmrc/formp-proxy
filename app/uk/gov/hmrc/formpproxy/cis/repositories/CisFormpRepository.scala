@@ -19,21 +19,18 @@ package uk.gov.hmrc.formpproxy.cis.repositories
 import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubcontractorRequest, UpdateSubmissionRequest}
-import uk.gov.hmrc.formpproxy.cis.models.response.{CreateNilMonthlyReturnResponse, GetSubcontractorListResponse, Subcontractor}
 import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubcontractorRequest, UpdateSubmissionRequest}
-import uk.gov.hmrc.formpproxy.cis.models.response.{CreateNilMonthlyReturnResponse, GetMonthlyReturnForEditResponse}
-import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, MonthlyReturn, SubcontractorType, UnsubmittedMonthlyReturns, UpdateContractorSchemeParams, UserMonthlyReturns}
+import uk.gov.hmrc.formpproxy.cis.models.response.{CreateNilMonthlyReturnResponse, GetMonthlyReturnForEditResponse, GetSubcontractorListResponse}
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, Subcontractor, SubcontractorType, UnsubmittedMonthlyReturns, UpdateContractorSchemeParams, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
 import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.*
 import uk.gov.hmrc.formpproxy.cis.repositories.CisRowMappers.*
+
 import java.sql.{CallableStatement, Connection, ResultSet, Timestamp, Types}
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Try, Using}
-import java.time.LocalDateTime
 import scala.util.Using
 
 trait CisMonthlyReturnSource {
@@ -171,7 +168,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
-// Scheme
+  // Scheme
 
   override def getScheme(instanceId: String): Future[Option[ContractorScheme]] =
     Future {
@@ -218,7 +215,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
 
-// Subcontractor
+  // Subcontractor
 
   override def createSubcontractor(schemeId: Int, subcontractorType: SubcontractorType, version: Int): Future[Int] =
     Future {
@@ -276,7 +273,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
 
-// Submission
+  // Submission
 
   override def createSubmission(request: CreateSubmissionRequest): Future[String] =
     Future {
@@ -327,7 +324,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
 
-// Nil monthly return
+  // Nil monthly return
 
   override def createNilMonthlyReturn(
     request: CreateNilMonthlyReturnRequest
@@ -348,7 +345,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
-// Prepopulation
+  // Prepopulation
 
   override def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int] =
     Future {
@@ -394,7 +391,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
 
-// private helpers
+  // private helpers
   private def callCreateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit =
     withCall(conn, CallCreateMonthlyReturn) { cs =>
       cs.setString(1, req.instanceId)
@@ -581,81 +578,8 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
 
   private def readSingleSchemeRow(rs: ResultSet, instanceId: String): ContractorScheme =
-    if (rs != null && rs.next()) {
-      readContractorScheme(rs)
-    } else {
-      throw new RuntimeException(s"No SCHEME row for instance_id=$instanceId")
-    }
-
-  private val CallUpdateSubcontractor =
-    "{ call SUBCONTRACTOR_PROCS.Update_Subcontractor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
-
-  override def updateSubcontractor(request: UpdateSubcontractorRequest): Future[Unit] = Future {
-    db.withConnection { conn =>
-      Using.resource(conn.prepareCall(CallUpdateSubcontractor)) { cs =>
-
-        def setOptString(i: Int, v: Option[String]): Unit =
-          v match {
-            case Some(x) => cs.setString(i, x)
-            case None    => cs.setNull(i, Types.VARCHAR)
-          }
-
-        def setOptTimestamp(i: Int, v: Option[java.time.LocalDateTime]): Unit =
-          v match {
-            case Some(dt) => cs.setTimestamp(i, Timestamp.valueOf(dt))
-            case None     => cs.setNull(i, Types.TIMESTAMP)
-          }
-
-        def setOptInt(index: Int, value: Option[Int]): Unit =
-          value match {
-            case Some(v) => cs.setInt(index, v)
-            case None    => cs.setNull(index, Types.NUMERIC)
-          }
-
-        cs.setInt(1, request.schemeId)
-
-        cs.setInt(2, request.subbieResourceRef)
-        setOptString(3, request.utr)
-        setOptInt(4, request.pageVisited)
-        setOptString(5, request.partnerUtr)
-        setOptString(6, request.crn)
-        setOptString(7, request.firstName)
-        setOptString(8, request.nino)
-        setOptString(9, request.secondName)
-        setOptString(10, request.surname)
-
-        setOptString(11, request.partnershipTradingName)
-        setOptString(12, request.tradingName)
-        setOptString(13, request.addressLine1)
-        setOptString(14, request.addressLine2)
-        setOptString(15, request.addressLine3)
-        setOptString(16, request.addressLine4)
-        setOptString(17, request.country)
-        setOptString(18, request.postcode)
-        setOptString(19, request.emailAddress)
-        setOptString(20, request.phoneNumber)
-        setOptString(21, request.mobilePhoneNumber)
-        setOptString(22, request.worksReferenceNumber)
-
-        setOptString(23, request.matched)
-        setOptString(24, request.autoVerified)
-        setOptString(25, request.verified)
-        setOptString(26, request.verificationNumber)
-        setOptString(27, request.taxTreatment)
-        setOptString(28, request.updatedTaxTreatment)
-        setOptTimestamp(29, request.verificationDate)
-
-        cs.setNull(30, Types.INTEGER)
-        cs.registerOutParameter(30, Types.INTEGER)
-
-        cs.execute()
-
-      }
-    }
-  }
-
-  private val CallGetSubcontractorList =
-    "{ call SUBCONTRACTOR_PROCS.Get_Subcontractor_List(?, ?, ?) }"
+    if (rs != null && rs.next()) readContractorScheme(rs)
+    else throw new RuntimeException(s"No SCHEME row for instance_id=$instanceId")
 
   override def getSubcontractorList(cisId: String): Future[GetSubcontractorListResponse] = Future {
     logger.info(s"[CIS] getSubcontractorList(cisId=$cisId)")
@@ -673,7 +597,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
         val rsSubs = cs.getObject(3, classOf[ResultSet])
         val subs   =
-          try collectSubcontractors(rsSubs)
+          try collectSubcontractorsResponse(rsSubs)
           finally if (rsSubs != null) rsSubs.close()
 
         GetSubcontractorListResponse(subcontractors = subs.toList)
@@ -681,64 +605,12 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
-  private def optString(rs: ResultSet, col: String): Option[String] =
-    Option(rs.getString(col))
-
-  private def optInt(rs: ResultSet, col: String): Option[Int] = {
-    val v = rs.getInt(col)
-    if (rs.wasNull()) None else Some(v)
-  }
-
-  private def optLdt(rs: ResultSet, col: String): Option[LocalDateTime] =
-    Option(rs.getTimestamp(col)).map(_.toLocalDateTime)
-
-  private def readSubcontractorRow(rs: ResultSet): Subcontractor =
-    Subcontractor(
-      subcontractorId = rs.getLong("subcontractor_id"),
-      subbieResourceRef = rs.getInt("subbie_resource_ref"),
-      `type` = rs.getString("type"),
-      utr = optString(rs, "utr"),
-      pageVisited = optInt(rs, "page_visited"),
-      partnerUtr = optString(rs, "partner_utr"),
-      crn = optString(rs, "crn"),
-      firstName = optString(rs, "firstname"),
-      nino = optString(rs, "nino"),
-      secondName = optString(rs, "secondname"),
-      surname = optString(rs, "surname"),
-      partnershipTradingName = optString(rs, "partnership_tradingname"),
-      tradingName = optString(rs, "tradingname"),
-      addressLine1 = optString(rs, "address_line_1"),
-      addressLine2 = optString(rs, "address_line_2"),
-      addressLine3 = optString(rs, "address_line_3"),
-      addressLine4 = optString(rs, "address_line_4"),
-      country = optString(rs, "country"),
-      postcode = optString(rs, "postcode"),
-      emailAddress = optString(rs, "email_address"),
-      phoneNumber = optString(rs, "phone_number"),
-      mobilePhoneNumber = optString(rs, "mobile_phone_number"),
-      worksReferenceNumber = optString(rs, "works_reference_number"),
-      version = optInt(rs, "version"),
-      taxTreatment = optString(rs, "tax_treatment"),
-      updatedTaxTreatment = optString(rs, "updated_tax_treatment"),
-      verificationNumber = optString(rs, "verification_number"),
-      createDate = optLdt(rs, "create_date"),
-      lastUpdate = optLdt(rs, "last_update"),
-      matched = optString(rs, "matched"),
-      verified = optString(rs, "verified"),
-      autoVerified = optString(rs, "auto_verified"),
-      verificationDate = optLdt(rs, "verification_date"),
-      lastMonthlyReturnDate = optLdt(rs, "last_monthly_return_date"),
-      pendingVerifications = optInt(rs, "pending_verifications")
-    )
-
-  private def collectSubcontractors(rs: ResultSet): Seq[Subcontractor] =
+  private def collectSubcontractorsResponse(rs: ResultSet): Seq[Subcontractor] =
     if (rs == null) Seq.empty
     else {
       val b = Vector.newBuilder[Subcontractor]
-      while (rs.next()) b += readSubcontractorRow(rs)
+      while (rs.next()) b += readSubcontractor(rs)
       b.result()
     }
-    if (rs != null && rs.next()) readContractorScheme(rs)
-    else throw new RuntimeException(s"No SCHEME row for instance_id=$instanceId")
 
 }

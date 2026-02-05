@@ -18,50 +18,7 @@ package uk.gov.hmrc.formpproxy.cis.models.response
 
 import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.formpproxy.cis.models
-
-import java.time.LocalDateTime
-
-case class Subcontractor(
-  subcontractorId: Long,
-  subbieResourceRef: Int,
-  `type`: String,
-  utr: Option[String],
-  pageVisited: Option[Int],
-  partnerUtr: Option[String],
-  crn: Option[String],
-  firstName: Option[String],
-  nino: Option[String],
-  secondName: Option[String],
-  surname: Option[String],
-  partnershipTradingName: Option[String],
-  tradingName: Option[String],
-  addressLine1: Option[String],
-  addressLine2: Option[String],
-  addressLine3: Option[String],
-  addressLine4: Option[String],
-  country: Option[String],
-  postcode: Option[String],
-  emailAddress: Option[String],
-  phoneNumber: Option[String],
-  mobilePhoneNumber: Option[String],
-  worksReferenceNumber: Option[String],
-  version: Option[Int],
-  taxTreatment: Option[String],
-  updatedTaxTreatment: Option[String],
-  verificationNumber: Option[String],
-  createDate: Option[LocalDateTime],
-  lastUpdate: Option[LocalDateTime],
-  matched: Option[String],
-  verified: Option[String],
-  autoVerified: Option[String],
-  verificationDate: Option[LocalDateTime],
-  lastMonthlyReturnDate: Option[LocalDateTime],
-  pendingVerifications: Option[Int]
-)
-
-object Subcontractor {
-  given Format[Subcontractor] = Json.format[Subcontractor]
-}
+import uk.gov.hmrc.formpproxy.cis.models.Subcontractor
 
 final case class GetSubcontractorListResponse(subcontractors: List[Subcontractor])
 
