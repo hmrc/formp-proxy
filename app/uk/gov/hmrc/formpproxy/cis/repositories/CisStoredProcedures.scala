@@ -34,4 +34,6 @@ object CisStoredProcedures {
   val CallCreateSubmission              = "{ call SUBMISSION_PROCS.Create_Submission(?, ?, ?, ?, ?, ?, ?, ?, ?) }"
   val CallUpdateMonthlyReturnSubmission =
     "{ call SUBMISSION_PROCS_2016.UPDATE_MR_SUBMISSION(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+  val CallGetGovTalkStatus              =
+    "{ call SUBMISSION_ADMIN.SelectGovTalkStatus(?, ?, ?) }"
 }

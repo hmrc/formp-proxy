@@ -14,15 +14,25 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.cis.models.response
+package uk.gov.hmrc.formpproxy.cis.models
 
-import uk.gov.hmrc.formpproxy.cis.models.GovtTalkStatusRecord
 import play.api.libs.json.{Json, OFormat}
+import java.time.LocalDateTime
 
-final case class GetGovTalkStatusResponse(
-  govtallk_status: Seq[GovtTalkStatusRecord]
+final case class GovtTalkStatusRecord(
+  userIdentifier: String,
+  formResultID: String,
+  correlationID: String,
+  formLock: String,
+  createDate: Option[LocalDateTime],
+  endStateDate: Option[LocalDateTime],
+  lastMessageDate: LocalDateTime,
+  numPolls: Int,
+  pollInterval: Int,
+  protocolStatus: String,
+  gatewayURL: String
 )
 
-object GetGovTalkStatusResponse {
-  implicit val format: OFormat[GetGovTalkStatusResponse] = Json.format[GetGovTalkStatusResponse]
+object GovtTalkStatusRecord {
+  implicit val format: OFormat[GovtTalkStatusRecord] = Json.format[GovtTalkStatusRecord]
 }

@@ -17,7 +17,7 @@
 package uk.gov.hmrc.formpproxy.cis.services
 
 import uk.gov.hmrc.formpproxy.cis.models.requests.GetGovTalkStatusRequest
-import uk.gov.hmrc.formpproxy.cis.models.response.GovtTalkStatusResponse
+import uk.gov.hmrc.formpproxy.cis.models.response.GetGovTalkStatusResponse
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
 import javax.inject.{Inject, Singleton}
@@ -26,6 +26,6 @@ import scala.concurrent.Future
 @Singleton
 class GovTalkService @Inject() (repo: CisMonthlyReturnSource) {
 
-  def getGovTalkStatus(req: GetGovTalkStatusRequest): Future[GovtTalkStatusResponse] =
+  def getGovTalkStatus(req: GetGovTalkStatusRequest): Future[GetGovTalkStatusResponse] =
     repo.getGovTalkStatus(req)
 }

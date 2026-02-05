@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.formpproxy.cis.repositories
 
-import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, MonthlyReturnItem, Subcontractor, Submission}
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, GovtTalkStatusRecord, MonthlyReturn, MonthlyReturnItem, Subcontractor, Submission}
 import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
 
 import java.sql.ResultSet
@@ -40,6 +40,9 @@ object CisRowMappers {
 
   def collectSubcontractors(rs: ResultSet): Seq[Subcontractor] =
     collectSubcontractors(rs, Nil)
+
+  def collectGovtTalkStatusRecords(rs: ResultSet): Seq[GovtTalkStatusRecord] =
+    collectGovtTalkStatusRecords(rs, Nil)
 
 // private tail-recursive implementations
 
@@ -67,6 +70,11 @@ object CisRowMappers {
   private def collectSubcontractors(rs: ResultSet, acc: Seq[Subcontractor]): Seq[Subcontractor] =
     if (rs == null || !rs.next()) acc
     else collectSubcontractors(rs, acc :+ readSubcontractor(rs))
+
+  @tailrec
+  private def collectGovtTalkStatusRecords(rs: ResultSet, acc: Seq[GovtTalkStatusRecord]): Seq[GovtTalkStatusRecord] =
+    if (rs == null || !rs.next()) acc
+    else collectGovtTalkStatusRecords(rs, acc :+ readGovtTalkStatusRecord(rs))
 
 // Row readers
 
@@ -178,5 +186,20 @@ object CisRowMappers {
       verificationDate = rs.getOptionalLocalDateTime("verification_date"),
       lastMonthlyReturnDate = rs.getOptionalLocalDateTime("last_monthly_return_date"),
       pendingVerifications = rs.getOptionalInt("pending_verifications")
+    )
+
+  def readGovtTalkStatusRecord(rs: ResultSet): GovtTalkStatusRecord =
+    GovtTalkStatusRecord(
+      userIdentifier = rs.getString("user_identifier"),
+      formResultID = rs.getString("formResultId"),
+      correlationID = rs.getString("correlationid"),
+      formLock = rs.getString("form_lock"),
+      createDate = rs.getOptionalLocalDateTime("create_timestamp"),
+      endStateDate = rs.getOptionalLocalDateTime("endstate_timestamp"),
+      lastMessageDate = rs.getTimestamp("last_mesg_timestamp").toLocalDateTime,
+      numPolls = rs.getInt("num_polls"),
+      pollInterval = rs.getInt("poll_interval"),
+      protocolStatus = rs.getString("protocol_status"),
+      gatewayURL = rs.getString("gatewayurl")
     )
 }
