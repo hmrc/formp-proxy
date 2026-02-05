@@ -53,6 +53,11 @@ POST       /filing/create/company-details                           uk.gov.hmrc.
 POST       /filing/update/company-details                           uk.gov.hmrc.formpproxy.sdlt.controllers.returns.PurchaserReturnsController.updateCompanyDetails()
 POST       /filing/delete/company-details                           uk.gov.hmrc.formpproxy.sdlt.controllers.returns.PurchaserReturnsController.deleteCompanyDetails()
 
+POST       /filing/create/land                                      uk.gov.hmrc.formpproxy.sdlt.controllers.returns.LandReturnsController.createLand()
+POST       /filing/update/land                                      uk.gov.hmrc.formpproxy.sdlt.controllers.returns.LandReturnsController.updateLand()
+POST       /filing/delete/land                                      uk.gov.hmrc.formpproxy.sdlt.controllers.returns.LandReturnsController.deleteLand()
+
+POST       /filing/update/return-info                               uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.updateReturnInfo()
 
 # CHARITIES routes
 
