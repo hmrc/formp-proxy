@@ -103,7 +103,7 @@ trait ApplicationWithWiremock
 
   protected def getAwait(path: String): HttpResponse =
     getResponse(path).futureValue
-}
+
   protected def postJson(uri: String, body: JsValue): HttpResponse =
     post(uri, body).futureValue
 }
