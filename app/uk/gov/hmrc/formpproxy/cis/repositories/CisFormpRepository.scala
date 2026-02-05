@@ -611,13 +611,13 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
 
   private def callCreateMonthlyReturnItem(
-                                           connection: Connection,
-                                           instanceId: String,
-                                           taxYear: Int,
-                                           taxMonth: Int,
-                                           amendment: String,
-                                           resourceReference: Long
-                                         ): Unit =
+    connection: Connection,
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int,
+    amendment: String,
+    resourceReference: Long
+  ): Unit =
     withCall(connection, CallCreateMonthlyReturnItem) { cs =>
       cs.setString(1, instanceId)
       cs.setInt(2, taxYear)
@@ -628,13 +628,13 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
 
   private def callDeleteMonthlyReturnItem(
-                                           connection: Connection,
-                                           instanceId: String,
-                                           taxYear: Int,
-                                           taxMonth: Int,
-                                           amendment: String,
-                                           resourceReference: Long
-                                         ): Unit =
+    connection: Connection,
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int,
+    amendment: String,
+    resourceReference: Long
+  ): Unit =
     withCall(connection, CallDeleteMonthlyReturnItem) { cs =>
       cs.setString(1, instanceId)
       cs.setInt(2, taxYear)
@@ -645,11 +645,11 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
 
   private def getMonthlyReturnForEditInTransaction(
-                                                    connection: Connection,
-                                                    instanceId: String,
-                                                    taxYear: Int,
-                                                    taxMonth: Int
-                                                  ): GetMonthlyReturnForEditResponse =
+    connection: Connection,
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int
+  ): GetMonthlyReturnForEditResponse =
     withCall(connection, CallGetMonthlyReturnForEdit) { cs =>
       cs.setString(1, instanceId)
       cs.setInt(2, taxYear)
@@ -662,11 +662,11 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.registerOutParameter(9, OracleTypes.CURSOR)
       cs.execute()
 
-      val scheme = withCursor(cs, 5)(collectSchemes)
-      val monthlyReturn = withCursor(cs, 6)(collectMonthlyReturns)
+      val scheme             = withCursor(cs, 5)(collectSchemes)
+      val monthlyReturn      = withCursor(cs, 6)(collectMonthlyReturns)
       val monthlyReturnItems = withCursor(cs, 7)(collectMonthlyReturnItems)
-      val subcontractors = withCursor(cs, 8)(collectSubcontractors)
-      val submission = withCursor(cs, 9)(collectSubmissions)
+      val subcontractors     = withCursor(cs, 8)(collectSubcontractors)
+      val submission         = withCursor(cs, 9)(collectSubmissions)
 
       GetMonthlyReturnForEditResponse(
         scheme = scheme,
