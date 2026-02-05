@@ -1425,4 +1425,130 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
   }
 
+  "getSubcontractorList" - {
+
+    "calls SUBCONTRACTOR_PROCS.Get_Subcontractor_List, parses subcontractors and closes resources" in {
+      val db       = mock[Database]
+      val conn     = mock[Connection]
+      val cs       = mock[CallableStatement]
+      val rsScheme = mock[ResultSet]
+      val rsSubs   = mock[ResultSet]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      val call = "{ call SUBCONTRACTOR_PROCS.Get_Subcontractor_List(?, ?, ?) }"
+      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+      when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsSubs)
+
+      when(rsSubs.next()).thenReturn(true, false)
+
+      when(rsSubs.getLong("subcontractor_id")).thenReturn(1L)
+      when(rsSubs.getInt("subbie_resource_ref")).thenReturn(10)
+      when(rsSubs.getString("type")).thenReturn("soletrader")
+
+      when(rsSubs.getString("utr")).thenReturn("1234567890")
+      when(rsSubs.getInt("page_visited")).thenReturn(2)
+      when(rsSubs.wasNull()).thenReturn(false)
+      when(rsSubs.getString("partner_utr")).thenReturn(null)
+      when(rsSubs.getString("crn")).thenReturn(null)
+      when(rsSubs.getString("firstname")).thenReturn("John")
+      when(rsSubs.getString("nino")).thenReturn("AA123456A")
+      when(rsSubs.getString("secondname")).thenReturn(null)
+      when(rsSubs.getString("surname")).thenReturn("Smith")
+      when(rsSubs.getString("partnership_tradingname")).thenReturn(null)
+      when(rsSubs.getString("tradingname")).thenReturn("ACME")
+
+      when(rsSubs.getString("address_line_1")).thenReturn("1 Main Street")
+      when(rsSubs.getString("address_line_2")).thenReturn(null)
+      when(rsSubs.getString("address_line_3")).thenReturn(null)
+      when(rsSubs.getString("address_line_4")).thenReturn(null)
+      when(rsSubs.getString("country")).thenReturn("GB")
+      when(rsSubs.getString("postcode")).thenReturn("AA1 1AA")
+      when(rsSubs.getString("email_address")).thenReturn(null)
+      when(rsSubs.getString("phone_number")).thenReturn(null)
+      when(rsSubs.getString("mobile_phone_number")).thenReturn(null)
+      when(rsSubs.getString("works_reference_number")).thenReturn(null)
+
+      when(rsSubs.getInt("version")).thenReturn(1)
+      when(rsSubs.wasNull()).thenReturn(false)
+      when(rsSubs.getString("tax_treatment")).thenReturn(null)
+      when(rsSubs.getString("updated_tax_treatment")).thenReturn(null)
+      when(rsSubs.getString("verification_number")).thenReturn(null)
+
+      when(rsSubs.getTimestamp("create_date")).thenReturn(Timestamp.valueOf("2026-01-10 09:00:00"))
+      when(rsSubs.getTimestamp("last_update")).thenReturn(Timestamp.valueOf("2026-01-11 10:00:00"))
+      when(rsSubs.getString("matched")).thenReturn(null)
+      when(rsSubs.getString("verified")).thenReturn(null)
+      when(rsSubs.getString("auto_verified")).thenReturn(null)
+      when(rsSubs.getTimestamp("verification_date")).thenReturn(null)
+      when(rsSubs.getTimestamp("last_monthly_return_date")).thenReturn(null)
+
+      when(rsSubs.getInt("pending_verifications")).thenReturn(0)
+      when(rsSubs.wasNull()).thenReturn(false)
+
+      val repo = new CisFormpRepository(db)
+
+      val out = repo.getSubcontractorList("cis-123").futureValue
+
+      out.subcontractors must have size 1
+      val s = out.subcontractors.head
+      println(out.subcontractors.head)
+      s.subcontractorId mustBe 1L
+      s.subcontractorType mustBe Some("soletrader")
+      s.utr mustBe Some("1234567890")
+      s.pageVisited mustBe Some(2)
+      s.firstName mustBe Some("John")
+      s.nino mustBe Some("AA123456A")
+      s.surname mustBe Some("Smith")
+      s.tradingName mustBe Some("ACME")
+      s.addressLine1 mustBe Some("1 Main Street")
+      s.country mustBe Some("GB")
+      s.postCode mustBe Some("AA1 1AA")
+      s.version mustBe Some(1)
+      s.createDate mustBe Some(LocalDateTime.of(2026, 1, 10, 9, 0, 0))
+      s.lastUpdate mustBe Some(LocalDateTime.of(2026, 1, 11, 10, 0, 0))
+      s.pendingVerifications mustBe Some(0)
+
+      verify(conn).prepareCall(eqTo(call))
+      verify(cs).setString(1, "cis-123")
+      verify(cs).registerOutParameter(2, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(3, OracleTypes.CURSOR)
+      verify(cs).execute()
+
+      verify(rsScheme).close()
+      verify(rsSubs).close()
+      verify(cs).close()
+    }
+
+    "returns empty list when subcontractor cursor is null" in {
+      val db       = mock[Database]
+      val conn     = mock[Connection]
+      val cs       = mock[CallableStatement]
+      val rsScheme = mock[ResultSet]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      val call = "{ call SUBCONTRACTOR_PROCS.Get_Subcontractor_List(?, ?, ?) }"
+      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+      when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(null)
+
+      val repo = new CisFormpRepository(db)
+
+      val out = repo.getSubcontractorList("cis-123").futureValue
+      out.subcontractors mustBe empty
+
+      verify(cs).execute()
+      verify(rsScheme).close()
+      verify(cs).close()
+    }
+  }
+
 }

@@ -36,7 +36,8 @@ import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
-import uk.gov.hmrc.formpproxy.sdlt.models._
+import uk.gov.hmrc.formpproxy.sdlt.models.*
+import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.UpdateReturnRequest
 import uk.gov.hmrc.formpproxy.sdlt.services.ReturnService
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -144,6 +145,26 @@ class ReturnsController @Inject() (
               }
               .recover { case t =>
                 logger.error("[updateReturnVersion] failed", t)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
+              }
+        )
+    }
+
+  def updateReturnInfo(): Action[JsValue] =
+    authorise.async(parse.json) { implicit request =>
+      request.body
+        .validate[UpdateReturnRequest]
+        .fold(
+          errs =>
+            Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
+          body =>
+            service
+              .updateReturn(body)
+              .map { UpdateReturnReturn =>
+                Ok(Json.toJson(UpdateReturnReturn))
+              }
+              .recover { case t =>
+                logger.error("[updateReturnInfo] failed", t)
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )

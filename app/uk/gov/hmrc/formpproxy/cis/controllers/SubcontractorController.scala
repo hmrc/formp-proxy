@@ -18,13 +18,14 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 
 import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
-import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import play.api.mvc.{Action, ControllerComponents}
+import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
 import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateSubcontractorRequest, UpdateSubcontractorRequest}
+import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 import uk.gov.hmrc.formpproxy.cis.utils.JsResultUtils.foldErrorsIntoBadRequest
 import uk.gov.hmrc.http.UpstreamErrorResponse
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -52,7 +53,6 @@ class SubcontractorController @Inject() (
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
             }
         }
-
     }
 
   def updateSubcontractor(): Action[JsValue] =
@@ -71,5 +71,16 @@ class SubcontractorController @Inject() (
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )
+    }
+
+  def getSubcontractorList(cisId: String): Action[AnyContent] =
+    authorise.async { implicit request =>
+      service
+        .getSubcontractorList(GetSubcontractorList(cisId))
+        .map(res => Ok(Json.toJson(res)))
+        .recover { case t =>
+          logger.error(s"[getSubcontractorList] failed (cisId=$cisId)", t)
+          InternalServerError(Json.obj("message" -> "Unexpected error"))
+        }
     }
 }
