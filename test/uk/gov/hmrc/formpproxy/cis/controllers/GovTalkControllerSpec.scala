@@ -92,7 +92,7 @@ class GovTalkControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req: FakeRequest[JsValue] = makeJsonRequest(Json.obj("userIdentifier" -> "1", "formResultID" -> "12890"))
-      val res: Future[Result] = controller.getGovTalkStatus(req)
+      val res: Future[Result]       = controller.getGovTalkStatus(req)
 
       status(res) mustBe INTERNAL_SERVER_ERROR
       (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"

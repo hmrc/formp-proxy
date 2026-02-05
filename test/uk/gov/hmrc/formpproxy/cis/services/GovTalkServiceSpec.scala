@@ -32,7 +32,7 @@ final class GovTalkServiceSpec extends SpecBase {
 
   case class Ctx() {
     val repo: CisMonthlyReturnSource = mock[CisMonthlyReturnSource]
-    val service = new GovTalkService(repo)
+    val service                      = new GovTalkService(repo)
   }
 
   private def mkRecord(protocol: String, numPolls: Int, pollInterval: Int): GovTalkStatusRecord =
