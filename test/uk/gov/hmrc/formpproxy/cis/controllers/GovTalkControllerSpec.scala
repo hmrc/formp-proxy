@@ -113,8 +113,8 @@ class GovTalkControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
         .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
         .withBody(body)
 
-    private def mkRecord(protocol: String, numPolls: Int, pollInterval: Int): GovtTalkStatusRecord =
-      GovtTalkStatusRecord(
+    private def mkRecord(protocol: String, numPolls: Int, pollInterval: Int): GovTalkStatusRecord =
+      GovTalkStatusRecord(
         userIdentifier = "1",
         formResultID = "12890",
         correlationID = "C742D5DEE7EB4D15B4F7EFD50B890525",

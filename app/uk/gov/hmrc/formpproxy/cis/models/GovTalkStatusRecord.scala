@@ -19,7 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.models
 import play.api.libs.json.{Json, OFormat}
 import java.time.LocalDateTime
 
-final case class GovtTalkStatusRecord(
+final case class GovTalkStatusRecord(
   userIdentifier: String,
   formResultID: String,
   correlationID: String,
@@ -33,6 +33,6 @@ final case class GovtTalkStatusRecord(
   gatewayURL: String
 )
 
-object GovtTalkStatusRecord {
-  implicit val format: OFormat[GovtTalkStatusRecord] = Json.format[GovtTalkStatusRecord]
+object GovTalkStatusRecord {
+  implicit val format: OFormat[GovTalkStatusRecord] = Json.format[GovTalkStatusRecord]
 }

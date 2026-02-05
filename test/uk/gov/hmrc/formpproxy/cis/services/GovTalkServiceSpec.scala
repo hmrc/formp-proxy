@@ -20,7 +20,7 @@ import org.mockito.ArgumentMatchers.eq as eqTo
 import org.mockito.Mockito.*
 import org.scalatest.freespec.AnyFreeSpec
 import uk.gov.hmrc.formpproxy.base.SpecBase
-import uk.gov.hmrc.formpproxy.cis.models.GovtTalkStatusRecord
+import uk.gov.hmrc.formpproxy.cis.models.GovTalkStatusRecord
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
@@ -35,8 +35,8 @@ final class GovTalkServiceSpec extends SpecBase {
     val service = new GovTalkService(repo)
   }
 
-  private def mkRecord(protocol: String, numPolls: Int, pollInterval: Int): GovtTalkStatusRecord =
-    GovtTalkStatusRecord(
+  private def mkRecord(protocol: String, numPolls: Int, pollInterval: Int): GovTalkStatusRecord =
+    GovTalkStatusRecord(
       userIdentifier = "1",
       formResultID = "12890",
       correlationID = "C742D5DEE7EB4D15B4F7EFD50B890525",

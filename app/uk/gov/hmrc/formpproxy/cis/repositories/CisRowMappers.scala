@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.formpproxy.cis.repositories
 
-import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, GovtTalkStatusRecord, MonthlyReturn, MonthlyReturnItem, Subcontractor, Submission}
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, GovTalkStatusRecord, MonthlyReturn, MonthlyReturnItem, Subcontractor, Submission}
 import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
 
 import java.sql.ResultSet
@@ -42,7 +42,7 @@ object CisRowMappers {
   def collectSubcontractors(rs: ResultSet): Seq[Subcontractor] =
     collectSubcontractors(rs, Nil)
 
-  def collectGovtTalkStatusRecords(rs: ResultSet): Seq[GovtTalkStatusRecord] =
+  def collectGovtTalkStatusRecords(rs: ResultSet): Seq[GovTalkStatusRecord] =
     collectGovtTalkStatusRecords(rs, Nil)
 
 // private tail-recursive implementations
@@ -73,7 +73,7 @@ object CisRowMappers {
     else collectSubcontractors(rs, acc :+ readSubcontractor(rs))
 
   @tailrec
-  private def collectGovtTalkStatusRecords(rs: ResultSet, acc: Seq[GovtTalkStatusRecord]): Seq[GovtTalkStatusRecord] =
+  private def collectGovtTalkStatusRecords(rs: ResultSet, acc: Seq[GovTalkStatusRecord]): Seq[GovTalkStatusRecord] =
     if (rs == null || !rs.next()) acc
     else collectGovtTalkStatusRecords(rs, acc :+ readGovtTalkStatusRecord(rs))
 
@@ -189,8 +189,8 @@ object CisRowMappers {
       pendingVerifications = rs.getOptionalInt("pending_verifications")
     )
 
-  def readGovtTalkStatusRecord(rs: ResultSet): GovtTalkStatusRecord =
-    GovtTalkStatusRecord(
+  def readGovtTalkStatusRecord(rs: ResultSet): GovTalkStatusRecord =
+    GovTalkStatusRecord(
       userIdentifier = rs.getString("user_identifier"),
       formResultID = rs.getString("formResultId"),
       correlationID = rs.getString("correlationid"),
