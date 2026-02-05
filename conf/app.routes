@@ -15,6 +15,8 @@ POST       /scheme/prepopulate                                      uk.gov.hmrc.
 
 POST       /cis/subcontractor/create                                uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.createSubcontractor()
 POST       /cis/subcontractor/update                                uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.updateSubcontractor()
+GET        /cis/subcontractors/:cisId                               uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.getSubcontractorList(cisId: String)
+
 
 POST       /submissions/create                                      uk.gov.hmrc.formpproxy.cis.controllers.SubmissionController.createSubmission()
 POST       /submissions/update                                      uk.gov.hmrc.formpproxy.cis.controllers.SubmissionController.updateSubmission()

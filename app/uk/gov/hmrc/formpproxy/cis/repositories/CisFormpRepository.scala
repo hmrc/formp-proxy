@@ -19,9 +19,9 @@ package uk.gov.hmrc.formpproxy.cis.repositories
 import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, GetGovTalkStatusRequest, UpdateSubcontractorRequest, UpdateSubmissionRequest}
-import uk.gov.hmrc.formpproxy.cis.models.response.{CreateNilMonthlyReturnResponse, GetGovTalkStatusResponse, GetMonthlyReturnForEditResponse}
-import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, SubcontractorType, UnsubmittedMonthlyReturns, UpdateContractorSchemeParams, UserMonthlyReturns}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateMonthlyReturnRequest,  GetGovTalkStatusRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubcontractorRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.cis.models.response.{CreateNilMonthlyReturnResponse, GetGovTalkStatusResponse, GetMonthlyReturnForEditResponse, GetSubcontractorListResponse}
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, Subcontractor, SubcontractorType, UnsubmittedMonthlyReturns, UpdateContractorSchemeParams, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
 import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.*
@@ -48,6 +48,7 @@ trait CisMonthlyReturnSource {
   def createSubcontractor(schemeId: Int, subcontractorType: SubcontractorType, version: Int): Future[Int]
   def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int]
   def updateSubcontractor(result: UpdateSubcontractorRequest): Future[Unit]
+  def getSubcontractorList(cisId: String): Future[GetSubcontractorListResponse]
   def getMonthlyReturnForEdit(instanceId: String, taxYear: Int, taxMonth: Int): Future[GetMonthlyReturnForEditResponse]
   def getGovTalkStatus(req: GetGovTalkStatusRequest): Future[GetGovTalkStatusResponse]
 }
@@ -168,7 +169,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
-// Scheme
+  // Scheme
 
   override def getScheme(instanceId: String): Future[Option[ContractorScheme]] =
     Future {
@@ -215,7 +216,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
 
-// Subcontractor
+  // Subcontractor
 
   override def createSubcontractor(schemeId: Int, subcontractorType: SubcontractorType, version: Int): Future[Int] =
     Future {
@@ -273,7 +274,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
 
-// Submission
+  // Submission
 
   override def createSubmission(request: CreateSubmissionRequest): Future[String] =
     Future {
@@ -324,7 +325,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
 
-// Nil monthly return
+  // Nil monthly return
 
   override def createNilMonthlyReturn(
     request: CreateNilMonthlyReturnRequest
@@ -345,7 +346,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
-// Prepopulation
+  // Prepopulation
 
   override def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int] =
     Future {
@@ -410,9 +411,8 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
   }
-  // Future.successful(GovtTalkStatusResponse(govtallk_status = Seq.empty))
 
-// private helpers
+  // private helpers
   private def callCreateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit =
     withCall(conn, CallCreateMonthlyReturn) { cs =>
       cs.setString(1, req.instanceId)
@@ -601,5 +601,37 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   private def readSingleSchemeRow(rs: ResultSet, instanceId: String): ContractorScheme =
     if (rs != null && rs.next()) readContractorScheme(rs)
     else throw new RuntimeException(s"No SCHEME row for instance_id=$instanceId")
+
+  override def getSubcontractorList(cisId: String): Future[GetSubcontractorListResponse] = Future {
+    logger.info(s"[CIS] getSubcontractorList(cisId=$cisId)")
+
+    db.withConnection { conn =>
+      Using.resource(conn.prepareCall(CallGetSubcontractorList)) { cs =>
+        cs.setString(1, cisId)
+        cs.registerOutParameter(2, OracleTypes.CURSOR)
+        cs.registerOutParameter(3, OracleTypes.CURSOR)
+        cs.execute()
+
+        val rsScheme = cs.getObject(2, classOf[ResultSet])
+        try ()
+        finally if (rsScheme != null) rsScheme.close()
+
+        val rsSubs = cs.getObject(3, classOf[ResultSet])
+        val subs   =
+          try collectSubcontractorsResponse(rsSubs)
+          finally if (rsSubs != null) rsSubs.close()
+
+        GetSubcontractorListResponse(subcontractors = subs.toList)
+      }
+    }
+  }
+
+  private def collectSubcontractorsResponse(rs: ResultSet): Seq[Subcontractor] =
+    if (rs == null) Seq.empty
+    else {
+      val b = Vector.newBuilder[Subcontractor]
+      while (rs.next()) b += readSubcontractor(rs)
+      b.result()
+    }
 
 }

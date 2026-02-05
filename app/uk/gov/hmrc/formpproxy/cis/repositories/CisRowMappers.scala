@@ -21,6 +21,7 @@ import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
 
 import java.sql.ResultSet
 import scala.annotation.tailrec
+import java.time.LocalDateTime
 
 object CisRowMappers {
 

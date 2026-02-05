@@ -28,6 +28,9 @@ import uk.gov.hmrc.formpproxy.cis.models.{Company, Partnership, SoleTrader, Trus
 import uk.gov.hmrc.formpproxy.cis.models.requests.UpdateSubcontractorRequest
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 import uk.gov.hmrc.http.UpstreamErrorResponse
+import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
+import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorListResponse
+import uk.gov.hmrc.formpproxy.cis.models.Subcontractor
 
 import java.time.LocalDateTime
 import scala.concurrent.Future
@@ -278,4 +281,90 @@ class SubcontractorControllerSpec extends SpecBase {
       contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
     }
   }
+
+  "GET /cis/subcontractors/:cisId (getSubcontractorList)" - {
+
+    "returns 200 OK with subcontractor list on success" in {
+      val s = setup;
+      import s.*
+
+      val cisId = "cis-123"
+
+      val response = GetSubcontractorListResponse(
+        subcontractors = List(
+          Subcontractor(
+            subcontractorId = 1L,
+            subbieResourceRef = Some(10),
+            subcontractorType = Some("soletrader"),
+            utr = Some("1234567890"),
+            pageVisited = Some(2),
+            partnerUtr = None,
+            crn = None,
+            firstName = Some("John"),
+            nino = Some("AA123456A"),
+            secondName = None,
+            surname = Some("Smith"),
+            partnershipTradingName = None,
+            tradingName = Some("ACME"),
+            addressLine1 = Some("1 Main Street"),
+            addressLine2 = None,
+            addressLine3 = None,
+            addressLine4 = None,
+            country = Some("GB"),
+            postCode = Some("AA1 1AA"),
+            emailAddress = None,
+            phoneNumber = None,
+            mobilePhoneNumber = None,
+            worksReferenceNumber = None,
+            version = Some(1),
+            taxTreatment = None,
+            updatedTaxTreatment = None,
+            verificationNumber = None,
+            createDate = None,
+            lastUpdate = None,
+            matched = None,
+            verified = None,
+            autoVerified = None,
+            verificationDate = None,
+            lastMonthlyReturnDate = None,
+            pendingVerifications = Some(0)
+          )
+        )
+      )
+
+      when(mockService.getSubcontractorList(eqTo(GetSubcontractorList(cisId))))
+        .thenReturn(Future.successful(response))
+
+      val req    = FakeRequest(GET, s"/cis/subcontractors/$cisId")
+      val result = controller.getSubcontractorList(cisId).apply(req)
+
+      status(result) mustBe OK
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.toJson(response)
+
+      verify(mockService).getSubcontractorList(eqTo(GetSubcontractorList(cisId)))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 500 when service fails" in {
+      val s = setup;
+      import s.*
+
+      val cisId = "cis-123"
+
+      when(mockService.getSubcontractorList(eqTo(GetSubcontractorList(cisId))))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val req    = FakeRequest(GET, s"/cis/subcontractors/$cisId")
+      val result = controller.getSubcontractorList(cisId).apply(req)
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
+
+      verify(mockService).getSubcontractorList(eqTo(GetSubcontractorList(cisId)))
+      verifyNoMoreInteractions(mockService)
+    }
+  }
+
 }
