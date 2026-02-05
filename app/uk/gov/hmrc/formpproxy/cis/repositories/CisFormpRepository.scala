@@ -19,13 +19,14 @@ package uk.gov.hmrc.formpproxy.cis.repositories
 import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubcontractorRequest, UpdateSubmissionRequest}
-import uk.gov.hmrc.formpproxy.cis.models.response.{CreateNilMonthlyReturnResponse, GetMonthlyReturnForEditResponse}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, GetGovTalkStatusRequest, UpdateSubcontractorRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.cis.models.response.{CreateNilMonthlyReturnResponse, GetMonthlyReturnForEditResponse, GovtTalkStatusResponse}
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, MonthlyReturn, SubcontractorType, UnsubmittedMonthlyReturns, UpdateContractorSchemeParams, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
 import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.*
 import uk.gov.hmrc.formpproxy.cis.repositories.CisRowMappers.*
+
 import java.sql.{CallableStatement, Connection, ResultSet, Timestamp, Types}
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
@@ -48,6 +49,7 @@ trait CisMonthlyReturnSource {
   def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int]
   def updateSubcontractor(result: UpdateSubcontractorRequest): Future[Unit]
   def getMonthlyReturnForEdit(instanceId: String, taxYear: Int, taxMonth: Int): Future[GetMonthlyReturnForEditResponse]
+  def getGovTalkStatus(req: GetGovTalkStatusRequest): Future[GovtTalkStatusResponse]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -388,6 +390,11 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         newVersion
       }
     }
+
+  // govTalkStatus
+
+  def getGovTalkStatus(req: GetGovTalkStatusRequest): Future[GovtTalkStatusResponse] =
+    Future.successful(GovtTalkStatusResponse(govtallk_status = Seq.empty))
 
 // private helpers
   private def callCreateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit =
