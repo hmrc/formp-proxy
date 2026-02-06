@@ -341,6 +341,306 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).execute()
     }
 
+    "handle null BigDecimal values in Transaction" in {
+      val db      = mock[Database]
+      val conn    = mock[Connection]
+      val cs      = mock[CallableStatement]
+      val rsTrans = mock[ResultSet]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      when(cs.getObject(eqTo(9), eqTo(classOf[ResultSet]))).thenReturn(rsTrans)
+      when(rsTrans.next()).thenReturn(true, false)
+
+      when(rsTrans.getString("TRANSACTION_ID")).thenReturn("1")
+      when(rsTrans.getString("TOTAL_CONSIDERATION")).thenReturn(null)
+      when(rsTrans.getString("RELIEF_AMOUNT")).thenReturn(null)
+
+      // Mock all other BigDecimal fields as null
+      when(rsTrans.getString("TOTAL_CONSIDERATION_LINKED")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_BUILD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_CASH")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_CONTINGENT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_DEBT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_EMPLOY")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_OTHER")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_LAND")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SERVICES")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_QTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_UNQTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_VAT")).thenReturn(null)
+      when(rsTrans.getString("TOTAL_CONSIDERATION_BUSINESS")).thenReturn(null)
+
+      (3 to 16).foreach { pos =>
+        if (pos != 9) {
+          when(cs.getObject(eqTo(pos), eqTo(classOf[ResultSet]))).thenReturn(null)
+        }
+      }
+
+      val repo = new SdltFormpRepository(db)
+
+      val result = repo.sdltGetReturn("100001", "STORN12345").futureValue
+
+      result.transaction must not be None
+      result.transaction.get.totalConsideration mustBe None
+      result.transaction.get.reliefAmount mustBe None
+    }
+
+    "handle empty string BigDecimal values in Transaction" in {
+      val db      = mock[Database]
+      val conn    = mock[Connection]
+      val cs      = mock[CallableStatement]
+      val rsTrans = mock[ResultSet]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      when(cs.getObject(eqTo(9), eqTo(classOf[ResultSet]))).thenReturn(rsTrans)
+      when(rsTrans.next()).thenReturn(true, false)
+
+      when(rsTrans.getString("TRANSACTION_ID")).thenReturn("1")
+      when(rsTrans.getString("TOTAL_CONSIDERATION")).thenReturn("")
+      when(rsTrans.getString("CONSIDERATION_CASH")).thenReturn("100000.00")
+
+      // Mock all other BigDecimal fields as null
+      when(rsTrans.getString("RELIEF_AMOUNT")).thenReturn(null)
+      when(rsTrans.getString("TOTAL_CONSIDERATION_LINKED")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_BUILD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_CONTINGENT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_DEBT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_EMPLOY")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_OTHER")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_LAND")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SERVICES")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_QTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_UNQTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_VAT")).thenReturn(null)
+      when(rsTrans.getString("TOTAL_CONSIDERATION_BUSINESS")).thenReturn(null)
+
+      (3 to 16).foreach { pos =>
+        if (pos != 9) {
+          when(cs.getObject(eqTo(pos), eqTo(classOf[ResultSet]))).thenReturn(null)
+        }
+      }
+
+      val repo = new SdltFormpRepository(db)
+
+      val result = repo.sdltGetReturn("100001", "STORN12345").futureValue
+
+      result.transaction must not be None
+      result.transaction.get.totalConsideration mustBe None
+      result.transaction.get.considerationCash mustBe Some(BigDecimal("100000.00"))
+    }
+
+    "handle whitespace-only BigDecimal values in Transaction" in {
+      val db      = mock[Database]
+      val conn    = mock[Connection]
+      val cs      = mock[CallableStatement]
+      val rsTrans = mock[ResultSet]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      when(cs.getObject(eqTo(9), eqTo(classOf[ResultSet]))).thenReturn(rsTrans)
+      when(rsTrans.next()).thenReturn(true, false)
+
+      when(rsTrans.getString("TRANSACTION_ID")).thenReturn("1")
+      when(rsTrans.getString("TOTAL_CONSIDERATION")).thenReturn("   ")
+      when(rsTrans.getString("CONSIDERATION_CASH")).thenReturn("\t\n")
+      when(rsTrans.getString("RELIEF_AMOUNT")).thenReturn("  \t  ")
+
+      // Mock all other BigDecimal fields as null
+      when(rsTrans.getString("TOTAL_CONSIDERATION_LINKED")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_BUILD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_CONTINGENT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_DEBT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_EMPLOY")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_OTHER")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_LAND")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SERVICES")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_QTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_UNQTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_VAT")).thenReturn(null)
+      when(rsTrans.getString("TOTAL_CONSIDERATION_BUSINESS")).thenReturn(null)
+
+      (3 to 16).foreach { pos =>
+        if (pos != 9) {
+          when(cs.getObject(eqTo(pos), eqTo(classOf[ResultSet]))).thenReturn(null)
+        }
+      }
+
+      val repo = new SdltFormpRepository(db)
+
+      val result = repo.sdltGetReturn("100001", "STORN12345").futureValue
+
+      result.transaction must not be None
+      result.transaction.get.totalConsideration mustBe None
+      result.transaction.get.considerationCash mustBe None
+      result.transaction.get.reliefAmount mustBe None
+    }
+
+    "handle invalid BigDecimal format in Transaction" in {
+      val db      = mock[Database]
+      val conn    = mock[Connection]
+      val cs      = mock[CallableStatement]
+      val rsTrans = mock[ResultSet]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      when(cs.getObject(eqTo(9), eqTo(classOf[ResultSet]))).thenReturn(rsTrans)
+      when(rsTrans.next()).thenReturn(true, false)
+
+      when(rsTrans.getString("TRANSACTION_ID")).thenReturn("1")
+      when(rsTrans.getString("TOTAL_CONSIDERATION")).thenReturn("not-a-number")
+      when(rsTrans.getString("CONSIDERATION_CASH")).thenReturn("£100,000.00")
+      when(rsTrans.getString("RELIEF_AMOUNT")).thenReturn("invalid123abc")
+
+      // Mock all other BigDecimal fields as null
+      when(rsTrans.getString("TOTAL_CONSIDERATION_LINKED")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_BUILD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_CONTINGENT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_DEBT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_EMPLOY")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_OTHER")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_LAND")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SERVICES")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_QTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_UNQTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_VAT")).thenReturn(null)
+      when(rsTrans.getString("TOTAL_CONSIDERATION_BUSINESS")).thenReturn(null)
+
+      (3 to 16).foreach { pos =>
+        if (pos != 9) {
+          when(cs.getObject(eqTo(pos), eqTo(classOf[ResultSet]))).thenReturn(null)
+        }
+      }
+
+      val repo = new SdltFormpRepository(db)
+
+      val result = repo.sdltGetReturn("100001", "STORN12345").futureValue
+
+      result.transaction must not be None
+      result.transaction.get.totalConsideration mustBe None
+      result.transaction.get.considerationCash mustBe None
+      result.transaction.get.reliefAmount mustBe None
+    }
+
+    "handle BigDecimal values with leading/trailing whitespace in Transaction" in {
+      val db      = mock[Database]
+      val conn    = mock[Connection]
+      val cs      = mock[CallableStatement]
+      val rsTrans = mock[ResultSet]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      when(cs.getObject(eqTo(9), eqTo(classOf[ResultSet]))).thenReturn(rsTrans)
+      when(rsTrans.next()).thenReturn(true, false)
+
+      when(rsTrans.getString("TRANSACTION_ID")).thenReturn("1")
+      when(rsTrans.getString("TOTAL_CONSIDERATION")).thenReturn("  250000.00  ")
+      when(rsTrans.getString("CONSIDERATION_CASH")).thenReturn("\t100000.50\n")
+      when(rsTrans.getString("RELIEF_AMOUNT")).thenReturn(" 5000 ")
+
+      // Mock all other BigDecimal fields as null
+      when(rsTrans.getString("TOTAL_CONSIDERATION_LINKED")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_BUILD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_CONTINGENT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_DEBT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_EMPLOY")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_OTHER")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_LAND")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SERVICES")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_QTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_UNQTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_VAT")).thenReturn(null)
+      when(rsTrans.getString("TOTAL_CONSIDERATION_BUSINESS")).thenReturn(null)
+
+      (3 to 16).foreach { pos =>
+        if (pos != 9) {
+          when(cs.getObject(eqTo(pos), eqTo(classOf[ResultSet]))).thenReturn(null)
+        }
+      }
+
+      val repo = new SdltFormpRepository(db)
+
+      val result = repo.sdltGetReturn("100001", "STORN12345").futureValue
+
+      result.transaction must not be None
+      result.transaction.get.totalConsideration mustBe Some(BigDecimal("250000.00"))
+      result.transaction.get.considerationCash mustBe Some(BigDecimal("100000.50"))
+      result.transaction.get.reliefAmount mustBe Some(BigDecimal("5000"))
+    }
+
+    "handle mixed valid and invalid BigDecimal values in Transaction" in {
+      val db      = mock[Database]
+      val conn    = mock[Connection]
+      val cs      = mock[CallableStatement]
+      val rsTrans = mock[ResultSet]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      when(cs.getObject(eqTo(9), eqTo(classOf[ResultSet]))).thenReturn(rsTrans)
+      when(rsTrans.next()).thenReturn(true, false)
+
+      when(rsTrans.getString("TRANSACTION_ID")).thenReturn("1")
+      when(rsTrans.getString("TOTAL_CONSIDERATION")).thenReturn("250000.00") // valid
+      when(rsTrans.getString("CONSIDERATION_CASH")).thenReturn("invalid") // invalid
+      when(rsTrans.getString("CONSIDERATION_BUILD")).thenReturn("  ") // empty after trim
+      when(rsTrans.getString("RELIEF_AMOUNT")).thenReturn(null) // null
+      when(rsTrans.getString("CONSIDERATION_DEBT")).thenReturn("  50000.00  ") // valid with whitespace
+
+      // Mock remaining BigDecimal fields as null
+      when(rsTrans.getString("TOTAL_CONSIDERATION_LINKED")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_CONTINGENT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_EMPLOY")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_OTHER")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_LAND")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SERVICES")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_QTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_UNQTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_VAT")).thenReturn(null)
+      when(rsTrans.getString("TOTAL_CONSIDERATION_BUSINESS")).thenReturn(null)
+
+      (3 to 16).foreach { pos =>
+        if (pos != 9) {
+          when(cs.getObject(eqTo(pos), eqTo(classOf[ResultSet]))).thenReturn(null)
+        }
+      }
+
+      val repo = new SdltFormpRepository(db)
+
+      val result = repo.sdltGetReturn("100001", "STORN12345").futureValue
+
+      result.transaction must not be None
+      result.transaction.get.totalConsideration mustBe Some(BigDecimal("250000.00"))
+      result.transaction.get.considerationCash mustBe None
+      result.transaction.get.considerationBuild mustBe None
+      result.transaction.get.reliefAmount mustBe None
+      result.transaction.get.considerationDebt mustBe Some(BigDecimal("50000.00"))
+    }
+
     "process multiple purchasers correctly" in {
       val db          = mock[Database]
       val conn        = mock[Connection]
@@ -388,10 +688,28 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       when(cs.getObject(eqTo(9), eqTo(classOf[ResultSet]))).thenReturn(rsTrans)
       when(rsTrans.next()).thenReturn(true, false)
+
+      // Mock string values for regular fields
       when(rsTrans.getString("TRANSACTION_ID")).thenReturn("1")
-      when(rsTrans.getBigDecimal("TOTAL_CONSIDERATION")).thenReturn(new java.math.BigDecimal("250000.00"))
-      when(rsTrans.getBigDecimal("CONSIDERATION_CASH")).thenReturn(new java.math.BigDecimal("200000.00"))
-      when(rsTrans.getBigDecimal("RELIEF_AMOUNT")).thenReturn(null)
+
+      // Mock string values for BigDecimal fields (now using getString instead of getBigDecimal)
+      when(rsTrans.getString("TOTAL_CONSIDERATION")).thenReturn("250000.00")
+      when(rsTrans.getString("CONSIDERATION_CASH")).thenReturn("200000.00")
+      when(rsTrans.getString("RELIEF_AMOUNT")).thenReturn(null)
+
+      // Mock all other BigDecimal fields as null to avoid NullPointerException
+      when(rsTrans.getString("TOTAL_CONSIDERATION_LINKED")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_BUILD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_CONTINGENT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_DEBT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_EMPLOY")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_OTHER")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_LAND")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SERVICES")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_QTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_UNQTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_VAT")).thenReturn(null)
+      when(rsTrans.getString("TOTAL_CONSIDERATION_BUSINESS")).thenReturn(null)
 
       (3 to 16).foreach { pos =>
         if (pos != 9) {
