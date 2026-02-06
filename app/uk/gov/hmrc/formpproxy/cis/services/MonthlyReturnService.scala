@@ -65,4 +65,7 @@ class MonthlyReturnService @Inject() (repo: CisMonthlyReturnSource)(implicit ec:
       taxYear = request.taxYear,
       taxMonth = request.taxMonth
     )
+
+  def syncMonthlyReturnItems(request: SyncMonthlyReturnItemsRequest): Future[Unit] =
+    repo.syncMonthlyReturnItems(request)
 }
