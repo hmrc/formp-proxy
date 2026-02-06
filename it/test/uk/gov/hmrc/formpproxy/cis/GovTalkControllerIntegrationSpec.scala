@@ -29,14 +29,14 @@ class GovTalkControllerIntegrationSpec
     with IntegrationPatience
     with ApplicationWithWiremock {
 
-  private val endpoint = "cis/govtalkstatus/get"
-
   "POST /formp-proxy/cis/govtalkstatus/get" should {
+
+    val getEndpoint = "cis/govtalkstatus/get"
 
     "return 400 when JSON is missing required fields" in {
       AuthStub.authorised()
 
-      val res1 = postAwait(endpoint, Json.obj())
+      val res1 = postAwait(getEndpoint, Json.obj())
       res1.status mustBe BAD_REQUEST
       (res1.json \ "message").as[String].toLowerCase must include("invalid payload")
     }
@@ -44,13 +44,69 @@ class GovTalkControllerIntegrationSpec
     "return 401 when there is no active session" in {
       AuthStub.unauthorised()
 
-      val res = postAwait(endpoint, Json.obj("userIdentifier" -> "1", "formResultID" -> "12890"))
+      val res = postAwait(getEndpoint, Json.obj("userIdentifier" -> "1", "formResultID" -> "12890"))
       res.status mustBe UNAUTHORIZED
     }
 
     "return 404 for unknown endpoint (routing sanity)" in {
       AuthStub.authorised()
       val res = postAwait("/does-not-exist", Json.obj("userIdentifier" -> "1", "formResultID" -> "12890"))
+      res.status mustBe NOT_FOUND
+    }
+  }
+
+  "POST /formp-proxy/cis/govtalkstatus/reset" should {
+
+    val resetEndpoint = "cis/govtalkstatus/reset"
+
+    "return 400 when JSON is missing required fields" in {
+      AuthStub.authorised()
+
+      val res1 = postAwait(resetEndpoint, Json.obj())
+      res1.status mustBe BAD_REQUEST
+      (res1.json \ "message").as[String].toLowerCase must include("invalid payload")
+    }
+
+    "return 401 when there is no active session" in {
+      AuthStub.unauthorised()
+
+      val res = postAwait(
+        resetEndpoint,
+        Json.obj(
+          "userIdentifier"    -> "1",
+          "formResultID"      -> "12890",
+          "correlationID"     -> "128903445",
+          "formLock"          -> "N",
+          "createDate"        -> "2019-01-01T00:00:00",
+          "lastMessageDate"   -> "2019-01-01T00:00:00",
+          "numPolls"          -> 0,
+          "pollInterval"      -> 0,
+          "oldProtocolStatus" -> "dataRequest",
+          "newProtocolStatus" -> "dataRequest",
+          "gatewayURL"        -> "http://vat.chris.hmrc.gov.uk:9102/ChRIS/UKVAT/Filing/action/VATDEC"
+        )
+      )
+      res.status mustBe UNAUTHORIZED
+    }
+
+    "return 404 for unknown endpoint (routing sanity)" in {
+      AuthStub.authorised()
+      val res = postAwait(
+        "/does-not-exist",
+        Json.obj(
+          "userIdentifier"    -> "1",
+          "formResultID"      -> "12890",
+          "correlationID"     -> "128903445",
+          "formLock"          -> "N",
+          "createDate"        -> "2019-01-01T00:00:00",
+          "lastMessageDate"   -> "2019-01-01T00:00:00",
+          "numPolls"          -> 0,
+          "pollInterval"      -> 0,
+          "oldProtocolStatus" -> "dataRequest",
+          "newProtocolStatus" -> "dataRequest",
+          "gatewayURL"        -> "http://vat.chris.hmrc.gov.uk:9102/ChRIS/UKVAT/Filing/action/VATDEC"
+        )
+      )
       res.status mustBe NOT_FOUND
     }
   }

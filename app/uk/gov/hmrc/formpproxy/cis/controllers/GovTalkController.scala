@@ -20,7 +20,7 @@ import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
-import uk.gov.hmrc.formpproxy.cis.models.requests.GetGovTalkStatusRequest
+import uk.gov.hmrc.formpproxy.cis.models.requests.{GetGovTalkStatusRequest, ResetGovTalkStatusRequest}
 import uk.gov.hmrc.formpproxy.cis.services.GovTalkService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -46,6 +46,24 @@ class GovTalkController @Inject() (
             service
               .getGovTalkStatus(body)
               .map(response => Ok(Json.toJson(response)))
+              .recover { case t =>
+                logger.error("[getGovTalkStatus] failed", t)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
+              }
+        )
+    }
+
+  def resetGovTalkStatus: Action[JsValue] =
+    authorise.async(parse.json) { implicit request =>
+      request.body
+        .validate[ResetGovTalkStatusRequest]
+        .fold(
+          errs =>
+            Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
+          body =>
+            service
+              .resetGovTalkStatus(body)
+              .map(_ => NoContent)
               .recover { case t =>
                 logger.error("[getGovTalkStatus] failed", t)
                 InternalServerError(Json.obj("message" -> "Unexpected error"))

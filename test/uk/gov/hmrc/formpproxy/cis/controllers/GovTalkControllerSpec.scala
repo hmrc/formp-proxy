@@ -99,6 +99,95 @@ class GovTalkControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
     }
   }
 
+  "GovTalkController resetGovTalkStatus" - {
+
+    "returns 200 with multiple records when service returns data" in new Setup {
+      when(mockService.resetGovTalkStatus(any()))
+        .thenReturn(Future.successful(()))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(
+        Json.obj(
+          "userIdentifier"    -> "1",
+          "formResultID"      -> "12890",
+          "correlationID"     -> "128903445",
+          "formLock"          -> "N",
+          "createDate"        -> "2019-01-01T00:00:00",
+          "lastMessageDate"   -> "2019-01-01T00:00:00",
+          "numPolls"          -> 0,
+          "pollInterval"      -> 0,
+          "oldProtocolStatus" -> "dataRequest",
+          "newProtocolStatus" -> "dataRequest",
+          "gatewayURL"        -> "http://vat.chris.hmrc.gov.uk:9102/ChRIS/UKVAT/Filing/action/VATDEC"
+        )
+      )
+      val res: Future[Result]       = controller.resetGovTalkStatus(req)
+
+      status(res) mustBe NO_CONTENT
+      verify(mockService).resetGovTalkStatus(any())
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 400 when JSON body is an empty object" in new Setup {
+      val req: FakeRequest[JsValue] = makeJsonRequest(Json.obj())
+      val res: Future[Result]       = controller.resetGovTalkStatus(req)
+
+      status(res) mustBe BAD_REQUEST
+      (contentAsJson(res) \ "message").as[String] mustBe "Invalid payload"
+      verifyNoInteractions(mockService)
+    }
+
+    "propagates UpstreamErrorResponse (status & message)" in new Setup {
+      val err = UpstreamErrorResponse("formp failed", BAD_GATEWAY, BAD_GATEWAY)
+      when(mockService.resetGovTalkStatus(any()))
+        .thenReturn(Future.failed(err))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(
+        Json.obj(
+          "userIdentifier"    -> "1",
+          "formResultID"      -> "12890",
+          "correlationID"     -> "128903445",
+          "formLock"          -> "N",
+          "createDate"        -> "2019-01-01T00:00:00",
+          "lastMessageDate"   -> "2019-01-01T00:00:00",
+          "numPolls"          -> 0,
+          "pollInterval"      -> 0,
+          "oldProtocolStatus" -> "dataRequest",
+          "newProtocolStatus" -> "dataRequest",
+          "gatewayURL"        -> "http://vat.chris.hmrc.gov.uk:9102/ChRIS/UKVAT/Filing/action/VATDEC"
+        )
+      )
+      val res: Future[Result]       = controller.resetGovTalkStatus(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      (contentAsJson(res) \ "message").as[String] must include("Unexpected error")
+    }
+
+    "returns 500 with generic message on unexpected exception" in new Setup {
+      when(mockService.resetGovTalkStatus(any()))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(
+        Json.obj(
+          "userIdentifier"    -> "1",
+          "formResultID"      -> "12890",
+          "correlationID"     -> "128903445",
+          "formLock"          -> "N",
+          "createDate"        -> "2019-01-01T00:00:00",
+          "lastMessageDate"   -> "2019-01-01T00:00:00",
+          "numPolls"          -> 0,
+          "pollInterval"      -> 0,
+          "oldProtocolStatus" -> "dataRequest",
+          "newProtocolStatus" -> "dataRequest",
+          "gatewayURL"        -> "http://vat.chris.hmrc.gov.uk:9102/ChRIS/UKVAT/Filing/action/VATDEC"
+        )
+      )
+      val res: Future[Result]       = controller.resetGovTalkStatus(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
+    }
+  }
+
   private trait Setup {
     implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.global
     private val cc: ControllerComponents = stubControllerComponents()
