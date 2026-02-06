@@ -418,28 +418,42 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       DARPostcode = None
     )
 
+  private def getBigDecimalSafely(rs: ResultSet, columnName: String): Option[BigDecimal] =
+    Option(rs.getString(columnName)).flatMap { value =>
+      val trimmed = value.trim
+      if (trimmed.isEmpty) {
+        None
+      } else {
+        try
+          Some(BigDecimal(trimmed))
+        catch {
+          case _: NumberFormatException => None
+        }
+      }
+    }
+
   private def processTransaction(rs: ResultSet): Transaction =
     Transaction(
       transactionID = Option(rs.getString("TRANSACTION_ID")),
       returnID = Option(rs.getString("RETURN_ID")),
       claimingRelief = Option(rs.getString("CLAIMING_RELIEF")),
-      reliefAmount = Option(rs.getBigDecimal("RELIEF_AMOUNT")).map(BigDecimal(_)),
+      reliefAmount = getBigDecimalSafely(rs, "RELIEF_AMOUNT"),
       reliefReason = Option(rs.getString("RELIEF_REASON")),
       reliefSchemeNumber = Option(rs.getString("RELIEF_SCHEME_NUMBER")),
       isLinked = Option(rs.getString("IS_LINKED")),
-      totalConsiderationLinked = Option(rs.getBigDecimal("TOTAL_CONSIDERATION_LINKED")).map(BigDecimal(_)),
-      totalConsideration = Option(rs.getBigDecimal("TOTAL_CONSIDERATION")).map(BigDecimal(_)),
-      considerationBuild = Option(rs.getBigDecimal("CONSIDERATION_BUILD")).map(BigDecimal(_)),
-      considerationCash = Option(rs.getBigDecimal("CONSIDERATION_CASH")).map(BigDecimal(_)),
-      considerationContingent = Option(rs.getBigDecimal("CONSIDERATION_CONTINGENT")).map(BigDecimal(_)),
-      considerationDebt = Option(rs.getBigDecimal("CONSIDERATION_DEBT")).map(BigDecimal(_)),
-      considerationEmploy = Option(rs.getBigDecimal("CONSIDERATION_EMPLOY")).map(BigDecimal(_)),
-      considerationOther = Option(rs.getBigDecimal("CONSIDERATION_OTHER")).map(BigDecimal(_)),
-      considerationLand = Option(rs.getBigDecimal("CONSIDERATION_LAND")).map(BigDecimal(_)),
-      considerationServices = Option(rs.getBigDecimal("CONSIDERATION_SERVICES")).map(BigDecimal(_)),
-      considerationSharesQTD = Option(rs.getBigDecimal("CONSIDERATION_SHARES_QTD")).map(BigDecimal(_)),
-      considerationSharesUNQTD = Option(rs.getBigDecimal("CONSIDERATION_SHARES_UNQTD")).map(BigDecimal(_)),
-      considerationVAT = Option(rs.getBigDecimal("CONSIDERATION_VAT")).map(BigDecimal(_)),
+      totalConsiderationLinked = getBigDecimalSafely(rs, "TOTAL_CONSIDERATION_LINKED"),
+      totalConsideration = getBigDecimalSafely(rs, "TOTAL_CONSIDERATION"),
+      considerationBuild = getBigDecimalSafely(rs, "CONSIDERATION_BUILD"),
+      considerationCash = getBigDecimalSafely(rs, "CONSIDERATION_CASH"),
+      considerationContingent = getBigDecimalSafely(rs, "CONSIDERATION_CONTINGENT"),
+      considerationDebt = getBigDecimalSafely(rs, "CONSIDERATION_DEBT"),
+      considerationEmploy = getBigDecimalSafely(rs, "CONSIDERATION_EMPLOY"),
+      considerationOther = getBigDecimalSafely(rs, "CONSIDERATION_OTHER"),
+      considerationLand = getBigDecimalSafely(rs, "CONSIDERATION_LAND"),
+      considerationServices = getBigDecimalSafely(rs, "CONSIDERATION_SERVICES"),
+      considerationSharesQTD = getBigDecimalSafely(rs, "CONSIDERATION_SHARES_QTD"),
+      considerationSharesUNQTD = getBigDecimalSafely(rs, "CONSIDERATION_SHARES_UNQTD"),
+      considerationVAT = getBigDecimalSafely(rs, "CONSIDERATION_VAT"),
       includesChattel = Option(rs.getString("INCLUDES_CHATTEL")),
       includesGoodwill = Option(rs.getString("INCLUDES_GOODWILL")),
       includesOther = Option(rs.getString("INCLUDES_OTHER")),
@@ -470,7 +484,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       restrictionDetails = Option(rs.getString("RESTRICTION_DETAILS")),
       postTransRulingFollowed = Option(rs.getString("POST_TRANS_RULING_FOLLOWED")),
       isPartOfSaleOfBusiness = Option(rs.getString("IS_PART_OF_SALE_OF_BUSINESS")),
-      totalConsiderationBusiness = Option(rs.getBigDecimal("TOTAL_CONSIDERATION_BUSINESS")).map(BigDecimal(_))
+      totalConsiderationBusiness = getBigDecimalSafely(rs, "TOTAL_CONSIDERATION_BUSINESS")
     )
 
   private def processReturnAgent(rs: ResultSet): ReturnAgent =
