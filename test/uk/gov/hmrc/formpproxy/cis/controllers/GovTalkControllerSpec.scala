@@ -173,6 +173,7 @@ class GovTalkControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
           "correlationID"     -> "128903445",
           "formLock"          -> "N",
           "createDate"        -> "2019-01-01T00:00:00",
+          "endStateDate"      -> "2019-01-01T00:00:00",
           "lastMessageDate"   -> "2019-01-01T00:00:00",
           "numPolls"          -> 0,
           "pollInterval"      -> 0,
