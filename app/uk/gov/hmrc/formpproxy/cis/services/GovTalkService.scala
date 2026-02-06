@@ -30,5 +30,5 @@ class GovTalkService @Inject() (repo: CisMonthlyReturnSource) {
     repo.getGovTalkStatus(req)
 
   def resetGovTalkStatus(req: ResetGovTalkStatusRequest): Future[Unit] =
-    Future.successful(())
+    repo.resetGovTalkStatus(req)
 }
