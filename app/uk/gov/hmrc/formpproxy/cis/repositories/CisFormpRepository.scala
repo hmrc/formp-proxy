@@ -19,8 +19,8 @@ package uk.gov.hmrc.formpproxy.cis.repositories
 import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, UpdateSubcontractorRequest, UpdateSubmissionRequest}
-import uk.gov.hmrc.formpproxy.cis.models.response.{CreateNilMonthlyReturnResponse, GetMonthlyReturnForEditResponse, GetSubcontractorListResponse}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, GetGovTalkStatusRequest, ResetGovTalkStatusRequest, UpdateSubcontractorRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.cis.models.response.{CreateNilMonthlyReturnResponse, GetGovTalkStatusResponse, GetMonthlyReturnForEditResponse, GetSubcontractorListResponse}
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, Subcontractor, SubcontractorType, UnsubmittedMonthlyReturns, UpdateContractorSchemeParams, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
@@ -50,6 +50,8 @@ trait CisMonthlyReturnSource {
   def updateSubcontractor(result: UpdateSubcontractorRequest): Future[Unit]
   def getSubcontractorList(cisId: String): Future[GetSubcontractorListResponse]
   def getMonthlyReturnForEdit(instanceId: String, taxYear: Int, taxMonth: Int): Future[GetMonthlyReturnForEditResponse]
+  def getGovTalkStatus(req: GetGovTalkStatusRequest): Future[GetGovTalkStatusResponse]
+  def resetGovTalkStatus(req: ResetGovTalkStatusRequest): Future[Unit]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -390,6 +392,50 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         newVersion
       }
     }
+
+  // govTalkStatus
+
+  def getGovTalkStatus(req: GetGovTalkStatusRequest): Future[GetGovTalkStatusResponse] = {
+    logger.info(s"[CIS] getGovTalkStatus(userIdentifier=${req.userIdentifier}, formResultID=${req.formResultID})")
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallGetGovTalkStatus) { cs =>
+          cs.setString(1, req.userIdentifier)
+          cs.setString(2, req.formResultID)
+          cs.registerOutParameter(3, OracleTypes.CURSOR)
+          cs.execute()
+
+          val statusRecords = withCursor(cs, 3)(collectGovtTalkStatusRecords)
+
+          GetGovTalkStatusResponse(govtallk_status = statusRecords)
+        }
+      }
+    }
+  }
+
+  def resetGovTalkStatus(req: ResetGovTalkStatusRequest): Future[Unit] = {
+    logger.info(s"[CIS] resetGovTalkStatus(userIdentifier=${req.userIdentifier}, formResultID=${req.formResultID})")
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallResetGovTalkStatus) { cs =>
+          cs.setString(1, req.userIdentifier)
+          cs.setString(2, req.formResultID)
+          cs.setString(3, req.correlationID)
+          cs.setString(4, req.formLock)
+          cs.setOptionalTimestamp(5, req.createDate)
+          cs.setOptionalTimestamp(6, req.endStateDate)
+          cs.setTimestamp(7, java.sql.Timestamp.valueOf(req.lastMessageDate))
+          cs.setInt(8, req.numPolls)
+          cs.setInt(9, req.pollInterval)
+          cs.setString(10, req.oldProtocolStatus)
+          cs.setString(11, req.newProtocolStatus)
+          cs.setString(12, req.gatewayURL)
+
+          cs.execute()
+        }
+      }
+    }
+  }
 
   // private helpers
   private def callCreateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit =
