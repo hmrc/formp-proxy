@@ -413,8 +413,29 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
-  def resetGovTalkStatus(req: ResetGovTalkStatusRequest): Future[Unit] =
-    Future.successful(())
+  def resetGovTalkStatus(req: ResetGovTalkStatusRequest): Future[Unit] = {
+    logger.info(s"[CIS] resetGovTalkStatus(userIdentifier=${req.userIdentifier}, formResultID=${req.formResultID})")
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallResetGovTalkStatus) { cs =>
+          cs.setString(1, req.userIdentifier)
+          cs.setString(2, req.formResultID)
+          cs.setString(3, req.correlationID)
+          cs.setString(4, req.formLock)
+          cs.setOptionalTimestamp(5, req.createDate)
+          cs.setOptionalTimestamp(6, req.endStateDate)
+          cs.setTimestamp(7, java.sql.Timestamp.valueOf(req.lastMessageDate))
+          cs.setInt(8, req.numPolls)
+          cs.setInt(9, req.pollInterval)
+          cs.setString(10, req.oldProtocolStatus)
+          cs.setString(11, req.newProtocolStatus)
+          cs.setString(12, req.gatewayURL)
+
+          cs.execute()
+        }
+      }
+    }
+  }
 
   // private helpers
   private def callCreateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit =

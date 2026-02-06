@@ -22,7 +22,7 @@ import org.mockito.Mockito.*
 import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.{Company, CreateContractorSchemeParams, Partnership, SoleTrader, Trust, UpdateContractorSchemeParams}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, GetGovTalkStatusRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, GetGovTalkStatusRequest, ResetGovTalkStatusRequest, UpdateSubmissionRequest}
 
 import java.time.Instant
 import java.sql.*
@@ -1477,6 +1477,61 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(conn).prepareCall("{ call SUBMISSION_ADMIN.SelectGovTalkStatus(?, ?, ?) }")
       verify(cs).registerOutParameter(3, OracleTypes.CURSOR)
       verify(cs).execute()
+    }
+  }
+
+  "resetGovTalkStatus" - {
+
+    "call SUBMISSION_ADMIN.ResetGovTalkStatusRecord with correct parameters and execute" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      val call =
+        "{ call SUBMISSION_ADMIN.ResetGovTalkStatusRecord(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+
+      val repo = new CisFormpRepository(db)
+
+      val request = ResetGovTalkStatusRequest(
+        userIdentifier = "1",
+        formResultID = "12890",
+        correlationID = "C742D5DEE7EB4D15B4F7EFD50B890525",
+        formLock = "false",
+        createDate = Some(LocalDateTime.parse("2026-04-06T00:00:00")),
+        endStateDate = None,
+        lastMessageDate = LocalDateTime.parse("2026-04-06T00:00:00"),
+        numPolls = 0,
+        pollInterval = 0,
+        oldProtocolStatus = "dataRequest",
+        newProtocolStatus = "dataPoll",
+        gatewayURL = "http://localhost:9712/submission/ChRIS/CISR/Filing/sync/CIS300MR"
+      )
+
+      repo.resetGovTalkStatus(request).futureValue
+
+      verify(conn).prepareCall(eqTo(call))
+
+      verify(cs).setString(1, request.userIdentifier)
+      verify(cs).setString(2, request.formResultID)
+      verify(cs).setString(3, request.correlationID)
+      verify(cs).setString(4, request.formLock)
+      verify(cs).setTimestamp(5, Timestamp.valueOf("2026-04-06 00:00:00"))
+      verify(cs).setNull(6, Types.TIMESTAMP)
+      verify(cs).setTimestamp(7, Timestamp.valueOf(request.lastMessageDate))
+      verify(cs).setInt(8, request.numPolls)
+      verify(cs).setInt(9, request.pollInterval)
+      verify(cs).setString(10, request.oldProtocolStatus)
+      verify(cs).setString(11, request.newProtocolStatus)
+      verify(cs).setString(12, request.gatewayURL)
+
+      verify(cs).execute()
+      verify(cs).close()
     }
   }
 }
