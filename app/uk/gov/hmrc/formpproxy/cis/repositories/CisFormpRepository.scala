@@ -39,6 +39,7 @@ trait CisMonthlyReturnSource {
   def createSubmission(request: CreateSubmissionRequest): Future[String]
   def updateMonthlyReturnSubmission(request: UpdateSubmissionRequest): Future[Unit]
   def createNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[CreateNilMonthlyReturnResponse]
+  def updateNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[Unit]
   def createMonthlyReturn(request: CreateMonthlyReturnRequest): Future[Unit]
   def getSchemeEmail(instanceId: String): Future[Option[String]]
   def getScheme(instanceId: String): Future[Option[ContractorScheme]]
@@ -345,7 +346,18 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
-  // Prepopulation
+  override def updateNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[Unit] = {
+    logger.info(
+      s"[CIS] updateNilMonthlyReturn(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
+    )
+    Future {
+      db.withConnection { conn =>
+        callUpdateMonthlyReturn(conn, request)
+      }
+    }
+  }
+
+// Prepopulation
 
   override def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int] =
     Future {

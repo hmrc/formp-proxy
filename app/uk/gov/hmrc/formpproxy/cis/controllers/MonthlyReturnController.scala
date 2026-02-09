@@ -21,7 +21,12 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
 import uk.gov.hmrc.formpproxy.cis.models.{UnsubmittedMonthlyReturns, UserMonthlyReturns}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest, GetMonthlyReturnForEditRequest, InstanceIdRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{
+  CreateMonthlyReturnRequest,
+  CreateNilMonthlyReturnRequest,
+  GetMonthlyReturnForEditRequest,
+  InstanceIdRequest
+}
 import uk.gov.hmrc.formpproxy.cis.services.MonthlyReturnService
 import uk.gov.hmrc.formpproxy.cis.utils.JsResultUtils._
 import uk.gov.hmrc.http.UpstreamErrorResponse
@@ -78,6 +83,19 @@ class MonthlyReturnController @Inject() (
           case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
           case t: Throwable             =>
             logger.error("[createNilMonthlyReturn] failed", t)
+            InternalServerError(Json.obj("message" -> "Unexpected error"))
+        }
+    }
+
+  def updateNilMonthlyReturn: Action[CreateNilMonthlyReturnRequest] =
+    authorise.async(parse.json[CreateNilMonthlyReturnRequest]) { implicit request =>
+      service
+        .updateNilMonthlyReturn(request.body)
+        .map(_ => NoContent)
+        .recover {
+          case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
+          case t: Throwable             =>
+            logger.error("[updateNilMonthlyReturn] failed", t)
             InternalServerError(Json.obj("message" -> "Unexpected error"))
         }
     }
