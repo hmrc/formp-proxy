@@ -162,6 +162,58 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
     }
   }
 
+  "MonthlyReturnController updateNilMonthlyReturn" - {
+
+    "returns 204 when service succeeds" in new Setup {
+      val request = CreateNilMonthlyReturnRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 2,
+        decInformationCorrect = "Y",
+        decNilReturnNoPayments = "Y"
+      )
+
+      when(mockService.updateNilMonthlyReturn(eqTo(request)))
+        .thenReturn(Future.successful(()))
+
+      val req: FakeRequest[CreateNilMonthlyReturnRequest] =
+        FakeRequest(POST, "/formp-proxy/monthly-return/nil/update").withBody(request)
+
+      val res: Future[Result] = controller.updateNilMonthlyReturn(req)
+
+      status(res) mustBe NO_CONTENT
+      contentAsString(res) mustBe ""
+
+      verify(mockService).updateNilMonthlyReturn(eqTo(request))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "propagates UpstreamErrorResponse" in new Setup {
+      val request = CreateNilMonthlyReturnRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 2,
+        decInformationCorrect = "Y",
+        decNilReturnNoPayments = "Y"
+      )
+      val err     = UpstreamErrorResponse("formp failed", BAD_GATEWAY, BAD_GATEWAY)
+
+      when(mockService.updateNilMonthlyReturn(eqTo(request)))
+        .thenReturn(Future.failed(err))
+
+      val req: FakeRequest[CreateNilMonthlyReturnRequest] =
+        FakeRequest(POST, "/formp-proxy/monthly-return/nil/update").withBody(request)
+
+      val res: Future[Result] = controller.updateNilMonthlyReturn(req)
+
+      status(res) mustBe BAD_GATEWAY
+      (contentAsJson(res) \ "message").as[String] must include("formp failed")
+
+      verify(mockService).updateNilMonthlyReturn(eqTo(request))
+      verifyNoMoreInteractions(mockService)
+    }
+  }
+
   "MonthlyReturnController getSchemeEmail" - {
 
     "returns 200 with email when service succeeds" in new Setup {

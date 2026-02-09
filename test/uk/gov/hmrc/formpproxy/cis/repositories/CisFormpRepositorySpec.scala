@@ -161,6 +161,36 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
   }
 
+  "updateNilMonthlyReturn" - {
+
+    "call Update_Monthly_Return SP with correct parameters" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      val call = "{ call MONTHLY_RETURN_PROCS_2016.Update_Monthly_Return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+
+      val repo = new CisFormpRepository(db)
+      val req  = CreateNilMonthlyReturnRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 2,
+        decInformationCorrect = "Y",
+        decNilReturnNoPayments = "Y"
+      )
+
+      repo.updateNilMonthlyReturn(req).futureValue
+
+      verify(conn).prepareCall(eqTo(call))
+      verify(cs).execute()
+    }
+  }
+
   "createSubmission" - {
 
     "look up ids, call SPs, return the submission id, and close resources" in {

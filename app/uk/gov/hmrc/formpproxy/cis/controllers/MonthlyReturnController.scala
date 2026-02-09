@@ -21,12 +21,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
 import uk.gov.hmrc.formpproxy.cis.models.{UnsubmittedMonthlyReturns, UserMonthlyReturns}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{
-  CreateMonthlyReturnRequest,
-  CreateNilMonthlyReturnRequest,
-  GetMonthlyReturnForEditRequest,
-  InstanceIdRequest
-}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest, GetMonthlyReturnForEditRequest, InstanceIdRequest}
 import uk.gov.hmrc.formpproxy.cis.services.MonthlyReturnService
 import uk.gov.hmrc.formpproxy.cis.utils.JsResultUtils._
 import uk.gov.hmrc.http.UpstreamErrorResponse
