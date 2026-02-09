@@ -1436,8 +1436,8 @@ final class CisFormpRepositorySpec extends SpecBase {
       val repo   = new CisFormpRepository(db)
       val result = repo.getGovTalkStatus(GetGovTalkStatusRequest("12", "123abc")).futureValue
 
-      result.govtallk_status must have size 1
-      val record = result.govtallk_status.head
+      result.govtalk_status must have size 1
+      val record = result.govtalk_status.head
       record.userIdentifier mustBe "12"
       record.formResultID mustBe "123abc"
       record.correlationID mustBe "abc123qwe"
@@ -1472,7 +1472,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       val repo   = new CisFormpRepository(db)
       val result = repo.getGovTalkStatus(GetGovTalkStatusRequest("12", "123abc")).futureValue
 
-      result.govtallk_status mustBe empty
+      result.govtalk_status mustBe empty
 
       verify(conn).prepareCall("{ call SUBMISSION_ADMIN.SelectGovTalkStatus(?, ?, ?) }")
       verify(cs).registerOutParameter(3, OracleTypes.CURSOR)

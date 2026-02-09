@@ -20,7 +20,7 @@ import uk.gov.hmrc.formpproxy.cis.models.GovTalkStatusRecord
 import play.api.libs.json.{Json, OFormat}
 
 final case class GetGovTalkStatusResponse(
-  govtallk_status: Seq[GovTalkStatusRecord]
+  govtalk_status: Seq[GovTalkStatusRecord]
 )
 
 object GetGovTalkStatusResponse {

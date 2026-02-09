@@ -74,7 +74,7 @@ final class GovTalkServiceSpec extends SpecBase {
         .thenReturn(Future.successful(GetGovTalkStatusResponse(Seq.empty)))
 
       val result = c.service.getGovTalkStatus(request).futureValue
-      result.govtallk_status mustBe empty
+      result.govtalk_status mustBe empty
 
       verify(c.repo).getGovTalkStatus(request)
       verifyNoMoreInteractions(c.repo)

@@ -406,7 +406,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
           val statusRecords = withCursor(cs, 3)(collectGovtTalkStatusRecords)
 
-          GetGovTalkStatusResponse(govtallk_status = statusRecords)
+          GetGovTalkStatusResponse(govtalk_status = statusRecords)
         }
       }
     }
