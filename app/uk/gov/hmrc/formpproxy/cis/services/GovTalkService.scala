@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.formpproxy.cis.services
 
-import uk.gov.hmrc.formpproxy.cis.models.requests.{GetGovTalkStatusRequest, ResetGovTalkStatusRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateGovTalkStatusRecordRequest, GetGovTalkStatusRequest, ResetGovTalkStatusRequest}
 import uk.gov.hmrc.formpproxy.cis.models.response.GetGovTalkStatusResponse
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
@@ -31,4 +31,7 @@ class GovTalkService @Inject() (repo: CisMonthlyReturnSource) {
 
   def resetGovTalkStatus(req: ResetGovTalkStatusRequest): Future[Unit] =
     repo.resetGovTalkStatus(req)
+
+  def createGovTalkStatusRecord(req: CreateGovTalkStatusRecordRequest): Future[Unit] =
+    repo.createGovTalkStatusRecord(req)
 }

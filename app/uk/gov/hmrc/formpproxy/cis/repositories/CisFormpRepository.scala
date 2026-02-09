@@ -19,7 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.repositories
 import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, GetGovTalkStatusRequest, ResetGovTalkStatusRequest, UpdateSubcontractorRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateGovTalkStatusRecordRequest, CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, GetGovTalkStatusRequest, ResetGovTalkStatusRequest, UpdateSubcontractorRequest, UpdateSubmissionRequest}
 import uk.gov.hmrc.formpproxy.cis.models.response.{CreateNilMonthlyReturnResponse, GetGovTalkStatusResponse, GetMonthlyReturnForEditResponse, GetSubcontractorListResponse}
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, Subcontractor, SubcontractorType, UnsubmittedMonthlyReturns, UpdateContractorSchemeParams, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
@@ -52,6 +52,7 @@ trait CisMonthlyReturnSource {
   def getMonthlyReturnForEdit(instanceId: String, taxYear: Int, taxMonth: Int): Future[GetMonthlyReturnForEditResponse]
   def getGovTalkStatus(req: GetGovTalkStatusRequest): Future[GetGovTalkStatusResponse]
   def resetGovTalkStatus(req: ResetGovTalkStatusRequest): Future[Unit]
+  def createGovTalkStatusRecord(req: CreateGovTalkStatusRecordRequest): Future[Unit]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -436,6 +437,9 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
   }
+
+  def createGovTalkStatusRecord(req: CreateGovTalkStatusRecordRequest): Future[Unit] =
+    Future.successful(())
 
   // private helpers
   private def callCreateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit =
