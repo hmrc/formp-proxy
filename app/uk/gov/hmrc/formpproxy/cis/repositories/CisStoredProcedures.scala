@@ -39,4 +39,6 @@ object CisStoredProcedures {
     "{ call SUBMISSION_ADMIN.SelectGovTalkStatus(?, ?, ?) }"
   val CallResetGovTalkStatus            =
     "{ call SUBMISSION_ADMIN.ResetGovTalkStatusRecord(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+  val CallCreateGovTalkStatus           =
+    "{ call SUBMISSION_ADMIN.InsertInitialGovTalkStatus(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
 }
