@@ -334,12 +334,8 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       s"[CIS] createNilMonthlyReturn(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
     )
     Future {
-      db.withTransaction { conn =>
-        val schemeVersionBefore = getSchemeVersion(conn, request.instanceId)
-
+      db.withConnection { conn =>
         callCreateMonthlyReturn(conn, request)
-        callUpdateSchemeVersion(conn, request.instanceId, schemeVersionBefore)
-        callUpdateMonthlyReturn(conn, request)
 
         CreateNilMonthlyReturnResponse(status = "STARTED")
       }
@@ -351,8 +347,11 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       s"[CIS] updateNilMonthlyReturn(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
     )
     Future {
-      db.withConnection { conn =>
+      db.withTransaction { conn =>
+        val schemeVersionBefore = getSchemeVersion(conn, request.instanceId)
+
         callUpdateMonthlyReturn(conn, request)
+        callUpdateSchemeVersion(conn, request.instanceId, schemeVersionBefore)
       }
     }
   }
