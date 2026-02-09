@@ -17,6 +17,8 @@
 package uk.gov.hmrc.formpproxy.cis.services
 
 import uk.gov.hmrc.formpproxy.cis.models.requests.CreateAndUpdateSubcontractorRequest
+import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
+import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorListResponse
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
 import javax.inject.{Inject, Singleton}
@@ -27,4 +29,8 @@ class SubcontractorService @Inject() (repo: CisMonthlyReturnSource) {
 
   def createAndUpdateSubcontractor(req: CreateAndUpdateSubcontractorRequest): Future[Unit] =
     repo.createAndUpdateSubcontractor(req)
+
+  def getSubcontractorList(req: GetSubcontractorList): Future[GetSubcontractorListResponse] =
+    repo.getSubcontractorList(req.cisId)
+
 }

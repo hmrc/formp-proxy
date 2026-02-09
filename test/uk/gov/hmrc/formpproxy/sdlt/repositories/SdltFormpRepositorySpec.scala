@@ -25,6 +25,7 @@ import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnSummary, SdltReturnReco
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.*
 import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
+import uk.gov.hmrc.formpproxy.sdlt.models.land.*
 
 import java.sql.*
 
@@ -340,6 +341,306 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).execute()
     }
 
+    "handle null BigDecimal values in Transaction" in {
+      val db      = mock[Database]
+      val conn    = mock[Connection]
+      val cs      = mock[CallableStatement]
+      val rsTrans = mock[ResultSet]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      when(cs.getObject(eqTo(9), eqTo(classOf[ResultSet]))).thenReturn(rsTrans)
+      when(rsTrans.next()).thenReturn(true, false)
+
+      when(rsTrans.getString("TRANSACTION_ID")).thenReturn("1")
+      when(rsTrans.getString("TOTAL_CONSIDERATION")).thenReturn(null)
+      when(rsTrans.getString("RELIEF_AMOUNT")).thenReturn(null)
+
+      // Mock all other BigDecimal fields as null
+      when(rsTrans.getString("TOTAL_CONSIDERATION_LINKED")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_BUILD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_CASH")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_CONTINGENT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_DEBT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_EMPLOY")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_OTHER")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_LAND")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SERVICES")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_QTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_UNQTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_VAT")).thenReturn(null)
+      when(rsTrans.getString("TOTAL_CONSIDERATION_BUSINESS")).thenReturn(null)
+
+      (3 to 16).foreach { pos =>
+        if (pos != 9) {
+          when(cs.getObject(eqTo(pos), eqTo(classOf[ResultSet]))).thenReturn(null)
+        }
+      }
+
+      val repo = new SdltFormpRepository(db)
+
+      val result = repo.sdltGetReturn("100001", "STORN12345").futureValue
+
+      result.transaction must not be None
+      result.transaction.get.totalConsideration mustBe None
+      result.transaction.get.reliefAmount mustBe None
+    }
+
+    "handle empty string BigDecimal values in Transaction" in {
+      val db      = mock[Database]
+      val conn    = mock[Connection]
+      val cs      = mock[CallableStatement]
+      val rsTrans = mock[ResultSet]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      when(cs.getObject(eqTo(9), eqTo(classOf[ResultSet]))).thenReturn(rsTrans)
+      when(rsTrans.next()).thenReturn(true, false)
+
+      when(rsTrans.getString("TRANSACTION_ID")).thenReturn("1")
+      when(rsTrans.getString("TOTAL_CONSIDERATION")).thenReturn("")
+      when(rsTrans.getString("CONSIDERATION_CASH")).thenReturn("100000.00")
+
+      // Mock all other BigDecimal fields as null
+      when(rsTrans.getString("RELIEF_AMOUNT")).thenReturn(null)
+      when(rsTrans.getString("TOTAL_CONSIDERATION_LINKED")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_BUILD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_CONTINGENT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_DEBT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_EMPLOY")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_OTHER")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_LAND")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SERVICES")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_QTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_UNQTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_VAT")).thenReturn(null)
+      when(rsTrans.getString("TOTAL_CONSIDERATION_BUSINESS")).thenReturn(null)
+
+      (3 to 16).foreach { pos =>
+        if (pos != 9) {
+          when(cs.getObject(eqTo(pos), eqTo(classOf[ResultSet]))).thenReturn(null)
+        }
+      }
+
+      val repo = new SdltFormpRepository(db)
+
+      val result = repo.sdltGetReturn("100001", "STORN12345").futureValue
+
+      result.transaction must not be None
+      result.transaction.get.totalConsideration mustBe None
+      result.transaction.get.considerationCash mustBe Some(BigDecimal("100000.00"))
+    }
+
+    "handle whitespace-only BigDecimal values in Transaction" in {
+      val db      = mock[Database]
+      val conn    = mock[Connection]
+      val cs      = mock[CallableStatement]
+      val rsTrans = mock[ResultSet]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      when(cs.getObject(eqTo(9), eqTo(classOf[ResultSet]))).thenReturn(rsTrans)
+      when(rsTrans.next()).thenReturn(true, false)
+
+      when(rsTrans.getString("TRANSACTION_ID")).thenReturn("1")
+      when(rsTrans.getString("TOTAL_CONSIDERATION")).thenReturn("   ")
+      when(rsTrans.getString("CONSIDERATION_CASH")).thenReturn("\t\n")
+      when(rsTrans.getString("RELIEF_AMOUNT")).thenReturn("  \t  ")
+
+      // Mock all other BigDecimal fields as null
+      when(rsTrans.getString("TOTAL_CONSIDERATION_LINKED")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_BUILD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_CONTINGENT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_DEBT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_EMPLOY")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_OTHER")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_LAND")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SERVICES")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_QTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_UNQTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_VAT")).thenReturn(null)
+      when(rsTrans.getString("TOTAL_CONSIDERATION_BUSINESS")).thenReturn(null)
+
+      (3 to 16).foreach { pos =>
+        if (pos != 9) {
+          when(cs.getObject(eqTo(pos), eqTo(classOf[ResultSet]))).thenReturn(null)
+        }
+      }
+
+      val repo = new SdltFormpRepository(db)
+
+      val result = repo.sdltGetReturn("100001", "STORN12345").futureValue
+
+      result.transaction must not be None
+      result.transaction.get.totalConsideration mustBe None
+      result.transaction.get.considerationCash mustBe None
+      result.transaction.get.reliefAmount mustBe None
+    }
+
+    "handle invalid BigDecimal format in Transaction" in {
+      val db      = mock[Database]
+      val conn    = mock[Connection]
+      val cs      = mock[CallableStatement]
+      val rsTrans = mock[ResultSet]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      when(cs.getObject(eqTo(9), eqTo(classOf[ResultSet]))).thenReturn(rsTrans)
+      when(rsTrans.next()).thenReturn(true, false)
+
+      when(rsTrans.getString("TRANSACTION_ID")).thenReturn("1")
+      when(rsTrans.getString("TOTAL_CONSIDERATION")).thenReturn("not-a-number")
+      when(rsTrans.getString("CONSIDERATION_CASH")).thenReturn("£100,000.00")
+      when(rsTrans.getString("RELIEF_AMOUNT")).thenReturn("invalid123abc")
+
+      // Mock all other BigDecimal fields as null
+      when(rsTrans.getString("TOTAL_CONSIDERATION_LINKED")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_BUILD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_CONTINGENT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_DEBT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_EMPLOY")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_OTHER")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_LAND")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SERVICES")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_QTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_UNQTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_VAT")).thenReturn(null)
+      when(rsTrans.getString("TOTAL_CONSIDERATION_BUSINESS")).thenReturn(null)
+
+      (3 to 16).foreach { pos =>
+        if (pos != 9) {
+          when(cs.getObject(eqTo(pos), eqTo(classOf[ResultSet]))).thenReturn(null)
+        }
+      }
+
+      val repo = new SdltFormpRepository(db)
+
+      val result = repo.sdltGetReturn("100001", "STORN12345").futureValue
+
+      result.transaction must not be None
+      result.transaction.get.totalConsideration mustBe None
+      result.transaction.get.considerationCash mustBe None
+      result.transaction.get.reliefAmount mustBe None
+    }
+
+    "handle BigDecimal values with leading/trailing whitespace in Transaction" in {
+      val db      = mock[Database]
+      val conn    = mock[Connection]
+      val cs      = mock[CallableStatement]
+      val rsTrans = mock[ResultSet]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      when(cs.getObject(eqTo(9), eqTo(classOf[ResultSet]))).thenReturn(rsTrans)
+      when(rsTrans.next()).thenReturn(true, false)
+
+      when(rsTrans.getString("TRANSACTION_ID")).thenReturn("1")
+      when(rsTrans.getString("TOTAL_CONSIDERATION")).thenReturn("  250000.00  ")
+      when(rsTrans.getString("CONSIDERATION_CASH")).thenReturn("\t100000.50\n")
+      when(rsTrans.getString("RELIEF_AMOUNT")).thenReturn(" 5000 ")
+
+      // Mock all other BigDecimal fields as null
+      when(rsTrans.getString("TOTAL_CONSIDERATION_LINKED")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_BUILD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_CONTINGENT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_DEBT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_EMPLOY")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_OTHER")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_LAND")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SERVICES")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_QTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_UNQTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_VAT")).thenReturn(null)
+      when(rsTrans.getString("TOTAL_CONSIDERATION_BUSINESS")).thenReturn(null)
+
+      (3 to 16).foreach { pos =>
+        if (pos != 9) {
+          when(cs.getObject(eqTo(pos), eqTo(classOf[ResultSet]))).thenReturn(null)
+        }
+      }
+
+      val repo = new SdltFormpRepository(db)
+
+      val result = repo.sdltGetReturn("100001", "STORN12345").futureValue
+
+      result.transaction must not be None
+      result.transaction.get.totalConsideration mustBe Some(BigDecimal("250000.00"))
+      result.transaction.get.considerationCash mustBe Some(BigDecimal("100000.50"))
+      result.transaction.get.reliefAmount mustBe Some(BigDecimal("5000"))
+    }
+
+    "handle mixed valid and invalid BigDecimal values in Transaction" in {
+      val db      = mock[Database]
+      val conn    = mock[Connection]
+      val cs      = mock[CallableStatement]
+      val rsTrans = mock[ResultSet]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      when(cs.getObject(eqTo(9), eqTo(classOf[ResultSet]))).thenReturn(rsTrans)
+      when(rsTrans.next()).thenReturn(true, false)
+
+      when(rsTrans.getString("TRANSACTION_ID")).thenReturn("1")
+      when(rsTrans.getString("TOTAL_CONSIDERATION")).thenReturn("250000.00") // valid
+      when(rsTrans.getString("CONSIDERATION_CASH")).thenReturn("invalid") // invalid
+      when(rsTrans.getString("CONSIDERATION_BUILD")).thenReturn("  ") // empty after trim
+      when(rsTrans.getString("RELIEF_AMOUNT")).thenReturn(null) // null
+      when(rsTrans.getString("CONSIDERATION_DEBT")).thenReturn("  50000.00  ") // valid with whitespace
+
+      // Mock remaining BigDecimal fields as null
+      when(rsTrans.getString("TOTAL_CONSIDERATION_LINKED")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_CONTINGENT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_EMPLOY")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_OTHER")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_LAND")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SERVICES")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_QTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_UNQTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_VAT")).thenReturn(null)
+      when(rsTrans.getString("TOTAL_CONSIDERATION_BUSINESS")).thenReturn(null)
+
+      (3 to 16).foreach { pos =>
+        if (pos != 9) {
+          when(cs.getObject(eqTo(pos), eqTo(classOf[ResultSet]))).thenReturn(null)
+        }
+      }
+
+      val repo = new SdltFormpRepository(db)
+
+      val result = repo.sdltGetReturn("100001", "STORN12345").futureValue
+
+      result.transaction must not be None
+      result.transaction.get.totalConsideration mustBe Some(BigDecimal("250000.00"))
+      result.transaction.get.considerationCash mustBe None
+      result.transaction.get.considerationBuild mustBe None
+      result.transaction.get.reliefAmount mustBe None
+      result.transaction.get.considerationDebt mustBe Some(BigDecimal("50000.00"))
+    }
+
     "process multiple purchasers correctly" in {
       val db          = mock[Database]
       val conn        = mock[Connection]
@@ -387,10 +688,28 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       when(cs.getObject(eqTo(9), eqTo(classOf[ResultSet]))).thenReturn(rsTrans)
       when(rsTrans.next()).thenReturn(true, false)
+
+      // Mock string values for regular fields
       when(rsTrans.getString("TRANSACTION_ID")).thenReturn("1")
-      when(rsTrans.getBigDecimal("TOTAL_CONSIDERATION")).thenReturn(new java.math.BigDecimal("250000.00"))
-      when(rsTrans.getBigDecimal("CONSIDERATION_CASH")).thenReturn(new java.math.BigDecimal("200000.00"))
-      when(rsTrans.getBigDecimal("RELIEF_AMOUNT")).thenReturn(null)
+
+      // Mock string values for BigDecimal fields (now using getString instead of getBigDecimal)
+      when(rsTrans.getString("TOTAL_CONSIDERATION")).thenReturn("250000.00")
+      when(rsTrans.getString("CONSIDERATION_CASH")).thenReturn("200000.00")
+      when(rsTrans.getString("RELIEF_AMOUNT")).thenReturn(null)
+
+      // Mock all other BigDecimal fields as null to avoid NullPointerException
+      when(rsTrans.getString("TOTAL_CONSIDERATION_LINKED")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_BUILD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_CONTINGENT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_DEBT")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_EMPLOY")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_OTHER")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_LAND")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SERVICES")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_QTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_SHARES_UNQTD")).thenReturn(null)
+      when(rsTrans.getString("CONSIDERATION_VAT")).thenReturn(null)
+      when(rsTrans.getString("TOTAL_CONSIDERATION_BUSINESS")).thenReturn(null)
 
       (3 to 16).foreach { pos =>
         if (pos != 9) {
@@ -1602,7 +1921,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       when(rsOrg.next()).thenReturn(true, false)
       when(rsOrg.getString("IS_RETURN_USER")).thenReturn("YES")
-      when(rsOrg.getString("DO_NOT_DISPLAY_WELCOME_PAGE")).thenReturn("N")
+      when(rsOrg.getString("DO_NOT_DISPLAY_WELCOME_PAGE")).thenReturn("NO")
       when(rsOrg.getString("STORN")).thenReturn("STORN12345")
       when(rsOrg.getString("VERSION")).thenReturn("1")
 
@@ -1627,7 +1946,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       result.storn mustBe Some("STORN12345")
       result.version mustBe Some("1")
       result.isReturnUser mustBe Some("YES")
-      result.doNotDisplayWelcomePage mustBe Some("N")
+      result.doNotDisplayWelcomePage mustBe Some("NO")
 
       result.agents must have size 1
       val agent = result.agents.head
@@ -2569,6 +2888,587 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       verify(cs).setString(1, "STORN99999")
       verify(cs).setLong(2, 100002L)
+      verify(cs).execute()
+    }
+  }
+
+  "sdltCreateLand" - {
+
+    "call Create_Land stored procedure with correct parameters and return land IDs" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo("{ call LAND_PROCS.Create_Land(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+        )
+      )
+        .thenReturn(cs)
+      when(cs.getLong(18)).thenReturn(1L)
+      when(cs.getLong(19)).thenReturn(100001L)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = CreateLandRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        propertyType = "RESIDENTIAL",
+        interestTransferredCreated = "FREEHOLD",
+        houseNumber = Some("123"),
+        addressLine1 = "Main Street",
+        addressLine2 = Some("Apartment 4B"),
+        addressLine3 = Some("City Center"),
+        addressLine4 = Some("Greater London"),
+        postcode = Some("SW1A 1AA"),
+        landArea = Some("500"),
+        areaUnit = Some("SQUARE_METERS"),
+        localAuthorityNumber = Some("LA12345"),
+        mineralRights = Some("YES"),
+        nlpgUprn = Some("100012345678"),
+        willSendPlansByPost = Some("NO"),
+        titleNumber = Some("TN123456")
+      )
+
+      val result = repo.sdltCreateLand(request).futureValue
+
+      result.landResourceRef mustBe "100001"
+      result.landId mustBe "1"
+
+      verify(conn).prepareCall(
+        "{ call LAND_PROCS.Create_Land(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+      )
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setString(3, "RESIDENTIAL")
+      verify(cs).setString(4, "FREEHOLD")
+      verify(cs).setString(5, "123")
+      verify(cs).setString(6, "Main Street")
+      verify(cs).setString(7, "Apartment 4B")
+      verify(cs).setString(8, "City Center")
+      verify(cs).setString(9, "Greater London")
+      verify(cs).setString(10, "SW1A 1AA")
+      verify(cs).setString(11, "500")
+      verify(cs).setString(12, "SQUARE_METERS")
+      verify(cs).setString(13, "LA12345")
+      verify(cs).setString(14, "YES")
+      verify(cs).setString(15, "100012345678")
+      verify(cs).setString(16, "NO")
+      verify(cs).setString(17, "TN123456")
+      verify(cs).registerOutParameter(18, Types.NUMERIC)
+      verify(cs).registerOutParameter(19, Types.NUMERIC)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "handle optional fields being None" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+      when(cs.getLong(18)).thenReturn(2L)
+      when(cs.getLong(19)).thenReturn(100002L)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = CreateLandRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        propertyType = "NON_RESIDENTIAL",
+        interestTransferredCreated = "LEASEHOLD",
+        houseNumber = None,
+        addressLine1 = "Business Park",
+        addressLine2 = None,
+        addressLine3 = None,
+        addressLine4 = None,
+        postcode = None,
+        landArea = None,
+        areaUnit = None,
+        localAuthorityNumber = None,
+        mineralRights = None,
+        nlpgUprn = None,
+        willSendPlansByPost = None,
+        titleNumber = None
+      )
+
+      val result = repo.sdltCreateLand(request).futureValue
+
+      result.landResourceRef mustBe "100002"
+      result.landId mustBe "2"
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).setString(3, "NON_RESIDENTIAL")
+      verify(cs).setString(4, "LEASEHOLD")
+      verify(cs).setNull(5, Types.VARCHAR)
+      verify(cs).setString(6, "Business Park")
+      verify(cs).setNull(7, Types.VARCHAR)
+      verify(cs).setNull(8, Types.VARCHAR)
+      verify(cs).setNull(9, Types.VARCHAR)
+      verify(cs).setNull(10, Types.VARCHAR)
+      verify(cs).setNull(11, Types.VARCHAR)
+      verify(cs).setNull(12, Types.VARCHAR)
+      verify(cs).setNull(13, Types.VARCHAR)
+      verify(cs).setNull(14, Types.VARCHAR)
+      verify(cs).setNull(15, Types.VARCHAR)
+      verify(cs).setNull(16, Types.VARCHAR)
+      verify(cs).setNull(17, Types.VARCHAR)
+      verify(cs).execute()
+    }
+
+    "handle mixed residential property" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+      when(cs.getLong(18)).thenReturn(3L)
+      when(cs.getLong(19)).thenReturn(100003L)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = CreateLandRequest(
+        stornId = "STORN88888",
+        returnResourceRef = "100003",
+        propertyType = "MIXED",
+        interestTransferredCreated = "FREEHOLD",
+        houseNumber = Some("99"),
+        addressLine1 = "High Street",
+        addressLine2 = Some("Town Centre"),
+        addressLine3 = Some("Manchester"),
+        addressLine4 = None,
+        postcode = Some("M1 1AA"),
+        landArea = Some("1000"),
+        areaUnit = Some("SQUARE_FEET"),
+        localAuthorityNumber = Some("LA99999"),
+        mineralRights = Some("NO"),
+        nlpgUprn = Some("100099887766"),
+        willSendPlansByPost = Some("YES"),
+        titleNumber = Some("TN999888")
+      )
+
+      val result = repo.sdltCreateLand(request).futureValue
+
+      result.landResourceRef mustBe "100003"
+      result.landId mustBe "3"
+
+      verify(cs).setString(1, "STORN88888")
+      verify(cs).setLong(2, 100003L)
+      verify(cs).setString(3, "MIXED")
+      verify(cs).setString(4, "FREEHOLD")
+      verify(cs).setString(16, "YES")
+      verify(cs).execute()
+    }
+  }
+
+  "sdltUpdateLand" - {
+
+    "call Update_Land stored procedure with correct parameters" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo("{ call LAND_PROCS.Update_Land(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+        )
+      )
+        .thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateLandRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        landResourceRef = "100001",
+        propertyType = "RESIDENTIAL",
+        interestTransferredCreated = "FREEHOLD",
+        houseNumber = Some("456"),
+        addressLine1 = "Oak Avenue",
+        addressLine2 = Some("Suite 10"),
+        addressLine3 = Some("Updated City"),
+        addressLine4 = None,
+        postcode = Some("W1A 1AA"),
+        landArea = Some("750"),
+        areaUnit = Some("SQUARE_METERS"),
+        localAuthorityNumber = Some("LA54321"),
+        mineralRights = Some("NO"),
+        nlpgUprn = Some("100087654321"),
+        willSendPlansByPost = Some("YES"),
+        titleNumber = Some("TN654321"),
+        nextLandId = Some("100002")
+      )
+
+      val result = repo.sdltUpdateLand(request).futureValue
+
+      result.updated mustBe true
+
+      verify(conn).prepareCall(
+        "{ call LAND_PROCS.Update_Land(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+      )
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setString(3, "RESIDENTIAL")
+      verify(cs).setString(4, "FREEHOLD")
+      verify(cs).setString(5, "456")
+      verify(cs).setString(6, "Oak Avenue")
+      verify(cs).setString(7, "Suite 10")
+      verify(cs).setString(8, "Updated City")
+      verify(cs).setNull(9, Types.VARCHAR)
+      verify(cs).setString(10, "W1A 1AA")
+      verify(cs).setString(11, "750")
+      verify(cs).setString(12, "SQUARE_METERS")
+      verify(cs).setString(13, "LA54321")
+      verify(cs).setString(14, "NO")
+      verify(cs).setString(15, "100087654321")
+      verify(cs).setString(16, "YES")
+      verify(cs).setString(17, "TN654321")
+      verify(cs).setLong(18, 100001L)
+      verify(cs).setString(19, "100002")
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "handle minimal update with no optional fields" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateLandRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        landResourceRef = "100002",
+        propertyType = "NON_RESIDENTIAL",
+        interestTransferredCreated = "LEASEHOLD",
+        houseNumber = None,
+        addressLine1 = "Updated Business Park",
+        addressLine2 = None,
+        addressLine3 = None,
+        addressLine4 = None,
+        postcode = None,
+        landArea = None,
+        areaUnit = None,
+        localAuthorityNumber = None,
+        mineralRights = None,
+        nlpgUprn = None,
+        willSendPlansByPost = None,
+        titleNumber = None,
+        nextLandId = None
+      )
+
+      val result = repo.sdltUpdateLand(request).futureValue
+
+      result.updated mustBe true
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).setString(3, "NON_RESIDENTIAL")
+      verify(cs).setString(4, "LEASEHOLD")
+      verify(cs).setNull(5, Types.VARCHAR)
+      verify(cs).setString(6, "Updated Business Park")
+      verify(cs).setNull(7, Types.VARCHAR)
+      verify(cs).setNull(8, Types.VARCHAR)
+      verify(cs).setNull(9, Types.VARCHAR)
+      verify(cs).setNull(10, Types.VARCHAR)
+      verify(cs).setNull(11, Types.VARCHAR)
+      verify(cs).setNull(12, Types.VARCHAR)
+      verify(cs).setNull(13, Types.VARCHAR)
+      verify(cs).setNull(14, Types.VARCHAR)
+      verify(cs).setNull(15, Types.VARCHAR)
+      verify(cs).setNull(16, Types.VARCHAR)
+      verify(cs).setNull(17, Types.VARCHAR)
+      verify(cs).setLong(18, 100002L)
+      verify(cs).setNull(19, Types.VARCHAR)
+      verify(cs).execute()
+    }
+
+    "handle update with only required fields changed" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateLandRequest(
+        stornId = "STORN77777",
+        returnResourceRef = "100003",
+        landResourceRef = "100003",
+        propertyType = "MIXED",
+        interestTransferredCreated = "FREEHOLD",
+        houseNumber = Some("1"),
+        addressLine1 = "New Street",
+        addressLine2 = None,
+        addressLine3 = None,
+        addressLine4 = None,
+        postcode = Some("NE1 1AA"),
+        landArea = None,
+        areaUnit = None,
+        localAuthorityNumber = None,
+        mineralRights = None,
+        nlpgUprn = None,
+        willSendPlansByPost = None,
+        titleNumber = None,
+        nextLandId = None
+      )
+
+      val result = repo.sdltUpdateLand(request).futureValue
+
+      result.updated mustBe true
+
+      verify(cs).setString(1, "STORN77777")
+      verify(cs).setLong(2, 100003L)
+      verify(cs).setString(3, "MIXED")
+      verify(cs).setString(4, "FREEHOLD")
+      verify(cs).setString(5, "1")
+      verify(cs).setString(6, "New Street")
+      verify(cs).setString(10, "NE1 1AA")
+      verify(cs).setLong(18, 100003L)
+      verify(cs).execute()
+    }
+  }
+
+  "sdltDeleteLand" - {
+
+    "call Delete_Land stored procedure with correct parameters" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call LAND_PROCS.Delete_Land(?, ?, ?) }"))).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = DeleteLandRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001",
+        landResourceRef = "100001"
+      )
+
+      val result = repo.sdltDeleteLand(request).futureValue
+
+      result.deleted mustBe true
+
+      verify(conn).prepareCall("{ call LAND_PROCS.Delete_Land(?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setLong(3, 100001L)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "handle different land resource references" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = DeleteLandRequest(
+        storn = "STORN99999",
+        returnResourceRef = "100002",
+        landResourceRef = "999999"
+      )
+
+      val result = repo.sdltDeleteLand(request).futureValue
+
+      result.deleted mustBe true
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).setLong(3, 999999L)
+      verify(cs).execute()
+    }
+
+    "handle deletion of secondary land property" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = DeleteLandRequest(
+        storn = "STORN88888",
+        returnResourceRef = "100003",
+        landResourceRef = "100004"
+      )
+
+      val result = repo.sdltDeleteLand(request).futureValue
+
+      result.deleted mustBe true
+
+      verify(cs).setString(1, "STORN88888")
+      verify(cs).setLong(2, 100003L)
+      verify(cs).setLong(3, 100004L)
+      verify(cs).execute()
+    }
+  }
+
+  "sdltUpdateReturn" - {
+
+    "call Update_Return stored procedure with correct parameters" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call RETURN_PROCS.Update_Return(?, ?, ?, ?, ?, ?, ?, ?) }")))
+        .thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateReturnRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001",
+        mainPurchaserId = "1",
+        mainVendorId = "1",
+        mainLandId = "1",
+        irmarkGenerated = "IRMark123456",
+        landCertForEachProp = "YES",
+        declaration = "YES"
+      )
+
+      val result = repo.sdltUpdateReturn(request).futureValue
+
+      result.updated mustBe true
+
+      verify(conn).prepareCall("{ call RETURN_PROCS.Update_Return(?, ?, ?, ?, ?, ?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setString(3, "1")
+      verify(cs).setString(4, "1")
+      verify(cs).setString(5, "1")
+      verify(cs).setString(6, "IRMark123456")
+      verify(cs).setString(7, "YES")
+      verify(cs).setString(8, "YES")
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "handle update with different values" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateReturnRequest(
+        storn = "STORN99999",
+        returnResourceRef = "100002",
+        mainPurchaserId = "5",
+        mainVendorId = "3",
+        mainLandId = "7",
+        irmarkGenerated = "IRMark999999",
+        landCertForEachProp = "NO",
+        declaration = "YES"
+      )
+
+      val result = repo.sdltUpdateReturn(request).futureValue
+
+      result.updated mustBe true
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).setString(3, "5")
+      verify(cs).setString(4, "3")
+      verify(cs).setString(5, "7")
+      verify(cs).setString(6, "IRMark999999")
+      verify(cs).setString(7, "NO")
+      verify(cs).setString(8, "YES")
+      verify(cs).execute()
+    }
+
+    "handle update with NO values for boolean fields" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateReturnRequest(
+        storn = "STORN88888",
+        returnResourceRef = "100003",
+        mainPurchaserId = "10",
+        mainVendorId = "20",
+        mainLandId = "30",
+        irmarkGenerated = "IRMark888888",
+        landCertForEachProp = "NO",
+        declaration = "NO"
+      )
+
+      val result = repo.sdltUpdateReturn(request).futureValue
+
+      result.updated mustBe true
+
+      verify(cs).setString(1, "STORN88888")
+      verify(cs).setLong(2, 100003L)
+      verify(cs).setString(3, "10")
+      verify(cs).setString(4, "20")
+      verify(cs).setString(5, "30")
+      verify(cs).setString(6, "IRMark888888")
+      verify(cs).setString(7, "NO")
+      verify(cs).setString(8, "NO")
       verify(cs).execute()
     }
   }

@@ -25,6 +25,7 @@ import uk.gov.hmrc.formpproxy.sdlt.models.organisation.*
 import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnSummary, SdltReturnRecordResponse}
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.*
+import uk.gov.hmrc.formpproxy.sdlt.models.land.*
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 
 import java.lang.Long
@@ -55,6 +56,10 @@ trait SdltSource {
   def sdltCreateCompanyDetails(request: CreateCompanyDetailsRequest): Future[CreateCompanyDetailsReturn]
   def sdltUpdateCompanyDetails(request: UpdateCompanyDetailsRequest): Future[UpdateCompanyDetailsReturn]
   def sdltDeleteCompanyDetails(request: DeleteCompanyDetailsRequest): Future[DeleteCompanyDetailsReturn]
+  def sdltCreateLand(request: CreateLandRequest): Future[CreateLandReturn]
+  def sdltUpdateLand(request: UpdateLandRequest): Future[UpdateLandReturn]
+  def sdltDeleteLand(request: DeleteLandRequest): Future[DeleteLandReturn]
+  def sdltUpdateReturn(request: UpdateReturnRequest): Future[UpdateReturnReturn]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -413,28 +418,42 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       DARPostcode = None
     )
 
+  private def getBigDecimalSafely(rs: ResultSet, columnName: String): Option[BigDecimal] =
+    Option(rs.getString(columnName)).flatMap { value =>
+      val trimmed = value.trim
+      if (trimmed.isEmpty) {
+        None
+      } else {
+        try
+          Some(BigDecimal(trimmed))
+        catch {
+          case _: NumberFormatException => None
+        }
+      }
+    }
+
   private def processTransaction(rs: ResultSet): Transaction =
     Transaction(
       transactionID = Option(rs.getString("TRANSACTION_ID")),
       returnID = Option(rs.getString("RETURN_ID")),
       claimingRelief = Option(rs.getString("CLAIMING_RELIEF")),
-      reliefAmount = Option(rs.getBigDecimal("RELIEF_AMOUNT")).map(BigDecimal(_)),
+      reliefAmount = getBigDecimalSafely(rs, "RELIEF_AMOUNT"),
       reliefReason = Option(rs.getString("RELIEF_REASON")),
       reliefSchemeNumber = Option(rs.getString("RELIEF_SCHEME_NUMBER")),
       isLinked = Option(rs.getString("IS_LINKED")),
-      totalConsiderationLinked = Option(rs.getBigDecimal("TOTAL_CONSIDERATION_LINKED")).map(BigDecimal(_)),
-      totalConsideration = Option(rs.getBigDecimal("TOTAL_CONSIDERATION")).map(BigDecimal(_)),
-      considerationBuild = Option(rs.getBigDecimal("CONSIDERATION_BUILD")).map(BigDecimal(_)),
-      considerationCash = Option(rs.getBigDecimal("CONSIDERATION_CASH")).map(BigDecimal(_)),
-      considerationContingent = Option(rs.getBigDecimal("CONSIDERATION_CONTINGENT")).map(BigDecimal(_)),
-      considerationDebt = Option(rs.getBigDecimal("CONSIDERATION_DEBT")).map(BigDecimal(_)),
-      considerationEmploy = Option(rs.getBigDecimal("CONSIDERATION_EMPLOY")).map(BigDecimal(_)),
-      considerationOther = Option(rs.getBigDecimal("CONSIDERATION_OTHER")).map(BigDecimal(_)),
-      considerationLand = Option(rs.getBigDecimal("CONSIDERATION_LAND")).map(BigDecimal(_)),
-      considerationServices = Option(rs.getBigDecimal("CONSIDERATION_SERVICES")).map(BigDecimal(_)),
-      considerationSharesQTD = Option(rs.getBigDecimal("CONSIDERATION_SHARES_QTD")).map(BigDecimal(_)),
-      considerationSharesUNQTD = Option(rs.getBigDecimal("CONSIDERATION_SHARES_UNQTD")).map(BigDecimal(_)),
-      considerationVAT = Option(rs.getBigDecimal("CONSIDERATION_VAT")).map(BigDecimal(_)),
+      totalConsiderationLinked = getBigDecimalSafely(rs, "TOTAL_CONSIDERATION_LINKED"),
+      totalConsideration = getBigDecimalSafely(rs, "TOTAL_CONSIDERATION"),
+      considerationBuild = getBigDecimalSafely(rs, "CONSIDERATION_BUILD"),
+      considerationCash = getBigDecimalSafely(rs, "CONSIDERATION_CASH"),
+      considerationContingent = getBigDecimalSafely(rs, "CONSIDERATION_CONTINGENT"),
+      considerationDebt = getBigDecimalSafely(rs, "CONSIDERATION_DEBT"),
+      considerationEmploy = getBigDecimalSafely(rs, "CONSIDERATION_EMPLOY"),
+      considerationOther = getBigDecimalSafely(rs, "CONSIDERATION_OTHER"),
+      considerationLand = getBigDecimalSafely(rs, "CONSIDERATION_LAND"),
+      considerationServices = getBigDecimalSafely(rs, "CONSIDERATION_SERVICES"),
+      considerationSharesQTD = getBigDecimalSafely(rs, "CONSIDERATION_SHARES_QTD"),
+      considerationSharesUNQTD = getBigDecimalSafely(rs, "CONSIDERATION_SHARES_UNQTD"),
+      considerationVAT = getBigDecimalSafely(rs, "CONSIDERATION_VAT"),
       includesChattel = Option(rs.getString("INCLUDES_CHATTEL")),
       includesGoodwill = Option(rs.getString("INCLUDES_GOODWILL")),
       includesOther = Option(rs.getString("INCLUDES_OTHER")),
@@ -465,7 +484,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       restrictionDetails = Option(rs.getString("RESTRICTION_DETAILS")),
       postTransRulingFollowed = Option(rs.getString("POST_TRANS_RULING_FOLLOWED")),
       isPartOfSaleOfBusiness = Option(rs.getString("IS_PART_OF_SALE_OF_BUSINESS")),
-      totalConsiderationBusiness = Option(rs.getBigDecimal("TOTAL_CONSIDERATION_BUSINESS")).map(BigDecimal(_))
+      totalConsiderationBusiness = getBigDecimalSafely(rs, "TOTAL_CONSIDERATION_BUSINESS")
     )
 
   private def processReturnAgent(rs: ResultSet): ReturnAgent =
@@ -1584,6 +1603,252 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       DeleteCompanyDetailsReturn(
         deleted = true
       )
+    } finally cs.close()
+  }
+
+  override def sdltCreateLand(request: CreateLandRequest): Future[CreateLandReturn] = Future {
+    db.withTransaction { conn =>
+      callCreateLand(
+        conn = conn,
+        p_storn = request.stornId,
+        p_return_resource_ref = request.returnResourceRef.toLong,
+        p_property_type = request.propertyType,
+        p_interest_transferred_created = request.interestTransferredCreated,
+        p_house_number = request.houseNumber,
+        p_address_1 = request.addressLine1,
+        p_address_2 = request.addressLine2,
+        p_address_3 = request.addressLine3,
+        p_address_4 = request.addressLine4,
+        p_postcode = request.postcode,
+        p_land_area = request.landArea,
+        p_area_unit = request.areaUnit,
+        p_local_authority_number = request.localAuthorityNumber,
+        p_mineral_rights = request.mineralRights,
+        p_nlpg_uprn = request.nlpgUprn,
+        p_will_send_plans_by_post = request.willSendPlansByPost,
+        p_title_number = request.titleNumber
+      )
+    }
+  }
+
+  private def callCreateLand(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_property_type: String,
+    p_interest_transferred_created: String,
+    p_house_number: Option[String],
+    p_address_1: String,
+    p_address_2: Option[String],
+    p_address_3: Option[String],
+    p_address_4: Option[String],
+    p_postcode: Option[String],
+    p_land_area: Option[String],
+    p_area_unit: Option[String],
+    p_local_authority_number: Option[String],
+    p_mineral_rights: Option[String],
+    p_nlpg_uprn: Option[String],
+    p_will_send_plans_by_post: Option[String],
+    p_title_number: Option[String]
+  ): CreateLandReturn = {
+
+    val cs = conn.prepareCall(
+      "{ call LAND_PROCS.Create_Land(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+    )
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.setString(3, p_property_type)
+      cs.setString(4, p_interest_transferred_created)
+      cs.setOptionalString(5, p_house_number)
+      cs.setString(6, p_address_1)
+      cs.setOptionalString(7, p_address_2)
+      cs.setOptionalString(8, p_address_3)
+      cs.setOptionalString(9, p_address_4)
+      cs.setOptionalString(10, p_postcode)
+      cs.setOptionalString(11, p_land_area)
+      cs.setOptionalString(12, p_area_unit)
+      cs.setOptionalString(13, p_local_authority_number)
+      cs.setOptionalString(14, p_mineral_rights)
+      cs.setOptionalString(15, p_nlpg_uprn)
+      cs.setOptionalString(16, p_will_send_plans_by_post)
+      cs.setOptionalString(17, p_title_number)
+
+      cs.registerOutParameter(18, Types.NUMERIC)
+      cs.registerOutParameter(19, Types.NUMERIC)
+
+      cs.execute()
+
+      val landId          = cs.getLong(18)
+      val landResourceRef = cs.getLong(19)
+
+      CreateLandReturn(
+        landResourceRef = landResourceRef.toString,
+        landId = landId.toString
+      )
+    } finally cs.close()
+  }
+
+  override def sdltUpdateLand(request: UpdateLandRequest): Future[UpdateLandReturn] = Future {
+    db.withTransaction { conn =>
+      callUpdateLand(
+        conn = conn,
+        p_storn = request.stornId,
+        p_return_resource_ref = request.returnResourceRef.toLong,
+        p_property_type = request.propertyType,
+        p_interest_transferred_created = request.interestTransferredCreated,
+        p_house_number = request.houseNumber,
+        p_address_1 = request.addressLine1,
+        p_address_2 = request.addressLine2,
+        p_address_3 = request.addressLine3,
+        p_address_4 = request.addressLine4,
+        p_postcode = request.postcode,
+        p_land_area = request.landArea,
+        p_area_unit = request.areaUnit,
+        p_local_authority_number = request.localAuthorityNumber,
+        p_mineral_rights = request.mineralRights,
+        p_nlpg_uprn = request.nlpgUprn,
+        p_will_send_plans_by_post = request.willSendPlansByPost,
+        p_title_number = request.titleNumber,
+        p_land_resource_ref = request.landResourceRef.toLong,
+        p_next_land_id = request.nextLandId
+      )
+    }
+  }
+
+  private def callUpdateLand(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_property_type: String,
+    p_interest_transferred_created: String,
+    p_house_number: Option[String],
+    p_address_1: String,
+    p_address_2: Option[String],
+    p_address_3: Option[String],
+    p_address_4: Option[String],
+    p_postcode: Option[String],
+    p_land_area: Option[String],
+    p_area_unit: Option[String],
+    p_local_authority_number: Option[String],
+    p_mineral_rights: Option[String],
+    p_nlpg_uprn: Option[String],
+    p_will_send_plans_by_post: Option[String],
+    p_title_number: Option[String],
+    p_land_resource_ref: Long,
+    p_next_land_id: Option[String]
+  ): UpdateLandReturn = {
+
+    val cs = conn.prepareCall(
+      "{ call LAND_PROCS.Update_Land(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+    )
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.setString(3, p_property_type)
+      cs.setString(4, p_interest_transferred_created)
+      cs.setOptionalString(5, p_house_number)
+      cs.setString(6, p_address_1)
+      cs.setOptionalString(7, p_address_2)
+      cs.setOptionalString(8, p_address_3)
+      cs.setOptionalString(9, p_address_4)
+      cs.setOptionalString(10, p_postcode)
+      cs.setOptionalString(11, p_land_area)
+      cs.setOptionalString(12, p_area_unit)
+      cs.setOptionalString(13, p_local_authority_number)
+      cs.setOptionalString(14, p_mineral_rights)
+      cs.setOptionalString(15, p_nlpg_uprn)
+      cs.setOptionalString(16, p_will_send_plans_by_post)
+      cs.setOptionalString(17, p_title_number)
+      cs.setLong(18, p_land_resource_ref)
+      cs.setOptionalString(19, p_next_land_id)
+
+      cs.execute()
+
+      UpdateLandReturn(
+        updated = true
+      )
+
+    } finally cs.close()
+  }
+
+  override def sdltDeleteLand(request: DeleteLandRequest): Future[DeleteLandReturn] = Future {
+    db.withTransaction { conn =>
+      callDeleteLand(
+        conn = conn,
+        p_storn = request.storn,
+        p_return_resource_ref = request.returnResourceRef.toLong,
+        p_land_resource_ref = request.landResourceRef.toLong
+      )
+    }
+  }
+
+  private def callDeleteLand(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_land_resource_ref: Long
+  ): DeleteLandReturn = {
+
+    val cs = conn.prepareCall("{ call LAND_PROCS.Delete_Land(?, ?, ?) }")
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.setLong(3, p_land_resource_ref)
+
+      cs.execute()
+
+      DeleteLandReturn(
+        deleted = true
+      )
+    } finally cs.close()
+  }
+
+  override def sdltUpdateReturn(request: UpdateReturnRequest): Future[UpdateReturnReturn] = Future {
+    db.withTransaction { conn =>
+      callUpdateReturn(
+        conn = conn,
+        p_storn = request.storn,
+        p_return_resource_ref = request.returnResourceRef.toLong,
+        p_main_purchaser_id = request.mainPurchaserId,
+        p_main_vendor_id = request.mainVendorId,
+        p_main_land_id = request.mainLandId,
+        p_irmark_generated = request.irmarkGenerated,
+        p_land_cert_for_each_prop = request.landCertForEachProp,
+        p_declaration = request.declaration
+      )
+    }
+  }
+
+  private def callUpdateReturn(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_main_purchaser_id: String,
+    p_main_vendor_id: String,
+    p_main_land_id: String,
+    p_irmark_generated: String,
+    p_land_cert_for_each_prop: String,
+    p_declaration: String
+  ): UpdateReturnReturn = {
+
+    val cs = conn.prepareCall("{ call RETURN_PROCS.Update_Return(?, ?, ?, ?, ?, ?, ?, ?) }")
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.setString(3, p_main_purchaser_id)
+      cs.setString(4, p_main_vendor_id)
+      cs.setString(5, p_main_land_id)
+      cs.setString(6, p_irmark_generated)
+      cs.setString(7, p_land_cert_for_each_prop)
+      cs.setString(8, p_declaration)
+
+      cs.execute()
+
+      UpdateReturnReturn(
+        updated = true
+      )
+
     } finally cs.close()
   }
 

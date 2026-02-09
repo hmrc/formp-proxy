@@ -22,6 +22,8 @@ import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.SoleTrader
 import uk.gov.hmrc.formpproxy.cis.models.requests.CreateAndUpdateSubcontractorRequest
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
+import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
+import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorListResponse
 
 import scala.concurrent.Future
 
@@ -96,4 +98,42 @@ class SubcontractorServiceSpec extends SpecBase {
       verify(repo).createAndUpdateSubcontractor(eqTo(req))
     }
   }
+
+  "SubcontractorService#getSubcontractorList" - {
+
+    "delegates to repo with cisId and returns response" in {
+      val c = Ctx();
+      import c.*
+
+      val req  = GetSubcontractorList(cisId = "cis-123")
+      val resp = GetSubcontractorListResponse(subcontractors = List.empty)
+
+      when(repo.getSubcontractorList(eqTo("cis-123")))
+        .thenReturn(Future.successful(resp))
+
+      val out = service.getSubcontractorList(req).futureValue
+      out mustBe resp
+
+      verify(repo).getSubcontractorList(eqTo("cis-123"))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failure from repo" in {
+      val c = Ctx();
+      import c.*
+
+      val req  = GetSubcontractorList(cisId = "cis-123")
+      val boom = new RuntimeException("boom")
+
+      when(repo.getSubcontractorList(eqTo("cis-123")))
+        .thenReturn(Future.failed(boom))
+
+      val ex = service.getSubcontractorList(req).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).getSubcontractorList(eqTo("cis-123"))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
 }

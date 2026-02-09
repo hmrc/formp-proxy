@@ -47,6 +47,7 @@ trait CisMonthlyReturnSource {
   def updateSchemeVersion(instanceId: String, version: Int): Future[Int]
   def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int]
   def createAndUpdateSubcontractor(request: CreateAndUpdateSubcontractorRequest): Future[Unit]
+  def getSubcontractorList(cisId: String): Future[GetSubcontractorListResponse]
   def getMonthlyReturnForEdit(instanceId: String, taxYear: Int, taxMonth: Int): Future[GetMonthlyReturnForEditResponse]
 }
 
@@ -597,4 +598,37 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         cs.execute()
       } finally cs.close()
     }
+
+  override def getSubcontractorList(cisId: String): Future[GetSubcontractorListResponse] = Future {
+    logger.info(s"[CIS] getSubcontractorList(cisId=$cisId)")
+
+    db.withConnection { conn =>
+      Using.resource(conn.prepareCall(CallGetSubcontractorList)) { cs =>
+        cs.setString(1, cisId)
+        cs.registerOutParameter(2, OracleTypes.CURSOR)
+        cs.registerOutParameter(3, OracleTypes.CURSOR)
+        cs.execute()
+
+        val rsScheme = cs.getObject(2, classOf[ResultSet])
+        try ()
+        finally if (rsScheme != null) rsScheme.close()
+
+        val rsSubs = cs.getObject(3, classOf[ResultSet])
+        val subs   =
+          try collectSubcontractorsResponse(rsSubs)
+          finally if (rsSubs != null) rsSubs.close()
+
+        GetSubcontractorListResponse(subcontractors = subs.toList)
+      }
+    }
+  }
+
+  private def collectSubcontractorsResponse(rs: ResultSet): Seq[Subcontractor] =
+    if (rs == null) Seq.empty
+    else {
+      val b = Vector.newBuilder[Subcontractor]
+      while (rs.next()) b += readSubcontractor(rs)
+      b.result()
+    }
+
 }
