@@ -1195,17 +1195,17 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     conn: Connection,
     p_storn: String,
     p_return_resource_ref: Long,
-    p_is_company: String,
-    p_is_trustee: String,
-    p_is_connected_to_vendor: String,
-    p_is_represented_by_agent: String,
+    p_is_company: Option[String],
+    p_is_trustee: Option[String],
+    p_is_connected_to_vendor: Option[String],
+    p_is_represented_by_agent: Option[String],
     p_title: Option[String],
     p_surname: Option[String],
     p_forename1: Option[String],
     p_forename2: Option[String],
     p_company_name: Option[String],
     p_house_number: Option[String],
-    p_address_1: String,
+    p_address_1: Option[String],
     p_address_2: Option[String],
     p_address_3: Option[String],
     p_address_4: Option[String],
@@ -1225,17 +1225,17 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     try {
       cs.setString(1, p_storn)
       cs.setLong(2, p_return_resource_ref)
-      cs.setString(3, p_is_company)
-      cs.setString(4, p_is_trustee)
-      cs.setString(5, p_is_connected_to_vendor)
-      cs.setString(6, p_is_represented_by_agent)
+      cs.setOptionalString(3, p_is_company)
+      cs.setOptionalString(4, p_is_trustee)
+      cs.setOptionalString(5, p_is_connected_to_vendor)
+      cs.setOptionalString(6, p_is_represented_by_agent)
       cs.setOptionalString(7, p_title)
       cs.setOptionalString(8, p_surname)
       cs.setOptionalString(9, p_forename1)
       cs.setOptionalString(10, p_forename2)
       cs.setOptionalString(11, p_company_name)
       cs.setOptionalString(12, p_house_number)
-      cs.setString(13, p_address_1)
+      cs.setOptionalString(13, p_address_1)
       cs.setOptionalString(14, p_address_2)
       cs.setOptionalString(15, p_address_3)
       cs.setOptionalString(16, p_address_4)
@@ -1302,17 +1302,17 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     p_storn: String,
     p_return_resource_ref: Long,
     p_purchaser_resource_ref: Long,
-    p_is_company: String,
-    p_is_trustee: String,
-    p_is_connected_to_vendor: String,
-    p_is_represented_by_agent: String,
+    p_is_company: Option[String],
+    p_is_trustee: Option[String],
+    p_is_connected_to_vendor: Option[String],
+    p_is_represented_by_agent: Option[String],
     p_title: Option[String],
     p_surname: Option[String],
     p_forename1: Option[String],
     p_forename2: Option[String],
     p_company_name: Option[String],
     p_house_number: Option[String],
-    p_address_1: String,
+    p_address_1: Option[String],
     p_address_2: Option[String],
     p_address_3: Option[String],
     p_address_4: Option[String],
@@ -1334,17 +1334,17 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       cs.setString(1, p_storn)
       cs.setLong(2, p_return_resource_ref)
       cs.setLong(3, p_purchaser_resource_ref)
-      cs.setString(4, p_is_company)
-      cs.setString(5, p_is_trustee)
-      cs.setString(6, p_is_connected_to_vendor)
-      cs.setString(7, p_is_represented_by_agent)
+      cs.setOptionalString(4, p_is_company)
+      cs.setOptionalString(5, p_is_trustee)
+      cs.setOptionalString(6, p_is_connected_to_vendor)
+      cs.setOptionalString(7, p_is_represented_by_agent)
       cs.setOptionalString(8, p_title)
       cs.setOptionalString(9, p_surname)
       cs.setOptionalString(10, p_forename1)
       cs.setOptionalString(11, p_forename2)
       cs.setOptionalString(12, p_company_name)
       cs.setOptionalString(13, p_house_number)
-      cs.setString(14, p_address_1)
+      cs.setOptionalString(14, p_address_1)
       cs.setOptionalString(15, p_address_2)
       cs.setOptionalString(16, p_address_3)
       cs.setOptionalString(17, p_address_4)
