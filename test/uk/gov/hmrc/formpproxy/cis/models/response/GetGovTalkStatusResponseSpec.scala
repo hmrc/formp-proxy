@@ -28,7 +28,7 @@ class GetGovTalkStatusResponseSpec extends AnyWordSpec with Matchers {
   "GetGovTalkStatusResponse JSON format" should {
 
     "serialize and deserialize correctly" in {
-      val model = GetGovTalkStatusResponse(govtallk_status =
+      val model = GetGovTalkStatusResponse(govtalk_status =
         Seq(
           GovTalkStatusRecord(
             userIdentifier = "1",

@@ -29,17 +29,17 @@ class PurchaserModelsSpec extends AnyFreeSpec with Matchers {
       val request = CreatePurchaserRequest(
         stornId = "STORN12345",
         returnResourceRef = "100001",
-        isCompany = "NO",
-        isTrustee = "NO",
-        isConnectedToVendor = "NO",
-        isRepresentedByAgent = "NO",
+        isCompany = Some("NO"),
+        isTrustee = Some("NO"),
+        isConnectedToVendor = Some("NO"),
+        isRepresentedByAgent = Some("NO"),
         title = Some("Mr"),
         surname = Some("Smith"),
         forename1 = Some("John"),
         forename2 = Some("James"),
         companyName = None,
         houseNumber = Some("123"),
-        address1 = "Main Street",
+        address1 = Some("Main Street"),
         address2 = Some("Apartment 4B"),
         address3 = Some("City Center"),
         address4 = Some("Greater London"),
@@ -81,17 +81,17 @@ class PurchaserModelsSpec extends AnyFreeSpec with Matchers {
       val request = CreatePurchaserRequest(
         stornId = "STORN99999",
         returnResourceRef = "100002",
-        isCompany = "YES",
-        isTrustee = "NO",
-        isConnectedToVendor = "NO",
-        isRepresentedByAgent = "NO",
+        isCompany = Some("YES"),
+        isTrustee = Some("NO"),
+        isConnectedToVendor = Some("NO"),
+        isRepresentedByAgent = Some("NO"),
         title = None,
         surname = None,
         forename1 = None,
         forename2 = None,
         companyName = Some("Tech Corp Ltd"),
         houseNumber = None,
-        address1 = "Business Park",
+        address1 = Some("Business Park"),
         address2 = None,
         address3 = None,
         address4 = None,
@@ -123,17 +123,17 @@ class PurchaserModelsSpec extends AnyFreeSpec with Matchers {
       val request = CreatePurchaserRequest(
         stornId = "STORN12345",
         returnResourceRef = "100001",
-        isCompany = "NO",
-        isTrustee = "NO",
-        isConnectedToVendor = "NO",
-        isRepresentedByAgent = "NO",
+        isCompany = Some("NO"),
+        isTrustee = Some("NO"),
+        isConnectedToVendor = Some("NO"),
+        isRepresentedByAgent = Some("NO"),
         title = None,
         surname = None,
         forename1 = None,
         forename2 = None,
         companyName = None,
         houseNumber = None,
-        address1 = "Main Street",
+        address1 = Some("Main Street"),
         address2 = None,
         address3 = None,
         address4 = None,
@@ -189,16 +189,16 @@ class PurchaserModelsSpec extends AnyFreeSpec with Matchers {
 
       request.stornId mustBe "STORN12345"
       request.returnResourceRef mustBe "100001"
-      request.isCompany mustBe "NO"
-      request.isTrustee mustBe "NO"
-      request.isConnectedToVendor mustBe "NO"
-      request.isRepresentedByAgent mustBe "NO"
+      request.isCompany mustBe Some("NO")
+      request.isTrustee mustBe Some("NO")
+      request.isConnectedToVendor mustBe Some("NO")
+      request.isRepresentedByAgent mustBe Some("NO")
       request.title mustBe Some("Mr")
       request.surname mustBe Some("Smith")
       request.forename1 mustBe Some("John")
       request.forename2 mustBe Some("James")
       request.houseNumber mustBe Some("123")
-      request.address1 mustBe "Main Street"
+      request.address1 mustBe Some("Main Street")
       request.address2 mustBe Some("Apartment 4B")
       request.postcode mustBe Some("SW1A 1AA")
       request.phone mustBe Some("07777123456")
@@ -225,8 +225,8 @@ class PurchaserModelsSpec extends AnyFreeSpec with Matchers {
 
       request.stornId mustBe "STORN12345"
       request.returnResourceRef mustBe "100001"
-      request.isCompany mustBe "NO"
-      request.address1 mustBe "Main Street"
+      request.isCompany mustBe Some("NO")
+      request.address1 mustBe Some("Main Street")
       request.title mustBe None
       request.surname mustBe None
       request.companyName mustBe None
@@ -262,35 +262,6 @@ class PurchaserModelsSpec extends AnyFreeSpec with Matchers {
       result.isError mustBe true
     }
 
-    "must fail to deserialize when required field address1 is missing" in {
-      val json = Json.obj(
-        "stornId"              -> "STORN12345",
-        "returnResourceRef"    -> "100001",
-        "isCompany"            -> "NO",
-        "isTrustee"            -> "NO",
-        "isConnectedToVendor"  -> "NO",
-        "isRepresentedByAgent" -> "NO"
-      )
-
-      val result = json.validate[CreatePurchaserRequest]
-
-      result.isError mustBe true
-    }
-
-    "must fail to deserialize when required field isCompany is missing" in {
-      val json = Json.obj(
-        "stornId"              -> "STORN12345",
-        "returnResourceRef"    -> "100001",
-        "isTrustee"            -> "NO",
-        "isConnectedToVendor"  -> "NO",
-        "isRepresentedByAgent" -> "NO",
-        "address1"             -> "Main Street"
-      )
-
-      val result = json.validate[CreatePurchaserRequest]
-
-      result.isError mustBe true
-    }
   }
 
   "CreatePurchaserReturn" - {
@@ -346,17 +317,17 @@ class PurchaserModelsSpec extends AnyFreeSpec with Matchers {
         stornId = "STORN12345",
         returnResourceRef = "100001",
         purchaserResourceRef = "P100001",
-        isCompany = "NO",
-        isTrustee = "NO",
-        isConnectedToVendor = "YES",
-        isRepresentedByAgent = "YES",
+        isCompany = Some("NO"),
+        isTrustee = Some("NO"),
+        isConnectedToVendor = Some("YES"),
+        isRepresentedByAgent = Some("YES"),
         title = Some("Mrs"),
         surname = Some("Doe"),
         forename1 = Some("Jane"),
         forename2 = Some("Marie"),
         companyName = None,
         houseNumber = Some("456"),
-        address1 = "Oak Avenue",
+        address1 = Some("Oak Avenue"),
         address2 = Some("Suite 10"),
         address3 = Some("Downtown"),
         address4 = Some("Greater Manchester"),
@@ -400,17 +371,17 @@ class PurchaserModelsSpec extends AnyFreeSpec with Matchers {
         stornId = "STORN99999",
         returnResourceRef = "100002",
         purchaserResourceRef = "P100002",
-        isCompany = "YES",
-        isTrustee = "NO",
-        isConnectedToVendor = "NO",
-        isRepresentedByAgent = "NO",
+        isCompany = Some("YES"),
+        isTrustee = Some("NO"),
+        isConnectedToVendor = Some("NO"),
+        isRepresentedByAgent = Some("NO"),
         title = None,
         surname = None,
         forename1 = None,
         forename2 = None,
         companyName = Some("Updated Corp Ltd"),
         houseNumber = None,
-        address1 = "New Business Park",
+        address1 = Some("New Business Park"),
         address2 = None,
         address3 = None,
         address4 = None,
@@ -470,8 +441,8 @@ class PurchaserModelsSpec extends AnyFreeSpec with Matchers {
       request.stornId mustBe "STORN12345"
       request.returnResourceRef mustBe "100001"
       request.purchaserResourceRef mustBe "P100001"
-      request.isCompany mustBe "NO"
-      request.isConnectedToVendor mustBe "YES"
+      request.isCompany mustBe Some("NO")
+      request.isConnectedToVendor mustBe Some("YES")
       request.title mustBe Some("Mrs")
       request.surname mustBe Some("Doe")
       request.forename1 mustBe Some("Jane")
@@ -498,8 +469,8 @@ class PurchaserModelsSpec extends AnyFreeSpec with Matchers {
       request.stornId mustBe "STORN99999"
       request.returnResourceRef mustBe "100002"
       request.purchaserResourceRef mustBe "P100002"
-      request.isCompany mustBe "YES"
-      request.address1 mustBe "New Business Park"
+      request.isCompany mustBe Some("YES")
+      request.address1 mustBe Some("New Business Park")
       request.nextPurchaserId mustBe None
     }
 

@@ -40,17 +40,17 @@ class PurchaserReturnsControllerSpec extends AnyFreeSpec with Matchers with Scal
       val request: CreatePurchaserRequest = CreatePurchaserRequest(
         stornId = "STORN12345",
         returnResourceRef = "100001",
-        isCompany = "N",
-        isTrustee = "N",
-        isConnectedToVendor = "N",
-        isRepresentedByAgent = "N",
+        isCompany = Some("NO"),
+        isTrustee = Some("NO"),
+        isConnectedToVendor = Some("NO"),
+        isRepresentedByAgent = Some("NO"),
         title = Some("Mr"),
         surname = Some("Smith"),
         forename1 = Some("John"),
         forename2 = Some("James"),
         companyName = None,
         houseNumber = Some("123"),
-        address1 = "Main Street",
+        address1 = Some("Main Street"),
         address2 = Some("Apartment 4B"),
         address3 = Some("City Center"),
         address4 = Some("Greater London"),
@@ -88,17 +88,17 @@ class PurchaserReturnsControllerSpec extends AnyFreeSpec with Matchers with Scal
       val request: CreatePurchaserRequest = CreatePurchaserRequest(
         stornId = "STORN99999",
         returnResourceRef = "100002",
-        isCompany = "Y",
-        isTrustee = "N",
-        isConnectedToVendor = "N",
-        isRepresentedByAgent = "N",
+        isCompany = Some("YES"),
+        isTrustee = Some("NO"),
+        isConnectedToVendor = Some("NO"),
+        isRepresentedByAgent = Some("NO"),
         title = None,
         surname = None,
         forename1 = None,
         forename2 = None,
         companyName = Some("Tech Corp Ltd"),
         houseNumber = None,
-        address1 = "Business Park",
+        address1 = Some("Business Park"),
         address2 = None,
         address3 = None,
         address4 = None,
@@ -139,10 +139,10 @@ class PurchaserReturnsControllerSpec extends AnyFreeSpec with Matchers with Scal
     "returns 400 when stornId is missing" in new Setup {
       val invalidJson: JsObject = Json.obj(
         "returnResourceRef"    -> "100001",
-        "isCompany"            -> "N",
-        "isTrustee"            -> "N",
-        "isConnectedToVendor"  -> "N",
-        "isRepresentedByAgent" -> "N",
+        "isCompany"            -> Some("NO"),
+        "isTrustee"            -> Some("NO"),
+        "isConnectedToVendor"  -> Some("NO"),
+        "isRepresentedByAgent" -> Some("NO"),
         "address1"             -> "Main Street"
       )
 
@@ -157,29 +157,11 @@ class PurchaserReturnsControllerSpec extends AnyFreeSpec with Matchers with Scal
     "returns 400 when returnResourceRef is missing" in new Setup {
       val invalidJson: JsObject = Json.obj(
         "stornId"              -> "STORN12345",
-        "isCompany"            -> "N",
-        "isTrustee"            -> "N",
-        "isConnectedToVendor"  -> "N",
-        "isRepresentedByAgent" -> "N",
+        "isCompany"            -> Some("NO"),
+        "isTrustee"            -> Some("NO"),
+        "isConnectedToVendor"  -> Some("NO"),
+        "isRepresentedByAgent" -> Some("NO"),
         "address1"             -> "Main Street"
-      )
-
-      val req: FakeRequest[JsValue] = makeJsonRequest(invalidJson)
-      val res: Future[Result]       = controller.createPurchaser()(req)
-
-      status(res) mustBe BAD_REQUEST
-      (contentAsJson(res) \ "message").as[String] mustBe "Invalid payload"
-      verifyNoInteractions(mockService)
-    }
-
-    "returns 400 when address1 is missing" in new Setup {
-      val invalidJson: JsObject = Json.obj(
-        "stornId"              -> "STORN12345",
-        "returnResourceRef"    -> "100001",
-        "isCompany"            -> "N",
-        "isTrustee"            -> "N",
-        "isConnectedToVendor"  -> "N",
-        "isRepresentedByAgent" -> "N"
       )
 
       val req: FakeRequest[JsValue] = makeJsonRequest(invalidJson)
@@ -194,17 +176,17 @@ class PurchaserReturnsControllerSpec extends AnyFreeSpec with Matchers with Scal
       val request: CreatePurchaserRequest = CreatePurchaserRequest(
         stornId = "STORN12345",
         returnResourceRef = "100001",
-        isCompany = "N",
-        isTrustee = "N",
-        isConnectedToVendor = "N",
-        isRepresentedByAgent = "N",
+        isCompany = Some("NO"),
+        isTrustee = Some("NO"),
+        isConnectedToVendor = Some("NO"),
+        isRepresentedByAgent = Some("NO"),
         title = Some("Mr"),
         surname = Some("Smith"),
         forename1 = Some("John"),
         forename2 = None,
         companyName = None,
         houseNumber = Some("123"),
-        address1 = "Main Street",
+        address1 = Some("Main Street"),
         address2 = None,
         address3 = None,
         address4 = None,
@@ -239,17 +221,17 @@ class PurchaserReturnsControllerSpec extends AnyFreeSpec with Matchers with Scal
         stornId = "STORN12345",
         returnResourceRef = "100001",
         purchaserResourceRef = "P100001",
-        isCompany = "N",
-        isTrustee = "N",
-        isConnectedToVendor = "Y",
-        isRepresentedByAgent = "Y",
+        isCompany = Some("NO"),
+        isTrustee = Some("NO"),
+        isConnectedToVendor = Some("YES"),
+        isRepresentedByAgent = Some("YES"),
         title = Some("Mrs"),
         surname = Some("Doe"),
         forename1 = Some("Jane"),
         forename2 = None,
         companyName = None,
         houseNumber = Some("456"),
-        address1 = "Oak Avenue",
+        address1 = Some("Oak Avenue"),
         address2 = Some("Suite 10"),
         address3 = Some("Downtown"),
         address4 = None,
@@ -287,17 +269,17 @@ class PurchaserReturnsControllerSpec extends AnyFreeSpec with Matchers with Scal
         stornId = "STORN99999",
         returnResourceRef = "100002",
         purchaserResourceRef = "P100002",
-        isCompany = "Y",
-        isTrustee = "N",
-        isConnectedToVendor = "N",
-        isRepresentedByAgent = "N",
+        isCompany = Some("YES"),
+        isTrustee = Some("NO"),
+        isConnectedToVendor = Some("NO"),
+        isRepresentedByAgent = Some("NO"),
         title = None,
         surname = None,
         forename1 = None,
         forename2 = None,
         companyName = Some("Updated Corp Ltd"),
         houseNumber = None,
-        address1 = "New Business Park",
+        address1 = Some("New Business Park"),
         address2 = None,
         address3 = None,
         address4 = None,
@@ -339,10 +321,10 @@ class PurchaserReturnsControllerSpec extends AnyFreeSpec with Matchers with Scal
       val invalidJson: JsObject = Json.obj(
         "stornId"              -> "STORN12345",
         "returnResourceRef"    -> "100001",
-        "isCompany"            -> "N",
-        "isTrustee"            -> "N",
-        "isConnectedToVendor"  -> "N",
-        "isRepresentedByAgent" -> "N",
+        "isCompany"            -> Some("NO"),
+        "isTrustee"            -> Some("NO"),
+        "isConnectedToVendor"  -> Some("NO"),
+        "isRepresentedByAgent" -> Some("NO"),
         "address1"             -> "Main Street"
       )
 
@@ -359,17 +341,17 @@ class PurchaserReturnsControllerSpec extends AnyFreeSpec with Matchers with Scal
         stornId = "STORN12345",
         returnResourceRef = "100001",
         purchaserResourceRef = "P100001",
-        isCompany = "N",
-        isTrustee = "N",
-        isConnectedToVendor = "N",
-        isRepresentedByAgent = "N",
+        isCompany = Some("NO"),
+        isTrustee = Some("NO"),
+        isConnectedToVendor = Some("NO"),
+        isRepresentedByAgent = Some("NO"),
         title = Some("Mr"),
         surname = Some("Smith"),
         forename1 = Some("John"),
         forename2 = None,
         companyName = None,
         houseNumber = Some("123"),
-        address1 = "Main Street",
+        address1 = Some("Main Street"),
         address2 = None,
         address3 = None,
         address4 = None,

@@ -418,28 +418,42 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       DARPostcode = None
     )
 
+  private def getBigDecimalSafely(rs: ResultSet, columnName: String): Option[BigDecimal] =
+    Option(rs.getString(columnName)).flatMap { value =>
+      val trimmed = value.trim
+      if (trimmed.isEmpty) {
+        None
+      } else {
+        try
+          Some(BigDecimal(trimmed))
+        catch {
+          case _: NumberFormatException => None
+        }
+      }
+    }
+
   private def processTransaction(rs: ResultSet): Transaction =
     Transaction(
       transactionID = Option(rs.getString("TRANSACTION_ID")),
       returnID = Option(rs.getString("RETURN_ID")),
       claimingRelief = Option(rs.getString("CLAIMING_RELIEF")),
-      reliefAmount = Option(rs.getBigDecimal("RELIEF_AMOUNT")).map(BigDecimal(_)),
+      reliefAmount = getBigDecimalSafely(rs, "RELIEF_AMOUNT"),
       reliefReason = Option(rs.getString("RELIEF_REASON")),
       reliefSchemeNumber = Option(rs.getString("RELIEF_SCHEME_NUMBER")),
       isLinked = Option(rs.getString("IS_LINKED")),
-      totalConsiderationLinked = Option(rs.getBigDecimal("TOTAL_CONSIDERATION_LINKED")).map(BigDecimal(_)),
-      totalConsideration = Option(rs.getBigDecimal("TOTAL_CONSIDERATION")).map(BigDecimal(_)),
-      considerationBuild = Option(rs.getBigDecimal("CONSIDERATION_BUILD")).map(BigDecimal(_)),
-      considerationCash = Option(rs.getBigDecimal("CONSIDERATION_CASH")).map(BigDecimal(_)),
-      considerationContingent = Option(rs.getBigDecimal("CONSIDERATION_CONTINGENT")).map(BigDecimal(_)),
-      considerationDebt = Option(rs.getBigDecimal("CONSIDERATION_DEBT")).map(BigDecimal(_)),
-      considerationEmploy = Option(rs.getBigDecimal("CONSIDERATION_EMPLOY")).map(BigDecimal(_)),
-      considerationOther = Option(rs.getBigDecimal("CONSIDERATION_OTHER")).map(BigDecimal(_)),
-      considerationLand = Option(rs.getBigDecimal("CONSIDERATION_LAND")).map(BigDecimal(_)),
-      considerationServices = Option(rs.getBigDecimal("CONSIDERATION_SERVICES")).map(BigDecimal(_)),
-      considerationSharesQTD = Option(rs.getBigDecimal("CONSIDERATION_SHARES_QTD")).map(BigDecimal(_)),
-      considerationSharesUNQTD = Option(rs.getBigDecimal("CONSIDERATION_SHARES_UNQTD")).map(BigDecimal(_)),
-      considerationVAT = Option(rs.getBigDecimal("CONSIDERATION_VAT")).map(BigDecimal(_)),
+      totalConsiderationLinked = getBigDecimalSafely(rs, "TOTAL_CONSIDERATION_LINKED"),
+      totalConsideration = getBigDecimalSafely(rs, "TOTAL_CONSIDERATION"),
+      considerationBuild = getBigDecimalSafely(rs, "CONSIDERATION_BUILD"),
+      considerationCash = getBigDecimalSafely(rs, "CONSIDERATION_CASH"),
+      considerationContingent = getBigDecimalSafely(rs, "CONSIDERATION_CONTINGENT"),
+      considerationDebt = getBigDecimalSafely(rs, "CONSIDERATION_DEBT"),
+      considerationEmploy = getBigDecimalSafely(rs, "CONSIDERATION_EMPLOY"),
+      considerationOther = getBigDecimalSafely(rs, "CONSIDERATION_OTHER"),
+      considerationLand = getBigDecimalSafely(rs, "CONSIDERATION_LAND"),
+      considerationServices = getBigDecimalSafely(rs, "CONSIDERATION_SERVICES"),
+      considerationSharesQTD = getBigDecimalSafely(rs, "CONSIDERATION_SHARES_QTD"),
+      considerationSharesUNQTD = getBigDecimalSafely(rs, "CONSIDERATION_SHARES_UNQTD"),
+      considerationVAT = getBigDecimalSafely(rs, "CONSIDERATION_VAT"),
       includesChattel = Option(rs.getString("INCLUDES_CHATTEL")),
       includesGoodwill = Option(rs.getString("INCLUDES_GOODWILL")),
       includesOther = Option(rs.getString("INCLUDES_OTHER")),
@@ -470,7 +484,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       restrictionDetails = Option(rs.getString("RESTRICTION_DETAILS")),
       postTransRulingFollowed = Option(rs.getString("POST_TRANS_RULING_FOLLOWED")),
       isPartOfSaleOfBusiness = Option(rs.getString("IS_PART_OF_SALE_OF_BUSINESS")),
-      totalConsiderationBusiness = Option(rs.getBigDecimal("TOTAL_CONSIDERATION_BUSINESS")).map(BigDecimal(_))
+      totalConsiderationBusiness = getBigDecimalSafely(rs, "TOTAL_CONSIDERATION_BUSINESS")
     )
 
   private def processReturnAgent(rs: ResultSet): ReturnAgent =
@@ -1181,17 +1195,17 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     conn: Connection,
     p_storn: String,
     p_return_resource_ref: Long,
-    p_is_company: String,
-    p_is_trustee: String,
-    p_is_connected_to_vendor: String,
-    p_is_represented_by_agent: String,
+    p_is_company: Option[String],
+    p_is_trustee: Option[String],
+    p_is_connected_to_vendor: Option[String],
+    p_is_represented_by_agent: Option[String],
     p_title: Option[String],
     p_surname: Option[String],
     p_forename1: Option[String],
     p_forename2: Option[String],
     p_company_name: Option[String],
     p_house_number: Option[String],
-    p_address_1: String,
+    p_address_1: Option[String],
     p_address_2: Option[String],
     p_address_3: Option[String],
     p_address_4: Option[String],
@@ -1211,17 +1225,17 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     try {
       cs.setString(1, p_storn)
       cs.setLong(2, p_return_resource_ref)
-      cs.setString(3, p_is_company)
-      cs.setString(4, p_is_trustee)
-      cs.setString(5, p_is_connected_to_vendor)
-      cs.setString(6, p_is_represented_by_agent)
+      cs.setOptionalString(3, p_is_company)
+      cs.setOptionalString(4, p_is_trustee)
+      cs.setOptionalString(5, p_is_connected_to_vendor)
+      cs.setOptionalString(6, p_is_represented_by_agent)
       cs.setOptionalString(7, p_title)
       cs.setOptionalString(8, p_surname)
       cs.setOptionalString(9, p_forename1)
       cs.setOptionalString(10, p_forename2)
       cs.setOptionalString(11, p_company_name)
       cs.setOptionalString(12, p_house_number)
-      cs.setString(13, p_address_1)
+      cs.setOptionalString(13, p_address_1)
       cs.setOptionalString(14, p_address_2)
       cs.setOptionalString(15, p_address_3)
       cs.setOptionalString(16, p_address_4)
@@ -1288,17 +1302,17 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     p_storn: String,
     p_return_resource_ref: Long,
     p_purchaser_resource_ref: Long,
-    p_is_company: String,
-    p_is_trustee: String,
-    p_is_connected_to_vendor: String,
-    p_is_represented_by_agent: String,
+    p_is_company: Option[String],
+    p_is_trustee: Option[String],
+    p_is_connected_to_vendor: Option[String],
+    p_is_represented_by_agent: Option[String],
     p_title: Option[String],
     p_surname: Option[String],
     p_forename1: Option[String],
     p_forename2: Option[String],
     p_company_name: Option[String],
     p_house_number: Option[String],
-    p_address_1: String,
+    p_address_1: Option[String],
     p_address_2: Option[String],
     p_address_3: Option[String],
     p_address_4: Option[String],
@@ -1320,17 +1334,17 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       cs.setString(1, p_storn)
       cs.setLong(2, p_return_resource_ref)
       cs.setLong(3, p_purchaser_resource_ref)
-      cs.setString(4, p_is_company)
-      cs.setString(5, p_is_trustee)
-      cs.setString(6, p_is_connected_to_vendor)
-      cs.setString(7, p_is_represented_by_agent)
+      cs.setOptionalString(4, p_is_company)
+      cs.setOptionalString(5, p_is_trustee)
+      cs.setOptionalString(6, p_is_connected_to_vendor)
+      cs.setOptionalString(7, p_is_represented_by_agent)
       cs.setOptionalString(8, p_title)
       cs.setOptionalString(9, p_surname)
       cs.setOptionalString(10, p_forename1)
       cs.setOptionalString(11, p_forename2)
       cs.setOptionalString(12, p_company_name)
       cs.setOptionalString(13, p_house_number)
-      cs.setString(14, p_address_1)
+      cs.setOptionalString(14, p_address_1)
       cs.setOptionalString(15, p_address_2)
       cs.setOptionalString(16, p_address_3)
       cs.setOptionalString(17, p_address_4)

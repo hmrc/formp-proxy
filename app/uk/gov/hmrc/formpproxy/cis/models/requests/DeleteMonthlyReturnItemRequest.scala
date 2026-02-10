@@ -16,24 +16,16 @@
 
 package uk.gov.hmrc.formpproxy.cis.models.requests
 
-import java.time.LocalDateTime
 import play.api.libs.json.{Json, OFormat}
 
-case class ResetGovTalkStatusRequest(
-  userIdentifier: String,
-  formResultID: String,
-  correlationID: String,
-  formLock: String,
-  createDate: Option[LocalDateTime],
-  endStateDate: Option[LocalDateTime],
-  lastMessageDate: LocalDateTime,
-  numPolls: Int,
-  pollInterval: Int,
-  oldProtocolStatus: String,
-  newProtocolStatus: String,
-  gatewayURL: String
+case class DeleteMonthlyReturnItemRequest(
+  instanceId: String,
+  taxYear: Int,
+  taxMonth: Int,
+  amendment: String,
+  resourceReference: Long
 )
 
-object ResetGovTalkStatusRequest {
-  given format: OFormat[ResetGovTalkStatusRequest] = Json.format[ResetGovTalkStatusRequest]
+object DeleteMonthlyReturnItemRequest {
+  given format: OFormat[DeleteMonthlyReturnItemRequest] = Json.format[DeleteMonthlyReturnItemRequest]
 }
