@@ -22,7 +22,7 @@ import org.mockito.Mockito.*
 import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.{Company, CreateContractorSchemeParams, Partnership, SoleTrader, Trust, UpdateContractorSchemeParams}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, GetGovTalkStatusRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.*
 
 import java.time.Instant
 import java.sql.*
@@ -1276,6 +1276,226 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       verify(cs).execute()
       verify(cs).close()
+    }
+  }
+
+  "createMonthlyReturnItem" - {
+
+    "calls MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return_Item with correct parameters and executes" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      val call = "{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return_Item(?, ?, ?, ?, ?) }"
+      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = CreateMonthlyReturnItemRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 1,
+        amendment = "N",
+        resourceReference = 98765L
+      )
+
+      repo.createMonthlyReturnItem(req).futureValue mustBe ()
+
+      verify(conn).prepareCall(eqTo(call))
+      verify(cs).setString(1, "abc-123")
+      verify(cs).setInt(2, 2025)
+      verify(cs).setInt(3, 1)
+      verify(cs).setString(4, "N")
+      verify(cs).setLong(5, 98765L)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+  }
+
+  "deleteMonthlyReturnItem" - {
+
+    "calls MONTHLY_RETURN_PROCS_2016.Delete_Monthly_Return_Item with correct parameters and executes" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      val call = "{ call MONTHLY_RETURN_PROCS_2016.Delete_Monthly_Return_Item(?, ?, ?, ?, ?) }"
+      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = DeleteMonthlyReturnItemRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 1,
+        amendment = "N",
+        resourceReference = 98765L
+      )
+
+      repo.deleteMonthlyReturnItem(req).futureValue mustBe ()
+
+      verify(conn).prepareCall(eqTo(call))
+      verify(cs).setString(1, "abc-123")
+      verify(cs).setInt(2, 2025)
+      verify(cs).setInt(3, 1)
+      verify(cs).setString(4, "N")
+      verify(cs).setLong(5, 98765L)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+  }
+
+  "syncMonthlyReturnItems" - {
+
+    "deletes + creates (distinct) in one transaction, validates status, and updates scheme version once" in {
+
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csGetEdit   = mock[CallableStatement]
+      val csGetScheme = mock[CallableStatement]
+      val csUpdateVer = mock[CallableStatement]
+
+      val csDelete1 = mock[CallableStatement]
+      val csDelete2 = mock[CallableStatement]
+      val csCreate1 = mock[CallableStatement]
+      val csCreate2 = mock[CallableStatement]
+
+      val rsEditScheme     = mock[ResultSet]
+      val rsMonthlyReturn  = mock[ResultSet]
+      val rsItems          = mock[ResultSet]
+      val rsSubcontractors = mock[ResultSet]
+      val rsSubmission     = mock[ResultSet]
+      val rsSchemeProc     = mock[ResultSet]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      val callGetEdit   = "{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_For_Edit(?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+      val callGetScheme = "{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"
+      val callDelete    = "{ call MONTHLY_RETURN_PROCS_2016.Delete_Monthly_Return_Item(?, ?, ?, ?, ?) }"
+      val callCreate    = "{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return_Item(?, ?, ?, ?, ?) }"
+      val callUpdateVer = "{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"
+
+      when(conn.prepareCall(eqTo(callGetEdit))).thenReturn(csGetEdit)
+      when(conn.prepareCall(eqTo(callGetScheme))).thenReturn(csGetScheme)
+      when(conn.prepareCall(eqTo(callDelete))).thenReturn(csDelete1, csDelete2)
+      when(conn.prepareCall(eqTo(callCreate))).thenReturn(csCreate1, csCreate2)
+      when(conn.prepareCall(eqTo(callUpdateVer))).thenReturn(csUpdateVer)
+
+      when(csGetEdit.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsEditScheme)
+      when(csGetEdit.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsMonthlyReturn)
+      when(csGetEdit.getObject(eqTo(7), eqTo(classOf[ResultSet]))).thenReturn(rsItems)
+      when(csGetEdit.getObject(eqTo(8), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
+      when(csGetEdit.getObject(eqTo(9), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+
+      when(rsEditScheme.next()).thenReturn(false)
+
+      when(rsMonthlyReturn.next()).thenReturn(true, false)
+      when(rsMonthlyReturn.getLong("monthly_return_id")).thenReturn(1L)
+      when(rsMonthlyReturn.getInt("tax_year")).thenReturn(2025)
+      when(rsMonthlyReturn.getInt("tax_month")).thenReturn(1)
+      when(rsMonthlyReturn.getString("status")).thenReturn("STARTED")
+      when(rsMonthlyReturn.getLong("superseded_by")).thenReturn(0L)
+      when(rsMonthlyReturn.wasNull()).thenReturn(true)
+
+      when(rsItems.next()).thenReturn(false)
+      when(rsSubcontractors.next()).thenReturn(false)
+      when(rsSubmission.next()).thenReturn(false)
+
+      when(csGetScheme.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsSchemeProc)
+      when(rsSchemeProc.next()).thenReturn(true, false)
+      when(rsSchemeProc.getInt("version")).thenReturn(5)
+      when(rsSchemeProc.wasNull()).thenReturn(false)
+
+      when(csUpdateVer.getInt(2)).thenReturn(6)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = SyncMonthlyReturnItemsRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 1,
+        amendment = "N",
+        createResourceReferences = Seq(10L, 10L, 20L),
+        deleteResourceReferences = Seq(1L, 2L, 2L)
+      )
+
+      repo.syncMonthlyReturnItems(req).futureValue mustBe ()
+
+      verify(csGetEdit).execute()
+      verify(csDelete1).execute()
+      verify(csDelete2).execute()
+      verify(csCreate1).execute()
+      verify(csCreate2).execute()
+      verify(csUpdateVer).execute()
+
+      verify(conn, times(2)).prepareCall(eqTo(callDelete))
+      verify(conn, times(2)).prepareCall(eqTo(callCreate))
+      verify(conn, times(1)).prepareCall(eqTo(callUpdateVer))
+    }
+
+    "fails when monthly return status is not STARTED/VALIDATED" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csGetEdit = mock[CallableStatement]
+
+      val rsScheme         = mock[ResultSet]
+      val rsMonthlyReturn  = mock[ResultSet]
+      val rsItems          = mock[ResultSet]
+      val rsSubcontractors = mock[ResultSet]
+      val rsSubmission     = mock[ResultSet]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      val callGetMonthlyReturnForEdit =
+        "{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_For_Edit(?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(callGetMonthlyReturnForEdit))).thenReturn(csGetEdit)
+
+      when(csGetEdit.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+      when(csGetEdit.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsMonthlyReturn)
+      when(csGetEdit.getObject(eqTo(7), eqTo(classOf[ResultSet]))).thenReturn(rsItems)
+      when(csGetEdit.getObject(eqTo(8), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
+      when(csGetEdit.getObject(eqTo(9), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+
+      when(rsScheme.next()).thenReturn(false)
+
+      when(rsMonthlyReturn.next()).thenReturn(true, false)
+      when(rsMonthlyReturn.getLong("monthly_return_id")).thenReturn(1111L)
+      when(rsMonthlyReturn.getInt("tax_year")).thenReturn(2025)
+      when(rsMonthlyReturn.getInt("tax_month")).thenReturn(1)
+      when(rsMonthlyReturn.getString("status")).thenReturn("SUBMITTED")
+
+      when(rsItems.next()).thenReturn(false)
+      when(rsSubcontractors.next()).thenReturn(false)
+      when(rsSubmission.next()).thenReturn(false)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = SyncMonthlyReturnItemsRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 1,
+        amendment = "N",
+        createResourceReferences = Seq(5L),
+        deleteResourceReferences = Seq(1L)
+      )
+
+      val ex = repo.syncMonthlyReturnItems(req).failed.futureValue
+      ex.getMessage must include("Cannot sync monthly return items when status is SUBMITTED")
     }
   }
 

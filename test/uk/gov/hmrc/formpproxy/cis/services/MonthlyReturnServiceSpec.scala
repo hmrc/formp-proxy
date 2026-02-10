@@ -284,4 +284,46 @@ final class MonthlyReturnServiceSpec extends SpecBase {
       verifyNoMoreInteractions(repo)
     }
   }
+
+  "MonthlyReturnService syncMonthlyReturnItems" - {
+
+    "delegates to repo (happy path)" in new Ctx {
+      val request = SyncMonthlyReturnItemsRequest(
+        instanceId = id,
+        taxYear = 2025,
+        taxMonth = 1,
+        amendment = "N",
+        createResourceReferences = Seq(5L, 6L),
+        deleteResourceReferences = Seq(1L, 2L)
+      )
+
+      when(repo.syncMonthlyReturnItems(eqTo(request)))
+        .thenReturn(Future.successful(()))
+
+      service.syncMonthlyReturnItems(request).futureValue mustBe ((): Unit)
+
+      verify(repo).syncMonthlyReturnItems(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failures from repo" in new Ctx {
+      val request = SyncMonthlyReturnItemsRequest(
+        instanceId = id,
+        taxYear = 2025,
+        taxMonth = 1,
+        amendment = "N",
+        createResourceReferences = Seq(5L),
+        deleteResourceReferences = Seq.empty
+      )
+
+      val boom = new RuntimeException("db failed")
+      when(repo.syncMonthlyReturnItems(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      service.syncMonthlyReturnItems(request).failed.futureValue mustBe boom
+
+      verify(repo).syncMonthlyReturnItems(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
 }
