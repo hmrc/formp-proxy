@@ -22,7 +22,7 @@ import org.mockito.Mockito.*
 import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.{Company, CreateContractorSchemeParams, Partnership, SoleTrader, Trust, UpdateContractorSchemeParams}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateMonthlyReturnItemRequest, CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, DeleteMonthlyReturnItemRequest, SyncMonthlyReturnItemsRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.*
 
 import java.time.Instant
 import java.sql.*
@@ -1625,4 +1625,78 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
   }
 
+  "getGovTalkStatus" - {
+
+    "must return one record and close resources" in {
+      val db        = mock[Database]
+      val conn      = mock[Connection]
+      val cs        = mock[CallableStatement]
+      val rsRecords = mock[ResultSet]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsRecords)
+
+      when(rsRecords.next()).thenReturn(true, false)
+      when(rsRecords.getString("user_identifier")).thenReturn("12")
+      when(rsRecords.getString("formResultId")).thenReturn("123abc")
+      when(rsRecords.getString("correlationid")).thenReturn("abc123qwe")
+      when(rsRecords.getString("form_lock")).thenReturn("N")
+      when(rsRecords.getTimestamp("create_timestamp")).thenReturn(Timestamp.valueOf("2026-04-05 12:34:56"))
+      when(rsRecords.getTimestamp("endstate_timestamp")).thenReturn(null)
+      when(rsRecords.getTimestamp("last_mesg_timestamp")).thenReturn(Timestamp.valueOf("2026-04-05 12:34:56"))
+      when(rsRecords.getInt("num_polls")).thenReturn(0)
+      when(rsRecords.getInt("poll_interval")).thenReturn(0)
+      when(rsRecords.getString("protocol_status")).thenReturn("dataRequest")
+      when(rsRecords.getString("gatewayurl")).thenReturn("www.test.com")
+
+      val repo   = new CisFormpRepository(db)
+      val result = repo.getGovTalkStatus(GetGovTalkStatusRequest("12", "123abc")).futureValue
+
+      result.govtalk_status must have size 1
+      val record = result.govtalk_status.head
+      record.userIdentifier mustBe "12"
+      record.formResultID mustBe "123abc"
+      record.correlationID mustBe "abc123qwe"
+      record.formLock mustBe "N"
+      record.createDate mustBe Some(Timestamp.valueOf("2026-04-05 12:34:56").toLocalDateTime)
+      record.endStateDate mustBe None
+      record.lastMessageDate mustBe Timestamp.valueOf("2026-04-05 12:34:56").toLocalDateTime
+      record.numPolls mustBe 0
+      record.pollInterval mustBe 0
+      record.protocolStatus mustBe "dataRequest"
+      record.gatewayURL mustBe "www.test.com"
+
+      verify(conn).prepareCall("{ call SUBMISSION_ADMIN.SelectGovTalkStatus(?, ?, ?) }")
+      verify(cs).execute()
+    }
+
+    "must return empty record list when no rows" in {
+      val db        = mock[Database]
+      val conn      = mock[Connection]
+      val cs        = mock[CallableStatement]
+      val rsRecords = mock[ResultSet]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      when(cs.getObject(3, classOf[ResultSet])).thenReturn(rsRecords)
+      when(rsRecords.next()).thenReturn(false)
+
+      val repo   = new CisFormpRepository(db)
+      val result = repo.getGovTalkStatus(GetGovTalkStatusRequest("12", "123abc")).futureValue
+
+      result.govtalk_status mustBe empty
+
+      verify(conn).prepareCall("{ call SUBMISSION_ADMIN.SelectGovTalkStatus(?, ?, ?) }")
+      verify(cs).registerOutParameter(3, OracleTypes.CURSOR)
+      verify(cs).execute()
+    }
+  }
 }

@@ -53,6 +53,7 @@ trait CisMonthlyReturnSource {
   def createMonthlyReturnItem(request: CreateMonthlyReturnItemRequest): Future[Unit]
   def deleteMonthlyReturnItem(request: DeleteMonthlyReturnItemRequest): Future[Unit]
   def syncMonthlyReturnItems(request: SyncMonthlyReturnItemsRequest): Future[Unit]
+  def getGovTalkStatus(req: GetGovTalkStatusRequest): Future[GetGovTalkStatusResponse]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -470,6 +471,26 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         newVersion
       }
     }
+
+  // govTalkStatus
+
+  def getGovTalkStatus(req: GetGovTalkStatusRequest): Future[GetGovTalkStatusResponse] = {
+    logger.info(s"[CIS] getGovTalkStatus(userIdentifier=${req.userIdentifier}, formResultID=${req.formResultID})")
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallGetGovTalkStatus) { cs =>
+          cs.setString(1, req.userIdentifier)
+          cs.setString(2, req.formResultID)
+          cs.registerOutParameter(3, OracleTypes.CURSOR)
+          cs.execute()
+
+          val statusRecords = withCursor(cs, 3)(collectGovtTalkStatusRecords)
+
+          GetGovTalkStatusResponse(govtalk_status = statusRecords)
+        }
+      }
+    }
+  }
 
   // private helpers
   private def callCreateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit =
