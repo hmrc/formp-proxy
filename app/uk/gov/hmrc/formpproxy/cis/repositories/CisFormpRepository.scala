@@ -19,9 +19,9 @@ package uk.gov.hmrc.formpproxy.cis.repositories
 import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest, CreateSubmissionRequest, GetGovTalkStatusRequest, ResetGovTalkStatusRequest, UpdateSubcontractorRequest, UpdateSubmissionRequest}
-import uk.gov.hmrc.formpproxy.cis.models.response.{CreateNilMonthlyReturnResponse, GetGovTalkStatusResponse, GetMonthlyReturnForEditResponse, GetSubcontractorListResponse}
-import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateContractorSchemeParams, Subcontractor, SubcontractorType, UnsubmittedMonthlyReturns, UpdateContractorSchemeParams, UserMonthlyReturns}
+import uk.gov.hmrc.formpproxy.cis.models.requests.*
+import uk.gov.hmrc.formpproxy.cis.models.response.*
+import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
 import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.*
@@ -50,6 +50,9 @@ trait CisMonthlyReturnSource {
   def updateSubcontractor(result: UpdateSubcontractorRequest): Future[Unit]
   def getSubcontractorList(cisId: String): Future[GetSubcontractorListResponse]
   def getMonthlyReturnForEdit(instanceId: String, taxYear: Int, taxMonth: Int): Future[GetMonthlyReturnForEditResponse]
+  def createMonthlyReturnItem(request: CreateMonthlyReturnItemRequest): Future[Unit]
+  def deleteMonthlyReturnItem(request: DeleteMonthlyReturnItemRequest): Future[Unit]
+  def syncMonthlyReturnItems(request: SyncMonthlyReturnItemsRequest): Future[Unit]
   def getGovTalkStatus(req: GetGovTalkStatusRequest): Future[GetGovTalkStatusResponse]
   def resetGovTalkStatus(req: ResetGovTalkStatusRequest): Future[Unit]
 }
@@ -169,6 +172,83 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
   }
+
+  override def createMonthlyReturnItem(request: CreateMonthlyReturnItemRequest): Future[Unit] =
+    Future {
+      logger.info(
+        s"[CIS] createMonthlyReturnItem(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth}, resourceReference=${request.resourceReference})"
+      )
+      db.withConnection { conn =>
+        callCreateMonthlyReturnItem(
+          conn,
+          request.instanceId,
+          request.taxYear,
+          request.taxMonth,
+          request.amendment,
+          request.resourceReference
+        )
+      }
+    }
+
+  override def deleteMonthlyReturnItem(request: DeleteMonthlyReturnItemRequest): Future[Unit] =
+    Future {
+      logger.info(
+        s"[CIS] deleteMonthlyReturnItem(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth}, resourceReference=${request.resourceReference})"
+      )
+      db.withConnection { conn =>
+        callDeleteMonthlyReturnItem(
+          conn,
+          request.instanceId,
+          request.taxYear,
+          request.taxMonth,
+          request.amendment,
+          request.resourceReference
+        )
+      }
+    }
+
+  override def syncMonthlyReturnItems(request: SyncMonthlyReturnItemsRequest): Future[Unit] =
+    Future {
+      logger.info(
+        s"[CIS] syncMonthlyReturnItems(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth}, creates=${request.createResourceReferences.size}, deletes=${request.deleteResourceReferences.size})"
+      )
+
+      db.withTransaction { conn =>
+        val monthlyReturnsForEdit =
+          getMonthlyReturnForEditInTransaction(conn, request.instanceId, request.taxYear, request.taxMonth)
+        val status                = monthlyReturnsForEdit.monthlyReturn.headOption.flatMap(_.status).getOrElse("")
+
+        if (status != "STARTED" && status != "VALIDATED") {
+          throw new RuntimeException(s"Cannot sync monthly return items when status is $status")
+        }
+
+        val schemeVersionBefore = getSchemeVersion(conn, request.instanceId)
+
+        request.deleteResourceReferences.distinct.foreach { ref =>
+          callDeleteMonthlyReturnItem(
+            conn,
+            request.instanceId,
+            request.taxYear,
+            request.taxMonth,
+            request.amendment,
+            ref
+          )
+        }
+
+        request.createResourceReferences.distinct.foreach { ref =>
+          callCreateMonthlyReturnItem(
+            conn,
+            request.instanceId,
+            request.taxYear,
+            request.taxMonth,
+            request.amendment,
+            ref
+          )
+        }
+
+        callUpdateSchemeVersion(conn, request.instanceId, schemeVersionBefore)
+      }
+    }
 
   // Scheme
 
@@ -407,7 +487,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
           val statusRecords = withCursor(cs, 3)(collectGovtTalkStatusRecords)
 
-          GetGovTalkStatusResponse(govtallk_status = statusRecords)
+          GetGovTalkStatusResponse(govtalk_status = statusRecords)
         }
       }
     }
@@ -576,6 +656,73 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setString(16, amendment)
 
       cs.execute()
+    }
+
+  private def callCreateMonthlyReturnItem(
+    connection: Connection,
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int,
+    amendment: String,
+    resourceReference: Long
+  ): Unit =
+    withCall(connection, CallCreateMonthlyReturnItem) { cs =>
+      cs.setString(1, instanceId)
+      cs.setInt(2, taxYear)
+      cs.setInt(3, taxMonth)
+      cs.setString(4, amendment)
+      cs.setLong(5, resourceReference)
+      cs.execute()
+    }
+
+  private def callDeleteMonthlyReturnItem(
+    connection: Connection,
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int,
+    amendment: String,
+    resourceReference: Long
+  ): Unit =
+    withCall(connection, CallDeleteMonthlyReturnItem) { cs =>
+      cs.setString(1, instanceId)
+      cs.setInt(2, taxYear)
+      cs.setInt(3, taxMonth)
+      cs.setString(4, amendment)
+      cs.setLong(5, resourceReference)
+      cs.execute()
+    }
+
+  private def getMonthlyReturnForEditInTransaction(
+    connection: Connection,
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int
+  ): GetMonthlyReturnForEditResponse =
+    withCall(connection, CallGetMonthlyReturnForEdit) { cs =>
+      cs.setString(1, instanceId)
+      cs.setInt(2, taxYear)
+      cs.setInt(3, taxMonth)
+      cs.setString(4, "N")
+      cs.registerOutParameter(5, OracleTypes.CURSOR)
+      cs.registerOutParameter(6, OracleTypes.CURSOR)
+      cs.registerOutParameter(7, OracleTypes.CURSOR)
+      cs.registerOutParameter(8, OracleTypes.CURSOR)
+      cs.registerOutParameter(9, OracleTypes.CURSOR)
+      cs.execute()
+
+      val scheme             = withCursor(cs, 5)(collectSchemes)
+      val monthlyReturn      = withCursor(cs, 6)(collectMonthlyReturns)
+      val monthlyReturnItems = withCursor(cs, 7)(collectMonthlyReturnItems)
+      val subcontractors     = withCursor(cs, 8)(collectSubcontractors)
+      val submission         = withCursor(cs, 9)(collectSubmissions)
+
+      GetMonthlyReturnForEditResponse(
+        scheme = scheme,
+        monthlyReturn = monthlyReturn,
+        monthlyReturnItems = monthlyReturnItems,
+        subcontractors = subcontractors,
+        submission = submission
+      )
     }
 
   private def readSchemeRow(rs: ResultSet): SchemeRow = {

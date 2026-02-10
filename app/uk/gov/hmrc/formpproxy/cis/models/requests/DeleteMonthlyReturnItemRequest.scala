@@ -14,15 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.cis.models.response
+package uk.gov.hmrc.formpproxy.cis.models.requests
 
-import uk.gov.hmrc.formpproxy.cis.models.GovTalkStatusRecord
 import play.api.libs.json.{Json, OFormat}
 
-final case class GetGovTalkStatusResponse(
-  govtalk_status: Seq[GovTalkStatusRecord]
+case class DeleteMonthlyReturnItemRequest(
+  instanceId: String,
+  taxYear: Int,
+  taxMonth: Int,
+  amendment: String,
+  resourceReference: Long
 )
 
-object GetGovTalkStatusResponse {
-  implicit val format: OFormat[GetGovTalkStatusResponse] = Json.format[GetGovTalkStatusResponse]
+object DeleteMonthlyReturnItemRequest {
+  given format: OFormat[DeleteMonthlyReturnItemRequest] = Json.format[DeleteMonthlyReturnItemRequest]
 }

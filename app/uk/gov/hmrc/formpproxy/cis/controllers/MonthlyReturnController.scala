@@ -21,9 +21,9 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
 import uk.gov.hmrc.formpproxy.cis.models.{UnsubmittedMonthlyReturns, UserMonthlyReturns}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest, GetMonthlyReturnForEditRequest, InstanceIdRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest, GetMonthlyReturnForEditRequest, InstanceIdRequest, SyncMonthlyReturnItemsRequest}
 import uk.gov.hmrc.formpproxy.cis.services.MonthlyReturnService
-import uk.gov.hmrc.formpproxy.cis.utils.JsResultUtils._
+import uk.gov.hmrc.formpproxy.cis.utils.JsResultUtils.*
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -120,6 +120,17 @@ class MonthlyReturnController @Inject() (
               logger.error("[retrieveUnsubmittedMonthlyReturns] failed", e)
               InternalServerError(Json.obj("message" -> "Unexpected error"))
             }
+        }
+    }
+
+  def syncMonthlyReturnItems: Action[SyncMonthlyReturnItemsRequest] =
+    authorise.async(parse.json[SyncMonthlyReturnItemsRequest]) { implicit request =>
+      service
+        .syncMonthlyReturnItems(request.body)
+        .map(_ => NoContent)
+        .recover { case NonFatal(e) =>
+          logger.error("[syncMonthlyReturnItems] failed", e)
+          InternalServerError(Json.obj("message" -> "Unexpected error"))
         }
     }
 }
