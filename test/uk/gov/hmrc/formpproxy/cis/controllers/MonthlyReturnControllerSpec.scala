@@ -124,7 +124,7 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
 
       // Typed request body matches Action[CreateNilMonthlyReturnRequest]
       val req: FakeRequest[CreateNilMonthlyReturnRequest] =
-        FakeRequest(POST, "/formp-proxy/monthly-return/nil/create").withBody(request)
+        FakeRequest(POST, "/formp-proxy/cis/monthly-return/nil/create").withBody(request)
 
       val res: Future[Result] = controller.createNilMonthlyReturn(req)
 
@@ -150,7 +150,7 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         .thenReturn(Future.failed(err))
 
       val req: FakeRequest[CreateNilMonthlyReturnRequest] =
-        FakeRequest(POST, "/formp-proxy/monthly-return/nil/create").withBody(request)
+        FakeRequest(POST, "/formp-proxy/cis/monthly-return/nil/create").withBody(request)
 
       val res = controller.createNilMonthlyReturn(req)
 
@@ -177,7 +177,7 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         .thenReturn(Future.successful(()))
 
       val req: FakeRequest[CreateNilMonthlyReturnRequest] =
-        FakeRequest(POST, "/formp-proxy/monthly-return/nil/update").withBody(request)
+        FakeRequest(POST, "/formp-proxy/cis/monthly-return/nil/update").withBody(request)
 
       val res: Future[Result] = controller.updateNilMonthlyReturn(req)
 
@@ -202,7 +202,7 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         .thenReturn(Future.failed(err))
 
       val req: FakeRequest[CreateNilMonthlyReturnRequest] =
-        FakeRequest(POST, "/formp-proxy/monthly-return/nil/update").withBody(request)
+        FakeRequest(POST, "/formp-proxy/cis/monthly-return/nil/update").withBody(request)
 
       val res: Future[Result] = controller.updateNilMonthlyReturn(req)
 
