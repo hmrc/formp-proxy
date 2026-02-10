@@ -369,6 +369,59 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
     }
   }
 
+  "MonthlyReturnController syncMonthlyReturnItems" - {
+
+    "returns 204 NoContent when service succeeds" in new Setup {
+      val requestBody = SyncMonthlyReturnItemsRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 1,
+        amendment = "N",
+        createResourceReferences = Seq(5L, 6L),
+        deleteResourceReferences = Seq(1L, 2L)
+      )
+
+      when(mockService.syncMonthlyReturnItems(eqTo(requestBody)))
+        .thenReturn(Future.successful(()))
+
+      val req: FakeRequest[SyncMonthlyReturnItemsRequest] =
+        FakeRequest(POST, "/formp-proxy/cis/monthly-return-item/sync").withBody(requestBody)
+
+      val res: Future[Result] = controller.syncMonthlyReturnItems(req)
+
+      status(res) mustBe NO_CONTENT
+      contentAsString(res) mustBe ""
+
+      verify(mockService).syncMonthlyReturnItems(eqTo(requestBody))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 500 with generic message on unexpected exception" in new Setup {
+      val requestBody = SyncMonthlyReturnItemsRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 1,
+        amendment = "N",
+        createResourceReferences = Seq(5L),
+        deleteResourceReferences = Seq.empty
+      )
+
+      when(mockService.syncMonthlyReturnItems(eqTo(requestBody)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val req: FakeRequest[SyncMonthlyReturnItemsRequest] =
+        FakeRequest(POST, "/formp-proxy/cis/monthly-return-item/sync").withBody(requestBody)
+
+      val res: Future[Result] = controller.syncMonthlyReturnItems(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      contentAsJson(res) mustBe Json.obj("message" -> "Unexpected error")
+
+      verify(mockService).syncMonthlyReturnItems(eqTo(requestBody))
+      verifyNoMoreInteractions(mockService)
+    }
+  }
+
   private trait Setup {
     implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.global
     private val cc: ControllerComponents = stubControllerComponents()
