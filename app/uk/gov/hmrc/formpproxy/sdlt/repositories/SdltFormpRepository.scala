@@ -187,7 +187,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
           val lands                  = processResultSetSeq(cs, 8, processLand)
           val transaction            = processResultSet(cs, 9, processTransaction)
           val returnAgents           = processResultSetSeq(cs, 10, processReturnAgent)
-          val agent                  = processResultSet(cs, 11, processAgent)
+          val agent                  = processResultSetSeq(cs, 11, processAgent)
           val lease                  = processResultSet(cs, 12, processLease)
           val taxCalculation         = processResultSet(cs, 13, processTaxCalculation)
           val submission             = processResultSet(cs, 14, processSubmission)
@@ -205,7 +205,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
             land = if (lands.isEmpty) None else Some(lands),
             transaction = transaction,
             returnAgent = if (returnAgents.isEmpty) None else Some(returnAgents),
-            agent = agent,
+            agent = if (agent.isEmpty) None else Some(agent),
             lease = lease,
             taxCalculation = taxCalculation,
             submission = submission,
