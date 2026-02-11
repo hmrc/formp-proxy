@@ -1728,8 +1728,8 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       repo.resetGovTalkStatus(request).futureValue
 
-      val tsCaptor5 = ArgumentCaptor.forClass(classOf[Timestamp])
-      val tsCaptor7 = ArgumentCaptor.forClass(classOf[Timestamp])
+      val tsCaptorCreateDate      = ArgumentCaptor.forClass(classOf[Timestamp])
+      val tsCaptorLastMessageDate = ArgumentCaptor.forClass(classOf[Timestamp])
 
       verify(conn).prepareCall(eqTo(call))
 
@@ -1737,9 +1737,9 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(cs).setString(2, request.formResultID)
       verify(cs).setString(3, "empty")
       verify(cs).setString(4, "N")
-      verify(cs).setTimestamp(eqTo(5), tsCaptor5.capture())
+      verify(cs).setTimestamp(eqTo(5), tsCaptorCreateDate.capture())
       verify(cs).setNull(6, Types.TIMESTAMP)
-      verify(cs).setTimestamp(eqTo(7), tsCaptor7.capture())
+      verify(cs).setTimestamp(eqTo(7), tsCaptorLastMessageDate.capture())
       verify(cs).setInt(8, 0)
       verify(cs).setInt(9, 0)
       verify(cs).setString(10, request.oldProtocolStatus)
@@ -1749,8 +1749,8 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(cs).execute()
       verify(cs).close()
 
-      tsCaptor5.getValue must not be null
-      tsCaptor7.getValue must not be null
+      tsCaptorCreateDate.getValue      must not be null
+      tsCaptorLastMessageDate.getValue must not be null
     }
   }
 
