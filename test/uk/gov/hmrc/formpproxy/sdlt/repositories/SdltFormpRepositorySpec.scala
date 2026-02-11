@@ -941,15 +941,19 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       val result = repo.sdltGetReturn("100001", "STORN12345").futureValue
 
-      result.agent must not be None
-      result.agent.get.agentId mustBe Some("1")
-      result.agent.get.storn mustBe Some("STORN12345")
-      result.agent.get.name mustBe Some("Agent Name")
-      result.agent.get.houseNumber mustBe Some("100")
-      result.agent.get.address1 mustBe Some("Agent Street")
-      result.agent.get.postcode mustBe Some("AG1 1NT")
-      result.agent.get.email mustBe Some("agent@test.com")
-      result.agent.get.agentResourceReference mustBe Some("AGENTREF1")
+      // Updated to work with Seq
+      result.agent mustBe defined
+      result.agent.get must have size 1
+
+      val agent = result.agent.get.head
+      agent.agentId mustBe Some("1")
+      agent.storn mustBe Some("STORN12345")
+      agent.name mustBe Some("Agent Name")
+      agent.houseNumber mustBe Some("100")
+      agent.address1 mustBe Some("Agent Street")
+      agent.postcode mustBe Some("AG1 1NT")
+      agent.email mustBe Some("agent@test.com")
+      agent.agentResourceReference mustBe Some("AGENTREF1")
     }
 
     "process Lease data correctly with all fields" in {
@@ -2243,17 +2247,17 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       val request = CreatePurchaserRequest(
         stornId = "STORN12345",
         returnResourceRef = "100001",
-        isCompany = "NO",
-        isTrustee = "NO",
-        isConnectedToVendor = "NO",
-        isRepresentedByAgent = "NO",
+        isCompany = Some("NO"),
+        isTrustee = Some("NO"),
+        isConnectedToVendor = Some("NO"),
+        isRepresentedByAgent = Some("NO"),
         title = Some("Mr"),
         surname = Some("Smith"),
         forename1 = Some("John"),
         forename2 = Some("James"),
         companyName = None,
         houseNumber = Some("123"),
-        address1 = "Main Street",
+        address1 = Some("Main Street"),
         address2 = Some("Apartment 4B"),
         address3 = Some("City Center"),
         address4 = Some("Greater London"),
@@ -2323,17 +2327,17 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       val request = CreatePurchaserRequest(
         stornId = "STORN99999",
         returnResourceRef = "100002",
-        isCompany = "YES",
-        isTrustee = "NO",
-        isConnectedToVendor = "NO",
-        isRepresentedByAgent = "NO",
+        isCompany = Some("YES"),
+        isTrustee = Some("NO"),
+        isConnectedToVendor = Some("NO"),
+        isRepresentedByAgent = Some("NO"),
         title = None,
         surname = None,
         forename1 = None,
         forename2 = None,
         companyName = Some("Tech Corp Ltd"),
         houseNumber = None,
-        address1 = "Business Park",
+        address1 = Some("Business Park"),
         address2 = None,
         address3 = None,
         address4 = None,
@@ -2392,17 +2396,17 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         stornId = "STORN12345",
         returnResourceRef = "100001",
         purchaserResourceRef = "100001",
-        isCompany = "NO",
-        isTrustee = "NO",
-        isConnectedToVendor = "YES",
-        isRepresentedByAgent = "YES",
+        isCompany = Some("NO"),
+        isTrustee = Some("NO"),
+        isConnectedToVendor = Some("YES"),
+        isRepresentedByAgent = Some("YES"),
         title = Some("Mrs"),
         surname = Some("Doe"),
         forename1 = Some("Jane"),
         forename2 = None,
         companyName = None,
         houseNumber = Some("456"),
-        address1 = "Oak Avenue",
+        address1 = Some("Oak Avenue"),
         address2 = Some("Suite 10"),
         address3 = None,
         address4 = None,
@@ -2471,17 +2475,17 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         stornId = "STORN99999",
         returnResourceRef = "100002",
         purchaserResourceRef = "100002",
-        isCompany = "YES",
-        isTrustee = "NO",
-        isConnectedToVendor = "NO",
-        isRepresentedByAgent = "NO",
+        isCompany = Some("YES"),
+        isTrustee = Some("NO"),
+        isConnectedToVendor = Some("NO"),
+        isRepresentedByAgent = Some("NO"),
         title = None,
         surname = None,
         forename1 = None,
         forename2 = None,
         companyName = Some("Updated Corp"),
         houseNumber = None,
-        address1 = "New Street",
+        address1 = Some("New Street"),
         address2 = None,
         address3 = None,
         address4 = None,

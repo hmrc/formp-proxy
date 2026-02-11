@@ -6,6 +6,7 @@ POST       /cis/retrieve-unsubmitted-monthly-returns                uk.gov.hmrc.
 POST       /monthly-return/nil/create                               uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.createNilMonthlyReturn
 POST       /cis/monthly-return-edit                                 uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.getMonthlyReturnForEdit
 POST       /cis/monthly-return/standard/create                      uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.createMonthlyReturn
+POST       /cis/monthly-return-item/sync                            uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.syncMonthlyReturnItems
 POST       /scheme/email                                            uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.getSchemeEmail
 GET        /scheme/:instanceId                                      uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.getScheme(instanceId: String)
 POST       /scheme                                                  uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.createScheme
@@ -18,6 +19,8 @@ GET        /cis/subcontractors/:cisId                               uk.gov.hmrc.
 
 POST       /submissions/create                                      uk.gov.hmrc.formpproxy.cis.controllers.SubmissionController.createSubmission()
 POST       /submissions/update                                      uk.gov.hmrc.formpproxy.cis.controllers.SubmissionController.updateSubmission()
+
+POST       /cis/govtalkstatus/get                                   uk.gov.hmrc.formpproxy.cis.controllers.GovTalkController.getGovTalkStatus
 
 # SDLT routes
 

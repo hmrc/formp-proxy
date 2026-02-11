@@ -16,12 +16,13 @@
 
 package uk.gov.hmrc.formpproxy.cis.repositories
 
-import org.mockito.Mockito._
+import org.mockito.Mockito.*
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 
-import java.sql.ResultSet
+import java.sql.{ResultSet, Timestamp}
+import java.time.LocalDateTime
 
 class CisRowMappersSpec extends AnyFreeSpec with Matchers with MockitoSugar {
 
@@ -33,6 +34,7 @@ class CisRowMappersSpec extends AnyFreeSpec with Matchers with MockitoSugar {
       CisRowMappers.collectMonthlyReturnItems(null) mustBe Nil
       CisRowMappers.collectSubmissions(null) mustBe Nil
       CisRowMappers.collectSubcontractors(null) mustBe Nil
+      CisRowMappers.collectGovtTalkStatusRecords(null) mustBe Nil
     }
 
     "return Nil when rs.next() is false" in {
@@ -44,8 +46,9 @@ class CisRowMappersSpec extends AnyFreeSpec with Matchers with MockitoSugar {
       CisRowMappers.collectMonthlyReturnItems(rs) mustBe Nil
       CisRowMappers.collectSubmissions(rs) mustBe Nil
       CisRowMappers.collectSubcontractors(rs) mustBe Nil
+      CisRowMappers.collectGovtTalkStatusRecords(rs) mustBe Nil
 
-      verify(rs, times(5)).next()
+      verify(rs, times(6)).next()
       verifyNoMoreInteractions(rs)
     }
 
@@ -85,6 +88,41 @@ class CisRowMappersSpec extends AnyFreeSpec with Matchers with MockitoSugar {
       verify(rs, times(2)).getLong("monthly_return_id")
       verify(rs, times(2)).getInt("tax_year")
       verify(rs, times(2)).getInt("tax_month")
+    }
+
+    "collectGovtTalkStatusRecords reads rows until rs.next() is false" in {
+      val rs = mock[ResultSet]
+
+      when(rs.next()).thenReturn(true, true, false)
+
+      when(rs.getString("user_identifier")).thenReturn("1", "1")
+      when(rs.getString("formResultId")).thenReturn("AB25", "AB25")
+      when(rs.getString("correlationid")).thenReturn("ABC1", "ABC2")
+      when(rs.getString("form_lock")).thenReturn("N", "N")
+      when(rs.getTimestamp("create_timestamp")).thenReturn(null)
+      when(rs.getTimestamp("endstate_timestamp")).thenReturn(null)
+      val lastMsgTime = LocalDateTime.of(2024, 1, 1, 10, 0)
+      when(rs.getTimestamp("last_mesg_timestamp"))
+        .thenReturn(Timestamp.valueOf(lastMsgTime))
+      when(rs.getInt("num_polls")).thenReturn(0, 1)
+      when(rs.getInt("poll_interval")).thenReturn(0, 1)
+      when(rs.getString("gatewayurl")).thenReturn("www.url1.com", "www.url2.com")
+
+      val out = CisRowMappers.collectGovtTalkStatusRecords(rs)
+
+      out.map(_.userIdentifier) mustBe Seq("1", "1")
+      out.map(_.formResultID) mustBe Seq("AB25", "AB25")
+      out.map(_.correlationID) mustBe Seq("ABC1", "ABC2")
+      out.map(_.formLock) mustBe Seq("N", "N")
+      out.map(_.formLock) mustBe Seq("N", "N")
+      out.map(_.createDate) mustBe Seq(None, None)
+      out.map(_.endStateDate) mustBe Seq(None, None)
+      out.map(_.lastMessageDate) mustBe Seq(lastMsgTime, lastMsgTime)
+      out.map(_.numPolls) mustBe Seq(0, 1)
+      out.map(_.pollInterval) mustBe Seq(0, 1)
+      out.map(_.gatewayURL) mustBe Seq("www.url1.com", "www.url2.com")
+
+      verify(rs, times(3)).next()
     }
   }
 }
