@@ -20,8 +20,6 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import play.api.libs.json.Json
 
-import java.time.LocalDateTime
-
 class ResetGovTalkStatusRequestSpec extends AnyFreeSpec with Matchers {
 
   "ResetGovTalkStatusRequest JSON format" - {
@@ -30,15 +28,7 @@ class ResetGovTalkStatusRequestSpec extends AnyFreeSpec with Matchers {
       val json = Json.obj(
         "userIdentifier"    -> "1",
         "formResultID"      -> "12890",
-        "correlationID"     -> "C742D5DEE7EB4D15B4F7EFD50B890525",
-        "formLock"          -> "N",
-        "createDate"        -> "2026-04-05T00:00:00",
-        "endStateDate"      -> "2026-04-05T00:00:00",
-        "lastMessageDate"   -> "2026-04-05T00:00:00",
-        "numPolls"          -> 0,
-        "pollInterval"      -> 0,
         "oldProtocolStatus" -> "dataRequest",
-        "newProtocolStatus" -> "dataPoll",
         "gatewayURL"        -> "http://vat.chris.hmrc.gov.uk:9102/ChRIS/UKVAT/Filing/action/VATDEC"
       )
 
@@ -47,15 +37,7 @@ class ResetGovTalkStatusRequestSpec extends AnyFreeSpec with Matchers {
       result mustBe ResetGovTalkStatusRequest(
         userIdentifier = "1",
         formResultID = "12890",
-        correlationID = "C742D5DEE7EB4D15B4F7EFD50B890525",
-        formLock = "N",
-        createDate = Some(LocalDateTime.parse("2026-04-05T00:00:00")),
-        endStateDate = Some(LocalDateTime.parse("2026-04-05T00:00:00")),
-        lastMessageDate = LocalDateTime.parse("2026-04-05T00:00:00"),
-        numPolls = 0,
-        pollInterval = 0,
         oldProtocolStatus = "dataRequest",
-        newProtocolStatus = "dataPoll",
         gatewayURL = "http://vat.chris.hmrc.gov.uk:9102/ChRIS/UKVAT/Filing/action/VATDEC"
       )
     }
@@ -64,15 +46,7 @@ class ResetGovTalkStatusRequestSpec extends AnyFreeSpec with Matchers {
       val model = ResetGovTalkStatusRequest(
         userIdentifier = "1",
         formResultID = "12890",
-        correlationID = "C742D5DEE7EB4D15B4F7EFD50B890525",
-        formLock = "N",
-        createDate = Some(LocalDateTime.parse("2026-04-05T00:00:00")),
-        endStateDate = Some(LocalDateTime.parse("2026-04-05T00:00:00")),
-        lastMessageDate = LocalDateTime.parse("2026-04-05T00:00:00"),
-        numPolls = 0,
-        pollInterval = 0,
         oldProtocolStatus = "dataRequest",
-        newProtocolStatus = "dataPoll",
         gatewayURL = "http://vat.chris.hmrc.gov.uk:9102/ChRIS/UKVAT/Filing/action/VATDEC"
       )
 
@@ -81,15 +55,7 @@ class ResetGovTalkStatusRequestSpec extends AnyFreeSpec with Matchers {
       json mustBe Json.obj(
         "userIdentifier"    -> "1",
         "formResultID"      -> "12890",
-        "correlationID"     -> "C742D5DEE7EB4D15B4F7EFD50B890525",
-        "formLock"          -> "N",
-        "createDate"        -> "2026-04-05T00:00:00",
-        "endStateDate"      -> "2026-04-05T00:00:00",
-        "lastMessageDate"   -> "2026-04-05T00:00:00",
-        "numPolls"          -> 0,
-        "pollInterval"      -> 0,
         "oldProtocolStatus" -> "dataRequest",
-        "newProtocolStatus" -> "dataPoll",
         "gatewayURL"        -> "http://vat.chris.hmrc.gov.uk:9102/ChRIS/UKVAT/Filing/action/VATDEC"
       )
     }

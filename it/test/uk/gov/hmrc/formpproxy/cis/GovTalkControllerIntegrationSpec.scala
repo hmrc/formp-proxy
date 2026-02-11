@@ -75,14 +75,7 @@ class GovTalkControllerIntegrationSpec
         Json.obj(
           "userIdentifier"    -> "1",
           "formResultID"      -> "12890",
-          "correlationID"     -> "128903445",
-          "formLock"          -> "N",
-          "createDate"        -> "2019-01-01T00:00:00",
-          "lastMessageDate"   -> "2019-01-01T00:00:00",
-          "numPolls"          -> 0,
-          "pollInterval"      -> 0,
           "oldProtocolStatus" -> "dataRequest",
-          "newProtocolStatus" -> "dataRequest",
           "gatewayURL"        -> "http://vat.chris.hmrc.gov.uk:9102/ChRIS/UKVAT/Filing/action/VATDEC"
         )
       )
@@ -96,14 +89,7 @@ class GovTalkControllerIntegrationSpec
         Json.obj(
           "userIdentifier"    -> "1",
           "formResultID"      -> "12890",
-          "correlationID"     -> "128903445",
-          "formLock"          -> "N",
-          "createDate"        -> "2019-01-01T00:00:00",
-          "lastMessageDate"   -> "2019-01-01T00:00:00",
-          "numPolls"          -> 0,
-          "pollInterval"      -> 0,
           "oldProtocolStatus" -> "dataRequest",
-          "newProtocolStatus" -> "dataRequest",
           "gatewayURL"        -> "http://vat.chris.hmrc.gov.uk:9102/ChRIS/UKVAT/Filing/action/VATDEC"
         )
       )

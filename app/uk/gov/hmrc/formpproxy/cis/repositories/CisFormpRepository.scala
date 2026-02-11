@@ -28,7 +28,7 @@ import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.*
 import uk.gov.hmrc.formpproxy.cis.repositories.CisRowMappers.*
 
 import java.sql.{CallableStatement, Connection, ResultSet, Timestamp, Types}
-import java.time.Instant
+import java.time.{Instant, LocalDateTime}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Using
@@ -501,15 +501,15 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         withCall(conn, CallResetGovTalkStatus) { cs =>
           cs.setString(1, req.userIdentifier)
           cs.setString(2, req.formResultID)
-          cs.setString(3, req.correlationID)
-          cs.setString(4, req.formLock)
-          cs.setOptionalTimestamp(5, req.createDate)
-          cs.setOptionalTimestamp(6, req.endStateDate)
-          cs.setTimestamp(7, java.sql.Timestamp.valueOf(req.lastMessageDate))
-          cs.setInt(8, req.numPolls)
-          cs.setInt(9, req.pollInterval)
+          cs.setString(3, "empty")
+          cs.setString(4, "N")
+          cs.setTimestamp(5, java.sql.Timestamp.valueOf(LocalDateTime.now()))
+          cs.setNull(6, Types.TIMESTAMP)
+          cs.setTimestamp(7, java.sql.Timestamp.valueOf(LocalDateTime.now()))
+          cs.setInt(8, 0)
+          cs.setInt(9, 0)
           cs.setString(10, req.oldProtocolStatus)
-          cs.setString(11, req.newProtocolStatus)
+          cs.setString(11, "initial")
           cs.setString(12, req.gatewayURL)
 
           cs.execute()
