@@ -941,15 +941,19 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       val result = repo.sdltGetReturn("100001", "STORN12345").futureValue
 
-      result.agent must not be None
-      result.agent.get.agentId mustBe Some("1")
-      result.agent.get.storn mustBe Some("STORN12345")
-      result.agent.get.name mustBe Some("Agent Name")
-      result.agent.get.houseNumber mustBe Some("100")
-      result.agent.get.address1 mustBe Some("Agent Street")
-      result.agent.get.postcode mustBe Some("AG1 1NT")
-      result.agent.get.email mustBe Some("agent@test.com")
-      result.agent.get.agentResourceReference mustBe Some("AGENTREF1")
+      // Updated to work with Seq
+      result.agent mustBe defined
+      result.agent.get must have size 1
+
+      val agent = result.agent.get.head
+      agent.agentId mustBe Some("1")
+      agent.storn mustBe Some("STORN12345")
+      agent.name mustBe Some("Agent Name")
+      agent.houseNumber mustBe Some("100")
+      agent.address1 mustBe Some("Agent Street")
+      agent.postcode mustBe Some("AG1 1NT")
+      agent.email mustBe Some("agent@test.com")
+      agent.agentResourceReference mustBe Some("AGENTREF1")
     }
 
     "process Lease data correctly with all fields" in {
