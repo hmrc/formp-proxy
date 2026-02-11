@@ -18,19 +18,10 @@ package uk.gov.hmrc.formpproxy.cis.models.requests
 
 import play.api.libs.json.{Json, OFormat}
 
-import java.time.LocalDateTime
-
 case class CreateGovTalkStatusRecordRequest(
   userIdentifier: String,
   formResultID: String,
   correlationID: String,
-  formLock: String,
-  createDate: Option[LocalDateTime],
-  endStateDate: Option[LocalDateTime],
-  lastMessageDate: LocalDateTime,
-  numPolls: Int,
-  pollInterval: Int,
-  protocolStatus: String,
   gatewayURL: String
 )
 

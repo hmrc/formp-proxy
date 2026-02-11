@@ -137,13 +137,6 @@ final class GovTalkServiceSpec extends SpecBase {
       userIdentifier = "1",
       formResultID = "12890",
       correlationID = "C742D5DEE7EB4D15B4F7EFD50B890525",
-      formLock = "false",
-      createDate = Some(LocalDateTime.parse("2025-02-05T00:00:00")),
-      endStateDate = None,
-      lastMessageDate = LocalDateTime.parse("2025-02-05T00:00:00"),
-      numPolls = 0,
-      pollInterval = 0,
-      protocolStatus = "dataRequest",
       gatewayURL = "http://localhost:9712/submission/ChRIS/CISR/Filing/sync/CIS300MR"
     )
 

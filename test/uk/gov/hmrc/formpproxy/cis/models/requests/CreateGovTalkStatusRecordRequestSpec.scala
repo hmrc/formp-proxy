@@ -28,17 +28,10 @@ class CreateGovTalkStatusRecordRequestSpec extends AnyFreeSpec with Matchers {
 
     "read from JSON correctly" in {
       val json = Json.obj(
-        "userIdentifier"  -> "1",
-        "formResultID"    -> "12890",
-        "correlationID"   -> "C742D5DEE7EB4D15B4F7EFD50B890525",
-        "formLock"        -> "N",
-        "createDate"      -> "2026-04-05T00:00:00",
-        "endStateDate"    -> "2026-04-05T00:00:00",
-        "lastMessageDate" -> "2026-04-05T00:00:00",
-        "numPolls"        -> 0,
-        "pollInterval"    -> 0,
-        "protocolStatus"  -> "dataRequest",
-        "gatewayURL"      -> "http://vat.chris.hmrc.gov.uk:9102/ChRIS/UKVAT/Filing/action/VATDEC"
+        "userIdentifier" -> "1",
+        "formResultID"   -> "12890",
+        "correlationID"  -> "C742D5DEE7EB4D15B4F7EFD50B890525",
+        "gatewayURL"     -> "http://vat.chris.hmrc.gov.uk:9102/ChRIS/UKVAT/Filing/action/VATDEC"
       )
 
       val result = json.as[CreateGovTalkStatusRecordRequest]
@@ -47,13 +40,6 @@ class CreateGovTalkStatusRecordRequestSpec extends AnyFreeSpec with Matchers {
         userIdentifier = "1",
         formResultID = "12890",
         correlationID = "C742D5DEE7EB4D15B4F7EFD50B890525",
-        formLock = "N",
-        createDate = Some(LocalDateTime.parse("2026-04-05T00:00:00")),
-        endStateDate = Some(LocalDateTime.parse("2026-04-05T00:00:00")),
-        lastMessageDate = LocalDateTime.parse("2026-04-05T00:00:00"),
-        numPolls = 0,
-        pollInterval = 0,
-        protocolStatus = "dataRequest",
         gatewayURL = "http://vat.chris.hmrc.gov.uk:9102/ChRIS/UKVAT/Filing/action/VATDEC"
       )
     }
@@ -63,30 +49,16 @@ class CreateGovTalkStatusRecordRequestSpec extends AnyFreeSpec with Matchers {
         userIdentifier = "1",
         formResultID = "12890",
         correlationID = "C742D5DEE7EB4D15B4F7EFD50B890525",
-        formLock = "N",
-        createDate = Some(LocalDateTime.parse("2026-04-05T00:00:00")),
-        endStateDate = Some(LocalDateTime.parse("2026-04-05T00:00:00")),
-        lastMessageDate = LocalDateTime.parse("2026-04-05T00:00:00"),
-        numPolls = 0,
-        pollInterval = 0,
-        protocolStatus = "dataRequest",
         gatewayURL = "http://vat.chris.hmrc.gov.uk:9102/ChRIS/UKVAT/Filing/action/VATDEC"
       )
 
       val json = Json.toJson(model)
 
       json mustBe Json.obj(
-        "userIdentifier"  -> "1",
-        "formResultID"    -> "12890",
-        "correlationID"   -> "C742D5DEE7EB4D15B4F7EFD50B890525",
-        "formLock"        -> "N",
-        "createDate"      -> "2026-04-05T00:00:00",
-        "endStateDate"    -> "2026-04-05T00:00:00",
-        "lastMessageDate" -> "2026-04-05T00:00:00",
-        "numPolls"        -> 0,
-        "pollInterval"    -> 0,
-        "protocolStatus"  -> "dataRequest",
-        "gatewayURL"      -> "http://vat.chris.hmrc.gov.uk:9102/ChRIS/UKVAT/Filing/action/VATDEC"
+        "userIdentifier" -> "1",
+        "formResultID"   -> "12890",
+        "correlationID"  -> "C742D5DEE7EB4D15B4F7EFD50B890525",
+        "gatewayURL"     -> "http://vat.chris.hmrc.gov.uk:9102/ChRIS/UKVAT/Filing/action/VATDEC"
       )
     }
   }
