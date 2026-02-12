@@ -137,6 +137,47 @@ final class MonthlyReturnServiceSpec extends SpecBase {
     }
   }
 
+  "MonthlyReturnService updateNilMonthlyReturn" - {
+
+    "delegates to repo (happy path)" in new Ctx {
+      val request = CreateNilMonthlyReturnRequest(
+        instanceId = id,
+        taxYear = 2025,
+        taxMonth = 2,
+        decInformationCorrect = "Y",
+        decNilReturnNoPayments = "Y"
+      )
+
+      when(repo.updateNilMonthlyReturn(eqTo(request)))
+        .thenReturn(Future.successful(()))
+
+      service.updateNilMonthlyReturn(request).futureValue mustBe ()
+
+      verify(repo).updateNilMonthlyReturn(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failures from the repository" in new Ctx {
+      val request = CreateNilMonthlyReturnRequest(
+        instanceId = id,
+        taxYear = 2025,
+        taxMonth = 2,
+        decInformationCorrect = "Y",
+        decNilReturnNoPayments = "Y"
+      )
+      val boom    = new RuntimeException("db failed")
+
+      when(repo.updateNilMonthlyReturn(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      val ex = service.updateNilMonthlyReturn(request).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).updateNilMonthlyReturn(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
   "MonthlyReturnService getSchemeEmail" - {
 
     "delegates to repo and returns Some(email)" in new Ctx {

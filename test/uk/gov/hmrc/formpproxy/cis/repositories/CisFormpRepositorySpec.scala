@@ -105,35 +105,18 @@ final class CisFormpRepositorySpec extends SpecBase {
 
   "createNilMonthlyReturn" - {
 
-    "call underlying procedures with correct parameters and return STARTED" in {
-      val db          = mock[Database]
-      val conn        = mock[java.sql.Connection]
-      val csCreate    = mock[CallableStatement]
-      val csVersion   = mock[CallableStatement]
-      val csUpdate    = mock[CallableStatement]
-      val csGetScheme = mock[CallableStatement]
-      val rsScheme    = mock[java.sql.ResultSet]
+    "call Create_Monthly_Return SP only and return STARTED" in {
+      val db       = mock[Database]
+      val conn     = mock[java.sql.Connection]
+      val csCreate = mock[CallableStatement]
 
-      when(db.withTransaction(org.mockito.ArgumentMatchers.any[java.sql.Connection => Any]))
+      when(db.withConnection(org.mockito.ArgumentMatchers.any[java.sql.Connection => Any]))
         .thenAnswer { inv =>
           val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
         }
 
-      when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"))
-        .thenReturn(csGetScheme)
-      when(csGetScheme.getObject(eqTo(2), eqTo(classOf[ResultSet])))
-        .thenReturn(rsScheme)
-      when(rsScheme.next()).thenReturn(true, false)
-      when(rsScheme.getInt("version")).thenReturn(0)
-
       when(conn.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }"))
         .thenReturn(csCreate)
-      when(conn.prepareCall("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"))
-        .thenReturn(csVersion)
-      when(
-        conn.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Update_Monthly_Return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
-      )
-        .thenReturn(csUpdate)
 
       val repo = new CisFormpRepository(db)
 
@@ -151,13 +134,57 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(conn).prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }")
       verify(csCreate).execute()
 
-      verify(conn).prepareCall("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }")
-      verify(csVersion).execute()
-
-      verify(conn).prepareCall(
+      verify(conn, never).prepareCall("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }")
+      verify(conn, never).prepareCall(
         "{ call MONTHLY_RETURN_PROCS_2016.Update_Monthly_Return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
       )
+    }
+  }
+
+  "updateNilMonthlyReturn" - {
+
+    "call Update_Monthly_Return and Update_Scheme_Version SPs in transaction" in {
+      val db          = mock[Database]
+      val conn        = mock[Connection]
+      val csUpdate    = mock[CallableStatement]
+      val csVersion   = mock[CallableStatement]
+      val csGetScheme = mock[CallableStatement]
+      val rsScheme    = mock[ResultSet]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"))
+        .thenReturn(csGetScheme)
+      when(csGetScheme.getObject(eqTo(2), eqTo(classOf[ResultSet])))
+        .thenReturn(rsScheme)
+      when(rsScheme.next()).thenReturn(true, false)
+      when(rsScheme.getInt("version")).thenReturn(1)
+
+      val updateCall = "{ call MONTHLY_RETURN_PROCS_2016.Update_Monthly_Return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+      when(conn.prepareCall(eqTo(updateCall))).thenReturn(csUpdate)
+
+      val versionCall = "{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"
+      when(conn.prepareCall(eqTo(versionCall))).thenReturn(csVersion)
+
+      val repo = new CisFormpRepository(db)
+      val req  = CreateNilMonthlyReturnRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 2,
+        decInformationCorrect = "Y",
+        decNilReturnNoPayments = "Y"
+      )
+
+      repo.updateNilMonthlyReturn(req).futureValue
+
+      verify(conn).prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")
+      verify(csGetScheme).execute()
+      verify(conn).prepareCall(eqTo(updateCall))
       verify(csUpdate).execute()
+      verify(conn).prepareCall(eqTo(versionCall))
+      verify(csVersion).execute()
     }
   }
 

@@ -39,6 +39,7 @@ trait CisMonthlyReturnSource {
   def createSubmission(request: CreateSubmissionRequest): Future[String]
   def updateMonthlyReturnSubmission(request: UpdateSubmissionRequest): Future[Unit]
   def createNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[CreateNilMonthlyReturnResponse]
+  def updateNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[Unit]
   def createMonthlyReturn(request: CreateMonthlyReturnRequest): Future[Unit]
   def getSchemeEmail(instanceId: String): Future[Option[String]]
   def getScheme(instanceId: String): Future[Option[ContractorScheme]]
@@ -369,19 +370,29 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       s"[CIS] createNilMonthlyReturn(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
     )
     Future {
-      db.withTransaction { conn =>
-        val schemeVersionBefore = getSchemeVersion(conn, request.instanceId)
-
+      db.withConnection { conn =>
         callCreateMonthlyReturn(conn, request)
-        callUpdateSchemeVersion(conn, request.instanceId, schemeVersionBefore)
-        callUpdateMonthlyReturn(conn, request)
 
         CreateNilMonthlyReturnResponse(status = "STARTED")
       }
     }
   }
 
-  // Prepopulation
+  override def updateNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[Unit] = {
+    logger.info(
+      s"[CIS] updateNilMonthlyReturn(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
+    )
+    Future {
+      db.withTransaction { conn =>
+        val schemeVersionBefore = getSchemeVersion(conn, request.instanceId)
+
+        callUpdateMonthlyReturn(conn, request)
+        callUpdateSchemeVersion(conn, request.instanceId, schemeVersionBefore)
+      }
+    }
+  }
+
+// Prepopulation
 
   override def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int] =
     Future {
