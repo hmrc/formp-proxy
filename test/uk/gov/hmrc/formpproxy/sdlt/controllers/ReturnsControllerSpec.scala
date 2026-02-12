@@ -582,10 +582,10 @@ class ReturnsControllerSpec
       val request: UpdateReturnRequest = UpdateReturnRequest(
         storn = "STORN12345",
         returnResourceRef = "100001",
-        mainPurchaserId = "1",
-        mainVendorId = "1",
-        mainLandId = "1",
-        irmarkGenerated = "IRMark123456",
+        mainPurchaserID = "1",
+        mainVendorID = "1",
+        mainLandID = "1",
+        IRMarkGenerated = "IRMark123456",
         landCertForEachProp = "YES",
         declaration = "YES"
       )
@@ -612,10 +612,10 @@ class ReturnsControllerSpec
       val request: UpdateReturnRequest = UpdateReturnRequest(
         storn = "STORN99999",
         returnResourceRef = "100002",
-        mainPurchaserId = "5",
-        mainVendorId = "3",
-        mainLandId = "7",
-        irmarkGenerated = "IRMark999999",
+        mainPurchaserID = "5",
+        mainVendorID = "3",
+        mainLandID = "7",
+        IRMarkGenerated = "IRMark999999",
         landCertForEachProp = "N",
         declaration = "YES"
       )
@@ -646,10 +646,10 @@ class ReturnsControllerSpec
     "returns 400 when storn is missing" in new Setup {
       val invalidJson: JsObject = Json.obj(
         "returnResourceRef"   -> "100001",
-        "mainPurchaserId"     -> "1",
-        "mainVendorId"        -> "1",
-        "mainLandId"          -> "1",
-        "irmarkGenerated"     -> "IRMark123456",
+        "mainPurchaserID"     -> "1",
+        "mainVendorID"        -> "1",
+        "mainLandID"          -> "1",
+        "IRMarkGenerated"     -> "IRMark123456",
         "landCertForEachProp" -> "YES",
         "declaration"         -> "YES"
       )
@@ -665,10 +665,10 @@ class ReturnsControllerSpec
     "returns 400 when returnResourceRef is missing" in new Setup {
       val invalidJson: JsObject = Json.obj(
         "storn"               -> "STORN12345",
-        "mainPurchaserId"     -> "1",
-        "mainVendorId"        -> "1",
-        "mainLandId"          -> "1",
-        "irmarkGenerated"     -> "IRMark123456",
+        "mainPurchaserID"     -> "1",
+        "mainVendorID"        -> "1",
+        "mainLandID"          -> "1",
+        "IRMarkGenerated"     -> "IRMark123456",
         "landCertForEachProp" -> "YES",
         "declaration"         -> "YES"
       )
@@ -681,13 +681,13 @@ class ReturnsControllerSpec
       verifyNoInteractions(mockService)
     }
 
-    "returns 400 when mainPurchaserId is missing" in new Setup {
+    "returns 400 when mainPurchaserID is missing" in new Setup {
       val invalidJson: JsObject = Json.obj(
         "storn"               -> "STORN12345",
         "returnResourceRef"   -> "100001",
-        "mainVendorId"        -> "1",
-        "mainLandId"          -> "1",
-        "irmarkGenerated"     -> "IRMark123456",
+        "mainVendorID"        -> "1",
+        "mainLandID"          -> "1",
+        "IRMarkGenerated"     -> "IRMark123456",
         "landCertForEachProp" -> "YES",
         "declaration"         -> "YES"
       )
@@ -700,13 +700,13 @@ class ReturnsControllerSpec
       verifyNoInteractions(mockService)
     }
 
-    "returns 400 when mainVendorId is missing" in new Setup {
+    "returns 400 when mainVendorID is missing" in new Setup {
       val invalidJson: JsObject = Json.obj(
         "storn"               -> "STORN12345",
         "returnResourceRef"   -> "100001",
-        "mainPurchaserId"     -> "1",
-        "mainLandId"          -> "1",
-        "irmarkGenerated"     -> "IRMark123456",
+        "mainPurchaserID"     -> "1",
+        "mainLandID"          -> "1",
+        "IRMarkGenerated"     -> "IRMark123456",
         "landCertForEachProp" -> "YES",
         "declaration"         -> "YES"
       )
@@ -719,13 +719,13 @@ class ReturnsControllerSpec
       verifyNoInteractions(mockService)
     }
 
-    "returns 400 when mainLandId is missing" in new Setup {
+    "returns 400 when mainLandID is missing" in new Setup {
       val invalidJson: JsObject = Json.obj(
         "storn"               -> "STORN12345",
         "returnResourceRef"   -> "100001",
-        "mainPurchaserId"     -> "1",
-        "mainVendorId"        -> "1",
-        "irmarkGenerated"     -> "IRMark123456",
+        "mainPurchaserID"     -> "1",
+        "mainVendorID"        -> "1",
+        "IRMarkGenerated"     -> "IRMark123456",
         "landCertForEachProp" -> "YES",
         "declaration"         -> "YES"
       )
@@ -738,13 +738,13 @@ class ReturnsControllerSpec
       verifyNoInteractions(mockService)
     }
 
-    "returns 400 when irmarkGenerated is missing" in new Setup {
+    "returns 400 when IRMarkGenerated is missing" in new Setup {
       val invalidJson: JsObject = Json.obj(
         "storn"               -> "STORN12345",
         "returnResourceRef"   -> "100001",
-        "mainPurchaserId"     -> "1",
-        "mainVendorId"        -> "1",
-        "mainLandId"          -> "1",
+        "mainPurchaserID"     -> "1",
+        "mainVendorID"        -> "1",
+        "mainLandID"          -> "1",
         "landCertForEachProp" -> "YES",
         "declaration"         -> "YES"
       )
@@ -761,10 +761,10 @@ class ReturnsControllerSpec
       val invalidJson: JsObject = Json.obj(
         "storn"             -> "STORN12345",
         "returnResourceRef" -> "100001",
-        "mainPurchaserId"   -> "1",
-        "mainVendorId"      -> "1",
-        "mainLandId"        -> "1",
-        "irmarkGenerated"   -> "IRMark123456",
+        "mainPurchaserID"   -> "1",
+        "mainVendorID"      -> "1",
+        "mainLandID"        -> "1",
+        "IRMarkGenerated"   -> "IRMark123456",
         "declaration"       -> "YES"
       )
 
@@ -780,10 +780,10 @@ class ReturnsControllerSpec
       val invalidJson: JsObject = Json.obj(
         "storn"               -> "STORN12345",
         "returnResourceRef"   -> "100001",
-        "mainPurchaserId"     -> "1",
-        "mainVendorId"        -> "1",
-        "mainLandId"          -> "1",
-        "irmarkGenerated"     -> "IRMark123456",
+        "mainPurchaserID"     -> "1",
+        "mainVendorID"        -> "1",
+        "mainLandID"          -> "1",
+        "IRMarkGenerated"     -> "IRMark123456",
         "landCertForEachProp" -> "YES"
       )
 
@@ -799,10 +799,10 @@ class ReturnsControllerSpec
       val request: UpdateReturnRequest = UpdateReturnRequest(
         storn = "STORN12345",
         returnResourceRef = "100001",
-        mainPurchaserId = "1",
-        mainVendorId = "1",
-        mainLandId = "1",
-        irmarkGenerated = "IRMark123456",
+        mainPurchaserID = "1",
+        mainVendorID = "1",
+        mainLandID = "1",
+        IRMarkGenerated = "IRMark123456",
         landCertForEachProp = "YES",
         declaration = "YES"
       )
@@ -824,10 +824,10 @@ class ReturnsControllerSpec
       val request: UpdateReturnRequest = UpdateReturnRequest(
         storn = "STORN12345",
         returnResourceRef = "100001",
-        mainPurchaserId = "1",
-        mainVendorId = "1",
-        mainLandId = "1",
-        irmarkGenerated = "IRMark123456",
+        mainPurchaserID = "1",
+        mainVendorID = "1",
+        mainLandID = "1",
+        IRMarkGenerated = "IRMark123456",
         landCertForEachProp = "N",
         declaration = "N"
       )

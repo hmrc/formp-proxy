@@ -170,16 +170,16 @@
 //
 //      getReturnRes1.status mustBe OK
 //
-//      val initialMainPurchaserId = (getReturnRes1.json \ "returnInfo" \ "mainPurchaserID").asOpt[String]
-//      val initialMainVendorId = (getReturnRes1.json \ "returnInfo" \ "mainVendorID").asOpt[String]
-//      val initialMainLandId = (getReturnRes1.json \ "returnInfo" \ "mainLandID").asOpt[String]
+//      val initialmainPurchaserID = (getReturnRes1.json \ "returnInfo" \ "mainPurchaserID").asOpt[String]
+//      val initialmainVendorID = (getReturnRes1.json \ "returnInfo" \ "mainVendorID").asOpt[String]
+//      val initialmainLandID = (getReturnRes1.json \ "returnInfo" \ "mainLandID").asOpt[String]
 //      val initialIRMark = (getReturnRes1.json \ "returnInfo" \ "IRMarkGenerated").asOpt[String]
 //      val initialLandCert = (getReturnRes1.json \ "returnInfo" \ "landCertForEachProp").asOpt[String]
 //      val initialDeclaration = (getReturnRes1.json \ "returnInfo" \ "declaration").asOpt[String]
 //
-//      println(s"Initial mainPurchaserID: ${initialMainPurchaserId.getOrElse("not set")}")
-//      println(s"Initial mainVendorID: ${initialMainVendorId.getOrElse("not set")}")
-//      println(s"Initial mainLandID: ${initialMainLandId.getOrElse("not set")}")
+//      println(s"Initial mainPurchaserID: ${initialmainPurchaserID.getOrElse("not set")}")
+//      println(s"Initial mainVendorID: ${initialmainVendorID.getOrElse("not set")}")
+//      println(s"Initial mainLandID: ${initialmainLandID.getOrElse("not set")}")
 //      println(s"Initial IRMarkGenerated: ${initialIRMark.getOrElse("not set")}")
 //      println(s"Initial landCertForEachProp: ${initialLandCert.getOrElse("not set")}")
 //      println(s"Initial declaration: ${initialDeclaration.getOrElse("not set")}")
@@ -189,10 +189,10 @@
 //      val updateReturnInfoPayload = Json.obj(
 //        "storn" -> "TEST123460",
 //        "returnResourceRef" -> returnResourceRef,
-//        "mainPurchaserId" -> purchaserId,
-//        "mainVendorId" -> vendorId,
-//        "mainLandId" -> landId,
-//        "irmarkGenerated" -> "IRMark123456789",
+//        "mainPurchaserID" -> purchaserId,
+//        "mainVendorID" -> vendorId,
+//        "mainLandID" -> landId,
+//        "IRMarkGenerated" -> "IRMark123456789",
 //        "landCertForEachProp" -> "YES",
 //        "declaration" -> "YES"
 //      )
@@ -217,24 +217,24 @@
 //
 //      getReturnRes2.status mustBe OK
 //
-//      val updatedMainPurchaserId = (getReturnRes2.json \ "returnInfo" \ "mainPurchaserID").asOpt[String]
-//      val updatedMainVendorId = (getReturnRes2.json \ "returnInfo" \ "mainVendorID").asOpt[String]
-//      val updatedMainLandId = (getReturnRes2.json \ "returnInfo" \ "mainLandID").asOpt[String]
+//      val updatedmainPurchaserID = (getReturnRes2.json \ "returnInfo" \ "mainPurchaserID").asOpt[String]
+//      val updatedmainVendorID = (getReturnRes2.json \ "returnInfo" \ "mainVendorID").asOpt[String]
+//      val updatedmainLandID = (getReturnRes2.json \ "returnInfo" \ "mainLandID").asOpt[String]
 //      val updatedIRMark = (getReturnRes2.json \ "returnInfo" \ "IRMarkGenerated").asOpt[String]
 //      val updatedLandCert = (getReturnRes2.json \ "returnInfo" \ "landCertForEachProp").asOpt[String]
 //      val updatedDeclaration = (getReturnRes2.json \ "returnInfo" \ "declaration").asOpt[String]
 //
-//      println(s"Updated mainPurchaserID: ${updatedMainPurchaserId.getOrElse("not set")}")
-//      println(s"Updated mainVendorID: ${updatedMainVendorId.getOrElse("not set")}")
-//      println(s"Updated mainLandID: ${updatedMainLandId.getOrElse("not set")}")
+//      println(s"Updated mainPurchaserID: ${updatedmainPurchaserID.getOrElse("not set")}")
+//      println(s"Updated mainVendorID: ${updatedmainVendorID.getOrElse("not set")}")
+//      println(s"Updated mainLandID: ${updatedmainLandID.getOrElse("not set")}")
 //      println(s"Updated IRMarkGenerated: ${updatedIRMark.getOrElse("not set")}")
 //      println(s"Updated landCertForEachProp: ${updatedLandCert.getOrElse("not set")}")
 //      println(s"Updated declaration: ${updatedDeclaration.getOrElse("not set")}")
 //
 //      // Verify all fields were updated
-//      updatedMainPurchaserId mustBe Some(purchaserId)
-//      updatedMainVendorId mustBe Some(vendorId)
-//      updatedMainLandId mustBe Some(landId)
+//      updatedmainPurchaserID mustBe Some(purchaserId)
+//      updatedmainVendorID mustBe Some(vendorId)
+//      updatedmainLandID mustBe Some(landId)
 //      updatedIRMark mustBe Some("IRMark123456789")
 //      updatedLandCert mustBe Some("YES")
 //      updatedDeclaration mustBe Some("YES")
@@ -318,10 +318,10 @@
 //      val updateReturnInfoPayload = Json.obj(
 //        "storn" -> "TEST123461",
 //        "returnResourceRef" -> returnResourceRef,
-//        "mainPurchaserId" -> purchaserId,
-//        "mainVendorId" -> vendorId,
-//        "mainLandId" -> landId,
-//        "irmarkGenerated" -> "IRMark999999999",
+//        "mainPurchaserID" -> purchaserId,
+//        "mainVendorID" -> vendorId,
+//        "mainLandID" -> landId,
+//        "IRMarkGenerated" -> "IRMark999999999",
 //        "landCertForEachProp" -> "NO",
 //        "declaration" -> "NO"
 //      )
