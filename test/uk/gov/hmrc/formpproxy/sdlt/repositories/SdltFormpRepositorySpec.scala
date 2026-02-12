@@ -3373,10 +3373,10 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       val request = UpdateReturnRequest(
         storn = "STORN12345",
         returnResourceRef = "100001",
-        mainPurchaserId = "1",
-        mainVendorId = "1",
-        mainLandId = "1",
-        irmarkGenerated = "IRMark123456",
+        mainPurchaserID = "1",
+        mainVendorID = "1",
+        mainLandID = "1",
+        IRMarkGenerated = "IRMark123456",
         landCertForEachProp = "YES",
         declaration = "YES"
       )
@@ -3414,10 +3414,10 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       val request = UpdateReturnRequest(
         storn = "STORN99999",
         returnResourceRef = "100002",
-        mainPurchaserId = "5",
-        mainVendorId = "3",
-        mainLandId = "7",
-        irmarkGenerated = "IRMark999999",
+        mainPurchaserID = "5",
+        mainVendorID = "3",
+        mainLandID = "7",
+        IRMarkGenerated = "IRMark999999",
         landCertForEachProp = "NO",
         declaration = "YES"
       )
@@ -3453,10 +3453,10 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       val request = UpdateReturnRequest(
         storn = "STORN88888",
         returnResourceRef = "100003",
-        mainPurchaserId = "10",
-        mainVendorId = "20",
-        mainLandId = "30",
-        irmarkGenerated = "IRMark888888",
+        mainPurchaserID = "10",
+        mainVendorID = "20",
+        mainLandID = "30",
+        IRMarkGenerated = "IRMark888888",
         landCertForEachProp = "NO",
         declaration = "NO"
       )

@@ -1810,10 +1810,10 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
         conn = conn,
         p_storn = request.storn,
         p_return_resource_ref = request.returnResourceRef.toLong,
-        p_main_purchaser_id = request.mainPurchaserId,
-        p_main_vendor_id = request.mainVendorId,
-        p_main_land_id = request.mainLandId,
-        p_irmark_generated = request.irmarkGenerated,
+        p_main_purchaser_id = request.mainPurchaserID,
+        p_main_vendor_id = request.mainVendorID,
+        p_main_land_id = request.mainLandID,
+        p_irmark_generated = request.IRMarkGenerated,
         p_land_cert_for_each_prop = request.landCertForEachProp,
         p_declaration = request.declaration
       )
