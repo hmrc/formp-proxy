@@ -94,4 +94,42 @@ final class GovTalkServiceSpec extends SpecBase {
       verifyNoMoreInteractions(c.repo)
     }
   }
+
+  "GovTalkService updateGovTalkStatusCorrelationId" - {
+
+    val request = UpdateGovTalkStatusCorrelationIdRequest(
+      userIdentifier = "1",
+      formResultId = "12890",
+      correlationId = "C742D5DEE7EB4D15B4F7EFD50B890525",
+      pollInterval = 1,
+      gatewayUrl = "http://example.com"
+    )
+
+    "returns Unit when repository succeeds" in {
+      val c = Ctx()
+
+      when(c.repo.updateGovTalkStatusCorrelationId(request))
+        .thenReturn(Future.successful(()))
+
+      val result = c.service.updateGovTalkStatusCorrelationId(request).futureValue
+      result mustBe ()
+
+      verify(c.repo).updateGovTalkStatusCorrelationId(request)
+      verifyNoMoreInteractions(c.repo)
+    }
+
+    "propagates failures from the repository" in {
+      val c = Ctx()
+      val boom = new RuntimeException("update failed")
+
+      when(c.repo.updateGovTalkStatusCorrelationId(request))
+        .thenReturn(Future.failed(boom))
+
+      val ex = c.service.updateGovTalkStatusCorrelationId(request).failed.futureValue
+      ex mustBe boom
+
+      verify(c.repo).updateGovTalkStatusCorrelationId(request)
+      verifyNoMoreInteractions(c.repo)
+    }
+  }
 }

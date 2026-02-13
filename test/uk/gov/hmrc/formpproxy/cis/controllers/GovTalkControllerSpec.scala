@@ -28,6 +28,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
 import uk.gov.hmrc.formpproxy.cis.models.*
+import uk.gov.hmrc.formpproxy.cis.models.requests.UpdateGovTalkStatusCorrelationIdRequest
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.services.GovTalkService
 import uk.gov.hmrc.http.UpstreamErrorResponse
@@ -93,6 +94,54 @@ class GovTalkControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
 
       val req: FakeRequest[JsValue] = makeJsonRequest(Json.obj("userIdentifier" -> "1", "formResultID" -> "12890"))
       val res: Future[Result]       = controller.getGovTalkStatus(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
+    }
+  }
+
+  "GovTalkController updateGovTalkStatusCorrelationId" - {
+
+    "returns 204 when service succeeds" in new Setup {
+      when(mockService.updateGovTalkStatusCorrelationId(any()))
+        .thenReturn(Future.successful(()))
+
+      val body = UpdateGovTalkStatusCorrelationIdRequest(
+        userIdentifier = "1",
+        formResultId   = "12890",
+        correlationId  = "C742D5DEE7EB4D15B4F7EFD50B890525",
+        pollInterval   = 1,
+        gatewayUrl     = "http://example.com/test"
+      )
+
+      val req: FakeRequest[UpdateGovTalkStatusCorrelationIdRequest] =
+        FakeRequest(POST, "/formp-proxy/cis/govtalkstatus/update-correlationID")
+          .withBody(body)
+
+      val res: Future[Result] = controller.updateGovTalkStatusCorrelationId(req)
+
+      status(res) mustBe NO_CONTENT
+      verify(mockService).updateGovTalkStatusCorrelationId(any())
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 500 with generic message on unexpected exception" in new Setup {
+      when(mockService.updateGovTalkStatusCorrelationId(any()))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val body = UpdateGovTalkStatusCorrelationIdRequest(
+        userIdentifier = "1",
+        formResultId   = "12890",
+        correlationId  = "C742D5DEE7EB4D15B4F7EFD50B890525",
+        pollInterval   = 1,
+        gatewayUrl     = "http://example.com/test"
+      )
+
+      val req: FakeRequest[UpdateGovTalkStatusCorrelationIdRequest] =
+        FakeRequest(POST, "/formp-proxy/cis/govtalkstatus/update-correlationID")
+          .withBody(body)
+
+      val res: Future[Result] = controller.updateGovTalkStatusCorrelationId(req)
 
       status(res) mustBe INTERNAL_SERVER_ERROR
       (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
