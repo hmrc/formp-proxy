@@ -582,12 +582,12 @@ class ReturnsControllerSpec
       val request: UpdateReturnRequest = UpdateReturnRequest(
         storn = "STORN12345",
         returnResourceRef = "100001",
-        mainPurchaserID = "1",
-        mainVendorID = "1",
-        mainLandID = "1",
-        IRMarkGenerated = "IRMark123456",
-        landCertForEachProp = "YES",
-        declaration = "YES"
+        mainPurchaserID = Some("1"),
+        mainVendorID = Some("1"),
+        mainLandID = Some("1"),
+        IRMarkGenerated = Some("IRMark123456"),
+        landCertForEachProp = Some("YES"),
+        declaration = Some("YES")
       )
 
       val expectedResponse: UpdateReturnReturn = UpdateReturnReturn(
@@ -612,12 +612,12 @@ class ReturnsControllerSpec
       val request: UpdateReturnRequest = UpdateReturnRequest(
         storn = "STORN99999",
         returnResourceRef = "100002",
-        mainPurchaserID = "5",
-        mainVendorID = "3",
-        mainLandID = "7",
-        IRMarkGenerated = "IRMark999999",
-        landCertForEachProp = "N",
-        declaration = "YES"
+        mainPurchaserID = Some("5"),
+        mainVendorID = Some("3"),
+        mainLandID = Some("7"),
+        IRMarkGenerated = Some("IRMark999999"),
+        landCertForEachProp = Some("N"),
+        declaration = Some("YES")
       )
 
       val expectedResponse: UpdateReturnReturn = UpdateReturnReturn(
@@ -681,130 +681,154 @@ class ReturnsControllerSpec
       verifyNoInteractions(mockService)
     }
 
-    "returns 400 when mainPurchaserID is missing" in new Setup {
-      val invalidJson: JsObject = Json.obj(
-        "storn"               -> "STORN12345",
-        "returnResourceRef"   -> "100001",
-        "mainVendorID"        -> "1",
-        "mainLandID"          -> "1",
-        "IRMarkGenerated"     -> "IRMark123456",
-        "landCertForEachProp" -> "YES",
-        "declaration"         -> "YES"
+    "returns 200 when mainPurchaserID is missing" in new Setup {
+      val request: UpdateReturnRequest = UpdateReturnRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001",
+        mainPurchaserID = None,
+        mainVendorID = Some("1"),
+        mainLandID = Some("1"),
+        IRMarkGenerated = Some("IRMark123456"),
+        landCertForEachProp = Some("YES"),
+        declaration = Some("YES")
       )
 
-      val req: FakeRequest[JsValue] = makeJsonRequest(invalidJson)
+      val expectedResponse: UpdateReturnReturn = UpdateReturnReturn(updated = true)
+
+      when(mockService.updateReturn(eqTo(request))).thenReturn(Future.successful(expectedResponse))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(Json.toJson(request))
       val res: Future[Result]       = controller.updateReturnInfo()(req)
 
-      status(res) mustBe BAD_REQUEST
-      (contentAsJson(res) \ "message").as[String] mustBe "Invalid payload"
-      verifyNoInteractions(mockService)
+      status(res) mustBe OK
+      (contentAsJson(res) \ "updated").as[Boolean] mustBe true
     }
 
-    "returns 400 when mainVendorID is missing" in new Setup {
-      val invalidJson: JsObject = Json.obj(
-        "storn"               -> "STORN12345",
-        "returnResourceRef"   -> "100001",
-        "mainPurchaserID"     -> "1",
-        "mainLandID"          -> "1",
-        "IRMarkGenerated"     -> "IRMark123456",
-        "landCertForEachProp" -> "YES",
-        "declaration"         -> "YES"
+    "returns 200 when mainVendorID is missing" in new Setup {
+      val request: UpdateReturnRequest = UpdateReturnRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001",
+        mainPurchaserID = Some("1"),
+        mainVendorID = None,
+        mainLandID = Some("1"),
+        IRMarkGenerated = Some("IRMark123456"),
+        landCertForEachProp = Some("YES"),
+        declaration = Some("YES")
       )
 
-      val req: FakeRequest[JsValue] = makeJsonRequest(invalidJson)
+      val expectedResponse: UpdateReturnReturn = UpdateReturnReturn(updated = true)
+
+      when(mockService.updateReturn(eqTo(request))).thenReturn(Future.successful(expectedResponse))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(Json.toJson(request))
       val res: Future[Result]       = controller.updateReturnInfo()(req)
 
-      status(res) mustBe BAD_REQUEST
-      (contentAsJson(res) \ "message").as[String] mustBe "Invalid payload"
-      verifyNoInteractions(mockService)
+      status(res) mustBe OK
+      (contentAsJson(res) \ "updated").as[Boolean] mustBe true
     }
 
-    "returns 400 when mainLandID is missing" in new Setup {
-      val invalidJson: JsObject = Json.obj(
-        "storn"               -> "STORN12345",
-        "returnResourceRef"   -> "100001",
-        "mainPurchaserID"     -> "1",
-        "mainVendorID"        -> "1",
-        "IRMarkGenerated"     -> "IRMark123456",
-        "landCertForEachProp" -> "YES",
-        "declaration"         -> "YES"
+    "returns 200 when mainLandID is missing" in new Setup {
+      val request: UpdateReturnRequest = UpdateReturnRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001",
+        mainPurchaserID = Some("1"),
+        mainVendorID = Some("1"),
+        mainLandID = None,
+        IRMarkGenerated = Some("IRMark123456"),
+        landCertForEachProp = Some("YES"),
+        declaration = Some("YES")
       )
 
-      val req: FakeRequest[JsValue] = makeJsonRequest(invalidJson)
+      val expectedResponse: UpdateReturnReturn = UpdateReturnReturn(updated = true)
+
+      when(mockService.updateReturn(eqTo(request))).thenReturn(Future.successful(expectedResponse))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(Json.toJson(request))
       val res: Future[Result]       = controller.updateReturnInfo()(req)
 
-      status(res) mustBe BAD_REQUEST
-      (contentAsJson(res) \ "message").as[String] mustBe "Invalid payload"
-      verifyNoInteractions(mockService)
+      status(res) mustBe OK
+      (contentAsJson(res) \ "updated").as[Boolean] mustBe true
     }
 
-    "returns 400 when IRMarkGenerated is missing" in new Setup {
-      val invalidJson: JsObject = Json.obj(
-        "storn"               -> "STORN12345",
-        "returnResourceRef"   -> "100001",
-        "mainPurchaserID"     -> "1",
-        "mainVendorID"        -> "1",
-        "mainLandID"          -> "1",
-        "landCertForEachProp" -> "YES",
-        "declaration"         -> "YES"
+    "returns 200 when IRMarkGenerated is missing" in new Setup {
+      val request: UpdateReturnRequest = UpdateReturnRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001",
+        mainPurchaserID = Some("1"),
+        mainVendorID = Some("1"),
+        mainLandID = Some("1"),
+        IRMarkGenerated = None,
+        landCertForEachProp = Some("YES"),
+        declaration = Some("YES")
       )
 
-      val req: FakeRequest[JsValue] = makeJsonRequest(invalidJson)
+      val expectedResponse: UpdateReturnReturn = UpdateReturnReturn(updated = true)
+
+      when(mockService.updateReturn(eqTo(request))).thenReturn(Future.successful(expectedResponse))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(Json.toJson(request))
       val res: Future[Result]       = controller.updateReturnInfo()(req)
 
-      status(res) mustBe BAD_REQUEST
-      (contentAsJson(res) \ "message").as[String] mustBe "Invalid payload"
-      verifyNoInteractions(mockService)
+      status(res) mustBe OK
+      (contentAsJson(res) \ "updated").as[Boolean] mustBe true
     }
 
-    "returns 400 when landCertForEachProp is missing" in new Setup {
-      val invalidJson: JsObject = Json.obj(
-        "storn"             -> "STORN12345",
-        "returnResourceRef" -> "100001",
-        "mainPurchaserID"   -> "1",
-        "mainVendorID"      -> "1",
-        "mainLandID"        -> "1",
-        "IRMarkGenerated"   -> "IRMark123456",
-        "declaration"       -> "YES"
+    "returns 200 when landCertForEachProp is missing" in new Setup {
+      val request: UpdateReturnRequest = UpdateReturnRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001",
+        mainPurchaserID = Some("1"),
+        mainVendorID = Some("1"),
+        mainLandID = Some("1"),
+        IRMarkGenerated = Some("IRMark123456"),
+        landCertForEachProp = None,
+        declaration = Some("YES")
       )
 
-      val req: FakeRequest[JsValue] = makeJsonRequest(invalidJson)
+      val expectedResponse: UpdateReturnReturn = UpdateReturnReturn(updated = true)
+
+      when(mockService.updateReturn(eqTo(request))).thenReturn(Future.successful(expectedResponse))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(Json.toJson(request))
       val res: Future[Result]       = controller.updateReturnInfo()(req)
 
-      status(res) mustBe BAD_REQUEST
-      (contentAsJson(res) \ "message").as[String] mustBe "Invalid payload"
-      verifyNoInteractions(mockService)
+      status(res) mustBe OK
+      (contentAsJson(res) \ "updated").as[Boolean] mustBe true
     }
 
-    "returns 400 when declaration is missing" in new Setup {
-      val invalidJson: JsObject = Json.obj(
-        "storn"               -> "STORN12345",
-        "returnResourceRef"   -> "100001",
-        "mainPurchaserID"     -> "1",
-        "mainVendorID"        -> "1",
-        "mainLandID"          -> "1",
-        "IRMarkGenerated"     -> "IRMark123456",
-        "landCertForEachProp" -> "YES"
+    "returns 200 when declaration is missing" in new Setup {
+      val request: UpdateReturnRequest = UpdateReturnRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001",
+        mainPurchaserID = Some("1"),
+        mainVendorID = Some("1"),
+        mainLandID = Some("1"),
+        IRMarkGenerated = Some("IRMark123456"),
+        landCertForEachProp = Some("YES"),
+        declaration = None
       )
 
-      val req: FakeRequest[JsValue] = makeJsonRequest(invalidJson)
+      val expectedResponse: UpdateReturnReturn = UpdateReturnReturn(updated = true)
+
+      when(mockService.updateReturn(eqTo(request))).thenReturn(Future.successful(expectedResponse))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(Json.toJson(request))
       val res: Future[Result]       = controller.updateReturnInfo()(req)
 
-      status(res) mustBe BAD_REQUEST
-      (contentAsJson(res) \ "message").as[String] mustBe "Invalid payload"
-      verifyNoInteractions(mockService)
+      status(res) mustBe OK
+      (contentAsJson(res) \ "updated").as[Boolean] mustBe true
     }
 
     "returns 500 with generic message on unexpected exception" in new Setup {
       val request: UpdateReturnRequest = UpdateReturnRequest(
         storn = "STORN12345",
         returnResourceRef = "100001",
-        mainPurchaserID = "1",
-        mainVendorID = "1",
-        mainLandID = "1",
-        IRMarkGenerated = "IRMark123456",
-        landCertForEachProp = "YES",
-        declaration = "YES"
+        mainPurchaserID = Some("1"),
+        mainVendorID = Some("1"),
+        mainLandID = Some("1"),
+        IRMarkGenerated = Some("IRMark123456"),
+        landCertForEachProp = Some("YES"),
+        declaration = Some("YES")
       )
 
       when(mockService.updateReturn(eqTo(request)))
@@ -824,12 +848,12 @@ class ReturnsControllerSpec
       val request: UpdateReturnRequest = UpdateReturnRequest(
         storn = "STORN12345",
         returnResourceRef = "100001",
-        mainPurchaserID = "1",
-        mainVendorID = "1",
-        mainLandID = "1",
-        IRMarkGenerated = "IRMark123456",
-        landCertForEachProp = "N",
-        declaration = "N"
+        mainPurchaserID = Some("1"),
+        mainVendorID = Some("1"),
+        mainLandID = Some("1"),
+        IRMarkGenerated = Some("IRMark123456"),
+        landCertForEachProp = Some("N"),
+        declaration = Some("N")
       )
 
       val expectedResponse: UpdateReturnReturn = UpdateReturnReturn(

@@ -3373,12 +3373,12 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       val request = UpdateReturnRequest(
         storn = "STORN12345",
         returnResourceRef = "100001",
-        mainPurchaserID = "1",
-        mainVendorID = "1",
-        mainLandID = "1",
-        IRMarkGenerated = "IRMark123456",
-        landCertForEachProp = "YES",
-        declaration = "YES"
+        mainPurchaserID = Some("1"),
+        mainVendorID = Some("1"),
+        mainLandID = Some("1"),
+        IRMarkGenerated = Some("IRMark123456"),
+        landCertForEachProp = Some("YES"),
+        declaration = Some("YES")
       )
 
       val result = repo.sdltUpdateReturn(request).futureValue
@@ -3414,12 +3414,12 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       val request = UpdateReturnRequest(
         storn = "STORN99999",
         returnResourceRef = "100002",
-        mainPurchaserID = "5",
-        mainVendorID = "3",
-        mainLandID = "7",
-        IRMarkGenerated = "IRMark999999",
-        landCertForEachProp = "NO",
-        declaration = "YES"
+        mainPurchaserID = Some("5"),
+        mainVendorID = Some("3"),
+        mainLandID = Some("7"),
+        IRMarkGenerated = Some("IRMark999999"),
+        landCertForEachProp = Some("NO"),
+        declaration = Some("YES")
       )
 
       val result = repo.sdltUpdateReturn(request).futureValue
@@ -3453,12 +3453,12 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       val request = UpdateReturnRequest(
         storn = "STORN88888",
         returnResourceRef = "100003",
-        mainPurchaserID = "10",
-        mainVendorID = "20",
-        mainLandID = "30",
-        IRMarkGenerated = "IRMark888888",
-        landCertForEachProp = "NO",
-        declaration = "NO"
+        mainPurchaserID = Some("10"),
+        mainVendorID = Some("20"),
+        mainLandID = Some("30"),
+        IRMarkGenerated = Some("IRMark888888"),
+        landCertForEachProp = Some("NO"),
+        declaration = Some("NO")
       )
 
       val result = repo.sdltUpdateReturn(request).futureValue
