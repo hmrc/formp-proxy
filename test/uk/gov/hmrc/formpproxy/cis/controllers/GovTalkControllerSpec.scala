@@ -99,6 +99,74 @@ class GovTalkControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
     }
   }
 
+  "GovTalkController updateGovTalkStatus" - {
+
+    "returns 204 when service updated the record successfully" in new Setup {
+      when(mockService.updateGovTalkStatus(any()))
+        .thenReturn(Future.successful(()))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(
+        Json.obj(
+          "userIdentifier" -> "1",
+          "formResultID"   -> "12890",
+          "endStateDate"   -> "2026-02-03T00:00:00",
+          "protocolStatus" -> "dataRequest"
+        )
+      )
+      val res: Future[Result]       = controller.updateGovTalkStatus(req)
+
+      status(res) mustBe NO_CONTENT
+      verify(mockService).updateGovTalkStatus(any())
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 400 when JSON body is an empty object" in new Setup {
+      val req: FakeRequest[JsValue] = makeJsonRequest(Json.obj())
+      val res: Future[Result]       = controller.updateGovTalkStatus(req)
+
+      status(res) mustBe BAD_REQUEST
+      (contentAsJson(res) \ "message").as[String] mustBe "Invalid payload"
+      verifyNoInteractions(mockService)
+    }
+
+    "propagates UpstreamErrorResponse (status & message)" in new Setup {
+      val err = UpstreamErrorResponse("formp failed", BAD_GATEWAY, BAD_GATEWAY)
+      when(mockService.updateGovTalkStatus(any()))
+        .thenReturn(Future.failed(err))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(
+        Json.obj(
+          "userIdentifier" -> "1",
+          "formResultID"   -> "12890",
+          "endStateDate"   -> "2026-02-03T00:00:00",
+          "protocolStatus" -> "dataRequest"
+        )
+      )
+      val res: Future[Result]       = controller.updateGovTalkStatus(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      (contentAsJson(res) \ "message").as[String] must include("Unexpected error")
+    }
+
+    "returns 500 with generic message on unexpected exception" in new Setup {
+      when(mockService.updateGovTalkStatus(any()))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(
+        Json.obj(
+          "userIdentifier" -> "1",
+          "formResultID"   -> "12890",
+          "endStateDate"   -> "2026-02-03T00:00:00",
+          "protocolStatus" -> "dataRequest"
+        )
+      )
+      val res: Future[Result]       = controller.updateGovTalkStatus(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
+    }
+  }
+
   private trait Setup {
     implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.global
     private val cc: ControllerComponents = stubControllerComponents()

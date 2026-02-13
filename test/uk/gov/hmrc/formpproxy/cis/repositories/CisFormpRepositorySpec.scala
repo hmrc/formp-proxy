@@ -1621,4 +1621,43 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(cs).execute()
     }
   }
+
+  "updateGovTalkStatus" - {
+
+    "call SUBMISSION_ADMIN.UpdateGovtalkStatus with correct parameters and execute" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      val call =
+        "{ call SUBMISSION_ADMIN.UpdateGovtalkStatus(?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+
+      val repo = new CisFormpRepository(db)
+
+      val request = UpdateGovTalkStatusRequest(
+        userIdentifier = "1",
+        formResultID = "12890",
+        endStateDate = LocalDateTime.parse("2026-02-13T00:00:00"),
+        protocolStatus = "dataRequest"
+      )
+
+      repo.updateGovTalkStatus(request).futureValue
+
+      verify(conn).prepareCall(eqTo(call))
+
+      verify(cs).setString(1, request.userIdentifier)
+      verify(cs).setString(2, request.formResultID)
+      verify(cs).setString(3, request.protocolStatus)
+      verify(cs).setTimestamp(4, java.sql.Timestamp.valueOf(request.endStateDate))
+
+      verify(cs).execute()
+      verify(cs).close()
+    }
+  }
 }
