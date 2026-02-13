@@ -561,7 +561,6 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setString(9, req.subcontractorName)
       cs.setString(10, req.verificationNumber)
       cs.setInt(11, req.version)
-      //  cs.registerOutParameter(12, None)
       cs.execute()
     }
 
