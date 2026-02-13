@@ -54,4 +54,46 @@ class GovTalkControllerIntegrationSpec
       res.status mustBe NOT_FOUND
     }
   }
+
+  "POST /formp-proxy/cis/govtalkstatus/update-status" should {
+
+    val updateEndpoint = "cis/govtalkstatus/update-status"
+
+    "return 400 when JSON is missing required fields" in {
+      AuthStub.authorised()
+
+      val res1 = postAwait(updateEndpoint, Json.obj())
+      res1.status mustBe BAD_REQUEST
+      (res1.json \ "message").as[String].toLowerCase must include("invalid payload")
+    }
+
+    "return 401 when there is no active session" in {
+      AuthStub.unauthorised()
+
+      val res = postAwait(
+        updateEndpoint,
+        Json.obj(
+          "userIdentifier" -> "1",
+          "formResultID"   -> "12890",
+          "endStateDate"   -> "2026-02-03T00:00:00",
+          "protocolStatus" -> "dataRequest"
+        )
+      )
+      res.status mustBe UNAUTHORIZED
+    }
+
+    "return 404 for unknown endpoint (routing sanity)" in {
+      AuthStub.authorised()
+      val res = postAwait(
+        "/does-not-exist",
+        Json.obj(
+          "userIdentifier" -> "1",
+          "formResultID"   -> "12890",
+          "endStateDate"   -> "2026-02-03T00:00:00",
+          "protocolStatus" -> "dataRequest"
+        )
+      )
+      res.status mustBe NOT_FOUND
+    }
+  }
 }

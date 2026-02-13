@@ -94,4 +94,35 @@ final class GovTalkServiceSpec extends SpecBase {
       verifyNoMoreInteractions(c.repo)
     }
   }
+
+  "GovTalkService updateGovTalkStatus" - {
+
+    val request = UpdateGovTalkStatusRequest("1", "1234", LocalDateTime.parse("2026-02-03T00:00:00"), "dataRequest")
+
+    "should update the record when repository executed successfully" in {
+      val c = Ctx()
+
+      when(c.repo.updateGovTalkStatus(request))
+        .thenReturn(Future.successful(()))
+
+      c.service.updateGovTalkStatus(request).futureValue
+
+      verify(c.repo).updateGovTalkStatus(request)
+      verifyNoMoreInteractions(c.repo)
+    }
+
+    "propagates failures from the repository" in {
+      val c    = Ctx()
+      val boom = new RuntimeException("formp failed")
+
+      when(c.repo.updateGovTalkStatus(request))
+        .thenReturn(Future.failed(boom))
+
+      val ex = c.service.updateGovTalkStatus(request).failed.futureValue
+      ex mustBe boom
+
+      verify(c.repo).updateGovTalkStatus(request)
+      verifyNoMoreInteractions(c.repo)
+    }
+  }
 }
