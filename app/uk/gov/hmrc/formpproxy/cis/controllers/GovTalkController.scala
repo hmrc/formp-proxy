@@ -20,12 +20,13 @@ import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
-import uk.gov.hmrc.formpproxy.cis.models.requests.GetGovTalkStatusRequest
+import uk.gov.hmrc.formpproxy.cis.models.requests.{GetGovTalkStatusRequest, UpdateGovTalkStatusCorrelationIdRequest}
 import uk.gov.hmrc.formpproxy.cis.services.GovTalkService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 class GovTalkController @Inject() (
   authorise: AuthAction,
@@ -51,5 +52,16 @@ class GovTalkController @Inject() (
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )
+    }
+
+  def updateGovTalkStatusCorrelationId: Action[UpdateGovTalkStatusCorrelationIdRequest] =
+    authorise.async(parse.json[UpdateGovTalkStatusCorrelationIdRequest]) { implicit request =>
+      service
+        .updateGovTalkStatusCorrelationId(request.body)
+        .map(_ => NoContent)
+        .recover { case NonFatal(e) =>
+          logger.error("[updateGovTalkStatusCorrelationId] failed", e)
+          InternalServerError(Json.obj("message" -> "Unexpected error"))
+        }
     }
 }
