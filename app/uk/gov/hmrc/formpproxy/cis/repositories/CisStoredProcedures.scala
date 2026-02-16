@@ -39,6 +39,8 @@ object CisStoredProcedures {
   val CallGetSubcontractorList          = "{ call SUBCONTRACTOR_PROCS.Get_Subcontractor_List(?, ?, ?) }"
   val CallGetGovTalkStatus              =
     "{ call SUBMISSION_ADMIN.SelectGovTalkStatus(?, ?, ?) }"
+  val CallResetGovTalkStatus            =
+    "{ call SUBMISSION_ADMIN.ResetGovTalkStatusRecord(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
   val CallUpdateGovTalkStatus           =
     "{ call SUBMISSION_ADMIN.UpdateGovtalkStatus(?, ?, ?, ?) }"
 }

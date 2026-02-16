@@ -17,6 +17,7 @@
 package uk.gov.hmrc.formpproxy.cis.repositories
 
 import oracle.jdbc.OracleTypes
+import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.{any as anyArg, eq as eqTo}
 import org.mockito.Mockito.*
 import play.api.db.Database
@@ -1619,6 +1620,59 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(conn).prepareCall("{ call SUBMISSION_ADMIN.SelectGovTalkStatus(?, ?, ?) }")
       verify(cs).registerOutParameter(3, OracleTypes.CURSOR)
       verify(cs).execute()
+    }
+  }
+
+  "resetGovTalkStatus" - {
+
+    "call SUBMISSION_ADMIN.ResetGovTalkStatusRecord with correct parameters and execute" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      val call =
+        "{ call SUBMISSION_ADMIN.ResetGovTalkStatusRecord(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+
+      val repo = new CisFormpRepository(db)
+
+      val request = ResetGovTalkStatusRequest(
+        userIdentifier = "1",
+        formResultID = "12890",
+        oldProtocolStatus = "dataRequest",
+        gatewayURL = "http://baseurl.com/submission/ChRIS/CISR/Filing/sync/CIS300MR"
+      )
+
+      repo.resetGovTalkStatus(request).futureValue
+
+      val tsCaptorCreateDate      = ArgumentCaptor.forClass(classOf[Timestamp])
+      val tsCaptorLastMessageDate = ArgumentCaptor.forClass(classOf[Timestamp])
+
+      verify(conn).prepareCall(eqTo(call))
+
+      verify(cs).setString(1, request.userIdentifier)
+      verify(cs).setString(2, request.formResultID)
+      verify(cs).setString(3, "empty")
+      verify(cs).setString(4, "N")
+      verify(cs).setTimestamp(eqTo(5), tsCaptorCreateDate.capture())
+      verify(cs).setNull(6, Types.TIMESTAMP)
+      verify(cs).setTimestamp(eqTo(7), tsCaptorLastMessageDate.capture())
+      verify(cs).setInt(8, 0)
+      verify(cs).setInt(9, 0)
+      verify(cs).setString(10, request.oldProtocolStatus)
+      verify(cs).setString(11, "initial")
+      verify(cs).setString(12, request.gatewayURL)
+
+      verify(cs).execute()
+      verify(cs).close()
+
+      tsCaptorCreateDate.getValue      must not be null
+      tsCaptorLastMessageDate.getValue must not be null
     }
   }
 

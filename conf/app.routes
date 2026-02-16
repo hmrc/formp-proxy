@@ -22,6 +22,7 @@ POST       /submissions/create                                      uk.gov.hmrc.
 POST       /submissions/update                                      uk.gov.hmrc.formpproxy.cis.controllers.SubmissionController.updateSubmission()
 
 POST       /cis/govtalkstatus/get                                   uk.gov.hmrc.formpproxy.cis.controllers.GovTalkController.getGovTalkStatus
+POST       /cis/govtalkstatus/reset                                 uk.gov.hmrc.formpproxy.cis.controllers.GovTalkController.resetGovTalkStatus
 POST       /cis/govtalkstatus/update-status                         uk.gov.hmrc.formpproxy.cis.controllers.GovTalkController.updateGovTalkStatus
 
 # SDLT routes

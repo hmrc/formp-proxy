@@ -53,6 +53,24 @@ class GovTalkController @Inject() (
         )
     }
 
+  def resetGovTalkStatus: Action[JsValue] =
+    authorise.async(parse.json) { implicit request =>
+      request.body
+        .validate[ResetGovTalkStatusRequest]
+        .fold(
+          errs =>
+            Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
+          body =>
+            service
+              .resetGovTalkStatus(body)
+              .map(_ => NoContent)
+              .recover { case t =>
+                logger.error("[getGovTalkStatus] failed", t)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
+              }
+        )
+    }
+
   def updateGovTalkStatus: Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
       request.body
