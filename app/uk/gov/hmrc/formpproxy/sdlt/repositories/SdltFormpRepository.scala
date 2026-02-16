@@ -187,7 +187,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
           val lands                  = processResultSetSeq(cs, 8, processLand)
           val transaction            = processResultSet(cs, 9, processTransaction)
           val returnAgents           = processResultSetSeq(cs, 10, processReturnAgent)
-          val agent                  = processResultSet(cs, 11, processAgent)
+          val agent                  = processResultSetSeq(cs, 11, processAgent)
           val lease                  = processResultSet(cs, 12, processLease)
           val taxCalculation         = processResultSet(cs, 13, processTaxCalculation)
           val submission             = processResultSet(cs, 14, processSubmission)
@@ -205,7 +205,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
             land = if (lands.isEmpty) None else Some(lands),
             transaction = transaction,
             returnAgent = if (returnAgents.isEmpty) None else Some(returnAgents),
-            agent = agent,
+            agent = if (agent.isEmpty) None else Some(agent),
             lease = lease,
             taxCalculation = taxCalculation,
             submission = submission,
@@ -1810,10 +1810,10 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
         conn = conn,
         p_storn = request.storn,
         p_return_resource_ref = request.returnResourceRef.toLong,
-        p_main_purchaser_id = request.mainPurchaserId,
-        p_main_vendor_id = request.mainVendorId,
-        p_main_land_id = request.mainLandId,
-        p_irmark_generated = request.irmarkGenerated,
+        p_main_purchaser_id = request.mainPurchaserID,
+        p_main_vendor_id = request.mainVendorID,
+        p_main_land_id = request.mainLandID,
+        p_irmark_generated = request.IRMarkGenerated,
         p_land_cert_for_each_prop = request.landCertForEachProp,
         p_declaration = request.declaration
       )
@@ -1824,24 +1824,24 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     conn: Connection,
     p_storn: String,
     p_return_resource_ref: Long,
-    p_main_purchaser_id: String,
-    p_main_vendor_id: String,
-    p_main_land_id: String,
-    p_irmark_generated: String,
-    p_land_cert_for_each_prop: String,
-    p_declaration: String
+    p_main_purchaser_id: Option[String] = None,
+    p_main_vendor_id: Option[String] = None,
+    p_main_land_id: Option[String] = None,
+    p_irmark_generated: Option[String] = None,
+    p_land_cert_for_each_prop: Option[String] = None,
+    p_declaration: Option[String] = None
   ): UpdateReturnReturn = {
 
     val cs = conn.prepareCall("{ call RETURN_PROCS.Update_Return(?, ?, ?, ?, ?, ?, ?, ?) }")
     try {
       cs.setString(1, p_storn)
       cs.setLong(2, p_return_resource_ref)
-      cs.setString(3, p_main_purchaser_id)
-      cs.setString(4, p_main_vendor_id)
-      cs.setString(5, p_main_land_id)
-      cs.setString(6, p_irmark_generated)
-      cs.setString(7, p_land_cert_for_each_prop)
-      cs.setString(8, p_declaration)
+      cs.setOptionalString(3, p_main_purchaser_id)
+      cs.setOptionalString(4, p_main_vendor_id)
+      cs.setOptionalString(5, p_main_land_id)
+      cs.setOptionalString(6, p_irmark_generated)
+      cs.setOptionalString(7, p_land_cert_for_each_prop)
+      cs.setOptionalString(8, p_declaration)
 
       cs.execute()
 

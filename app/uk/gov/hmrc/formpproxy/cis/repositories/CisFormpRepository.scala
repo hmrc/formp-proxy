@@ -26,7 +26,7 @@ import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
 import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.*
 import uk.gov.hmrc.formpproxy.cis.repositories.CisRowMappers.*
-
+import java.lang.Long
 import java.sql.{CallableStatement, Connection, ResultSet, Timestamp, Types}
 import java.time.{Instant, LocalDateTime}
 import javax.inject.{Inject, Singleton}
@@ -39,15 +39,15 @@ trait CisMonthlyReturnSource {
   def createSubmission(request: CreateSubmissionRequest): Future[String]
   def updateMonthlyReturnSubmission(request: UpdateSubmissionRequest): Future[Unit]
   def createNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[CreateNilMonthlyReturnResponse]
+  def updateNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[Unit]
   def createMonthlyReturn(request: CreateMonthlyReturnRequest): Future[Unit]
   def getSchemeEmail(instanceId: String): Future[Option[String]]
   def getScheme(instanceId: String): Future[Option[ContractorScheme]]
   def createScheme(contractorScheme: CreateContractorSchemeParams): Future[Int]
   def updateScheme(contractorScheme: UpdateContractorSchemeParams): Future[Int]
   def updateSchemeVersion(instanceId: String, version: Int): Future[Int]
-  def createSubcontractor(schemeId: Int, subcontractorType: SubcontractorType, version: Int): Future[Int]
   def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int]
-  def updateSubcontractor(result: UpdateSubcontractorRequest): Future[Unit]
+  def createAndUpdateSubcontractor(request: CreateAndUpdateSubcontractorRequest): Future[Unit]
   def getSubcontractorList(cisId: String): Future[GetSubcontractorListResponse]
   def getMonthlyReturnForEdit(instanceId: String, taxYear: Int, taxMonth: Int): Future[GetMonthlyReturnForEditResponse]
   def createMonthlyReturnItem(request: CreateMonthlyReturnItemRequest): Future[Unit]
@@ -300,61 +300,17 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
   // Subcontractor
 
-  override def createSubcontractor(schemeId: Int, subcontractorType: SubcontractorType, version: Int): Future[Int] =
-    Future {
-      db.withConnection { conn =>
-        withCall(conn, CallCreateSubcontractor) { cs =>
-          cs.setInt(1, schemeId)
-          cs.setInt(2, version)
-          cs.setString(3, subcontractorType.toString)
-          cs.registerOutParameter(4, OracleTypes.INTEGER)
-
-          cs.execute()
-          cs.getInt(4)
-        }
-      }
+  override def createAndUpdateSubcontractor(request: CreateAndUpdateSubcontractorRequest): Future[Unit] = {
+    logger.info(
+      s"[CIS] createAndUpdateSubcontractor(instanceId=${request.cisId})"
+    )
+    db.withTransaction { conn =>
+      val scheme            = loadScheme(conn, request.cisId)
+      val subbieResourceRef = callCreateSubcontractor(conn, scheme.schemeId, request.subcontractorType)
+      callUpdateSchemeVersion(conn, request.cisId, scheme.version.getOrElse(0))
+      callUpdateSubcontractor(conn, scheme.schemeId, subbieResourceRef, request)
     }
-
-  override def updateSubcontractor(request: UpdateSubcontractorRequest): Future[Unit] =
-    Future {
-      db.withConnection { conn =>
-        withCall(conn, CallUpdateSubcontractor) { cs =>
-          cs.setInt(1, request.schemeId)
-          cs.setInt(2, request.subbieResourceRef)
-          cs.setOptionalString(3, request.utr)
-          cs.setOptionalInt(4, request.pageVisited)
-          cs.setOptionalString(5, request.partnerUtr)
-          cs.setOptionalString(6, request.crn)
-          cs.setOptionalString(7, request.firstName)
-          cs.setOptionalString(8, request.nino)
-          cs.setOptionalString(9, request.secondName)
-          cs.setOptionalString(10, request.surname)
-          cs.setOptionalString(11, request.partnershipTradingName)
-          cs.setOptionalString(12, request.tradingName)
-          cs.setOptionalString(13, request.addressLine1)
-          cs.setOptionalString(14, request.addressLine2)
-          cs.setOptionalString(15, request.addressLine3)
-          cs.setOptionalString(16, request.addressLine4)
-          cs.setOptionalString(17, request.country)
-          cs.setOptionalString(18, request.postcode)
-          cs.setOptionalString(19, request.emailAddress)
-          cs.setOptionalString(20, request.phoneNumber)
-          cs.setOptionalString(21, request.mobilePhoneNumber)
-          cs.setOptionalString(22, request.worksReferenceNumber)
-          cs.setOptionalString(23, request.matched)
-          cs.setOptionalString(24, request.autoVerified)
-          cs.setOptionalString(25, request.verified)
-          cs.setOptionalString(26, request.verificationNumber)
-          cs.setOptionalString(27, request.taxTreatment)
-          cs.setOptionalString(28, request.updatedTaxTreatment)
-          cs.setOptionalTimestamp(29, request.verificationDate)
-          cs.setNull(30, Types.INTEGER)
-
-          cs.registerOutParameter(30, Types.INTEGER)
-          cs.execute()
-        }
-      }
-    }
+  }
 
   // Submission
 
@@ -416,14 +372,24 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       s"[CIS] createNilMonthlyReturn(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
     )
     Future {
+      db.withConnection { conn =>
+        callCreateMonthlyReturn(conn, request)
+
+        CreateNilMonthlyReturnResponse(status = "STARTED")
+      }
+    }
+  }
+
+  override def updateNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[Unit] = {
+    logger.info(
+      s"[CIS] updateNilMonthlyReturn(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
+    )
+    Future {
       db.withTransaction { conn =>
         val schemeVersionBefore = getSchemeVersion(conn, request.instanceId)
 
-        callCreateMonthlyReturn(conn, request)
-        callUpdateSchemeVersion(conn, request.instanceId, schemeVersionBefore)
         callUpdateMonthlyReturn(conn, request)
-
-        CreateNilMonthlyReturnResponse(status = "STARTED")
+        callUpdateSchemeVersion(conn, request.instanceId, schemeVersionBefore)
       }
     }
   }
@@ -799,6 +765,69 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   private def readSingleSchemeRow(rs: ResultSet, instanceId: String): ContractorScheme =
     if (rs != null && rs.next()) readContractorScheme(rs)
     else throw new RuntimeException(s"No SCHEME row for instance_id=$instanceId")
+
+  private def callCreateSubcontractor(conn: Connection, schemeId: Long, subcontractorType: SubcontractorType): Int = {
+    val cs = conn.prepareCall(CallCreateSubcontractor)
+    try {
+      cs.setLong(1, schemeId)
+      cs.setInt(2, 0) // initial version is 0
+      cs.setString(3, subcontractorType.toString)
+      cs.registerOutParameter(4, OracleTypes.INTEGER)
+
+      cs.execute()
+
+      cs.getInt(4)
+    } finally cs.close()
+  }
+
+  private def callUpdateSubcontractor(
+    conn: Connection,
+    schemeId: Long,
+    subbieResourceRef: Int,
+    request: CreateAndUpdateSubcontractorRequest
+  ): Future[Unit] =
+    Future {
+      val cs = conn.prepareCall(CallUpdateSubcontractor)
+      try {
+        cs.setLong(1, schemeId)
+
+        cs.setInt(2, subbieResourceRef)
+        cs.setOptionalString(3, request.utr)
+        cs.setOptionalInt(4, None)
+        cs.setOptionalString(5, None)
+        cs.setOptionalString(6, None)
+        cs.setOptionalString(7, request.firstName)
+        cs.setOptionalString(8, request.nino)
+        cs.setOptionalString(9, request.secondName)
+        cs.setOptionalString(10, request.surname)
+
+        cs.setOptionalString(11, None)
+        cs.setOptionalString(12, request.tradingName)
+        cs.setOptionalString(13, request.addressLine1)
+        cs.setOptionalString(14, request.addressLine2)
+        cs.setOptionalString(15, request.addressLine3)
+        cs.setOptionalString(16, request.addressLine4)
+        cs.setOptionalString(17, None)
+        cs.setOptionalString(18, request.postcode)
+        cs.setOptionalString(19, request.emailAddress)
+        cs.setOptionalString(20, request.phoneNumber)
+        cs.setOptionalString(21, None)
+        cs.setOptionalString(22, request.worksReferenceNumber)
+
+        cs.setOptionalString(23, None)
+        cs.setOptionalString(24, None)
+        cs.setOptionalString(25, None)
+        cs.setOptionalString(26, None)
+        cs.setOptionalString(27, None)
+        cs.setOptionalString(28, None)
+
+        cs.setOptionalTimestamp(29, None)
+        cs.setOptionalInt(30, None)
+        cs.registerOutParameter(30, Types.INTEGER)
+
+        cs.execute()
+      } finally cs.close()
+    }
 
   override def getSubcontractorList(cisId: String): Future[GetSubcontractorListResponse] = Future {
     logger.info(s"[CIS] getSubcontractorList(cisId=$cisId)")

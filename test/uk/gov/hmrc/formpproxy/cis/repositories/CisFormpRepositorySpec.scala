@@ -22,11 +22,11 @@ import org.mockito.ArgumentMatchers.{any as anyArg, eq as eqTo}
 import org.mockito.Mockito.*
 import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
-import uk.gov.hmrc.formpproxy.cis.models.{Company, CreateContractorSchemeParams, Partnership, SoleTrader, Trust, UpdateContractorSchemeParams}
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
+import uk.gov.hmrc.formpproxy.cis.models.*
 
-import java.time.Instant
 import java.sql.*
+import java.time.{Instant, LocalDateTime}
 
 final class CisFormpRepositorySpec extends SpecBase {
 
@@ -106,35 +106,18 @@ final class CisFormpRepositorySpec extends SpecBase {
 
   "createNilMonthlyReturn" - {
 
-    "call underlying procedures with correct parameters and return STARTED" in {
-      val db          = mock[Database]
-      val conn        = mock[java.sql.Connection]
-      val csCreate    = mock[CallableStatement]
-      val csVersion   = mock[CallableStatement]
-      val csUpdate    = mock[CallableStatement]
-      val csGetScheme = mock[CallableStatement]
-      val rsScheme    = mock[java.sql.ResultSet]
+    "call Create_Monthly_Return SP only and return STARTED" in {
+      val db       = mock[Database]
+      val conn     = mock[java.sql.Connection]
+      val csCreate = mock[CallableStatement]
 
-      when(db.withTransaction(org.mockito.ArgumentMatchers.any[java.sql.Connection => Any]))
+      when(db.withConnection(org.mockito.ArgumentMatchers.any[java.sql.Connection => Any]))
         .thenAnswer { inv =>
           val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
         }
 
-      when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"))
-        .thenReturn(csGetScheme)
-      when(csGetScheme.getObject(eqTo(2), eqTo(classOf[ResultSet])))
-        .thenReturn(rsScheme)
-      when(rsScheme.next()).thenReturn(true, false)
-      when(rsScheme.getInt("version")).thenReturn(0)
-
       when(conn.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }"))
         .thenReturn(csCreate)
-      when(conn.prepareCall("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"))
-        .thenReturn(csVersion)
-      when(
-        conn.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Update_Monthly_Return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
-      )
-        .thenReturn(csUpdate)
 
       val repo = new CisFormpRepository(db)
 
@@ -152,13 +135,57 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(conn).prepareCall("{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }")
       verify(csCreate).execute()
 
-      verify(conn).prepareCall("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }")
-      verify(csVersion).execute()
-
-      verify(conn).prepareCall(
+      verify(conn, never).prepareCall("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }")
+      verify(conn, never).prepareCall(
         "{ call MONTHLY_RETURN_PROCS_2016.Update_Monthly_Return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
       )
+    }
+  }
+
+  "updateNilMonthlyReturn" - {
+
+    "call Update_Monthly_Return and Update_Scheme_Version SPs in transaction" in {
+      val db          = mock[Database]
+      val conn        = mock[Connection]
+      val csUpdate    = mock[CallableStatement]
+      val csVersion   = mock[CallableStatement]
+      val csGetScheme = mock[CallableStatement]
+      val rsScheme    = mock[ResultSet]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"))
+        .thenReturn(csGetScheme)
+      when(csGetScheme.getObject(eqTo(2), eqTo(classOf[ResultSet])))
+        .thenReturn(rsScheme)
+      when(rsScheme.next()).thenReturn(true, false)
+      when(rsScheme.getInt("version")).thenReturn(1)
+
+      val updateCall = "{ call MONTHLY_RETURN_PROCS_2016.Update_Monthly_Return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+      when(conn.prepareCall(eqTo(updateCall))).thenReturn(csUpdate)
+
+      val versionCall = "{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"
+      when(conn.prepareCall(eqTo(versionCall))).thenReturn(csVersion)
+
+      val repo = new CisFormpRepository(db)
+      val req  = CreateNilMonthlyReturnRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 2,
+        decInformationCorrect = "Y",
+        decNilReturnNoPayments = "Y"
+      )
+
+      repo.updateNilMonthlyReturn(req).futureValue
+
+      verify(conn).prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")
+      verify(csGetScheme).execute()
+      verify(conn).prepareCall(eqTo(updateCall))
       verify(csUpdate).execute()
+      verify(conn).prepareCall(eqTo(versionCall))
+      verify(csVersion).execute()
     }
   }
 
@@ -906,96 +933,6 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
   }
 
-  "createSubcontractor" - {
-
-    "call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR with correct parameters for SoleTrader and return version" in {
-      val db   = mock[Database]
-      val conn = mock[Connection]
-      val cs   = mock[CallableStatement]
-
-      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
-        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
-      }
-      when(conn.prepareCall(eqTo("{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }")))
-        .thenReturn(cs)
-      when(cs.getInt(4)).thenReturn(2)
-
-      val repo   = new CisFormpRepository(db)
-      val result = repo.createSubcontractor(123, SoleTrader, 1).futureValue
-      result mustBe 2
-
-      verify(conn).prepareCall(eqTo("{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }"))
-      verify(cs).setInt(1, 123)
-      verify(cs).setInt(2, 1)
-      verify(cs).setString(3, "soletrader")
-      verify(cs).registerOutParameter(4, OracleTypes.INTEGER)
-      verify(cs).execute()
-      verify(cs).getInt(4)
-      verify(cs).close()
-    }
-
-    "call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR with correct parameters for Company" in {
-      val db   = mock[Database]
-      val conn = mock[Connection]
-      val cs   = mock[CallableStatement]
-
-      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
-        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
-      }
-      when(conn.prepareCall(eqTo("{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }")))
-        .thenReturn(cs)
-      when(cs.getInt(4)).thenReturn(4)
-
-      val repo   = new CisFormpRepository(db)
-      val result = repo.createSubcontractor(456, Company, 3).futureValue
-      result mustBe 4
-
-      verify(cs).setInt(1, 456)
-      verify(cs).setInt(2, 3)
-      verify(cs).setString(3, "company")
-      verify(cs).execute()
-      verify(cs).getInt(4)
-    }
-
-    "call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR with correct parameters for Partnership" in {
-      val db   = mock[Database]
-      val conn = mock[Connection]
-      val cs   = mock[CallableStatement]
-
-      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
-        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
-      }
-      when(conn.prepareCall(eqTo("{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }")))
-        .thenReturn(cs)
-      when(cs.getInt(4)).thenReturn(6)
-
-      val repo   = new CisFormpRepository(db)
-      val result = repo.createSubcontractor(789, Partnership, 5).futureValue
-      result mustBe 6
-
-      verify(cs).setString(3, "partnership")
-    }
-
-    "call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR with correct parameters for Trust" in {
-      val db   = mock[Database]
-      val conn = mock[Connection]
-      val cs   = mock[CallableStatement]
-
-      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
-        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
-      }
-      when(conn.prepareCall(eqTo("{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }")))
-        .thenReturn(cs)
-      when(cs.getInt(4)).thenReturn(8)
-
-      val repo   = new CisFormpRepository(db)
-      val result = repo.createSubcontractor(999, Trust, 7).futureValue
-      result mustBe 8
-
-      verify(cs).setString(3, "trust")
-    }
-  }
-
   "applyPrepopulation" - {
 
     "calls update scheme + creates subcontractors + updates version and returns new version" in {
@@ -1186,97 +1123,82 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
   }
 
-  import uk.gov.hmrc.formpproxy.cis.models.requests.UpdateSubcontractorRequest
-  import java.time.LocalDateTime
-  import java.sql.{CallableStatement, Connection, ResultSet, Timestamp, Types}
+  "createAndUpdateSubcontractor" - {
 
-  "updateSubcontractor" - {
+    "call underlying procedures with correct parameters and execute" in {
+      val db          = mock[Database]
+      val conn        = mock[java.sql.Connection]
+      val csGetScheme = mock[CallableStatement]
+      val rsScheme    = mock[java.sql.ResultSet]
+      val csCreate    = mock[CallableStatement]
+      val csVersion   = mock[CallableStatement]
+      val csUpdate    = mock[CallableStatement]
 
-    "call SUBCONTRACTOR_PROCS.Update_Subcontractor with correct parameters and execute" in {
-      val db   = mock[Database]
-      val conn = mock[Connection]
-      val cs   = mock[CallableStatement]
+      when(db.withTransaction(org.mockito.ArgumentMatchers.any[java.sql.Connection => Any]))
+        .thenAnswer { inv =>
+          val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+        }
 
-      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
-        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
-      }
+      when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"))
+        .thenReturn(csGetScheme)
+      when(csGetScheme.getObject(eqTo(2), eqTo(classOf[ResultSet])))
+        .thenReturn(rsScheme)
+      when(rsScheme.next()).thenReturn(true, false)
+      when(rsScheme.getLong("scheme_id")).thenReturn(123L)
+      when(rsScheme.getInt("version")).thenReturn(1)
+      when(rsScheme.wasNull()).thenReturn(false)
 
-      val call =
-        "{ call SUBCONTRACTOR_PROCS.Update_Subcontractor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+      when(conn.prepareCall("{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }"))
+        .thenReturn(csCreate)
+      when(csCreate.getInt(4)).thenReturn(999)
 
-      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+      when(conn.prepareCall("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"))
+        .thenReturn(csVersion)
+      when(csVersion.getInt(2)).thenReturn(2)
+
+      when(
+        conn.prepareCall(
+          "{ call SUBCONTRACTOR_PROCS.Update_Subcontractor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+        )
+      )
+        .thenReturn(csUpdate)
 
       val repo = new CisFormpRepository(db)
 
-      val req = UpdateSubcontractorRequest(
-        utr = Some("1234567890"),
-        pageVisited = Some(3),
-        partnerUtr = None,
-        crn = Some("CRN-1"),
+      val request = CreateAndUpdateSubcontractorRequest(
+        cisId = "abc-123",
+        subcontractorType = SoleTrader,
         firstName = Some("John"),
-        nino = None,
         secondName = None,
         surname = Some("Smith"),
-        partnershipTradingName = None,
         tradingName = Some("ACME"),
         addressLine1 = Some("1 Main Street"),
         addressLine2 = None,
         addressLine3 = None,
         addressLine4 = None,
-        country = Some("GB"),
         postcode = Some("AA1 1AA"),
+        nino = Some("AA123456A"),
+        utr = Some("1234567890"),
+        worksReferenceNumber = Some("34567"),
         emailAddress = None,
-        phoneNumber = Some("01234567890"),
-        mobilePhoneNumber = None,
-        worksReferenceNumber = None,
-        schemeId = 999,
-        subbieResourceRef = 123,
-        matched = None,
-        autoVerified = None,
-        verified = None,
-        verificationNumber = None,
-        taxTreatment = Some("GROSS"),
-        verificationDate = Some(LocalDateTime.of(2026, 1, 12, 10, 15, 30)),
-        updatedTaxTreatment = None
+        phoneNumber = None
       )
 
-      repo.updateSubcontractor(req).futureValue
+      repo.createAndUpdateSubcontractor(request).futureValue
 
-      verify(conn).prepareCall(eqTo(call))
+      verify(conn).prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")
+      verify(csGetScheme).execute()
 
-      verify(cs).setInt(1, 999)
-      verify(cs).setInt(2, 123)
-      verify(cs).setString(3, "1234567890")
-      verify(cs).setInt(4, 3)
+      verify(conn).prepareCall("{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }")
+      verify(csCreate).execute()
 
-      verify(cs).setNull(5, Types.VARCHAR)
-      verify(cs).setString(6, "CRN-1")
-      verify(cs).setString(7, "John")
-      verify(cs).setNull(8, Types.VARCHAR)
-      verify(cs).setNull(9, Types.VARCHAR)
-      verify(cs).setString(10, "Smith")
+      verify(conn).prepareCall("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }")
+      verify(csVersion).execute()
 
-      verify(cs).setNull(11, Types.VARCHAR)
-      verify(cs).setString(12, "ACME")
-
-      verify(cs).setString(13, "1 Main Street")
-      verify(cs).setNull(14, Types.VARCHAR)
-
-      verify(cs).setString(17, "GB")
-      verify(cs).setString(18, "AA1 1AA")
-      verify(cs).setNull(19, Types.VARCHAR)
-      verify(cs).setString(20, "01234567890")
-
-      verify(cs).setString(27, "GROSS")
-      verify(cs).setNull(28, Types.VARCHAR)
-
-      verify(cs).setTimestamp(29, Timestamp.valueOf("2026-01-12 10:15:30"))
-
-      verify(cs).setNull(30, Types.INTEGER)
-      verify(cs).registerOutParameter(30, Types.INTEGER)
-
-      verify(cs).execute()
-      verify(cs).close()
+      verify(conn).prepareCall(
+        "{ call SUBCONTRACTOR_PROCS.Update_Subcontractor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+      )
+      verify(csUpdate).execute()
     }
   }
 

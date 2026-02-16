@@ -21,11 +21,9 @@ import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateSubcontractorRequest, UpdateSubcontractorRequest}
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
-import uk.gov.hmrc.formpproxy.cis.utils.JsResultUtils.foldErrorsIntoBadRequest
-import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import uk.gov.hmrc.formpproxy.cis.models.requests.CreateAndUpdateSubcontractorRequest
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -38,33 +36,16 @@ class SubcontractorController @Inject() (
     extends BackendController(cc)
     with Logging {
 
-  def createSubcontractor: Action[JsValue] =
+  def createAndUpdateSubcontractor(): Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
       request.body
-        .validate[CreateSubcontractorRequest]
-        .foldErrorsIntoBadRequest { case CreateSubcontractorRequest(schemeId, subcontractorType, version) =>
-          service
-            .createSubcontractor(schemeId, subcontractorType, version)
-            .map(subbieResourceRef => Created(Json.obj("subbieResourceRef" -> subbieResourceRef)))
-            .recover {
-              case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
-              case t: Throwable             =>
-                logger.error("[createSubcontractor] failed", t)
-                InternalServerError(Json.obj("message" -> "Unexpected error"))
-            }
-        }
-    }
-
-  def updateSubcontractor(): Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
-      request.body
-        .validate[UpdateSubcontractorRequest]
+        .validate[CreateAndUpdateSubcontractorRequest]
         .fold(
           errs =>
             Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
           body =>
             service
-              .updateSubcontractor(body)
+              .createAndUpdateSubcontractor(body)
               .map(_ => NoContent)
               .recover { case t =>
                 logger.error("[updateSubcontractor] failed", t)

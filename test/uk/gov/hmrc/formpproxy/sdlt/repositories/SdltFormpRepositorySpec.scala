@@ -941,15 +941,19 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       val result = repo.sdltGetReturn("100001", "STORN12345").futureValue
 
-      result.agent must not be None
-      result.agent.get.agentId mustBe Some("1")
-      result.agent.get.storn mustBe Some("STORN12345")
-      result.agent.get.name mustBe Some("Agent Name")
-      result.agent.get.houseNumber mustBe Some("100")
-      result.agent.get.address1 mustBe Some("Agent Street")
-      result.agent.get.postcode mustBe Some("AG1 1NT")
-      result.agent.get.email mustBe Some("agent@test.com")
-      result.agent.get.agentResourceReference mustBe Some("AGENTREF1")
+      // Updated to work with Seq
+      result.agent mustBe defined
+      result.agent.get must have size 1
+
+      val agent = result.agent.get.head
+      agent.agentId mustBe Some("1")
+      agent.storn mustBe Some("STORN12345")
+      agent.name mustBe Some("Agent Name")
+      agent.houseNumber mustBe Some("100")
+      agent.address1 mustBe Some("Agent Street")
+      agent.postcode mustBe Some("AG1 1NT")
+      agent.email mustBe Some("agent@test.com")
+      agent.agentResourceReference mustBe Some("AGENTREF1")
     }
 
     "process Lease data correctly with all fields" in {
@@ -3369,12 +3373,12 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       val request = UpdateReturnRequest(
         storn = "STORN12345",
         returnResourceRef = "100001",
-        mainPurchaserId = "1",
-        mainVendorId = "1",
-        mainLandId = "1",
-        irmarkGenerated = "IRMark123456",
-        landCertForEachProp = "YES",
-        declaration = "YES"
+        mainPurchaserID = Some("1"),
+        mainVendorID = Some("1"),
+        mainLandID = Some("1"),
+        IRMarkGenerated = Some("IRMark123456"),
+        landCertForEachProp = Some("YES"),
+        declaration = Some("YES")
       )
 
       val result = repo.sdltUpdateReturn(request).futureValue
@@ -3410,12 +3414,12 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       val request = UpdateReturnRequest(
         storn = "STORN99999",
         returnResourceRef = "100002",
-        mainPurchaserId = "5",
-        mainVendorId = "3",
-        mainLandId = "7",
-        irmarkGenerated = "IRMark999999",
-        landCertForEachProp = "NO",
-        declaration = "YES"
+        mainPurchaserID = Some("5"),
+        mainVendorID = Some("3"),
+        mainLandID = Some("7"),
+        IRMarkGenerated = Some("IRMark999999"),
+        landCertForEachProp = Some("NO"),
+        declaration = Some("YES")
       )
 
       val result = repo.sdltUpdateReturn(request).futureValue
@@ -3449,12 +3453,12 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       val request = UpdateReturnRequest(
         storn = "STORN88888",
         returnResourceRef = "100003",
-        mainPurchaserId = "10",
-        mainVendorId = "20",
-        mainLandId = "30",
-        irmarkGenerated = "IRMark888888",
-        landCertForEachProp = "NO",
-        declaration = "NO"
+        mainPurchaserID = Some("10"),
+        mainVendorID = Some("20"),
+        mainLandID = Some("30"),
+        IRMarkGenerated = Some("IRMark888888"),
+        landCertForEachProp = Some("NO"),
+        declaration = Some("NO")
       )
 
       val result = repo.sdltUpdateReturn(request).futureValue
