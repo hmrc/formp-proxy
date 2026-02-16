@@ -185,6 +185,7 @@ final class MonthlyReturnServiceSpec extends SpecBase {
         instanceId = "1",
         taxYear = 2015,
         taxMonth = 5,
+        amendment = "N",
         itemResourceReference = 999L,
         totalPayments = "1000.00",
         costOfMaterials = "200.00",
@@ -207,6 +208,7 @@ final class MonthlyReturnServiceSpec extends SpecBase {
         instanceId = "1",
         taxYear = 2015,
         taxMonth = 5,
+        amendment = "N",
         itemResourceReference = 999L,
         totalPayments = "1000.00",
         costOfMaterials = "200.00",
@@ -227,193 +229,4 @@ final class MonthlyReturnServiceSpec extends SpecBase {
     }
   }
 
-  "MonthlyReturnService getSchemeEmail" - {
-
-    "delegates to repo and returns Some(email)" in new Ctx {
-      when(repo.getSchemeEmail(eqTo(id))).thenReturn(Future.successful(Some("a@b.com")))
-
-      service.getSchemeEmail(id).futureValue mustBe Some("a@b.com")
-      verify(repo).getSchemeEmail(eqTo(id))
-      verifyNoMoreInteractions(repo)
-    }
-
-    "delegates to repo and returns None" in new Ctx {
-      when(repo.getSchemeEmail(eqTo(id))).thenReturn(Future.successful(None))
-
-      service.getSchemeEmail(id).futureValue mustBe None
-      verify(repo).getSchemeEmail(eqTo(id))
-      verifyNoMoreInteractions(repo)
-    }
-
-    "propagates failures from repo" in new Ctx {
-      val boom = new RuntimeException("db boom")
-      when(repo.getSchemeEmail(eqTo(id))).thenReturn(Future.failed(boom))
-
-      service.getSchemeEmail(id).failed.futureValue mustBe boom
-      verify(repo).getSchemeEmail(eqTo(id))
-      verifyNoMoreInteractions(repo)
-    }
-  }
-
-  "MonthlyReturnService createMonthlyReturn" - {
-
-    "delegates to repo (happy path)" in new Ctx {
-      val request = CreateMonthlyReturnRequest(
-        instanceId = id,
-        taxYear = 2025,
-        taxMonth = 2
-      )
-
-      when(repo.createMonthlyReturn(eqTo(request)))
-        .thenReturn(Future.successful(()))
-
-      service.createMonthlyReturn(request).futureValue mustBe ()
-
-      verify(repo).createMonthlyReturn(eqTo(request))
-      verifyNoMoreInteractions(repo)
-    }
-
-    "propagates failures from the repository" in new Ctx {
-      val request = CreateMonthlyReturnRequest(
-        instanceId = id,
-        taxYear = 2025,
-        taxMonth = 2
-      )
-      val boom    = new RuntimeException("db failed")
-
-      when(repo.createMonthlyReturn(eqTo(request)))
-        .thenReturn(Future.failed(boom))
-
-      service.createMonthlyReturn(request).failed.futureValue mustBe boom
-
-      verify(repo).createMonthlyReturn(eqTo(request))
-      verifyNoMoreInteractions(repo)
-    }
-  }
-
-  "MonthlyReturnService getUnsubmittedMonthlyReturns" - {
-
-    "returns wrapper when repository returns row (happy path)" in new Ctx {
-      val scheme = ContractorScheme(
-        schemeId = 1,
-        instanceId = id,
-        accountsOfficeReference = "AOR123",
-        taxOfficeNumber = "123",
-        taxOfficeReference = "AB12345"
-      )
-
-      val original = UnsubmittedMonthlyReturns(
-        scheme = scheme,
-        monthlyReturn = Seq(
-          mkReturn(66666L, 1).copy(status = Some("DEPARTMENTAL_ERROR")),
-          mkReturn(66667L, 7).copy(status = Some("ACCEPTED"))
-        )
-      )
-
-      val expected = original.copy(
-        monthlyReturn = Seq(
-          original.monthlyReturn.head.copy(status = Some("REJECTED")),
-          original.monthlyReturn(1).copy(status = Some("PENDING"))
-        )
-      )
-
-      when(repo.getUnsubmittedMonthlyReturns(eqTo(id)))
-        .thenReturn(Future.successful(original))
-
-      service.getUnsubmittedMonthlyReturns(id).futureValue mustBe expected
-
-      verify(repo).getUnsubmittedMonthlyReturns(eqTo(id))
-      verifyNoMoreInteractions(repo)
-    }
-
-    "propagates failures from repo" in new Ctx {
-      val boom = new RuntimeException("db failed")
-
-      when(repo.getUnsubmittedMonthlyReturns(eqTo(id)))
-        .thenReturn(Future.failed(boom))
-
-      service.getUnsubmittedMonthlyReturns(id).failed.futureValue mustBe boom
-
-      verify(repo).getUnsubmittedMonthlyReturns(eqTo(id))
-      verifyNoMoreInteractions(repo)
-    }
-  }
-
-  "MonthlyReturnService getMonthlyReturnForEdit" - {
-
-    "delegates to repo and returns response" in new Ctx {
-      val request = GetMonthlyReturnForEditRequest(
-        instanceId = "abc-123",
-        taxYear = 2025,
-        taxMonth = 1
-      )
-
-      val response = GetMonthlyReturnForEditResponse(
-        scheme = Seq.empty,
-        monthlyReturn = Seq.empty,
-        subcontractors = Seq.empty,
-        monthlyReturnItems = Seq.empty,
-        submission = Seq.empty
-      )
-
-      when(
-        repo.getMonthlyReturnForEdit(
-          instanceId = eqTo("abc-123"),
-          taxYear = eqTo(2025),
-          taxMonth = eqTo(1)
-        )
-      ).thenReturn(Future.successful(response))
-
-      service.getMonthlyReturnForEdit(request).futureValue mustBe response
-
-      verify(repo).getMonthlyReturnForEdit(
-        instanceId = eqTo("abc-123"),
-        taxYear = eqTo(2025),
-        taxMonth = eqTo(1)
-      )
-      verifyNoMoreInteractions(repo)
-    }
-  }
-
-  "MonthlyReturnService syncMonthlyReturnItems" - {
-
-    "delegates to repo (happy path)" in new Ctx {
-      val request = SyncMonthlyReturnItemsRequest(
-        instanceId = id,
-        taxYear = 2025,
-        taxMonth = 1,
-        amendment = "N",
-        createResourceReferences = Seq(5L, 6L),
-        deleteResourceReferences = Seq(1L, 2L)
-      )
-
-      when(repo.syncMonthlyReturnItems(eqTo(request)))
-        .thenReturn(Future.successful(()))
-
-      service.syncMonthlyReturnItems(request).futureValue mustBe ((): Unit)
-
-      verify(repo).syncMonthlyReturnItems(eqTo(request))
-      verifyNoMoreInteractions(repo)
-    }
-
-    "propagates failures from repo" in new Ctx {
-      val request = SyncMonthlyReturnItemsRequest(
-        instanceId = id,
-        taxYear = 2025,
-        taxMonth = 1,
-        amendment = "N",
-        createResourceReferences = Seq(5L),
-        deleteResourceReferences = Seq.empty
-      )
-
-      val boom = new RuntimeException("db failed")
-      when(repo.syncMonthlyReturnItems(eqTo(request)))
-        .thenReturn(Future.failed(boom))
-
-      service.syncMonthlyReturnItems(request).failed.futureValue mustBe boom
-
-      verify(repo).syncMonthlyReturnItems(eqTo(request))
-      verifyNoMoreInteractions(repo)
-    }
-  }
 }

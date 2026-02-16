@@ -28,7 +28,7 @@ import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.*
 import uk.gov.hmrc.formpproxy.cis.repositories.CisRowMappers.*
 import java.lang.Long
 import java.sql.{CallableStatement, Connection, ResultSet, Timestamp, Types}
-import java.time.Instant
+import java.time.{Instant, LocalDateTime}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Using
@@ -55,6 +55,7 @@ trait CisMonthlyReturnSource {
   def deleteMonthlyReturnItem(request: DeleteMonthlyReturnItemRequest): Future[Unit]
   def syncMonthlyReturnItems(request: SyncMonthlyReturnItemsRequest): Future[Unit]
   def getGovTalkStatus(req: GetGovTalkStatusRequest): Future[GetGovTalkStatusResponse]
+  def resetGovTalkStatus(req: ResetGovTalkStatusRequest): Future[Unit]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -473,6 +474,30 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
+  def resetGovTalkStatus(req: ResetGovTalkStatusRequest): Future[Unit] = {
+    logger.info(s"[CIS] resetGovTalkStatus(userIdentifier=${req.userIdentifier}, formResultID=${req.formResultID})")
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallResetGovTalkStatus) { cs =>
+          cs.setString(1, req.userIdentifier)
+          cs.setString(2, req.formResultID)
+          cs.setString(3, "empty")
+          cs.setString(4, "N")
+          cs.setTimestamp(5, java.sql.Timestamp.valueOf(LocalDateTime.now()))
+          cs.setNull(6, Types.TIMESTAMP)
+          cs.setTimestamp(7, java.sql.Timestamp.valueOf(LocalDateTime.now()))
+          cs.setInt(8, 0)
+          cs.setInt(9, 0)
+          cs.setString(10, req.oldProtocolStatus)
+          cs.setString(11, "initial")
+          cs.setString(12, req.gatewayURL)
+
+          cs.execute()
+        }
+      }
+    }
+  }
+
   // private helpers
   private def callCreateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit =
     withCall(conn, CallCreateMonthlyReturn) { cs =>
@@ -553,7 +578,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setString(1, req.instanceId)
       cs.setInt(2, req.taxYear)
       cs.setInt(3, req.taxMonth)
-      cs.setString(4, "N")
+      cs.setString(4, req.amendment)
       cs.setLong(5, req.itemResourceReference)
       cs.setString(6, req.totalPayments)
       cs.setString(7, req.costOfMaterials)

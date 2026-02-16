@@ -18,18 +18,13 @@ package uk.gov.hmrc.formpproxy.cis.models.requests
 
 import play.api.libs.json.{Json, OFormat}
 
-case class UpdateMonthlyReturnItemRequest(
-  instanceId: String,
-  taxYear: Int,
-  taxMonth: Int,
-  amendment: String,
-  itemResourceReference: Long,
-  totalPayments: String,
-  costOfMaterials: String,
-  totalDeducted: String,
-  subcontractorName: String,
-  verificationNumber: String
+case class ResetGovTalkStatusRequest(
+  userIdentifier: String,
+  formResultID: String,
+  oldProtocolStatus: String,
+  gatewayURL: String
 )
 
-object UpdateMonthlyReturnItemRequest:
-  given format: OFormat[UpdateMonthlyReturnItemRequest] = Json.format[UpdateMonthlyReturnItemRequest]
+object ResetGovTalkStatusRequest {
+  given format: OFormat[ResetGovTalkStatusRequest] = Json.format[ResetGovTalkStatusRequest]
+}

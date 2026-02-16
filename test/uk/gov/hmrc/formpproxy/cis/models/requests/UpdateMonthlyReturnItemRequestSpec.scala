@@ -26,6 +26,7 @@ class UpdateMonthlyReturnItemRequestSpec extends AnyWordSpec with Matchers {
     instanceId = "abc-123",
     taxYear = 2024,
     taxMonth = 5,
+    amendment = "N",
     itemResourceReference = 9876543210L,
     totalPayments = "1000.00",
     costOfMaterials = "250.00",
@@ -39,6 +40,7 @@ class UpdateMonthlyReturnItemRequestSpec extends AnyWordSpec with Matchers {
                                            |  "instanceId": "abc-123",
                                            |  "taxYear": 2024,
                                            |  "taxMonth": 5,
+                                           |  "amendment": "N",
                                            |  "itemResourceReference": 9876543210,
                                            |  "totalPayments": "1000.00",
                                            |  "costOfMaterials": "250.00",
@@ -51,18 +53,15 @@ class UpdateMonthlyReturnItemRequestSpec extends AnyWordSpec with Matchers {
   "UpdateMonthlyReturnItemRequest JSON format" should {
 
     "serialize the model to JSON with all fields" in {
-      val written = Json.toJson(model)
-      written mustBe json
+      Json.toJson(model) mustBe json
     }
 
     "deserialize JSON to the model with all fields" in {
-      val parsed = json.validate[UpdateMonthlyReturnItemRequest]
-      parsed mustBe JsSuccess(model)
+      json.validate[UpdateMonthlyReturnItemRequest] mustBe JsSuccess(model)
     }
 
     "round-trip (model -> JSON -> model) consistently" in {
-      val roundTripped = Json.toJson(model).validate[UpdateMonthlyReturnItemRequest]
-      roundTripped mustBe JsSuccess(model)
+      Json.toJson(model).validate[UpdateMonthlyReturnItemRequest] mustBe JsSuccess(model)
     }
 
     "fail validation when required fields are missing" in {
@@ -78,33 +77,35 @@ class UpdateMonthlyReturnItemRequestSpec extends AnyWordSpec with Matchers {
 
       result match {
         case JsError(errors) =>
-          val paths: Set[String] = errors.map { case (p, _) => p.toString() }.toSet
+          val paths = errors.map(_._1.toString).toSet
           paths must contain("/taxMonth")
+          paths must contain("/amendment")
           paths must contain("/itemResourceReference")
           paths must contain("/totalPayments")
           paths must contain("/costOfMaterials")
           paths must contain("/totalDeducted")
           paths must contain("/subcontractorName")
           paths must contain("/verificationNumber")
-        case JsSuccess(_, _) =>
+        case _               =>
           fail("Expected JsError for missing fields")
       }
     }
 
     "fail validation when a field has the wrong type" in {
-      val wrongTypeJson: JsValue = Json.parse("""
-                                                |{
-                                                |  "instanceId": "abc-123",
-                                                |  "taxYear": "2024",
-                                                |  "taxMonth": 5,
-                                                |  "itemResourceReference": 9876543210,
-                                                |  "totalPayments": "1000.00",
-                                                |  "costOfMaterials": "250.00",
-                                                |  "totalDeducted": "150.00",
-                                                |  "subcontractorName": "John Smith Ltd",
-                                                |  "verificationNumber": "V1234567"
-                                                |}
-                                                |""".stripMargin)
+      val wrongTypeJson = Json.parse("""
+                                       |{
+                                       |  "instanceId": "abc-123",
+                                       |  "taxYear": "2024",
+                                       |  "taxMonth": 5,
+                                       |  "amendment": "N",
+                                       |  "itemResourceReference": 9876543210,
+                                       |  "totalPayments": "1000.00",
+                                       |  "costOfMaterials": "250.00",
+                                       |  "totalDeducted": "150.00",
+                                       |  "subcontractorName": "John Smith Ltd",
+                                       |  "verificationNumber": "V1234567"
+                                       |}
+                                       |""".stripMargin)
 
       val result = wrongTypeJson.validate[UpdateMonthlyReturnItemRequest]
       result.isError mustBe true
@@ -120,9 +121,10 @@ class UpdateMonthlyReturnItemRequestSpec extends AnyWordSpec with Matchers {
     "support large Long values for itemResourceReference without loss" in {
       val bigRef          = 9007199254740992L
       val modelWithBigRef = model.copy(itemResourceReference = bigRef)
-      val jsonWithBigRef  = Json.toJson(modelWithBigRef)
 
-      jsonWithBigRef.validate[UpdateMonthlyReturnItemRequest] mustBe JsSuccess(modelWithBigRef)
+      Json
+        .toJson(modelWithBigRef)
+        .validate[UpdateMonthlyReturnItemRequest] mustBe JsSuccess(modelWithBigRef)
     }
   }
 }
