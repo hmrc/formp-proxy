@@ -22,20 +22,21 @@ import uk.gov.hmrc.formpproxy.cis.models.SubcontractorType
 final case class CreateAndUpdateSubcontractorRequest(
   cisId: String,
   subcontractorType: SubcontractorType,
-  firstName: Option[String],
-  secondName: Option[String],
-  surname: Option[String],
+  utr: Option[String],
+  partnerUtr: Option[String],
+  crn: Option[String],
+  nino: Option[String],
+  partnershipTradingName: Option[String],
   tradingName: Option[String],
   addressLine1: Option[String],
   addressLine2: Option[String],
-  addressLine3: Option[String],
-  addressLine4: Option[String],
+  city: Option[String],
+  county: Option[String],
   postcode: Option[String],
-  nino: Option[String],
-  utr: Option[String],
-  worksReferenceNumber: Option[String],
   emailAddress: Option[String],
-  phoneNumber: Option[String]
+  phoneNumber: Option[String],
+  mobilePhoneNumber: Option[String],
+  worksReferenceNumber: Option[String]
 )
 
 object CreateAndUpdateSubcontractorRequest {

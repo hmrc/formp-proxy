@@ -41,20 +41,21 @@ class SubcontractorServiceSpec extends SpecBase {
       val req = CreateAndUpdateSubcontractorRequest(
         cisId = "123",
         subcontractorType = SoleTrader,
-        firstName = Some("John"),
-        secondName = None,
-        surname = Some("Smith"),
+        utr = Some("1234567890"),
+        partnerUtr = Some("9999999999"),
+        crn = Some("CRN123"),
+        nino = Some("AA123456A"),
+        partnershipTradingName = Some("My Partnership"),
         tradingName = Some("ACME"),
         addressLine1 = Some("1 Main Street"),
         addressLine2 = None,
-        addressLine3 = None,
-        addressLine4 = None,
+        city = Some("London"),
+        county = Some("Greater London"),
         postcode = Some("AA1 1AA"),
-        nino = Some("AA123456A"),
-        utr = Some("1234567890"),
-        worksReferenceNumber = Some("34567"),
         emailAddress = None,
-        phoneNumber = None
+        phoneNumber = None,
+        mobilePhoneNumber = Some("07123456789"),
+        worksReferenceNumber = Some("34567")
       )
 
       when(repo.createAndUpdateSubcontractor(any[CreateAndUpdateSubcontractorRequest]))
@@ -71,20 +72,21 @@ class SubcontractorServiceSpec extends SpecBase {
       val req = CreateAndUpdateSubcontractorRequest(
         cisId = "123",
         subcontractorType = SoleTrader,
-        firstName = Some("John"),
-        secondName = None,
-        surname = Some("Smith"),
+        utr = Some("1234567890"),
+        partnerUtr = Some("9999999999"),
+        crn = Some("CRN123"),
+        nino = Some("AA123456A"),
+        partnershipTradingName = Some("My Partnership"),
         tradingName = Some("ACME"),
         addressLine1 = Some("1 Main Street"),
         addressLine2 = None,
-        addressLine3 = None,
-        addressLine4 = None,
+        city = Some("London"),
+        county = Some("Greater London"),
         postcode = Some("AA1 1AA"),
-        nino = Some("AA123456A"),
-        utr = Some("1234567890"),
-        worksReferenceNumber = Some("34567"),
         emailAddress = None,
-        phoneNumber = None
+        phoneNumber = None,
+        mobilePhoneNumber = Some("07123456789"),
+        worksReferenceNumber = Some("34567")
       )
 
       when(repo.createAndUpdateSubcontractor(any[CreateAndUpdateSubcontractorRequest]))
