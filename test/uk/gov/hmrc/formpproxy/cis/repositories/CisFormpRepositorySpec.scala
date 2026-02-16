@@ -1636,21 +1636,20 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
         inv.getArgument(0, classOf[Connection => Any]).apply(conn)
       }
-      
+
       when(conn.prepareCall(eqTo("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")))
         .thenReturn(csGetScheme)
-      
+
       when(csGetScheme.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
 
       when(rsScheme.next()).thenReturn(true, false)
       when(rsScheme.getInt("version")).thenReturn(69)
       when(rsScheme.wasNull()).thenReturn(false)
 
-      
       val updateItemCall =
         "{ call MONTHLY_RETURN_PROCS_2016.Update_Monthly_Return_Item(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
       when(conn.prepareCall(eqTo(updateItemCall))).thenReturn(csUpdateItem)
-      
+
       val updateVersionCall = "{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"
       when(conn.prepareCall(eqTo(updateVersionCall))).thenReturn(csUpdateVer)
       when(csUpdateVer.getInt(2)).thenReturn(70)
@@ -1675,7 +1674,7 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       verify(csGetScheme).setString(1, "1")
       verify(csGetScheme).execute()
-      
+
       verify(conn).prepareCall(eqTo(updateItemCall))
       verify(csUpdateItem).setString(1, "1")
       verify(csUpdateItem).setInt(2, 2015)
@@ -1689,14 +1688,14 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdateItem).setString(10, "V1000000009")
       verify(csUpdateItem).setInt(11, 5)
       verify(csUpdateItem).execute()
-      
+
       verify(conn).prepareCall(eqTo(updateVersionCall))
       verify(csUpdateVer).setString(1, "1")
       verify(csUpdateVer).setInt(2, 69)
       verify(csUpdateVer).registerOutParameter(2, Types.INTEGER)
       verify(csUpdateVer).execute()
       verify(csUpdateVer).getInt(2)
-      
+
       verify(rsScheme).close()
       verify(csGetScheme).close()
       verify(csUpdateItem).close()

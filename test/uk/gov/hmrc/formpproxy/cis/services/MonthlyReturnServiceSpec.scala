@@ -178,6 +178,59 @@ final class MonthlyReturnServiceSpec extends SpecBase {
     }
   }
 
+  "MonthlyReturnService updateMonthlyReturnItem" - {
+
+    "delegates to repo (happy path)" in new Ctx {
+      val request = UpdateMonthlyReturnItemRequest(
+        instanceId = "1",
+        taxYear = 2015,
+        taxMonth = 5,
+        amendment = "N",
+        itemResourceReference = 999L,
+        totalPayments = "1000.00",
+        costOfMaterials = "200.00",
+        totalDeducted = "80.00",
+        subcontractorName = "ABC Ltd",
+        verificationNumber = "V123456",
+        version = 1
+      )
+
+      when(repo.updateMonthlyReturnItem(eqTo(request)))
+        .thenReturn(Future.successful(()))
+
+      service.updateMonthlyReturnItem(request).futureValue mustBe ((): Unit)
+
+      verify(repo).updateMonthlyReturnItem(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failures from the repository" in new Ctx {
+      val request = UpdateMonthlyReturnItemRequest(
+        instanceId = "1",
+        taxYear = 2015,
+        taxMonth = 5,
+        amendment = "N",
+        itemResourceReference = 999L,
+        totalPayments = "1000.00",
+        costOfMaterials = "200.00",
+        totalDeducted = "80.00",
+        subcontractorName = "ABC Ltd",
+        verificationNumber = "V123456",
+        version = 1
+      )
+
+      val boom = new RuntimeException("db failed")
+
+      when(repo.updateMonthlyReturnItem(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      service.updateMonthlyReturnItem(request).failed.futureValue mustBe boom
+
+      verify(repo).updateMonthlyReturnItem(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
   "MonthlyReturnService getSchemeEmail" - {
 
     "delegates to repo and returns Some(email)" in new Ctx {
