@@ -553,14 +553,15 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setString(1, req.instanceId)
       cs.setInt(2, req.taxYear)
       cs.setInt(3, req.taxMonth)
-      cs.setString(4, req.amendment)
+      cs.setString(4, "N")
       cs.setLong(5, req.itemResourceReference)
       cs.setString(6, req.totalPayments)
       cs.setString(7, req.costOfMaterials)
       cs.setString(8, req.totalDeducted)
       cs.setString(9, req.subcontractorName)
       cs.setString(10, req.verificationNumber)
-      cs.setInt(11, req.version)
+      cs.setNull(11, Types.INTEGER)
+      cs.registerOutParameter(11, Types.INTEGER)
       cs.execute()
     }
 

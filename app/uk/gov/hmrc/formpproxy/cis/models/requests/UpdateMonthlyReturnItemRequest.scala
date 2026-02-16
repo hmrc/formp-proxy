@@ -22,14 +22,12 @@ case class UpdateMonthlyReturnItemRequest(
   instanceId: String,
   taxYear: Int,
   taxMonth: Int,
-  amendment: String,
   itemResourceReference: Long,
   totalPayments: String,
   costOfMaterials: String,
   totalDeducted: String,
   subcontractorName: String,
-  verificationNumber: String,
-  version: Int
+  verificationNumber: String
 )
 
 object UpdateMonthlyReturnItemRequest:

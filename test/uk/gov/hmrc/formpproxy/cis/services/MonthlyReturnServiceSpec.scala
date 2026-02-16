@@ -185,14 +185,12 @@ final class MonthlyReturnServiceSpec extends SpecBase {
         instanceId = "1",
         taxYear = 2015,
         taxMonth = 5,
-        amendment = "N",
         itemResourceReference = 999L,
         totalPayments = "1000.00",
         costOfMaterials = "200.00",
         totalDeducted = "80.00",
         subcontractorName = "ABC Ltd",
-        verificationNumber = "V123456",
-        version = 1
+        verificationNumber = "V123456"
       )
 
       when(repo.updateMonthlyReturnItem(eqTo(request)))
@@ -209,14 +207,12 @@ final class MonthlyReturnServiceSpec extends SpecBase {
         instanceId = "1",
         taxYear = 2015,
         taxMonth = 5,
-        amendment = "N",
         itemResourceReference = 999L,
         totalPayments = "1000.00",
         costOfMaterials = "200.00",
         totalDeducted = "80.00",
         subcontractorName = "ABC Ltd",
-        verificationNumber = "V123456",
-        version = 1
+        verificationNumber = "V123456"
       )
 
       val boom = new RuntimeException("db failed")

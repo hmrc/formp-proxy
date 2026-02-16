@@ -1656,39 +1656,48 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       val repo = new CisFormpRepository(db)
 
+      // NOTE: the repository currently ignores req.amendment and req.version anyway
       val req = UpdateMonthlyReturnItemRequest(
         instanceId = "1",
         taxYear = 2015,
         taxMonth = 4,
-        amendment = "N",
         itemResourceReference = 9L,
         totalPayments = "1000.00",
         costOfMaterials = "100.00",
         totalDeducted = "100.00",
         subcontractorName = "Charles, C",
-        verificationNumber = "V1000000009",
-        version = 5
+        verificationNumber = "V1000000009"
       )
 
       repo.updateMonthlyReturnItem(req).futureValue mustBe (())
 
+      // get scheme version
       verify(csGetScheme).setString(1, "1")
       verify(csGetScheme).execute()
 
+      // update monthly return item SP
       verify(conn).prepareCall(eqTo(updateItemCall))
       verify(csUpdateItem).setString(1, "1")
       verify(csUpdateItem).setInt(2, 2015)
       verify(csUpdateItem).setInt(3, 4)
+
+      // repo hard-codes amendment "N"
       verify(csUpdateItem).setString(4, "N")
+
       verify(csUpdateItem).setLong(5, 9L)
       verify(csUpdateItem).setString(6, "1000.00")
       verify(csUpdateItem).setString(7, "100.00")
       verify(csUpdateItem).setString(8, "100.00")
       verify(csUpdateItem).setString(9, "Charles, C")
       verify(csUpdateItem).setString(10, "V1000000009")
-      verify(csUpdateItem).setInt(11, 5)
+
+      // repo always sets version to NULL and registers OUT param
+      verify(csUpdateItem).setNull(11, Types.INTEGER)
+      verify(csUpdateItem).registerOutParameter(11, Types.INTEGER)
+
       verify(csUpdateItem).execute()
 
+      // update scheme version SP
       verify(conn).prepareCall(eqTo(updateVersionCall))
       verify(csUpdateVer).setString(1, "1")
       verify(csUpdateVer).setInt(2, 69)
@@ -1696,6 +1705,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdateVer).execute()
       verify(csUpdateVer).getInt(2)
 
+      // resources closed
       verify(rsScheme).close()
       verify(csGetScheme).close()
       verify(csUpdateItem).close()
