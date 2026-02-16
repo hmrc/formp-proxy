@@ -101,7 +101,7 @@ class GovTalkControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
 
   "GovTalkController resetGovTalkStatus" - {
 
-    "returns 200 with multiple records when service returns data" in new Setup {
+    "returns 204 with multiple records when service returns data" in new Setup {
       when(mockService.resetGovTalkStatus(any()))
         .thenReturn(Future.successful(()))
 
@@ -191,7 +191,7 @@ class GovTalkControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
 
   "GovTalkController createGovTalkStatusRecord" - {
 
-    "returns 200 with multiple records when service returns data" in new Setup {
+    "returns 201 with multiple records when service returns data" in new Setup {
       when(mockService.createGovTalkStatusRecord(any()))
         .thenReturn(Future.successful(()))
 
