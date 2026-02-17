@@ -71,4 +71,7 @@ class MonthlyReturnService @Inject() (repo: CisMonthlyReturnSource)(implicit ec:
 
   def syncMonthlyReturnItems(request: SyncMonthlyReturnItemsRequest): Future[Unit] =
     repo.syncMonthlyReturnItems(request)
+
+  def deleteMonthlyReturnItem(request: DeleteMonthlyReturnItemRequest): Future[Unit] =
+    repo.deleteMonthlyReturnItem(request)
 }
