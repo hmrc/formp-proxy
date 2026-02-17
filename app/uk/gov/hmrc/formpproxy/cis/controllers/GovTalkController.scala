@@ -26,6 +26,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 class GovTalkController @Inject() (
   authorise: AuthAction,
@@ -51,6 +52,17 @@ class GovTalkController @Inject() (
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )
+    }
+
+  def updateGovTalkStatusCorrelationId: Action[UpdateGovTalkStatusCorrelationIdRequest] =
+    authorise.async(parse.json[UpdateGovTalkStatusCorrelationIdRequest]) { implicit request =>
+      service
+        .updateGovTalkStatusCorrelationId(request.body)
+        .map(_ => NoContent)
+        .recover { case NonFatal(e) =>
+          logger.error("[updateGovTalkStatusCorrelationId] failed", e)
+          InternalServerError(Json.obj("message" -> "Unexpected error"))
+        }
     }
 
   def resetGovTalkStatus: Action[JsValue] =

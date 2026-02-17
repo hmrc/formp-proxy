@@ -29,6 +29,9 @@ class GovTalkService @Inject() (repo: CisMonthlyReturnSource) {
   def getGovTalkStatus(req: GetGovTalkStatusRequest): Future[GetGovTalkStatusResponse] =
     repo.getGovTalkStatus(req)
 
+  def updateGovTalkStatusCorrelationId(req: UpdateGovTalkStatusCorrelationIdRequest): Future[Unit] =
+    repo.updateGovTalkStatusCorrelationId(req)
+
   def resetGovTalkStatus(req: ResetGovTalkStatusRequest): Future[Unit] =
     repo.resetGovTalkStatus(req)
 

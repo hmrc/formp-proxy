@@ -1623,6 +1623,43 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
   }
 
+  "updateGovTalkStatusCorrelationId" - {
+
+    "calls UpdateGetGovTalkStatusCorrelationId SP with correct params and executes" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      val call = "{ call SUBMISSION_ADMIN.UpdateGovTalkStatusCorr(?, ?, ?, ?, ?) }"
+      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = UpdateGovTalkStatusCorrelationIdRequest(
+        userIdentifier = "1",
+        formResultID = "12890",
+        correlationID = "C742D5DEE7EB4D15B4F7EFD50B890525",
+        pollInterval = 1,
+        gatewayURL = "http://example.com"
+      )
+
+      repo.updateGovTalkStatusCorrelationId(req).futureValue mustBe ()
+
+      verify(conn).prepareCall(eqTo(call))
+      verify(cs).setString(1, "1")
+      verify(cs).setString(2, "12890")
+      verify(cs).setString(3, "C742D5DEE7EB4D15B4F7EFD50B890525")
+      verify(cs).setInt(4, 1)
+      verify(cs).setString(5, "http://example.com")
+      verify(cs).execute()
+      verify(cs).close()
+    }
+  }
+
   "resetGovTalkStatus" - {
 
     "call SUBMISSION_ADMIN.ResetGovTalkStatusRecord with correct parameters and execute" in {
