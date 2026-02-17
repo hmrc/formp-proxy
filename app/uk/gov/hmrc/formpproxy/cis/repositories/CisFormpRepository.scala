@@ -54,6 +54,7 @@ trait CisMonthlyReturnSource {
   def deleteMonthlyReturnItem(request: DeleteMonthlyReturnItemRequest): Future[Unit]
   def syncMonthlyReturnItems(request: SyncMonthlyReturnItemsRequest): Future[Unit]
   def getGovTalkStatus(req: GetGovTalkStatusRequest): Future[GetGovTalkStatusResponse]
+  def updateGovTalkStatusCorrelationId(request: UpdateGovTalkStatusCorrelationIdRequest): Future[Unit]
   def resetGovTalkStatus(req: ResetGovTalkStatusRequest): Future[Unit]
   def updateGovTalkStatus(req: UpdateGovTalkStatusRequest): Future[Unit]
   def createGovTalkStatusRecord(req: CreateGovTalkStatusRecordRequest): Future[Unit]
@@ -456,6 +457,24 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           val statusRecords = withCursor(cs, 3)(collectGovtTalkStatusRecords)
 
           GetGovTalkStatusResponse(govtalk_status = statusRecords)
+        }
+      }
+    }
+  }
+
+  override def updateGovTalkStatusCorrelationId(req: UpdateGovTalkStatusCorrelationIdRequest): Future[Unit] = {
+    logger.info(
+      s"[CIS] updateGovTalkStatusCorrelationId(userIdentifier=${req.userIdentifier}, formResultID=${req.formResultID}, correlationId=${req.correlationID}, pollInterval=${req.pollInterval}, gatewayUrl=${req.gatewayURL})"
+    )
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, UpdateGetGovTalkStatusCorrelationId) { cs =>
+          cs.setString(1, req.userIdentifier)
+          cs.setString(2, req.formResultID)
+          cs.setString(3, req.correlationID)
+          cs.setInt(4, req.pollInterval)
+          cs.setString(5, req.gatewayURL)
+          cs.execute()
         }
       }
     }
