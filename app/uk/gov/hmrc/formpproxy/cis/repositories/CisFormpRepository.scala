@@ -56,6 +56,7 @@ trait CisMonthlyReturnSource {
   def getGovTalkStatus(req: GetGovTalkStatusRequest): Future[GetGovTalkStatusResponse]
   def updateGovTalkStatusCorrelationId(request: UpdateGovTalkStatusCorrelationIdRequest): Future[Unit]
   def resetGovTalkStatus(req: ResetGovTalkStatusRequest): Future[Unit]
+  def updateGovTalkStatus(req: UpdateGovTalkStatusRequest): Future[Unit]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -496,6 +497,21 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           cs.setString(11, "initial")
           cs.setString(12, req.gatewayURL)
 
+          cs.execute()
+        }
+      }
+    }
+  }
+
+  def updateGovTalkStatus(req: UpdateGovTalkStatusRequest): Future[Unit] = {
+    logger.info(s"[CIS] updateGovTalkStatus(userIdentifier=${req.userIdentifier}, formResultID=${req.formResultID})")
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallUpdateGovTalkStatus) { cs =>
+          cs.setString(1, req.userIdentifier)
+          cs.setString(2, req.formResultID)
+          cs.setString(3, req.protocolStatus)
+          cs.setTimestamp(4, java.sql.Timestamp.valueOf(req.endStateDate))
           cs.execute()
         }
       }
