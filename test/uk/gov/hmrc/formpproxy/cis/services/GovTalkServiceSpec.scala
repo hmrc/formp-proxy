@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -129,6 +129,42 @@ final class GovTalkServiceSpec extends SpecBase {
       ex mustBe boom
 
       verify(c.repo).updateGovTalkStatusCorrelationId(request)
+      verifyNoMoreInteractions(c.repo)
+    }
+  }
+
+  "GovTalkService resetGovTalkStatus" - {
+
+    val request = ResetGovTalkStatusRequest(
+      userIdentifier = "1",
+      formResultID = "12890",
+      oldProtocolStatus = "dataRequest",
+      gatewayURL = "http://localhost:9712/submission/ChRIS/CISR/Filing/sync/CIS300MR"
+    )
+
+    "should succeed when records are reset" in {
+      val c = Ctx()
+
+      when(c.repo.resetGovTalkStatus(request))
+        .thenReturn(Future.successful(()))
+
+      c.service.resetGovTalkStatus(request).futureValue
+
+      verify(c.repo).resetGovTalkStatus(request)
+      verifyNoMoreInteractions(c.repo)
+    }
+
+    "propagates failures from the repository" in {
+      val c    = Ctx()
+      val boom = new RuntimeException("formp failed")
+
+      when(c.repo.resetGovTalkStatus(request))
+        .thenReturn(Future.failed(boom))
+
+      val ex = c.service.resetGovTalkStatus(request).failed.futureValue
+      ex mustBe boom
+
+      verify(c.repo).resetGovTalkStatus(request)
       verifyNoMoreInteractions(c.repo)
     }
   }
