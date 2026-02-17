@@ -461,16 +461,16 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
   override def updateGovTalkStatusCorrelationId(req: UpdateGovTalkStatusCorrelationIdRequest): Future[Unit] = {
     logger.info(
-      s"[CIS] updateGovTalkStatusCorrelationId(userIdentifier=${req.userIdentifier}, formResultID=${req.formResultId}, correlationId=${req.correlationId}, pollInterval=${req.pollInterval}, gatewayUrl=${req.gatewayUrl})"
+      s"[CIS] updateGovTalkStatusCorrelationId(userIdentifier=${req.userIdentifier}, formResultID=${req.formResultID}, correlationId=${req.correlationID}, pollInterval=${req.pollInterval}, gatewayUrl=${req.gatewayURL})"
     )
     Future {
       db.withConnection { conn =>
         withCall(conn, UpdateGetGovTalkStatusCorrelationId) { cs =>
           cs.setString(1, req.userIdentifier)
-          cs.setString(2, req.formResultId)
-          cs.setString(3, req.correlationId)
+          cs.setString(2, req.formResultID)
+          cs.setString(3, req.correlationID)
           cs.setInt(4, req.pollInterval)
-          cs.setString(5, req.gatewayUrl)
+          cs.setString(5, req.gatewayURL)
           cs.execute()
         }
       }

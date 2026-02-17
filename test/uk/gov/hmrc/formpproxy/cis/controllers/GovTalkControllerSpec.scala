@@ -108,10 +108,10 @@ class GovTalkControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
 
       val body = UpdateGovTalkStatusCorrelationIdRequest(
         userIdentifier = "1",
-        formResultId   = "12890",
-        correlationId  = "C742D5DEE7EB4D15B4F7EFD50B890525",
-        pollInterval   = 1,
-        gatewayUrl     = "http://example.com/test"
+        formResultID = "12890",
+        correlationID = "C742D5DEE7EB4D15B4F7EFD50B890525",
+        pollInterval = 1,
+        gatewayURL = "http://example.com/test"
       )
 
       val req: FakeRequest[UpdateGovTalkStatusCorrelationIdRequest] =
@@ -131,10 +131,10 @@ class GovTalkControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
 
       val body = UpdateGovTalkStatusCorrelationIdRequest(
         userIdentifier = "1",
-        formResultId   = "12890",
-        correlationId  = "C742D5DEE7EB4D15B4F7EFD50B890525",
-        pollInterval   = 1,
-        gatewayUrl     = "http://example.com/test"
+        formResultID = "12890",
+        correlationID = "C742D5DEE7EB4D15B4F7EFD50B890525",
+        pollInterval = 1,
+        gatewayURL = "http://example.com/test"
       )
 
       val req: FakeRequest[UpdateGovTalkStatusCorrelationIdRequest] =

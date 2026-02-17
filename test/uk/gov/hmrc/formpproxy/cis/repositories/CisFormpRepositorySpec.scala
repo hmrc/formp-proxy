@@ -1625,9 +1625,9 @@ final class CisFormpRepositorySpec extends SpecBase {
   "updateGovTalkStatusCorrelationId" - {
 
     "calls UpdateGetGovTalkStatusCorrelationId SP with correct params and executes" in {
-      val db = mock[Database]
+      val db   = mock[Database]
       val conn = mock[Connection]
-      val cs = mock[CallableStatement]
+      val cs   = mock[CallableStatement]
 
       when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
         val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
@@ -1640,13 +1640,13 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       val req = UpdateGovTalkStatusCorrelationIdRequest(
         userIdentifier = "1",
-        formResultId = "12890",
-        correlationId = "C742D5DEE7EB4D15B4F7EFD50B890525",
+        formResultID = "12890",
+        correlationID = "C742D5DEE7EB4D15B4F7EFD50B890525",
         pollInterval = 1,
-        gatewayUrl = "http://example.com"
+        gatewayURL = "http://example.com"
       )
 
-      repo.updateGovTalkStatusCorrelationId(req).futureValue mustBe()
+      repo.updateGovTalkStatusCorrelationId(req).futureValue mustBe ()
 
       verify(conn).prepareCall(eqTo(call))
       verify(cs).setString(1, "1")

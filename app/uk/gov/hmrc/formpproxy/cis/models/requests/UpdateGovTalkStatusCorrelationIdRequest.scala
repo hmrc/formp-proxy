@@ -20,10 +20,10 @@ import play.api.libs.json.{Json, OFormat}
 
 case class UpdateGovTalkStatusCorrelationIdRequest(
   userIdentifier: String,
-  formResultId: String,
-  correlationId: String,
+  formResultID: String,
+  correlationID: String,
   pollInterval: Int,
-  gatewayUrl: String
+  gatewayURL: String
 )
 
 object UpdateGovTalkStatusCorrelationIdRequest {

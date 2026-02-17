@@ -99,10 +99,10 @@ final class GovTalkServiceSpec extends SpecBase {
 
     val request = UpdateGovTalkStatusCorrelationIdRequest(
       userIdentifier = "1",
-      formResultId = "12890",
-      correlationId = "C742D5DEE7EB4D15B4F7EFD50B890525",
+      formResultID = "12890",
+      correlationID = "C742D5DEE7EB4D15B4F7EFD50B890525",
       pollInterval = 1,
-      gatewayUrl = "http://example.com"
+      gatewayURL = "http://example.com"
     )
 
     "returns Unit when repository succeeds" in {
@@ -119,7 +119,7 @@ final class GovTalkServiceSpec extends SpecBase {
     }
 
     "propagates failures from the repository" in {
-      val c = Ctx()
+      val c    = Ctx()
       val boom = new RuntimeException("update failed")
 
       when(c.repo.updateGovTalkStatusCorrelationId(request))
