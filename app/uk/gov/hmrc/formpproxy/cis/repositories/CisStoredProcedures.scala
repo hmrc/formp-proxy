@@ -40,6 +40,6 @@ object CisStoredProcedures {
   val CallGetGovTalkStatus                =
     "{ call SUBMISSION_ADMIN.SelectGovTalkStatus(?, ?, ?) }"
   val UpdateGetGovTalkStatusCorrelationId = "{ call SUBMISSION_ADMIN.UpdateGovTalkStatusCorr(?, ?, ?, ?, ?) }"
-  val CallResetGovTalkStatus            =
+  val CallResetGovTalkStatus              =
     "{ call SUBMISSION_ADMIN.ResetGovTalkStatusRecord(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
 }
