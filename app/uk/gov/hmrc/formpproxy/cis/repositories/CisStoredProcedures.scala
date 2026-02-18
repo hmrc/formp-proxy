@@ -21,6 +21,8 @@ object CisStoredProcedures {
   val CallUpdateSchemeVersion             = "{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"
   val CallUpdateMonthlyReturn             =
     "{ call MONTHLY_RETURN_PROCS_2016.Update_Monthly_Return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+  val CallUpdateMonthlyReturnItem         =
+    "{ call MONTHLY_RETURN_PROCS_2016.Update_Monthly_Return_Item(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
   val CallGetScheme                       = "{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"
   val CallCreateScheme                    = "{ call SCHEME_PROCS.Create_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
   val CallUpdateScheme                    = "{ call SCHEME_PROCS.Update_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
@@ -42,6 +44,6 @@ object CisStoredProcedures {
   val UpdateGetGovTalkStatusCorrelationId = "{ call SUBMISSION_ADMIN.UpdateGovTalkStatusCorr(?, ?, ?, ?, ?) }"
   val CallResetGovTalkStatus              =
     "{ call SUBMISSION_ADMIN.ResetGovTalkStatusRecord(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
-  val CallUpdateGovTalkStatus           =
+  val CallUpdateGovTalkStatus             =
     "{ call SUBMISSION_ADMIN.UpdateGovtalkStatus(?, ?, ?, ?) }"
 }
