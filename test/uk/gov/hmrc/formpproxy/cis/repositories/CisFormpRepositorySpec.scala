@@ -1168,6 +1168,9 @@ final class CisFormpRepositorySpec extends SpecBase {
         utr = Some("1234567890"),
         partnerUtr = Some("9999999999"),
         crn = Some("CRN123"),
+        firstName = Some("John"),
+        secondName = Some("Q"),
+        surname = Some("Smith"),
         nino = Some("AA123456A"),
         partnershipTradingName = Some("My Partnership"),
         tradingName = Some("ACME"),
@@ -1175,6 +1178,7 @@ final class CisFormpRepositorySpec extends SpecBase {
         addressLine2 = Some("Flat 2"),
         city = Some("London"),
         county = Some("Greater London"),
+        country = Some("GB"),
         postcode = Some("AA1 1AA"),
         emailAddress = Some("test@test.com"),
         phoneNumber = Some("01234567890"),
@@ -1204,10 +1208,10 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdate).setString(5, "9999999999")
       verify(csUpdate).setString(6, "CRN123")
 
-      verify(csUpdate).setNull(eqTo(7), anyInt())
+      verify(csUpdate).setString(7, "John")
       verify(csUpdate).setString(8, "AA123456A")
-      verify(csUpdate).setNull(eqTo(9), anyInt())
-      verify(csUpdate).setNull(eqTo(10), anyInt())
+      verify(csUpdate).setString(9, "Q")
+      verify(csUpdate).setString(10, "Smith")
 
       verify(csUpdate).setString(11, "My Partnership")
       verify(csUpdate).setString(12, "ACME")
@@ -1216,7 +1220,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdate).setString(14, "Flat 2")
       verify(csUpdate).setString(15, "London")
       verify(csUpdate).setString(16, "Greater London")
-      verify(csUpdate).setNull(eqTo(17), anyInt())
+      verify(csUpdate).setString(17, "GB")
 
       verify(csUpdate).setString(18, "AA1 1AA")
       verify(csUpdate).setString(19, "test@test.com")

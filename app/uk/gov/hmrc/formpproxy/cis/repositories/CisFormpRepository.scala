@@ -745,10 +745,11 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         cs.setOptionalInt(4, None)
         cs.setOptionalString(5, request.partnerUtr)
         cs.setOptionalString(6, request.crn)
-        cs.setOptionalString(7, None)
+
+        cs.setOptionalString(7, request.firstName)
         cs.setOptionalString(8, request.nino)
-        cs.setOptionalString(9, None)
-        cs.setOptionalString(10, None)
+        cs.setOptionalString(9, request.secondName)
+        cs.setOptionalString(10, request.surname)
 
         cs.setOptionalString(11, request.partnershipTradingName)
         cs.setOptionalString(12, request.tradingName)
@@ -757,7 +758,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         cs.setOptionalString(14, request.addressLine2)
         cs.setOptionalString(15, request.city)
         cs.setOptionalString(16, request.county)
-        cs.setOptionalString(17, None)
+        cs.setOptionalString(17, request.country)
         cs.setOptionalString(18, request.postcode)
 
         cs.setOptionalString(19, request.emailAddress)
