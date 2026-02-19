@@ -467,7 +467,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     )
     Future {
       db.withConnection { conn =>
-        withCall(conn, UpdateGetGovTalkStatusCorrelationId) { cs =>
+        withCall(conn, CallUpdateGetGovTalkStatusCorrelationId) { cs =>
           cs.setString(1, req.userIdentifier)
           cs.setString(2, req.formResultID)
           cs.setString(3, req.correlationID)
