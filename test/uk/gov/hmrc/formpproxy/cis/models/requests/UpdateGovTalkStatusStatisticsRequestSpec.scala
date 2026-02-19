@@ -222,5 +222,53 @@ class UpdateGovTalkStatusStatisticsRequestSpec extends AnyWordSpec with Matchers
       val result = json.validate[UpdateGovTalkStatusStatisticsRequest]
       result.isError mustBe true
     }
+
+    "fail to read when userIdentifier is empty string" in {
+      val json = Json.parse("""
+          |{
+          |  "userIdentifier": "",
+          |  "formResultID": "SUB123456",
+          |  "lastMessageDate": "2026-02-16T10:30:00",
+          |  "numPolls": 3,
+          |  "pollInterval": 300,
+          |  "gatewayURL": "http://localhost:9712/submission/ChRIS/CISR/Filing/sync/CIS300MR"
+          |}
+        """.stripMargin)
+
+      val result = json.validate[UpdateGovTalkStatusStatisticsRequest]
+      result.isError mustBe true
+    }
+
+    "fail to read when formResultID is empty string" in {
+      val json = Json.parse("""
+          |{
+          |  "userIdentifier": "123456789",
+          |  "formResultID": "",
+          |  "lastMessageDate": "2026-02-16T10:30:00",
+          |  "numPolls": 3,
+          |  "pollInterval": 300,
+          |  "gatewayURL": "http://localhost:9712/submission/ChRIS/CISR/Filing/sync/CIS300MR"
+          |}
+        """.stripMargin)
+
+      val result = json.validate[UpdateGovTalkStatusStatisticsRequest]
+      result.isError mustBe true
+    }
+
+    "fail to read when gatewayURL is empty string" in {
+      val json = Json.parse("""
+          |{
+          |  "userIdentifier": "123456789",
+          |  "formResultID": "SUB123456",
+          |  "lastMessageDate": "2026-02-16T10:30:00",
+          |  "numPolls": 3,
+          |  "pollInterval": 300,
+          |  "gatewayURL": ""
+          |}
+        """.stripMargin)
+
+      val result = json.validate[UpdateGovTalkStatusStatisticsRequest]
+      result.isError mustBe true
+    }
   }
 }
