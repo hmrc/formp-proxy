@@ -16,6 +16,10 @@ POST       /scheme/update                                           uk.gov.hmrc.
 POST       /scheme/version-update                                   uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.updateSchemeVersion
 POST       /scheme/prepopulate                                      uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.applyPrepopulation
 
+POST       /cis/monthly-return-item/update                          uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.updateMonthlyReturnItem()
+
+
+
 POST       /cis/subcontractor/create-and-update                     uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.createAndUpdateSubcontractor()
 GET        /cis/subcontractors/:cisId                               uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.getSubcontractorList(cisId: String)
 
@@ -26,12 +30,15 @@ POST       /cis/govtalkstatus/get                                   uk.gov.hmrc.
 POST       /cis/govtalkstatus/update-correlationID                  uk.gov.hmrc.formpproxy.cis.controllers.GovTalkController.updateGovTalkStatusCorrelationId
 POST       /cis/govtalkstatus/reset                                 uk.gov.hmrc.formpproxy.cis.controllers.GovTalkController.resetGovTalkStatus
 POST       /cis/govtalkstatus/update-status                         uk.gov.hmrc.formpproxy.cis.controllers.GovTalkController.updateGovTalkStatus
+POST       /cis/govtalkstatus/update-statistics                     uk.gov.hmrc.formpproxy.cis.controllers.GovTalkController.updateGovTalkStatusStatistics
 
 # SDLT routes
 
 POST       /create/return                                           uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.createSDLTReturn()
 POST       /retrieve-return                                         uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.getSDLTReturn()
 POST       /returns                                                 uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.getSDLTReturns()
+
+
 
 
 POST       /organisation                                            uk.gov.hmrc.formpproxy.sdlt.controllers.organisation.SdltOrganisationController.getSDLTOrganisation()

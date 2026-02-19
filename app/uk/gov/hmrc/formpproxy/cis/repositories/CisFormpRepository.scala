@@ -40,6 +40,7 @@ trait CisMonthlyReturnSource {
   def updateMonthlyReturnSubmission(request: UpdateSubmissionRequest): Future[Unit]
   def createNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[CreateNilMonthlyReturnResponse]
   def updateNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[Unit]
+  def updateMonthlyReturnItem(request: UpdateMonthlyReturnItemRequest): Future[Unit]
   def createMonthlyReturn(request: CreateMonthlyReturnRequest): Future[Unit]
   def getSchemeEmail(instanceId: String): Future[Option[String]]
   def getScheme(instanceId: String): Future[Option[ContractorScheme]]
@@ -57,6 +58,7 @@ trait CisMonthlyReturnSource {
   def updateGovTalkStatusCorrelationId(request: UpdateGovTalkStatusCorrelationIdRequest): Future[Unit]
   def resetGovTalkStatus(req: ResetGovTalkStatusRequest): Future[Unit]
   def updateGovTalkStatus(req: UpdateGovTalkStatusRequest): Future[Unit]
+  def updateGovTalkStatusStatistics(req: UpdateGovTalkStatusStatisticsRequest): Future[Unit]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -395,7 +397,21 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
-// Prepopulation
+  override def updateMonthlyReturnItem(request: UpdateMonthlyReturnItemRequest): Future[Unit] = {
+    logger.info(
+      s"[CIS] updateMonthlyReturnItem(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
+    )
+    Future {
+      db.withTransaction { conn =>
+        val schemeVersionBefore = getSchemeVersion(conn, request.instanceId)
+
+        callUpdateMonthlyReturnItem(conn, request)
+        callUpdateSchemeVersion(conn, request.instanceId, schemeVersionBefore)
+      }
+    }
+  }
+
+  // Prepopulation
 
   override def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int] =
     Future {
@@ -518,6 +534,25 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
+  def updateGovTalkStatusStatistics(req: UpdateGovTalkStatusStatisticsRequest): Future[Unit] = {
+    logger.info(
+      s"[CIS] updateGovTalkStatusStatistics(userIdentifier=${req.userIdentifier}, formResultID=${req.formResultID})"
+    )
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallUpdateGovTalkStatusStatistics) { cs =>
+          cs.setString(1, req.userIdentifier)
+          cs.setString(2, req.formResultID)
+          cs.setTimestamp(3, java.sql.Timestamp.valueOf(req.lastMessageDate))
+          cs.setInt(4, req.numPolls)
+          cs.setInt(5, req.pollInterval)
+          cs.setString(6, req.gatewayURL)
+          cs.execute()
+        }
+      }
+    }
+  }
+
   // private helpers
   private def callCreateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit =
     withCall(conn, CallCreateMonthlyReturn) { cs =>
@@ -590,6 +625,23 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setString(11, "STARTED")
       cs.setInt(12, 0)
       cs.registerOutParameter(12, Types.INTEGER)
+      cs.execute()
+    }
+
+  private def callUpdateMonthlyReturnItem(conn: Connection, req: UpdateMonthlyReturnItemRequest): Unit =
+    withCall(conn, CallUpdateMonthlyReturnItem) { cs =>
+      cs.setString(1, req.instanceId)
+      cs.setInt(2, req.taxYear)
+      cs.setInt(3, req.taxMonth)
+      cs.setString(4, req.amendment)
+      cs.setLong(5, req.itemResourceReference)
+      cs.setString(6, req.totalPayments)
+      cs.setString(7, req.costOfMaterials)
+      cs.setString(8, req.totalDeducted)
+      cs.setString(9, req.subcontractorName)
+      cs.setString(10, req.verificationNumber)
+      cs.setNull(11, Types.INTEGER)
+      cs.registerOutParameter(11, Types.INTEGER)
       cs.execute()
     }
 
