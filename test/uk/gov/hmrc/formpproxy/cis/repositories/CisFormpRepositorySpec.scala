@@ -1803,4 +1803,89 @@ final class CisFormpRepositorySpec extends SpecBase {
       tsCaptorLastMessageDate.getValue must not be null
     }
   }
+
+  "updateMonthlyReturnItem" - {
+
+    "call Update_Monthly_Return_Item and Update_Scheme_Version SPs in transaction" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csGetScheme  = mock[CallableStatement]
+      val rsScheme     = mock[ResultSet]
+      val csUpdateItem = mock[CallableStatement]
+      val csUpdateVer  = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")))
+        .thenReturn(csGetScheme)
+
+      when(csGetScheme.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+
+      when(rsScheme.next()).thenReturn(true, false)
+      when(rsScheme.getInt("version")).thenReturn(69)
+      when(rsScheme.wasNull()).thenReturn(false)
+
+      val updateItemCall =
+        "{ call MONTHLY_RETURN_PROCS_2016.Update_Monthly_Return_Item(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+      when(conn.prepareCall(eqTo(updateItemCall))).thenReturn(csUpdateItem)
+
+      val updateVersionCall = "{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"
+      when(conn.prepareCall(eqTo(updateVersionCall))).thenReturn(csUpdateVer)
+      when(csUpdateVer.getInt(2)).thenReturn(70)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = UpdateMonthlyReturnItemRequest(
+        instanceId = "1",
+        taxYear = 2015,
+        taxMonth = 4,
+        amendment = "N",
+        itemResourceReference = 9L,
+        totalPayments = "1000.00",
+        costOfMaterials = "100.00",
+        totalDeducted = "100.00",
+        subcontractorName = "Charles, C",
+        verificationNumber = "V1000000009"
+      )
+
+      repo.updateMonthlyReturnItem(req).futureValue mustBe (())
+
+      verify(csGetScheme).setString(1, "1")
+      verify(csGetScheme).execute()
+
+      verify(conn).prepareCall(eqTo(updateItemCall))
+      verify(csUpdateItem).setString(1, "1")
+      verify(csUpdateItem).setInt(2, 2015)
+      verify(csUpdateItem).setInt(3, 4)
+
+      verify(csUpdateItem).setString(4, "N")
+
+      verify(csUpdateItem).setLong(5, 9L)
+      verify(csUpdateItem).setString(6, "1000.00")
+      verify(csUpdateItem).setString(7, "100.00")
+      verify(csUpdateItem).setString(8, "100.00")
+      verify(csUpdateItem).setString(9, "Charles, C")
+      verify(csUpdateItem).setString(10, "V1000000009")
+
+      verify(csUpdateItem).setNull(11, Types.INTEGER)
+      verify(csUpdateItem).registerOutParameter(11, Types.INTEGER)
+
+      verify(csUpdateItem).execute()
+
+      verify(conn).prepareCall(eqTo(updateVersionCall))
+      verify(csUpdateVer).setString(1, "1")
+      verify(csUpdateVer).setInt(2, 69)
+      verify(csUpdateVer).registerOutParameter(2, Types.INTEGER)
+      verify(csUpdateVer).execute()
+      verify(csUpdateVer).getInt(2)
+
+      verify(rsScheme).close()
+      verify(csGetScheme).close()
+      verify(csUpdateItem).close()
+      verify(csUpdateVer).close()
+    }
+  }
 }

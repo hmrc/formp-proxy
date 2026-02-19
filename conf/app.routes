@@ -15,6 +15,10 @@ POST       /scheme/update                                           uk.gov.hmrc.
 POST       /scheme/version-update                                   uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.updateSchemeVersion
 POST       /scheme/prepopulate                                      uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.applyPrepopulation
 
+POST       /cis/monthly-return-item/update                          uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.updateMonthlyReturnItem()
+
+
+
 POST       /cis/subcontractor/create-and-update                     uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.createAndUpdateSubcontractor()
 GET        /cis/subcontractors/:cisId                               uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.getSubcontractorList(cisId: String)
 
@@ -32,6 +36,8 @@ POST       /cis/govtalkstatus/create                                uk.gov.hmrc.
 POST       /create/return                                           uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.createSDLTReturn()
 POST       /retrieve-return                                         uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.getSDLTReturn()
 POST       /returns                                                 uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.getSDLTReturns()
+
+
 
 
 POST       /organisation                                            uk.gov.hmrc.formpproxy.sdlt.controllers.organisation.SdltOrganisationController.getSDLTOrganisation()
