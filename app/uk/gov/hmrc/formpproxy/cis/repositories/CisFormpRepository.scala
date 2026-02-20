@@ -59,6 +59,7 @@ trait CisMonthlyReturnSource {
   def resetGovTalkStatus(req: ResetGovTalkStatusRequest): Future[Unit]
   def updateGovTalkStatus(req: UpdateGovTalkStatusRequest): Future[Unit]
   def updateGovTalkStatusStatistics(req: UpdateGovTalkStatusStatisticsRequest): Future[Unit]
+  def createGovTalkStatusRecord(req: CreateGovTalkStatusRecordRequest): Future[Unit]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -547,6 +548,31 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           cs.setInt(4, req.numPolls)
           cs.setInt(5, req.pollInterval)
           cs.setString(6, req.gatewayURL)
+          cs.execute()
+        }
+      }
+    }
+  }
+
+  def createGovTalkStatusRecord(req: CreateGovTalkStatusRecordRequest): Future[Unit] = {
+    logger.info(
+      s"[CIS] createGovTalkStatusRecord(userIdentifier=${req.userIdentifier}, formResultID=${req.formResultID})"
+    )
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallCreateGovTalkStatus) { cs =>
+          cs.setString(1, req.userIdentifier)
+          cs.setString(2, req.formResultID)
+          cs.setString(3, req.correlationID)
+          cs.setString(4, "N")
+          cs.setTimestamp(5, java.sql.Timestamp.valueOf(LocalDateTime.now()))
+          cs.setNull(6, Types.TIMESTAMP)
+          cs.setTimestamp(7, java.sql.Timestamp.valueOf(LocalDateTime.now()))
+          cs.setInt(8, 0)
+          cs.setInt(9, 0)
+          cs.setString(10, "initial")
+          cs.setString(11, req.gatewayURL)
+
           cs.execute()
         }
       }
