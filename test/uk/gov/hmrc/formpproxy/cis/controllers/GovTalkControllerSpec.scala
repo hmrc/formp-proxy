@@ -306,6 +306,242 @@ class GovTalkControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
     }
   }
 
+  "GovTalkController updateGovTalkStatusStatistics" - {
+
+    "returns 204 NoContent when service successfully updates statistics" in new Setup {
+      when(mockService.updateGovTalkStatusStatistics(any()))
+        .thenReturn(Future.successful(()))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(
+        Json.obj(
+          "userIdentifier"  -> "123456789",
+          "formResultID"    -> "SUB123456",
+          "lastMessageDate" -> "2026-02-16T10:30:00",
+          "numPolls"        -> 3,
+          "pollInterval"    -> 300,
+          "gatewayURL"      -> "http://localhost:9712/submission/ChRIS/CISR/Filing/sync/CIS300MR"
+        )
+      )
+      val res: Future[Result]       = controller.updateGovTalkStatusStatistics(req)
+
+      status(res) mustBe NO_CONTENT
+      verify(mockService).updateGovTalkStatusStatistics(any())
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 204 NoContent with zero polls" in new Setup {
+      when(mockService.updateGovTalkStatusStatistics(any()))
+        .thenReturn(Future.successful(()))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(
+        Json.obj(
+          "userIdentifier"  -> "123456789",
+          "formResultID"    -> "SUB123456",
+          "lastMessageDate" -> "2026-02-16T10:30:00",
+          "numPolls"        -> 0,
+          "pollInterval"    -> 0,
+          "gatewayURL"      -> "http://localhost:9712/submission/ChRIS/CISR/Filing/sync/CIS300MR"
+        )
+      )
+      val res: Future[Result]       = controller.updateGovTalkStatusStatistics(req)
+
+      status(res) mustBe NO_CONTENT
+      verify(mockService).updateGovTalkStatusStatistics(any())
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 204 NoContent with high poll numbers" in new Setup {
+      when(mockService.updateGovTalkStatusStatistics(any()))
+        .thenReturn(Future.successful(()))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(
+        Json.obj(
+          "userIdentifier"  -> "123456789",
+          "formResultID"    -> "SUB123456",
+          "lastMessageDate" -> "2026-02-16T10:30:00",
+          "numPolls"        -> 100,
+          "pollInterval"    -> 3600,
+          "gatewayURL"      -> "http://localhost:9712/submission/ChRIS/CISR/Filing/sync/CIS300MR"
+        )
+      )
+      val res: Future[Result]       = controller.updateGovTalkStatusStatistics(req)
+
+      status(res) mustBe NO_CONTENT
+      verify(mockService).updateGovTalkStatusStatistics(any())
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 400 when JSON body is an empty object" in new Setup {
+      val req: FakeRequest[JsValue] = makeJsonRequest(Json.obj())
+      val res: Future[Result]       = controller.updateGovTalkStatusStatistics(req)
+
+      status(res) mustBe BAD_REQUEST
+      (contentAsJson(res) \ "message").as[String] mustBe "Invalid payload"
+      verifyNoInteractions(mockService)
+    }
+
+    "returns 400 when userIdentifier is missing" in new Setup {
+      val req: FakeRequest[JsValue] = makeJsonRequest(
+        Json.obj(
+          "formResultID"    -> "SUB123456",
+          "lastMessageDate" -> "2026-02-16T10:30:00",
+          "numPolls"        -> 3,
+          "pollInterval"    -> 300,
+          "gatewayURL"      -> "http://localhost:9712/submission/ChRIS/CISR/Filing/sync/CIS300MR"
+        )
+      )
+      val res: Future[Result]       = controller.updateGovTalkStatusStatistics(req)
+
+      status(res) mustBe BAD_REQUEST
+      (contentAsJson(res) \ "message").as[String] mustBe "Invalid payload"
+      verifyNoInteractions(mockService)
+    }
+
+    "returns 400 when formResultID is missing" in new Setup {
+      val req: FakeRequest[JsValue] = makeJsonRequest(
+        Json.obj(
+          "userIdentifier"  -> "123456789",
+          "lastMessageDate" -> "2026-02-16T10:30:00",
+          "numPolls"        -> 3,
+          "pollInterval"    -> 300,
+          "gatewayURL"      -> "http://localhost:9712/submission/ChRIS/CISR/Filing/sync/CIS300MR"
+        )
+      )
+      val res: Future[Result]       = controller.updateGovTalkStatusStatistics(req)
+
+      status(res) mustBe BAD_REQUEST
+      (contentAsJson(res) \ "message").as[String] mustBe "Invalid payload"
+      verifyNoInteractions(mockService)
+    }
+
+    "returns 400 when lastMessageDate is missing" in new Setup {
+      val req: FakeRequest[JsValue] = makeJsonRequest(
+        Json.obj(
+          "userIdentifier" -> "123456789",
+          "formResultID"   -> "SUB123456",
+          "numPolls"       -> 3,
+          "pollInterval"   -> 300,
+          "gatewayURL"     -> "http://localhost:9712/submission/ChRIS/CISR/Filing/sync/CIS300MR"
+        )
+      )
+      val res: Future[Result]       = controller.updateGovTalkStatusStatistics(req)
+
+      status(res) mustBe BAD_REQUEST
+      (contentAsJson(res) \ "message").as[String] mustBe "Invalid payload"
+      verifyNoInteractions(mockService)
+    }
+
+    "returns 400 when numPolls is missing" in new Setup {
+      val req: FakeRequest[JsValue] = makeJsonRequest(
+        Json.obj(
+          "userIdentifier"  -> "123456789",
+          "formResultID"    -> "SUB123456",
+          "lastMessageDate" -> "2026-02-16T10:30:00",
+          "pollInterval"    -> 300,
+          "gatewayURL"      -> "http://localhost:9712/submission/ChRIS/CISR/Filing/sync/CIS300MR"
+        )
+      )
+      val res: Future[Result]       = controller.updateGovTalkStatusStatistics(req)
+
+      status(res) mustBe BAD_REQUEST
+      (contentAsJson(res) \ "message").as[String] mustBe "Invalid payload"
+      verifyNoInteractions(mockService)
+    }
+
+    "returns 400 when pollInterval is missing" in new Setup {
+      val req: FakeRequest[JsValue] = makeJsonRequest(
+        Json.obj(
+          "userIdentifier"  -> "123456789",
+          "formResultID"    -> "SUB123456",
+          "lastMessageDate" -> "2026-02-16T10:30:00",
+          "numPolls"        -> 3,
+          "gatewayURL"      -> "http://localhost:9712/submission/ChRIS/CISR/Filing/sync/CIS300MR"
+        )
+      )
+      val res: Future[Result]       = controller.updateGovTalkStatusStatistics(req)
+
+      status(res) mustBe BAD_REQUEST
+      (contentAsJson(res) \ "message").as[String] mustBe "Invalid payload"
+      verifyNoInteractions(mockService)
+    }
+
+    "returns 400 when gatewayURL is missing" in new Setup {
+      val req: FakeRequest[JsValue] = makeJsonRequest(
+        Json.obj(
+          "userIdentifier"  -> "123456789",
+          "formResultID"    -> "SUB123456",
+          "lastMessageDate" -> "2026-02-16T10:30:00",
+          "numPolls"        -> 3,
+          "pollInterval"    -> 300
+        )
+      )
+      val res: Future[Result]       = controller.updateGovTalkStatusStatistics(req)
+
+      status(res) mustBe BAD_REQUEST
+      (contentAsJson(res) \ "message").as[String] mustBe "Invalid payload"
+      verifyNoInteractions(mockService)
+    }
+
+    "returns 400 when lastMessageDate has invalid format" in new Setup {
+      val req: FakeRequest[JsValue] = makeJsonRequest(
+        Json.obj(
+          "userIdentifier"  -> "123456789",
+          "formResultID"    -> "SUB123456",
+          "lastMessageDate" -> "invalid-date",
+          "numPolls"        -> 3,
+          "pollInterval"    -> 300,
+          "gatewayURL"      -> "http://localhost:9712/submission/ChRIS/CISR/Filing/sync/CIS300MR"
+        )
+      )
+      val res: Future[Result]       = controller.updateGovTalkStatusStatistics(req)
+
+      status(res) mustBe BAD_REQUEST
+      (contentAsJson(res) \ "message").as[String] mustBe "Invalid payload"
+      verifyNoInteractions(mockService)
+    }
+
+    "propagates UpstreamErrorResponse (status & message)" in new Setup {
+      val err = UpstreamErrorResponse("formp failed", BAD_GATEWAY, BAD_GATEWAY)
+      when(mockService.updateGovTalkStatusStatistics(any()))
+        .thenReturn(Future.failed(err))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(
+        Json.obj(
+          "userIdentifier"  -> "123456789",
+          "formResultID"    -> "SUB123456",
+          "lastMessageDate" -> "2026-02-16T10:30:00",
+          "numPolls"        -> 3,
+          "pollInterval"    -> 300,
+          "gatewayURL"      -> "http://localhost:9712/submission/ChRIS/CISR/Filing/sync/CIS300MR"
+        )
+      )
+      val res: Future[Result]       = controller.updateGovTalkStatusStatistics(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      (contentAsJson(res) \ "message").as[String] must include("Unexpected error")
+    }
+
+    "returns 500 with generic message on unexpected exception" in new Setup {
+      when(mockService.updateGovTalkStatusStatistics(any()))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(
+        Json.obj(
+          "userIdentifier"  -> "123456789",
+          "formResultID"    -> "SUB123456",
+          "lastMessageDate" -> "2026-02-16T10:30:00",
+          "numPolls"        -> 3,
+          "pollInterval"    -> 300,
+          "gatewayURL"      -> "http://localhost:9712/submission/ChRIS/CISR/Filing/sync/CIS300MR"
+        )
+      )
+      val res: Future[Result]       = controller.updateGovTalkStatusStatistics(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
+    }
+  }
+
   "GovTalkController createGovTalkStatusRecord" - {
 
     "returns 201 with multiple records when service returns data" in new Setup {

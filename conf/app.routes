@@ -29,6 +29,7 @@ POST       /cis/govtalkstatus/get                                   uk.gov.hmrc.
 POST       /cis/govtalkstatus/update-correlationID                  uk.gov.hmrc.formpproxy.cis.controllers.GovTalkController.updateGovTalkStatusCorrelationId
 POST       /cis/govtalkstatus/reset                                 uk.gov.hmrc.formpproxy.cis.controllers.GovTalkController.resetGovTalkStatus
 POST       /cis/govtalkstatus/update-status                         uk.gov.hmrc.formpproxy.cis.controllers.GovTalkController.updateGovTalkStatus
+POST       /cis/govtalkstatus/update-statistics                     uk.gov.hmrc.formpproxy.cis.controllers.GovTalkController.updateGovTalkStatusStatistics
 POST       /cis/govtalkstatus/create                                uk.gov.hmrc.formpproxy.cis.controllers.GovTalkController.createGovTalkStatusRecord
 
 # SDLT routes

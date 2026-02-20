@@ -200,6 +200,84 @@ final class GovTalkServiceSpec extends SpecBase {
     }
   }
 
+  "GovTalkService updateGovTalkStatusStatistics" - {
+
+    val request = UpdateGovTalkStatusStatisticsRequest(
+      userIdentifier = "123456789",
+      formResultID = "SUB123456",
+      lastMessageDate = LocalDateTime.parse("2026-02-16T10:30:00"),
+      numPolls = 3,
+      pollInterval = 300,
+      gatewayURL = "http://localhost:9712/submission/ChRIS/CISR/Filing/sync/CIS300MR"
+    )
+
+    "should succeed when statistics are updated" in {
+      val c = Ctx()
+
+      when(c.repo.updateGovTalkStatusStatistics(request))
+        .thenReturn(Future.successful(()))
+
+      c.service.updateGovTalkStatusStatistics(request).futureValue
+
+      verify(c.repo).updateGovTalkStatusStatistics(request)
+      verifyNoMoreInteractions(c.repo)
+    }
+
+    "should succeed with zero polls" in {
+      val c       = Ctx()
+      val zeroReq = request.copy(numPolls = 0, pollInterval = 0)
+
+      when(c.repo.updateGovTalkStatusStatistics(zeroReq))
+        .thenReturn(Future.successful(()))
+
+      c.service.updateGovTalkStatusStatistics(zeroReq).futureValue
+
+      verify(c.repo).updateGovTalkStatusStatistics(zeroReq)
+      verifyNoMoreInteractions(c.repo)
+    }
+
+    "should succeed with high poll numbers" in {
+      val c       = Ctx()
+      val highReq = request.copy(numPolls = 100, pollInterval = 3600)
+
+      when(c.repo.updateGovTalkStatusStatistics(highReq))
+        .thenReturn(Future.successful(()))
+
+      c.service.updateGovTalkStatusStatistics(highReq).futureValue
+
+      verify(c.repo).updateGovTalkStatusStatistics(highReq)
+      verifyNoMoreInteractions(c.repo)
+    }
+
+    "propagates failures from the repository" in {
+      val c    = Ctx()
+      val boom = new RuntimeException("formp failed")
+
+      when(c.repo.updateGovTalkStatusStatistics(request))
+        .thenReturn(Future.failed(boom))
+
+      val ex = c.service.updateGovTalkStatusStatistics(request).failed.futureValue
+      ex mustBe boom
+
+      verify(c.repo).updateGovTalkStatusStatistics(request)
+      verifyNoMoreInteractions(c.repo)
+    }
+
+    "propagates database connection failures" in {
+      val c      = Ctx()
+      val dbFail = new RuntimeException("Database connection failed")
+
+      when(c.repo.updateGovTalkStatusStatistics(request))
+        .thenReturn(Future.failed(dbFail))
+
+      val ex = c.service.updateGovTalkStatusStatistics(request).failed.futureValue
+      ex mustBe dbFail
+
+      verify(c.repo).updateGovTalkStatusStatistics(request)
+      verifyNoMoreInteractions(c.repo)
+    }
+  }
+
   "GovTalkService createGovTalkStatusRecord" - {
 
     val request = CreateGovTalkStatusRecordRequest(

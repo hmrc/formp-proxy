@@ -101,6 +101,24 @@ class GovTalkController @Inject() (
         )
     }
 
+  def updateGovTalkStatusStatistics: Action[JsValue] =
+    authorise.async(parse.json) { implicit request =>
+      request.body
+        .validate[UpdateGovTalkStatusStatisticsRequest]
+        .fold(
+          errs =>
+            Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
+          body =>
+            service
+              .updateGovTalkStatusStatistics(body)
+              .map(_ => NoContent)
+              .recover { case t =>
+                logger.error("[updateGovTalkStatusStatistics] failed", t)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
+              }
+        )
+    }
+
   def createGovTalkStatusRecord: Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
       request.body
