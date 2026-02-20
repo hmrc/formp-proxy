@@ -19,6 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.repositories
 import oracle.jdbc.OracleTypes
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.{any as anyArg, eq as eqTo}
+import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.Mockito.*
 import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
@@ -1156,32 +1157,34 @@ final class CisFormpRepositorySpec extends SpecBase {
         .thenReturn(csVersion)
       when(csVersion.getInt(2)).thenReturn(2)
 
-      when(
-        conn.prepareCall(
-          "{ call SUBCONTRACTOR_PROCS.Update_Subcontractor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
-        )
-      )
-        .thenReturn(csUpdate)
+      val updateCall =
+        "{ call SUBCONTRACTOR_PROCS.Update_Subcontractor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+      when(conn.prepareCall(updateCall)).thenReturn(csUpdate)
 
       val repo = new CisFormpRepository(db)
 
       val request = CreateAndUpdateSubcontractorRequest(
         cisId = "abc-123",
         subcontractorType = SoleTrader,
+        utr = Some("1234567890"),
+        partnerUtr = Some("9999999999"),
+        crn = Some("CRN123"),
         firstName = Some("John"),
-        secondName = None,
+        secondName = Some("Q"),
         surname = Some("Smith"),
+        nino = Some("AA123456A"),
+        partnershipTradingName = Some("My Partnership"),
         tradingName = Some("ACME"),
         addressLine1 = Some("1 Main Street"),
-        addressLine2 = None,
-        addressLine3 = None,
-        addressLine4 = None,
+        addressLine2 = Some("Flat 2"),
+        city = Some("London"),
+        county = Some("Greater London"),
+        country = Some("United Kingdom"),
         postcode = Some("AA1 1AA"),
-        nino = Some("AA123456A"),
-        utr = Some("1234567890"),
-        worksReferenceNumber = Some("34567"),
-        emailAddress = None,
-        phoneNumber = None
+        emailAddress = Some("test@test.com"),
+        phoneNumber = Some("01234567890"),
+        mobilePhoneNumber = Some("07123456789"),
+        worksReferenceNumber = Some("34567")
       )
 
       repo.createAndUpdateSubcontractor(request).futureValue
@@ -1195,9 +1198,37 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(conn).prepareCall("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }")
       verify(csVersion).execute()
 
-      verify(conn).prepareCall(
-        "{ call SUBCONTRACTOR_PROCS.Update_Subcontractor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
-      )
+      verify(conn).prepareCall(updateCall)
+
+      verify(csUpdate).setLong(1, 123L)
+      verify(csUpdate).setInt(2, 999)
+
+      verify(csUpdate).setString(3, "1234567890")
+      verify(csUpdate).setNull(eqTo(4), anyInt())
+
+      verify(csUpdate).setString(5, "9999999999")
+      verify(csUpdate).setString(6, "CRN123")
+
+      verify(csUpdate).setString(7, "John")
+      verify(csUpdate).setString(8, "AA123456A")
+      verify(csUpdate).setString(9, "Q")
+      verify(csUpdate).setString(10, "Smith")
+
+      verify(csUpdate).setString(11, "My Partnership")
+      verify(csUpdate).setString(12, "ACME")
+
+      verify(csUpdate).setString(13, "1 Main Street")
+      verify(csUpdate).setString(14, "Flat 2")
+      verify(csUpdate).setString(15, "London")
+      verify(csUpdate).setString(16, "Greater London")
+      verify(csUpdate).setString(17, "United Kingdom")
+
+      verify(csUpdate).setString(18, "AA1 1AA")
+      verify(csUpdate).setString(19, "test@test.com")
+      verify(csUpdate).setString(20, "01234567890")
+      verify(csUpdate).setString(21, "07123456789")
+      verify(csUpdate).setString(22, "34567")
+
       verify(csUpdate).execute()
     }
   }
@@ -1463,7 +1494,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsSubs.getString("address_line_2")).thenReturn(null)
       when(rsSubs.getString("address_line_3")).thenReturn(null)
       when(rsSubs.getString("address_line_4")).thenReturn(null)
-      when(rsSubs.getString("country")).thenReturn("GB")
+      when(rsSubs.getString("country")).thenReturn("United Kingdom")
       when(rsSubs.getString("postcode")).thenReturn("AA1 1AA")
       when(rsSubs.getString("email_address")).thenReturn(null)
       when(rsSubs.getString("phone_number")).thenReturn(null)
@@ -1503,7 +1534,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       s.surname mustBe Some("Smith")
       s.tradingName mustBe Some("ACME")
       s.addressLine1 mustBe Some("1 Main Street")
-      s.country mustBe Some("GB")
+      s.country mustBe Some("United Kingdom")
       s.postCode mustBe Some("AA1 1AA")
       s.version mustBe Some(1)
       s.createDate mustBe Some(LocalDateTime.of(2026, 1, 10, 9, 0, 0))

@@ -19,6 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.models.requests
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.Json
+import uk.gov.hmrc.formpproxy.cis.models.SoleTrader
 
 class CreateAndUpdateSubcontractorRequestSpec extends AnyWordSpec with Matchers {
 
@@ -36,30 +37,58 @@ class CreateAndUpdateSubcontractorRequestSpec extends AnyWordSpec with Matchers 
       Json.toJson(model) mustBe json
     }
 
-    "read and write with all fields populated" in {
-      val json = Json.parse("""
-                              |{
-                              |  "cisId": "1234567890",
-                              |  "subcontractorType": "soletrader",
-                              |  "firstName": "John",
-                              |  "secondName": "Q",
-                              |  "surname": "Smith",
-                              |  "tradingName": "ACME",
-                              |  "addressLine1": "1 Main Street",
-                              |  "addressLine2": "Line 2",
-                              |  "addressLine3": "Line 3",
-                              |  "addressLine4": "Line 4",
-                              |  "postcode": "AA1 1AA",
-                              |  "nino": "AA123456A",
-                              |  "utr": "1234567890",
-                              |  "worksReferenceNumber": "WRN-123",
-                              |  "emailAddress": "test@test.com",
-                              |  "phoneNumber": "01234567890"
-                              |}
-        """.stripMargin)
+    "should read and write with all fields populated" in {
+      val model = CreateAndUpdateSubcontractorRequest(
+        cisId = "1234567890",
+        subcontractorType = SoleTrader,
+        utr = Some("1234567890"),
+        partnerUtr = Some("9999999999"),
+        crn = Some("CRN123"),
+        firstName = Some("John"),
+        secondName = Some("Q"),
+        surname = Some("Smith"),
+        nino = Some("AA123456A"),
+        partnershipTradingName = Some("My Partnership"),
+        tradingName = Some("ACME"),
+        addressLine1 = Some("1 Main Street"),
+        addressLine2 = Some("Line 2"),
+        city = Some("London"),
+        county = Some("Greater London"),
+        country = Some("United Kingdom"),
+        postcode = Some("AA1 1AA"),
+        emailAddress = Some("test@test.com"),
+        phoneNumber = Some("01234567890"),
+        mobilePhoneNumber = Some("07123456789"),
+        worksReferenceNumber = Some("WRN-123")
+      )
 
-      val model = json.as[CreateAndUpdateSubcontractorRequest]
+      val json = Json.parse(
+        """{
+          | "cisId":"1234567890",
+          | "subcontractorType":"soletrader",
+          | "utr":"1234567890",
+          | "partnerUtr":"9999999999",
+          | "crn":"CRN123",
+          | "firstName":"John",
+          | "secondName":"Q",
+          | "surname":"Smith",
+          | "nino":"AA123456A",
+          | "partnershipTradingName":"My Partnership",
+          | "tradingName":"ACME",
+          | "addressLine1":"1 Main Street",
+          | "addressLine2":"Line 2",
+          | "city":"London",
+          | "county":"Greater London",
+          | "country":"United Kingdom",
+          | "postcode":"AA1 1AA",
+          | "emailAddress":"test@test.com",
+          | "phoneNumber":"01234567890",
+          | "mobilePhoneNumber":"07123456789",
+          | "worksReferenceNumber":"WRN-123"
+          |}""".stripMargin
+      )
 
+      json.as[CreateAndUpdateSubcontractorRequest] mustBe model
       Json.toJson(model) mustBe json
     }
 
