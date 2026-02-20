@@ -1178,7 +1178,7 @@ final class CisFormpRepositorySpec extends SpecBase {
         addressLine2 = Some("Flat 2"),
         city = Some("London"),
         county = Some("Greater London"),
-        country = Some("GB"),
+        country = Some("United Kingdom"),
         postcode = Some("AA1 1AA"),
         emailAddress = Some("test@test.com"),
         phoneNumber = Some("01234567890"),
@@ -1220,7 +1220,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdate).setString(14, "Flat 2")
       verify(csUpdate).setString(15, "London")
       verify(csUpdate).setString(16, "Greater London")
-      verify(csUpdate).setString(17, "GB")
+      verify(csUpdate).setString(17, "United Kingdom")
 
       verify(csUpdate).setString(18, "AA1 1AA")
       verify(csUpdate).setString(19, "test@test.com")
@@ -1493,7 +1493,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsSubs.getString("address_line_2")).thenReturn(null)
       when(rsSubs.getString("address_line_3")).thenReturn(null)
       when(rsSubs.getString("address_line_4")).thenReturn(null)
-      when(rsSubs.getString("country")).thenReturn("GB")
+      when(rsSubs.getString("country")).thenReturn("United Kingdom")
       when(rsSubs.getString("postcode")).thenReturn("AA1 1AA")
       when(rsSubs.getString("email_address")).thenReturn(null)
       when(rsSubs.getString("phone_number")).thenReturn(null)
@@ -1533,7 +1533,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       s.surname mustBe Some("Smith")
       s.tradingName mustBe Some("ACME")
       s.addressLine1 mustBe Some("1 Main Street")
-      s.country mustBe Some("GB")
+      s.country mustBe Some("United Kingdom")
       s.postCode mustBe Some("AA1 1AA")
       s.version mustBe Some(1)
       s.createDate mustBe Some(LocalDateTime.of(2026, 1, 10, 9, 0, 0))
