@@ -277,4 +277,40 @@ final class GovTalkServiceSpec extends SpecBase {
       verifyNoMoreInteractions(c.repo)
     }
   }
+
+  "GovTalkService createGovTalkStatusRecord" - {
+
+    val request = CreateGovTalkStatusRecordRequest(
+      userIdentifier = "1",
+      formResultID = "12890",
+      correlationID = "C742D5DEE7EB4D15B4F7EFD50B890525",
+      gatewayURL = "http://localhost:9712/submission/ChRIS/CISR/Filing/sync/CIS300MR"
+    )
+
+    "should succeed when records are reset" in {
+      val c = Ctx()
+
+      when(c.repo.createGovTalkStatusRecord(request))
+        .thenReturn(Future.successful(()))
+
+      c.service.createGovTalkStatusRecord(request).futureValue
+
+      verify(c.repo).createGovTalkStatusRecord(request)
+      verifyNoMoreInteractions(c.repo)
+    }
+
+    "propagates failures from the repository" in {
+      val c    = Ctx()
+      val boom = new RuntimeException("formp failed")
+
+      when(c.repo.createGovTalkStatusRecord(request))
+        .thenReturn(Future.failed(boom))
+
+      val ex = c.service.createGovTalkStatusRecord(request).failed.futureValue
+      ex mustBe boom
+
+      verify(c.repo).createGovTalkStatusRecord(request)
+      verifyNoMoreInteractions(c.repo)
+    }
+  }
 }

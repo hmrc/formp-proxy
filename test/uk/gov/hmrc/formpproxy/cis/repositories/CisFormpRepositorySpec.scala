@@ -1752,6 +1752,58 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
   }
 
+  "createGovTalkStatusRecord" - {
+
+    "call SUBMISSION_ADMIN.InsertInitialGovTalkStatus with correct parameters and execute" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      val call =
+        "{ call SUBMISSION_ADMIN.InsertInitialGovTalkStatus(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+
+      val repo = new CisFormpRepository(db)
+
+      val request = CreateGovTalkStatusRecordRequest(
+        userIdentifier = "1",
+        formResultID = "12890",
+        correlationID = "C742D5DEE7EB4D15B4F7EFD50B890525",
+        gatewayURL = "http://localhost:9712/submission/ChRIS/CISR/Filing/sync/CIS300MR"
+      )
+
+      repo.createGovTalkStatusRecord(request).futureValue
+
+      val tsCaptorCreateDate      = ArgumentCaptor.forClass(classOf[Timestamp])
+      val tsCaptorLastMessageDate = ArgumentCaptor.forClass(classOf[Timestamp])
+
+      verify(conn).prepareCall(eqTo(call))
+
+      verify(cs).setString(1, request.userIdentifier)
+      verify(cs).setString(2, request.formResultID)
+      verify(cs).setString(3, request.correlationID)
+      verify(cs).setString(4, "N")
+      verify(cs).setTimestamp(eqTo(5), tsCaptorCreateDate.capture())
+      verify(cs).setNull(6, Types.TIMESTAMP)
+      verify(cs).setTimestamp(eqTo(7), tsCaptorLastMessageDate.capture())
+      verify(cs).setInt(8, 0)
+      verify(cs).setInt(9, 0)
+      verify(cs).setString(10, "initial")
+      verify(cs).setString(11, request.gatewayURL)
+
+      verify(cs).execute()
+      verify(cs).close()
+
+      tsCaptorCreateDate.getValue      must not be null
+      tsCaptorLastMessageDate.getValue must not be null
+    }
+  }
+
   "updateMonthlyReturnItem" - {
 
     "call Update_Monthly_Return_Item and Update_Scheme_Version SPs in transaction" in {
