@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -114,6 +114,24 @@ class GovTalkController @Inject() (
               .map(_ => NoContent)
               .recover { case t =>
                 logger.error("[updateGovTalkStatusStatistics] failed", t)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
+              }
+        )
+    }
+
+  def createGovTalkStatusRecord: Action[JsValue] =
+    authorise.async(parse.json) { implicit request =>
+      request.body
+        .validate[CreateGovTalkStatusRecordRequest]
+        .fold(
+          errs =>
+            Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
+          body =>
+            service
+              .createGovTalkStatusRecord(body)
+              .map(_ => Created)
+              .recover { case t =>
+                logger.error("[createGovTalkStatusRecord] failed", t)
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )

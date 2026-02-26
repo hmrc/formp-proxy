@@ -59,6 +59,7 @@ trait CisMonthlyReturnSource {
   def resetGovTalkStatus(req: ResetGovTalkStatusRequest): Future[Unit]
   def updateGovTalkStatus(req: UpdateGovTalkStatusRequest): Future[Unit]
   def updateGovTalkStatusStatistics(req: UpdateGovTalkStatusStatisticsRequest): Future[Unit]
+  def createGovTalkStatusRecord(req: CreateGovTalkStatusRecordRequest): Future[Unit]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -553,6 +554,31 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
+  def createGovTalkStatusRecord(req: CreateGovTalkStatusRecordRequest): Future[Unit] = {
+    logger.info(
+      s"[CIS] createGovTalkStatusRecord(userIdentifier=${req.userIdentifier}, formResultID=${req.formResultID})"
+    )
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallCreateGovTalkStatus) { cs =>
+          cs.setString(1, req.userIdentifier)
+          cs.setString(2, req.formResultID)
+          cs.setString(3, req.correlationID)
+          cs.setString(4, "N")
+          cs.setTimestamp(5, java.sql.Timestamp.valueOf(LocalDateTime.now()))
+          cs.setNull(6, Types.TIMESTAMP)
+          cs.setTimestamp(7, java.sql.Timestamp.valueOf(LocalDateTime.now()))
+          cs.setInt(8, 0)
+          cs.setInt(9, 0)
+          cs.setString(10, "initial")
+          cs.setString(11, req.gatewayURL)
+
+          cs.execute()
+        }
+      }
+    }
+  }
+
   // private helpers
   private def callCreateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit =
     withCall(conn, CallCreateMonthlyReturn) { cs =>
@@ -855,24 +881,27 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         cs.setInt(2, subbieResourceRef)
         cs.setOptionalString(3, request.utr)
         cs.setOptionalInt(4, None)
-        cs.setOptionalString(5, None)
-        cs.setOptionalString(6, None)
+        cs.setOptionalString(5, request.partnerUtr)
+        cs.setOptionalString(6, request.crn)
+
         cs.setOptionalString(7, request.firstName)
         cs.setOptionalString(8, request.nino)
         cs.setOptionalString(9, request.secondName)
         cs.setOptionalString(10, request.surname)
 
-        cs.setOptionalString(11, None)
+        cs.setOptionalString(11, request.partnershipTradingName)
         cs.setOptionalString(12, request.tradingName)
+
         cs.setOptionalString(13, request.addressLine1)
         cs.setOptionalString(14, request.addressLine2)
-        cs.setOptionalString(15, request.addressLine3)
-        cs.setOptionalString(16, request.addressLine4)
-        cs.setOptionalString(17, None)
+        cs.setOptionalString(15, request.city)
+        cs.setOptionalString(16, request.county)
+        cs.setOptionalString(17, request.country)
         cs.setOptionalString(18, request.postcode)
+
         cs.setOptionalString(19, request.emailAddress)
         cs.setOptionalString(20, request.phoneNumber)
-        cs.setOptionalString(21, None)
+        cs.setOptionalString(21, request.mobilePhoneNumber)
         cs.setOptionalString(22, request.worksReferenceNumber)
 
         cs.setOptionalString(23, None)

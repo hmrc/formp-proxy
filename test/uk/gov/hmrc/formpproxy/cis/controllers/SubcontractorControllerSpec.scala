@@ -54,20 +54,25 @@ class SubcontractorControllerSpec extends SpecBase {
         CreateAndUpdateSubcontractorRequest(
           cisId = "123",
           subcontractorType = SoleTrader,
+          utr = Some("1234567890"),
+          partnerUtr = Some("9999999999"),
+          crn = Some("CRN123"),
           firstName = Some("John"),
-          secondName = None,
+          secondName = Some("Q"),
           surname = Some("Smith"),
+          nino = Some("AA123456A"),
+          partnershipTradingName = Some("My Partnership"),
           tradingName = Some("ACME"),
           addressLine1 = Some("1 Main Street"),
           addressLine2 = None,
-          addressLine3 = None,
-          addressLine4 = None,
+          city = Some("London"),
+          county = Some("Greater London"),
+          country = Some("United Kingdom"),
           postcode = Some("AA1 1AA"),
-          nino = Some("AA123456A"),
-          utr = Some("1234567890"),
-          worksReferenceNumber = Some("34567"),
           emailAddress = None,
-          phoneNumber = None
+          phoneNumber = None,
+          mobilePhoneNumber = Some("07123456789"),
+          worksReferenceNumber = Some("34567")
         )
       )
 
@@ -103,20 +108,25 @@ class SubcontractorControllerSpec extends SpecBase {
         CreateAndUpdateSubcontractorRequest(
           cisId = "123",
           subcontractorType = SoleTrader,
+          utr = Some("1234567890"),
+          partnerUtr = Some("9999999999"),
+          crn = Some("CRN123"),
           firstName = Some("John"),
-          secondName = None,
+          secondName = Some("Q"),
           surname = Some("Smith"),
+          nino = Some("AA123456A"),
+          partnershipTradingName = Some("My Partnership"),
           tradingName = Some("ACME"),
           addressLine1 = Some("1 Main Street"),
           addressLine2 = None,
-          addressLine3 = None,
-          addressLine4 = None,
+          city = Some("London"),
+          county = Some("Greater London"),
+          country = Some("United Kingdom"),
           postcode = Some("AA1 1AA"),
-          nino = Some("AA123456A"),
-          utr = Some("1234567890"),
-          worksReferenceNumber = Some("34567"),
           emailAddress = None,
-          phoneNumber = None
+          phoneNumber = None,
+          mobilePhoneNumber = Some("07123456789"),
+          worksReferenceNumber = Some("34567")
         )
       )
 
@@ -157,7 +167,7 @@ class SubcontractorControllerSpec extends SpecBase {
             addressLine2 = None,
             addressLine3 = None,
             addressLine4 = None,
-            country = Some("GB"),
+            country = Some("United Kingdom"),
             postCode = Some("AA1 1AA"),
             emailAddress = None,
             phoneNumber = None,
