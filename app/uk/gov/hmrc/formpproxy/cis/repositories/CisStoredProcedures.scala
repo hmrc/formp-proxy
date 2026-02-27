@@ -48,6 +48,6 @@ object CisStoredProcedures {
     "{ call SUBMISSION_ADMIN.UpdateGovtalkStatus(?, ?, ?, ?) }"
   val CallUpdateGovTalkStatusStatistics   =
     "{ call SUBMISSION_ADMIN.UpdateGovtalkStatistics(?, ?, ?, ?, ?, ?) }"
-  val CallCreateGovTalkStatus           =
+  val CallCreateGovTalkStatus             =
     "{ call SUBMISSION_ADMIN.InsertInitialGovTalkStatus(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
 }

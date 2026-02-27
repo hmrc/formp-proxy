@@ -227,7 +227,7 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         costOfMaterials = "10.00",
         totalDeducted = "18.00",
         subcontractorName = "Some Subbie",
-        verificationNumber = "V123456"
+        verificationNumber = Some("V123456")
       )
 
       when(mockService.updateMonthlyReturnItem(eqTo(requestBody)))
@@ -256,7 +256,7 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         costOfMaterials = "10.00",
         totalDeducted = "18.00",
         subcontractorName = "Some Subbie",
-        verificationNumber = "V123456"
+        verificationNumber = Some("V123456")
       )
 
       val err = UpstreamErrorResponse("formp failed", BAD_GATEWAY, BAD_GATEWAY)
@@ -287,7 +287,7 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         costOfMaterials = "10.00",
         totalDeducted = "18.00",
         subcontractorName = "Some Subbie",
-        verificationNumber = "V123456"
+        verificationNumber = Some("V123456")
       )
 
       when(mockService.updateMonthlyReturnItem(eqTo(requestBody)))

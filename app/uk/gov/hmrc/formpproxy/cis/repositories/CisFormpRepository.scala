@@ -665,7 +665,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setString(7, req.costOfMaterials)
       cs.setString(8, req.totalDeducted)
       cs.setString(9, req.subcontractorName)
-      cs.setString(10, req.verificationNumber)
+      cs.setOptionalString(10, req.verificationNumber)
       cs.setNull(11, Types.INTEGER)
       cs.registerOutParameter(11, Types.INTEGER)
       cs.execute()
