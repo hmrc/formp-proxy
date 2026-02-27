@@ -1140,7 +1140,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       when(resRetSummary.next()).thenReturn(true, true, false) // read 2 rows
       when(resRetSummary.getString("return_resource_ref")).thenReturn("REF01", "REF02")
       when(resRetSummary.getString("utrn")).thenReturn("UTR001", "UTR003")
-      when(resRetSummary.getString("status")).thenReturn("ACTIVE", "SUBMITTED")
+      when(resRetSummary.getString("status")).thenReturn("SUBMITTED", "SUBMITTED")
       when(resRetSummary.getString("submitted_date")).thenReturn("2025-01-01", "2025-02-03")
 
       when(resRetSummary.getString("name")).thenReturn("purchaserName1", "purchaserName2")
@@ -1188,7 +1188,41 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       result.returnSummaryList.length mustBe 0
       result.returnSummaryList mustBe expectedReturnsSummaryEmpty
     }
-    "call::query_return - ..." in new ReturnsFixture {}
+    "call::query_return - generates correct sorting parameters" in new ReturnsFixture {
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]);
+        f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo("{ call RETURN_PROCS.query_return(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+        )
+      ).thenReturn(cs)
+
+      when(cs.getLong(eqTo(13))).thenReturn(1017L)
+      when(cs.getObject(eqTo(12), eqTo(classOf[ResultSet]))).thenReturn(resRetSummary)
+
+      // Fetch data
+      when(resRetSummary.next()).thenReturn(true, true, false)
+      when(resRetSummary.getString("return_resource_ref")).thenReturn("REF01", "REF02")
+      when(resRetSummary.getString("utrn")).thenReturn("UTR001", "UTR003")
+      when(resRetSummary.getString("status")).thenReturn("SUBMITTED", "SUBMITTED")
+      when(resRetSummary.getString("submitted_date")).thenReturn("2025-01-01", "2025-02-03")
+
+      when(resRetSummary.getString("name")).thenReturn("purchaserName1", "purchaserName2")
+
+      when(resRetSummary.getString("address")).thenReturn("Address 11", "Address 22")
+      when(resRetSummary.getString("agent")).thenReturn("Agent 11", "Agent 22")
+
+      val repo                             = new SdltFormpRepository(db)
+      val result: SdltReturnRecordResponse = repo.sdltGetReturns(requestReturns).futureValue
+
+      verify(cs).setString(8, "submitted_date")
+      verify(cs).setString(9, "DESC")
+      verify(cs).execute()
+      verify(cs).close()
+    }
   }
 
   "sdltCreateVendor" - {
