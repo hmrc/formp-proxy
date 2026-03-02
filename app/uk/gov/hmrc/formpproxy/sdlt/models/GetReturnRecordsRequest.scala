@@ -24,7 +24,18 @@ case class GetReturnRecordsRequest(
   deletionFlag: Boolean,
   pageType: Option[String],
   pageNumber: Option[String]
-)
+) {
+
+  def sortSpec: (String, String) =
+    val (order, orderBy) = (pageType.map(_.trim.toUpperCase), deletionFlag) match {
+      case (Some("IN-PROGRESS"), false)                    => ("ret.last_update_date", "DESC")
+      case (Some("SUBMITTED"), false)                      => ("submitted_date", "DESC")
+      case (Some("IN-PROGRESS") | Some("SUBMITTED"), true) => ("ret.purge_date", "ASC")
+      case _                                               => ("1", "ASC")
+    }
+
+    (order, orderBy)
+}
 
 object GetReturnRecordsRequest {
   implicit val format: OFormat[GetReturnRecordsRequest] = Json.format[GetReturnRecordsRequest]
