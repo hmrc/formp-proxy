@@ -191,7 +191,7 @@ final class MonthlyReturnServiceSpec extends SpecBase {
         costOfMaterials = "200.00",
         totalDeducted = "80.00",
         subcontractorName = "ABC Ltd",
-        verificationNumber = "V123456"
+        verificationNumber = Some("V123456")
       )
 
       when(repo.updateMonthlyReturnItem(eqTo(request)))
@@ -214,7 +214,7 @@ final class MonthlyReturnServiceSpec extends SpecBase {
         costOfMaterials = "200.00",
         totalDeducted = "80.00",
         subcontractorName = "ABC Ltd",
-        verificationNumber = "V123456"
+        verificationNumber = Some("V123456")
       )
 
       val boom = new RuntimeException("db failed")

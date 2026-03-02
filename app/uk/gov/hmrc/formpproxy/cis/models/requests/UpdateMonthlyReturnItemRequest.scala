@@ -28,7 +28,7 @@ case class UpdateMonthlyReturnItemRequest(
   costOfMaterials: String,
   totalDeducted: String,
   subcontractorName: String,
-  verificationNumber: String
+  verificationNumber: Option[String]
 )
 
 object UpdateMonthlyReturnItemRequest:
