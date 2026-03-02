@@ -27,7 +27,7 @@ trait SdltFormpRepoDataHelper {
     ReturnSummary(
       returnReference = "REF01",
       utrn = Some("UTR001"),
-      status = "ACTIVE",
+      status = "SUBMITTED",
       dateSubmitted = Some(LocalDate.parse("2025-01-01")),
       purchaserName = "purchaserName1",
       address = "Address 11",
@@ -57,7 +57,7 @@ trait SdltFormpRepoDataHelper {
     storn = "STORN12345",
     status = None,
     deletionFlag = false,
-    pageType = None,
+    pageType = Some("SUBMITTED"),
     pageNumber = None
   )
 

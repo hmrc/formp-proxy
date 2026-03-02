@@ -237,8 +237,9 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
           } else {
             cs.setString(7, "FALSE")
           }
-          cs.setString(8, "1") // p_order
-          cs.setString(9, "ASC") // p_order_by
+          val (order, orderBy)                      = request.sortSpec
+          cs.setString(8, order) // p_order
+          cs.setString(9, orderBy) // p_order_by
           cs.setLong(10, request.pageNumber.map(_.toLong).getOrElse(1L))
           cs.setOptionalString(11, request.pageType)
           // Output
