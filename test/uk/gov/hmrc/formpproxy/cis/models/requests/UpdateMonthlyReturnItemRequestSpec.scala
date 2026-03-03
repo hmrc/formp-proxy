@@ -32,7 +32,7 @@ class UpdateMonthlyReturnItemRequestSpec extends AnyWordSpec with Matchers {
     costOfMaterials = "250.00",
     totalDeducted = "150.00",
     subcontractorName = "John Smith Ltd",
-    verificationNumber = "V1234567"
+    verificationNumber = Some("V1234567")
   )
 
   private val json: JsValue = Json.parse("""
@@ -85,7 +85,6 @@ class UpdateMonthlyReturnItemRequestSpec extends AnyWordSpec with Matchers {
           paths must contain("/costOfMaterials")
           paths must contain("/totalDeducted")
           paths must contain("/subcontractorName")
-          paths must contain("/verificationNumber")
         case _               =>
           fail("Expected JsError for missing fields")
       }

@@ -25,6 +25,7 @@ import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.*
+import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 
 import java.sql.*
 import java.time.{Instant, LocalDateTime}
@@ -1879,7 +1880,7 @@ final class CisFormpRepositorySpec extends SpecBase {
         costOfMaterials = "100.00",
         totalDeducted = "100.00",
         subcontractorName = "Charles, C",
-        verificationNumber = "V1000000009"
+        verificationNumber = Some("V1000000009")
       )
 
       repo.updateMonthlyReturnItem(req).futureValue mustBe (())
@@ -1899,7 +1900,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdateItem).setString(7, "100.00")
       verify(csUpdateItem).setString(8, "100.00")
       verify(csUpdateItem).setString(9, "Charles, C")
-      verify(csUpdateItem).setString(10, "V1000000009")
+      verify(csUpdateItem).setOptionalString(10, Some("V1000000009"))
 
       verify(csUpdateItem).setNull(11, Types.INTEGER)
       verify(csUpdateItem).registerOutParameter(11, Types.INTEGER)
