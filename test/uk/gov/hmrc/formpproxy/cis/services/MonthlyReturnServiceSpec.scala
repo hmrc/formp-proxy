@@ -140,40 +140,48 @@ final class MonthlyReturnServiceSpec extends SpecBase {
   "MonthlyReturnService updateNilMonthlyReturn" - {
 
     "delegates to repo (happy path)" in new Ctx {
-      val request = CreateNilMonthlyReturnRequest(
-        instanceId = id,
+      val request = UpdateMonthlyReturnRequest(
+        instanceId = "abc-123",
         taxYear = 2025,
         taxMonth = 2,
-        decInformationCorrect = "Y",
-        decNilReturnNoPayments = "Y"
+        amendment = "N",
+        decInformationCorrect = Some("Y"),
+        decNilReturnNoPayments = Some("Y"),
+        nilReturnIndicator = "Y",
+        status = "STARTED",
+        version = Some(1L)
       )
 
-      when(repo.updateNilMonthlyReturn(eqTo(request)))
+      when(repo.updateMonthlyReturn(eqTo(request)))
         .thenReturn(Future.successful(()))
 
-      service.updateNilMonthlyReturn(request).futureValue mustBe ()
+      service.updateMonthlyReturn(request).futureValue mustBe ()
 
-      verify(repo).updateNilMonthlyReturn(eqTo(request))
+      verify(repo).updateMonthlyReturn(eqTo(request))
       verifyNoMoreInteractions(repo)
     }
 
     "propagates failures from the repository" in new Ctx {
-      val request = CreateNilMonthlyReturnRequest(
-        instanceId = id,
+      val request = UpdateMonthlyReturnRequest(
+        instanceId = "abc-123",
         taxYear = 2025,
         taxMonth = 2,
-        decInformationCorrect = "Y",
-        decNilReturnNoPayments = "Y"
+        amendment = "N",
+        decInformationCorrect = Some("Y"),
+        decNilReturnNoPayments = Some("Y"),
+        nilReturnIndicator = "Y",
+        status = "STARTED",
+        version = Some(1L)
       )
       val boom    = new RuntimeException("db failed")
 
-      when(repo.updateNilMonthlyReturn(eqTo(request)))
+      when(repo.updateMonthlyReturn(eqTo(request)))
         .thenReturn(Future.failed(boom))
 
-      val ex = service.updateNilMonthlyReturn(request).failed.futureValue
+      val ex = service.updateMonthlyReturn(request).failed.futureValue
       ex mustBe boom
 
-      verify(repo).updateNilMonthlyReturn(eqTo(request))
+      verify(repo).updateMonthlyReturn(eqTo(request))
       verifyNoMoreInteractions(repo)
     }
   }

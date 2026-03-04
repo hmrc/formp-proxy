@@ -53,8 +53,8 @@ class MonthlyReturnService @Inject() (repo: CisMonthlyReturnSource)(implicit ec:
   def createNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[CreateNilMonthlyReturnResponse] =
     repo.createNilMonthlyReturn(request)
 
-  def updateNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[Unit] =
-    repo.updateNilMonthlyReturn(request)
+  def updateMonthlyReturn(request: UpdateMonthlyReturnRequest): Future[Unit] =
+    repo.updateMonthlyReturn(request)
 
   def updateMonthlyReturnItem(request: UpdateMonthlyReturnItemRequest): Future[Unit] =
     repo.updateMonthlyReturnItem(request)
