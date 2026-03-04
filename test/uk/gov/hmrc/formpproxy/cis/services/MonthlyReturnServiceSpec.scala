@@ -229,4 +229,44 @@ final class MonthlyReturnServiceSpec extends SpecBase {
     }
   }
 
+
+  "MonthlyReturnService deleteMonthlyReturnItem" - {
+
+    "delegates to repo (happy path)" in new Ctx {
+      val request = DeleteMonthlyReturnItemRequest(
+        instanceId = id,
+        taxYear = 2025,
+        taxMonth = 1,
+        amendment = "N",
+        resourceReference = 12345L
+      )
+
+      when(repo.deleteMonthlyReturnItem(eqTo(request)))
+        .thenReturn(Future.successful(()))
+
+      service.deleteMonthlyReturnItem(request).futureValue mustBe ()
+
+      verify(repo).deleteMonthlyReturnItem(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failures from repo" in new Ctx {
+      val request = DeleteMonthlyReturnItemRequest(
+        instanceId = id,
+        taxYear = 2025,
+        taxMonth = 1,
+        amendment = "N",
+        resourceReference = 12345L
+      )
+
+      val boom = new RuntimeException("db failed")
+      when(repo.deleteMonthlyReturnItem(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      service.deleteMonthlyReturnItem(request).failed.futureValue mustBe boom
+
+      verify(repo).deleteMonthlyReturnItem(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
 }

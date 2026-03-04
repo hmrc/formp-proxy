@@ -8,6 +8,7 @@ POST       /cis/monthly-return/nil/update                            uk.gov.hmrc
 POST       /cis/monthly-return-edit                                 uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.getMonthlyReturnForEdit
 POST       /cis/monthly-return/standard/create                      uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.createMonthlyReturn
 POST       /cis/monthly-return-item/sync                            uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.syncMonthlyReturnItems
+POST       /cis/monthly-return-item/delete                          uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.deleteMonthlyReturnItem
 POST       /scheme/email                                            uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.getSchemeEmail
 GET        /scheme/:instanceId                                      uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.getScheme(instanceId: String)
 POST       /scheme                                                  uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.createScheme

@@ -1657,7 +1657,7 @@ final class CisFormpRepositorySpec extends SpecBase {
 
   "updateGovTalkStatusCorrelationId" - {
 
-    "calls UpdateGetGovTalkStatusCorrelationId SP with correct params and executes" in {
+    "calls CallUpdateGetGovTalkStatusCorrelationId SP with correct params and executes" in {
       val db   = mock[Database]
       val conn = mock[Connection]
       val cs   = mock[CallableStatement]

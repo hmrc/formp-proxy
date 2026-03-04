@@ -21,7 +21,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
 import uk.gov.hmrc.formpproxy.cis.models.{UnsubmittedMonthlyReturns, UserMonthlyReturns}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateMonthlyReturnRequest, CreateNilMonthlyReturnRequest, GetMonthlyReturnForEditRequest, InstanceIdRequest, SyncMonthlyReturnItemsRequest, UpdateMonthlyReturnItemRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.services.MonthlyReturnService
 import uk.gov.hmrc.formpproxy.cis.utils.JsResultUtils.*
 import uk.gov.hmrc.http.UpstreamErrorResponse
@@ -159,4 +159,16 @@ class MonthlyReturnController @Inject() (
           InternalServerError(Json.obj("message" -> "Unexpected error"))
         }
     }
+
+  def deleteMonthlyReturnItem: Action[DeleteMonthlyReturnItemRequest] =
+    authorise.async(parse.json[DeleteMonthlyReturnItemRequest]) { implicit request =>
+      service
+        .deleteMonthlyReturnItem(request.body)
+        .map(_ => NoContent)
+        .recover { case NonFatal(e) =>
+          logger.error("[deleteMonthlyReturnItem] failed", e)
+          InternalServerError(Json.obj("message" -> "Unexpected error"))
+        }
+    }
+
 }
