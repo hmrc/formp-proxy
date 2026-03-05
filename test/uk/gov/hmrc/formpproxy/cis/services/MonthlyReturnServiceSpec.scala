@@ -229,7 +229,6 @@ final class MonthlyReturnServiceSpec extends SpecBase {
     }
   }
 
-
   "MonthlyReturnService deleteMonthlyReturnItem" - {
 
     "delegates to repo (happy path)" in new Ctx {
