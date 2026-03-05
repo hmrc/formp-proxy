@@ -39,7 +39,7 @@ trait CisMonthlyReturnSource {
   def createSubmission(request: CreateSubmissionRequest): Future[String]
   def updateMonthlyReturnSubmission(request: UpdateSubmissionRequest): Future[Unit]
   def createNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[CreateNilMonthlyReturnResponse]
-  def updateNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[Unit]
+  def updateMonthlyReturn(request: UpdateMonthlyReturnRequest): Future[Unit]
   def updateMonthlyReturnItem(request: UpdateMonthlyReturnItemRequest): Future[Unit]
   def createMonthlyReturn(request: CreateMonthlyReturnRequest): Future[Unit]
   def getSchemeEmail(instanceId: String): Future[Option[String]]
@@ -384,9 +384,9 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
-  override def updateNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[Unit] = {
+  override def updateMonthlyReturn(request: UpdateMonthlyReturnRequest): Future[Unit] = {
     logger.info(
-      s"[CIS] updateNilMonthlyReturn(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
+      s"[CIS] updateMonthlyReturn(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
     )
     Future {
       db.withTransaction { conn =>
@@ -636,20 +636,20 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.getInt(12)
     }
 
-  private def callUpdateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit =
+  private def callUpdateMonthlyReturn(conn: Connection, req: UpdateMonthlyReturnRequest): Unit =
     withCall(conn, CallUpdateMonthlyReturn) { cs =>
       cs.setString(1, req.instanceId)
       cs.setInt(2, req.taxYear)
       cs.setInt(3, req.taxMonth)
-      cs.setString(4, "N")
-      cs.setNull(5, Types.VARCHAR)
-      cs.setNull(6, Types.VARCHAR)
-      cs.setString(7, req.decInformationCorrect)
-      cs.setNull(8, Types.CHAR)
-      cs.setString(9, req.decNilReturnNoPayments)
-      cs.setString(10, "Y")
-      cs.setString(11, "STARTED")
-      cs.setInt(12, 0)
+      cs.setString(4, req.amendment)
+      cs.setOptionalString(5, req.decEmpStatusConsidered)
+      cs.setOptionalString(6, req.decAllSubsVerified)
+      cs.setOptionalString(7, req.decInformationCorrect)
+      cs.setOptionalString(8, req.decNoMoreSubPayments)
+      cs.setOptionalString(9, req.decNilReturnNoPayments)
+      cs.setString(10, req.nilReturnIndicator)
+      cs.setString(11, req.status)
+      cs.setOptionalLong(12, req.version)
       cs.registerOutParameter(12, Types.INTEGER)
       cs.execute()
     }
