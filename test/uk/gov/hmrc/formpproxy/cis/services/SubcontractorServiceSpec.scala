@@ -16,14 +16,16 @@
 
 package uk.gov.hmrc.formpproxy.cis.services
 
+import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.{any, eq as eqTo}
 import org.mockito.Mockito.*
 import uk.gov.hmrc.formpproxy.base.SpecBase
-import uk.gov.hmrc.formpproxy.cis.models.SoleTrader
-import uk.gov.hmrc.formpproxy.cis.models.requests.CreateAndUpdateSubcontractorRequest
-import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
+import uk.gov.hmrc.formpproxy.cis.models.{Company, Partnership, SoleTrader}
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
+import uk.gov.hmrc.formpproxy.cis.models.CreateAndUpdateSubcontractorDatabaseRecord
+import uk.gov.hmrc.formpproxy.cis.models.requests.CreateAndUpdateSubcontractorRequest
 import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorListResponse
+import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
 import scala.concurrent.Future
 
@@ -33,22 +35,49 @@ class SubcontractorServiceSpec extends SpecBase {
     val repo: CisMonthlyReturnSource = mock[CisMonthlyReturnSource]
     lazy val service                 = new SubcontractorService(repo)
   }
+
   "SubcontractorService#createAndUpdateSubcontractor" - {
 
-    "delegates to repo and returns Unit" in {
+    "maps SoleTraderRequest -> CreateAndUpdateSubcontractorDatabaseRecord and delegates to repo" in {
       val c = Ctx(); import c.*
 
-      val req = CreateAndUpdateSubcontractorRequest(
+      val req: CreateAndUpdateSubcontractorRequest =
+        CreateAndUpdateSubcontractorRequest.SoleTraderRequest(
+          cisId = "123",
+          utr = Some("1234567890"),
+          nino = Some("AA123456A"),
+          firstName = Some("John"),
+          secondName = Some("Q"),
+          surname = Some("Smith"),
+          tradingName = Some("ACME"),
+          addressLine1 = Some("1 Main Street"),
+          city = Some("London"),
+          county = Some("Greater London"),
+          country = Some("United Kingdom"),
+          postcode = Some("AA1 1AA"),
+          mobilePhoneNumber = Some("07123456789"),
+          worksReferenceNumber = Some("34567")
+        )
+
+      when(repo.createAndUpdateSubcontractor(any[CreateAndUpdateSubcontractorDatabaseRecord]))
+        .thenReturn(Future.successful(()))
+
+      service.createAndUpdateSubcontractor(req).futureValue mustBe ((): Unit)
+
+      val captor = ArgumentCaptor.forClass(classOf[CreateAndUpdateSubcontractorDatabaseRecord])
+      verify(repo).createAndUpdateSubcontractor(captor.capture())
+
+      captor.getValue mustBe CreateAndUpdateSubcontractorDatabaseRecord(
         cisId = "123",
         subcontractorType = SoleTrader,
         utr = Some("1234567890"),
-        partnerUtr = Some("9999999999"),
-        crn = Some("CRN123"),
+        partnerUtr = None,
+        crn = None,
         firstName = Some("John"),
         secondName = Some("Q"),
         surname = Some("Smith"),
         nino = Some("AA123456A"),
-        partnershipTradingName = Some("My Partnership"),
+        partnershipTradingName = None,
         tradingName = Some("ACME"),
         addressLine1 = Some("1 Main Street"),
         addressLine2 = None,
@@ -61,43 +90,122 @@ class SubcontractorServiceSpec extends SpecBase {
         mobilePhoneNumber = Some("07123456789"),
         worksReferenceNumber = Some("34567")
       )
+    }
 
-      when(repo.createAndUpdateSubcontractor(any[CreateAndUpdateSubcontractorRequest]))
+    "maps CompanyRequest -> CreateAndUpdateSubcontractorDatabaseRecord and delegates to repo" in {
+      val c = Ctx(); import c.*
+
+      val req: CreateAndUpdateSubcontractorRequest =
+        CreateAndUpdateSubcontractorRequest.CompanyRequest(
+          cisId = "123",
+          utr = Some("1234567890"),
+          crn = Some("CRN123"),
+          tradingName = Some("ABC Ltd"),
+          addressLine1 = Some("10 Downing Street"),
+          city = Some("London"),
+          county = Some("Greater London"),
+          country = Some("United Kingdom"),
+          postcode = Some("SW1A 2AA"),
+          emailAddress = Some("test@test.com"),
+          phoneNumber = Some("01234567890"),
+          mobilePhoneNumber = Some("07123456789"),
+          worksReferenceNumber = Some("WRN-001")
+        )
+
+      when(repo.createAndUpdateSubcontractor(any[CreateAndUpdateSubcontractorDatabaseRecord]))
         .thenReturn(Future.successful(()))
 
       service.createAndUpdateSubcontractor(req).futureValue mustBe ((): Unit)
 
-      verify(repo).createAndUpdateSubcontractor(eqTo(req))
+      val captor = ArgumentCaptor.forClass(classOf[CreateAndUpdateSubcontractorDatabaseRecord])
+      verify(repo).createAndUpdateSubcontractor(captor.capture())
+
+      captor.getValue mustBe CreateAndUpdateSubcontractorDatabaseRecord(
+        cisId = "123",
+        subcontractorType = Company,
+        utr = Some("1234567890"),
+        partnerUtr = None,
+        crn = Some("CRN123"),
+        firstName = None,
+        secondName = None,
+        surname = None,
+        nino = None,
+        partnershipTradingName = None,
+        tradingName = Some("ABC Ltd"),
+        addressLine1 = Some("10 Downing Street"),
+        addressLine2 = None,
+        city = Some("London"),
+        county = Some("Greater London"),
+        country = Some("United Kingdom"),
+        postcode = Some("SW1A 2AA"),
+        emailAddress = Some("test@test.com"),
+        phoneNumber = Some("01234567890"),
+        mobilePhoneNumber = Some("07123456789"),
+        worksReferenceNumber = Some("WRN-001")
+      )
+    }
+
+    "maps PartnershipRequest -> CreateAndUpdateSubcontractorDatabaseRecord and delegates to repo" in {
+      val c = Ctx(); import c.*
+
+      val req: CreateAndUpdateSubcontractorRequest =
+        CreateAndUpdateSubcontractorRequest.PartnershipRequest(
+          cisId = "123",
+          utr = Some("1111111111"),
+          partnerUtr = Some("2222222222"),
+          partnershipTradingName = Some("My Partnership"),
+          tradingName = Some("Nominated Partner"),
+          addressLine1 = Some("1 Main Street"),
+          city = Some("London"),
+          county = Some("Greater London"),
+          country = Some("United Kingdom"),
+          postcode = Some("AA1 1AA"),
+          worksReferenceNumber = Some("WRN-123")
+        )
+
+      when(repo.createAndUpdateSubcontractor(any[CreateAndUpdateSubcontractorDatabaseRecord]))
+        .thenReturn(Future.successful(()))
+
+      service.createAndUpdateSubcontractor(req).futureValue mustBe ((): Unit)
+
+      val captor = ArgumentCaptor.forClass(classOf[CreateAndUpdateSubcontractorDatabaseRecord])
+      verify(repo).createAndUpdateSubcontractor(captor.capture())
+
+      captor.getValue mustBe CreateAndUpdateSubcontractorDatabaseRecord(
+        cisId = "123",
+        subcontractorType = Partnership,
+        utr = Some("1111111111"),
+        partnerUtr = Some("2222222222"),
+        crn = None,
+        firstName = None,
+        secondName = None,
+        surname = None,
+        nino = None,
+        partnershipTradingName = Some("My Partnership"),
+        tradingName = Some("Nominated Partner"),
+        addressLine1 = Some("1 Main Street"),
+        addressLine2 = None,
+        city = Some("London"),
+        county = Some("Greater London"),
+        country = Some("United Kingdom"),
+        postcode = Some("AA1 1AA"),
+        emailAddress = None,
+        phoneNumber = None,
+        mobilePhoneNumber = None,
+        worksReferenceNumber = Some("WRN-123")
+      )
     }
 
     "propagates failure from repo" in {
       val c = Ctx(); import c.*
 
-      val req = CreateAndUpdateSubcontractorRequest(
-        cisId = "123",
-        subcontractorType = SoleTrader,
-        utr = Some("1234567890"),
-        partnerUtr = Some("9999999999"),
-        crn = Some("CRN123"),
-        firstName = Some("John"),
-        secondName = Some("Q"),
-        surname = Some("Smith"),
-        nino = Some("AA123456A"),
-        partnershipTradingName = Some("My Partnership"),
-        tradingName = Some("ACME"),
-        addressLine1 = Some("1 Main Street"),
-        addressLine2 = None,
-        city = Some("London"),
-        county = Some("Greater London"),
-        country = Some("United Kingdom"),
-        postcode = Some("AA1 1AA"),
-        emailAddress = None,
-        phoneNumber = None,
-        mobilePhoneNumber = Some("07123456789"),
-        worksReferenceNumber = Some("34567")
-      )
+      val req: CreateAndUpdateSubcontractorRequest =
+        CreateAndUpdateSubcontractorRequest.SoleTraderRequest(
+          cisId = "123",
+          utr = Some("1234567890")
+        )
 
-      when(repo.createAndUpdateSubcontractor(any[CreateAndUpdateSubcontractorRequest]))
+      when(repo.createAndUpdateSubcontractor(any[CreateAndUpdateSubcontractorDatabaseRecord]))
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val fut = service.createAndUpdateSubcontractor(req)
@@ -105,15 +213,14 @@ class SubcontractorServiceSpec extends SpecBase {
         ex.getMessage mustBe "boom"
       }
 
-      verify(repo).createAndUpdateSubcontractor(eqTo(req))
+      verify(repo).createAndUpdateSubcontractor(any[CreateAndUpdateSubcontractorDatabaseRecord])
     }
   }
 
   "SubcontractorService#getSubcontractorList" - {
 
     "delegates to repo with cisId and returns response" in {
-      val c = Ctx();
-      import c.*
+      val c = Ctx(); import c.*
 
       val req  = GetSubcontractorList(cisId = "cis-123")
       val resp = GetSubcontractorListResponse(subcontractors = List.empty)
@@ -129,8 +236,7 @@ class SubcontractorServiceSpec extends SpecBase {
     }
 
     "propagates failure from repo" in {
-      val c = Ctx();
-      import c.*
+      val c = Ctx(); import c.*
 
       val req  = GetSubcontractorList(cisId = "cis-123")
       val boom = new RuntimeException("boom")
@@ -145,5 +251,4 @@ class SubcontractorServiceSpec extends SpecBase {
       verifyNoMoreInteractions(repo)
     }
   }
-
 }
