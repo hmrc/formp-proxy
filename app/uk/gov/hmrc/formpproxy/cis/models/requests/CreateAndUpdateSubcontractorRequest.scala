@@ -73,7 +73,7 @@ object CreateAndUpdateSubcontractorRequest {
     utr: Option[String] = None,
     partnerUtr: Option[String] = None,
     partnershipTradingName: Option[String] = None,
-    tradingName: Option[String] = None, // nominated partner
+    tradingName: Option[String] = None,
     addressLine1: Option[String] = None,
     addressLine2: Option[String] = None,
     city: Option[String] = None,
@@ -109,34 +109,3 @@ object CreateAndUpdateSubcontractorRequest {
     }
   }
 }
-
-/*
-final case class CreateAndUpdateSubcontractorRequest(
-  cisId: String,
-  subcontractorType: SubcontractorType,
-  utr: Option[String],
-  partnerUtr: Option[String],
-  crn: Option[String],
-  firstName: Option[String],
-  secondName: Option[String],
-  surname: Option[String],
-  nino: Option[String],
-  partnershipTradingName: Option[String],
-  tradingName: Option[String],
-  addressLine1: Option[String],
-  addressLine2: Option[String],
-  city: Option[String],
-  county: Option[String],
-  country: Option[String],
-  postcode: Option[String],
-  emailAddress: Option[String],
-  phoneNumber: Option[String],
-  mobilePhoneNumber: Option[String],
-  worksReferenceNumber: Option[String]
-)
-
-object CreateAndUpdateSubcontractorRequest {
-  given Format[CreateAndUpdateSubcontractorRequest] = Json.format[CreateAndUpdateSubcontractorRequest]
-}
-
-**/
