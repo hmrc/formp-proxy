@@ -1178,7 +1178,7 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       val repo = new CisFormpRepository(db)
 
-      val request = CreateAndUpdateSubcontractorRequest(
+      val request = CreateAndUpdateSubcontractorDatabaseRecord(
         cisId = "abc-123",
         subcontractorType = SoleTrader,
         utr = Some("1234567890"),
@@ -1226,7 +1226,7 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       val repo = new CisFormpRepository(db)
 
-      val request = CreateAndUpdateSubcontractorRequest(
+      val request = CreateAndUpdateSubcontractorDatabaseRecord(
         cisId = "abc-123",
         subcontractorType = Partnership,
         utr = Some("2234567890"),
@@ -1278,7 +1278,7 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       val repo = new CisFormpRepository(db)
 
-      val request = CreateAndUpdateSubcontractorRequest(
+      val request = CreateAndUpdateSubcontractorDatabaseRecord(
         cisId = "abc-123",
         subcontractorType = Company,
         utr = Some("3234567890"),
