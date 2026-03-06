@@ -42,7 +42,7 @@ class GovTalkControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
 
     "returns 200 with multiple records when service returns data" in new Setup {
       when(mockService.getGovTalkStatus(any()))
-        .thenReturn(Future.successful(nonEmptyResponse))
+        .thenReturn(Future.successful(Some(nonEmptyResponse)))
 
       val req: FakeRequest[JsValue] = makeJsonRequest(Json.obj("userIdentifier" -> "1", "formResultID" -> "12890"))
       val res: Future[Result]       = controller.getGovTalkStatus(req)
@@ -54,15 +54,14 @@ class GovTalkControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
       verifyNoMoreInteractions(mockService)
     }
 
-    "returns 200 with empty response when service returns no rows" in new Setup {
+    "returns 404 when service returns no rows" in new Setup {
       when(mockService.getGovTalkStatus(any()))
-        .thenReturn(Future.successful(GetGovTalkStatusResponse(Seq.empty)))
+        .thenReturn(Future.successful(None))
 
       val req: FakeRequest[JsValue] = makeJsonRequest(Json.obj("userIdentifier" -> "1", "formResultID" -> "12890"))
       val res: Future[Result]       = controller.getGovTalkStatus(req)
 
-      status(res) mustBe OK
-      contentAsJson(res) mustBe Json.toJson(GetGovTalkStatusResponse(Seq.empty))
+      status(res) mustBe NOT_FOUND
       verify(mockService).getGovTalkStatus(any())
       verifyNoMoreInteractions(mockService)
     }
