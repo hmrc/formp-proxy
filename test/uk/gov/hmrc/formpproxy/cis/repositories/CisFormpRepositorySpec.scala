@@ -1883,7 +1883,7 @@ final class CisFormpRepositorySpec extends SpecBase {
         verificationNumber = Some("V1000000009")
       )
 
-      repo.updateMonthlyReturnItem(req).futureValue mustBe (())
+      repo.updateMonthlyReturnItem(req).futureValue mustBe ()
 
       verify(csGetScheme).setString(1, "1")
       verify(csGetScheme).execute()
