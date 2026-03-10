@@ -528,7 +528,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           cs.setString(1, req.userIdentifier)
           cs.setString(2, req.formResultID)
           cs.setString(3, req.protocolStatus)
-          cs.setTimestamp(4, java.sql.Timestamp.valueOf(req.endStateDate))
+          cs.setOptionalTimestamp(4, req.endStateDate)
           cs.execute()
         }
       }
