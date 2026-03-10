@@ -1766,7 +1766,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       val request = UpdateGovTalkStatusRequest(
         userIdentifier = "1",
         formResultID = "12890",
-        endStateDate = LocalDateTime.parse("2026-02-13T00:00:00"),
+        endStateDate = Some(LocalDateTime.parse("2026-02-13T00:00:00")),
         protocolStatus = "dataRequest"
       )
 
@@ -1777,7 +1777,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(cs).setString(1, request.userIdentifier)
       verify(cs).setString(2, request.formResultID)
       verify(cs).setString(3, request.protocolStatus)
-      verify(cs).setTimestamp(4, java.sql.Timestamp.valueOf(request.endStateDate))
+      verify(cs).setOptionalTimestamp(4, request.endStateDate)
 
       verify(cs).execute()
       verify(cs).close()

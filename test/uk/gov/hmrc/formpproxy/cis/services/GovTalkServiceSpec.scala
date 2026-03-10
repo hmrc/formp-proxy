@@ -171,7 +171,8 @@ final class GovTalkServiceSpec extends SpecBase {
 
   "GovTalkService updateGovTalkStatus" - {
 
-    val request = UpdateGovTalkStatusRequest("1", "1234", LocalDateTime.parse("2026-02-03T00:00:00"), "dataRequest")
+    val request =
+      UpdateGovTalkStatusRequest("1", "1234", Some(LocalDateTime.parse("2026-02-03T00:00:00")), "dataRequest")
 
     "should update the record when repository executed successfully" in {
       val c = Ctx()
