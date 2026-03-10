@@ -18,7 +18,7 @@ package uk.gov.hmrc.formpproxy.cis.models.requests
 
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsError, JsObject, Json}
 import uk.gov.hmrc.formpproxy.cis.models.{Company, Partnership, SoleTrader}
 
 class CreateAndUpdateSubcontractorRequestSpec extends AnyWordSpec with Matchers {
@@ -80,6 +80,20 @@ class CreateAndUpdateSubcontractorRequestSpec extends AnyWordSpec with Matchers 
       )
 
       Json.toJson(model) mustBe json
+    }
+
+    "should fail to read when subcontractorType is unsupported" in {
+      val json = Json.parse("""{ "cisId": "CIS-123", "subcontractorType": "banana" }""")
+
+      val result = json.validate[CreateAndUpdateSubcontractorRequest]
+      result.isError mustBe true
+
+      val msg = result match {
+        case JsError(errs) => errs.flatMap(_._2).flatMap(_.messages).mkString(" | ")
+        case _             => fail("Expected JsError")
+      }
+
+      msg must include("Unsupported subcontractorType: banana")
     }
 
     "round-trip (write then read) with all fields populated (soletrader)" in {
