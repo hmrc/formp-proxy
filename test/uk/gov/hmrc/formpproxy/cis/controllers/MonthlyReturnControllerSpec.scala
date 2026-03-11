@@ -220,6 +220,34 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
       verify(mockService).updateMonthlyReturn(eqTo(request))
       verifyNoMoreInteractions(mockService)
     }
+
+    "returns 500 InternalServerError when service throws NonFatal" in new Setup {
+      val request = UpdateMonthlyReturnRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 2,
+        amendment = "N",
+        decInformationCorrect = Some("Y"),
+        decNilReturnNoPayments = Some("Y"),
+        nilReturnIndicator = "Y",
+        status = "STARTED",
+        version = Some(1L)
+      )
+
+      when(mockService.updateMonthlyReturn(eqTo(request)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val req: FakeRequest[UpdateMonthlyReturnRequest] =
+        FakeRequest(POST, "/formp-proxy/cis/monthly-return/update").withBody(request)
+
+      val res: Future[Result] = controller.updateMonthlyReturn(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      contentAsJson(res) mustBe Json.obj("message" -> "Unexpected error")
+
+      verify(mockService).updateMonthlyReturn(eqTo(request))
+      verifyNoMoreInteractions(mockService)
+    }
   }
 
   "MonthlyReturnController updateMonthlyReturnItem" - {
