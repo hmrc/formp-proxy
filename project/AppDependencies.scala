@@ -4,7 +4,7 @@ import sbt.*
 
 object AppDependencies {
 
-  private val bootstrapVersion = "10.5.0"
+  private val bootstrapVersion = "10.7.0"
 
   val oraVersion           = "19.3.0.0"
 
