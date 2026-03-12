@@ -144,7 +144,7 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
   }
 
-  "updateNilMonthlyReturn" - {
+  "updateMonthlyReturn" - {
 
     "call Update_Monthly_Return and Update_Scheme_Version SPs in transaction" in {
       val db          = mock[Database]
@@ -172,15 +172,19 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(conn.prepareCall(eqTo(versionCall))).thenReturn(csVersion)
 
       val repo = new CisFormpRepository(db)
-      val req  = CreateNilMonthlyReturnRequest(
+      val req  = UpdateMonthlyReturnRequest(
         instanceId = "abc-123",
         taxYear = 2025,
         taxMonth = 2,
-        decInformationCorrect = "Y",
-        decNilReturnNoPayments = "Y"
+        amendment = "N",
+        decInformationCorrect = Some("Y"),
+        decNilReturnNoPayments = Some("Y"),
+        nilReturnIndicator = "Y",
+        status = "STARTED",
+        version = Some(1L)
       )
 
-      repo.updateNilMonthlyReturn(req).futureValue
+      repo.updateMonthlyReturn(req).futureValue
 
       verify(conn).prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")
       verify(csGetScheme).execute()

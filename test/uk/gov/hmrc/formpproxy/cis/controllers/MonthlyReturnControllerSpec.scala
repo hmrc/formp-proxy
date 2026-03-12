@@ -162,54 +162,90 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
     }
   }
 
-  "MonthlyReturnController updateNilMonthlyReturn" - {
+  "MonthlyReturnController updateMonthlyReturn" - {
 
     "returns 204 when service succeeds" in new Setup {
-      val request = CreateNilMonthlyReturnRequest(
+      val request = UpdateMonthlyReturnRequest(
         instanceId = "abc-123",
         taxYear = 2025,
         taxMonth = 2,
-        decInformationCorrect = "Y",
-        decNilReturnNoPayments = "Y"
+        amendment = "N",
+        decInformationCorrect = Some("Y"),
+        decNilReturnNoPayments = Some("Y"),
+        nilReturnIndicator = "Y",
+        status = "STARTED",
+        version = Some(1L)
       )
 
-      when(mockService.updateNilMonthlyReturn(eqTo(request)))
+      when(mockService.updateMonthlyReturn(eqTo(request)))
         .thenReturn(Future.successful(()))
 
-      val req: FakeRequest[CreateNilMonthlyReturnRequest] =
-        FakeRequest(POST, "/formp-proxy/cis/monthly-return/nil/update").withBody(request)
+      val req: FakeRequest[UpdateMonthlyReturnRequest] =
+        FakeRequest(POST, "/formp-proxy/cis/monthly-return/update").withBody(request)
 
-      val res: Future[Result] = controller.updateNilMonthlyReturn(req)
+      val res: Future[Result] = controller.updateMonthlyReturn(req)
 
       status(res) mustBe NO_CONTENT
       contentAsString(res) mustBe ""
 
-      verify(mockService).updateNilMonthlyReturn(eqTo(request))
+      verify(mockService).updateMonthlyReturn(eqTo(request))
       verifyNoMoreInteractions(mockService)
     }
 
     "propagates UpstreamErrorResponse" in new Setup {
-      val request = CreateNilMonthlyReturnRequest(
+      val request = UpdateMonthlyReturnRequest(
         instanceId = "abc-123",
         taxYear = 2025,
         taxMonth = 2,
-        decInformationCorrect = "Y",
-        decNilReturnNoPayments = "Y"
+        amendment = "N",
+        decInformationCorrect = Some("Y"),
+        decNilReturnNoPayments = Some("Y"),
+        nilReturnIndicator = "Y",
+        status = "STARTED",
+        version = Some(1L)
       )
       val err     = UpstreamErrorResponse("formp failed", BAD_GATEWAY, BAD_GATEWAY)
 
-      when(mockService.updateNilMonthlyReturn(eqTo(request)))
+      when(mockService.updateMonthlyReturn(eqTo(request)))
         .thenReturn(Future.failed(err))
 
-      val req: FakeRequest[CreateNilMonthlyReturnRequest] =
-        FakeRequest(POST, "/formp-proxy/cis/monthly-return/nil/update").withBody(request)
+      val req: FakeRequest[UpdateMonthlyReturnRequest] =
+        FakeRequest(POST, "/formp-proxy/cis/monthly-return/update").withBody(request)
 
-      val res: Future[Result] = controller.updateNilMonthlyReturn(req)
+      val res: Future[Result] = controller.updateMonthlyReturn(req)
 
       status(res) mustBe BAD_GATEWAY
       (contentAsJson(res) \ "message").as[String] must include("formp failed")
 
-      verify(mockService).updateNilMonthlyReturn(eqTo(request))
+      verify(mockService).updateMonthlyReturn(eqTo(request))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 500 InternalServerError when service throws NonFatal" in new Setup {
+      val request = UpdateMonthlyReturnRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 2,
+        amendment = "N",
+        decInformationCorrect = Some("Y"),
+        decNilReturnNoPayments = Some("Y"),
+        nilReturnIndicator = "Y",
+        status = "STARTED",
+        version = Some(1L)
+      )
+
+      when(mockService.updateMonthlyReturn(eqTo(request)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val req: FakeRequest[UpdateMonthlyReturnRequest] =
+        FakeRequest(POST, "/formp-proxy/cis/monthly-return/update").withBody(request)
+
+      val res: Future[Result] = controller.updateMonthlyReturn(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      contentAsJson(res) mustBe Json.obj("message" -> "Unexpected error")
+
+      verify(mockService).updateMonthlyReturn(eqTo(request))
       verifyNoMoreInteractions(mockService)
     }
   }
