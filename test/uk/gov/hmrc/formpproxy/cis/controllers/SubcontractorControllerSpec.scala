@@ -16,19 +16,18 @@
 
 package uk.gov.hmrc.formpproxy.cis.controllers
 
-import org.mockito.ArgumentMatchers.{eq as eqTo, *}
+import org.mockito.ArgumentMatchers.{any, eq as eqTo}
 import org.mockito.Mockito.*
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
 import uk.gov.hmrc.formpproxy.base.SpecBase
-import uk.gov.hmrc.formpproxy.cis.models.requests.CreateAndUpdateSubcontractorRequest
-import uk.gov.hmrc.formpproxy.cis.models.SoleTrader
-import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
-import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorListResponse
 import uk.gov.hmrc.formpproxy.cis.models.Subcontractor
+import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorListResponse
+import uk.gov.hmrc.formpproxy.cis.models.requests.CreateAndUpdateSubcontractorRequest
+import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 
 import scala.concurrent.Future
 
@@ -42,38 +41,32 @@ class SubcontractorControllerSpec extends SpecBase {
 
   def setup: Setup = new Setup {}
 
-  "POST /subcontractor/update (createAndUpdateSubcontractor)" - {
+  "POST /subcontractor/create-and-update (createAndUpdateSubcontractor)" - {
 
-    "returns 204 NoContent on valid payload" in {
+    "returns 204 NoContent on valid SoleTrader payload" in {
       val s = setup; import s.*
 
       when(mockService.createAndUpdateSubcontractor(any[CreateAndUpdateSubcontractorRequest]))
         .thenReturn(Future.successful(()))
 
-      val json = Json.toJson(
-        CreateAndUpdateSubcontractorRequest(
-          cisId = "123",
-          subcontractorType = SoleTrader,
-          utr = Some("1234567890"),
-          partnerUtr = Some("9999999999"),
-          crn = Some("CRN123"),
-          firstName = Some("John"),
-          secondName = Some("Q"),
-          surname = Some("Smith"),
-          nino = Some("AA123456A"),
-          partnershipTradingName = Some("My Partnership"),
-          tradingName = Some("ACME"),
-          addressLine1 = Some("1 Main Street"),
-          addressLine2 = None,
-          city = Some("London"),
-          county = Some("Greater London"),
-          country = Some("United Kingdom"),
-          postcode = Some("AA1 1AA"),
-          emailAddress = None,
-          phoneNumber = None,
-          mobilePhoneNumber = Some("07123456789"),
-          worksReferenceNumber = Some("34567")
-        )
+      val json = Json.parse(
+        """{
+          |  "cisId": "123",
+          |  "subcontractorType": "soletrader",
+          |  "utr": "1234567890",
+          |  "nino": "AA123456A",
+          |  "firstName": "John",
+          |  "secondName": "Q",
+          |  "surname": "Smith",
+          |  "tradingName": "ACME",
+          |  "addressLine1": "1 Main Street",
+          |  "city": "London",
+          |  "county": "Greater London",
+          |  "country": "United Kingdom",
+          |  "postcode": "AA1 1AA",
+          |  "mobilePhoneNumber": "07123456789",
+          |  "worksReferenceNumber": "34567"
+          |}""".stripMargin
       )
 
       val result = controller
@@ -84,7 +77,71 @@ class SubcontractorControllerSpec extends SpecBase {
       verify(mockService).createAndUpdateSubcontractor(any[CreateAndUpdateSubcontractorRequest])
     }
 
-    "returns 400 BadRequest for invlid JSON" in {
+    "returns 204 NoContent on valid Company payload" in {
+      val s = setup; import s.*
+
+      when(mockService.createAndUpdateSubcontractor(any[CreateAndUpdateSubcontractorRequest]))
+        .thenReturn(Future.successful(()))
+
+      val json = Json.parse(
+        """{
+          |  "cisId": "123",
+          |  "subcontractorType": "company",
+          |  "utr": "1234567890",
+          |  "crn": "CRN123",
+          |  "tradingName": "ABC Ltd",
+          |  "addressLine1": "10 Downing Street",
+          |  "city": "London",
+          |  "county": "Greater London",
+          |  "country": "United Kingdom",
+          |  "postcode": "SW1A 2AA",
+          |  "emailAddress": "test@test.com",
+          |  "phoneNumber": "01234567890",
+          |  "mobilePhoneNumber": "07123456789",
+          |  "worksReferenceNumber": "WRN-001"
+          |}""".stripMargin
+      )
+
+      val result = controller
+        .createAndUpdateSubcontractor()
+        .apply(postJson("/subcontractor/create-and-update", json))
+
+      status(result) mustBe NO_CONTENT
+      verify(mockService).createAndUpdateSubcontractor(any[CreateAndUpdateSubcontractorRequest])
+    }
+
+    "returns 204 NoContent on valid Partnership payload" in {
+      val s = setup; import s.*
+
+      when(mockService.createAndUpdateSubcontractor(any[CreateAndUpdateSubcontractorRequest]))
+        .thenReturn(Future.successful(()))
+
+      val json = Json.parse(
+        """{
+          |  "cisId": "123",
+          |  "subcontractorType": "partnership",
+          |  "utr": "1111111111",
+          |  "partnerUtr": "2222222222",
+          |  "partnershipTradingName": "My Partnership",
+          |  "tradingName": "Nominated Partner",
+          |  "addressLine1": "1 Main Street",
+          |  "city": "London",
+          |  "county": "Greater London",
+          |  "country": "United Kingdom",
+          |  "postcode": "AA1 1AA",
+          |  "worksReferenceNumber": "WRN-123"
+          |}""".stripMargin
+      )
+
+      val result = controller
+        .createAndUpdateSubcontractor()
+        .apply(postJson("/subcontractor/create-and-update", json))
+
+      status(result) mustBe NO_CONTENT
+      verify(mockService).createAndUpdateSubcontractor(any[CreateAndUpdateSubcontractorRequest])
+    }
+
+    "returns 400 BadRequest for invalid JSON" in {
       val s = setup; import s.*
 
       val bad = Json.obj("bad" -> "json")
@@ -104,30 +161,12 @@ class SubcontractorControllerSpec extends SpecBase {
       when(mockService.createAndUpdateSubcontractor(any[CreateAndUpdateSubcontractorRequest]))
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
-      val json = Json.toJson(
-        CreateAndUpdateSubcontractorRequest(
-          cisId = "123",
-          subcontractorType = SoleTrader,
-          utr = Some("1234567890"),
-          partnerUtr = Some("9999999999"),
-          crn = Some("CRN123"),
-          firstName = Some("John"),
-          secondName = Some("Q"),
-          surname = Some("Smith"),
-          nino = Some("AA123456A"),
-          partnershipTradingName = Some("My Partnership"),
-          tradingName = Some("ACME"),
-          addressLine1 = Some("1 Main Street"),
-          addressLine2 = None,
-          city = Some("London"),
-          county = Some("Greater London"),
-          country = Some("United Kingdom"),
-          postcode = Some("AA1 1AA"),
-          emailAddress = None,
-          phoneNumber = None,
-          mobilePhoneNumber = Some("07123456789"),
-          worksReferenceNumber = Some("34567")
-        )
+      val json = Json.parse(
+        """{
+          |  "cisId": "123",
+          |  "subcontractorType": "soletrader",
+          |  "utr": "1234567890"
+          |}""".stripMargin
       )
 
       val result = controller
@@ -142,8 +181,7 @@ class SubcontractorControllerSpec extends SpecBase {
   "GET /cis/subcontractors/:cisId (getSubcontractorList)" - {
 
     "returns 200 OK with subcontractor list on success" in {
-      val s = setup;
-      import s.*
+      val s = setup; import s.*
 
       val cisId = "cis-123"
 
@@ -204,8 +242,7 @@ class SubcontractorControllerSpec extends SpecBase {
     }
 
     "returns 500 when service fails" in {
-      val s = setup;
-      import s.*
+      val s = setup; import s.*
 
       val cisId = "cis-123"
 
@@ -223,5 +260,4 @@ class SubcontractorControllerSpec extends SpecBase {
       verifyNoMoreInteractions(mockService)
     }
   }
-
 }
