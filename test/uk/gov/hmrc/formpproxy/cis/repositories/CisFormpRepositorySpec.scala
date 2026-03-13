@@ -18,8 +18,7 @@ package uk.gov.hmrc.formpproxy.cis.repositories
 
 import oracle.jdbc.OracleTypes
 import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers.{any as anyArg, eq as eqTo}
-import org.mockito.ArgumentMatchers.anyInt
+import org.mockito.ArgumentMatchers.{any as anyArg, anyInt, anyString, eq as eqTo}
 import org.mockito.Mockito.*
 import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
@@ -238,6 +237,14 @@ final class CisFormpRepositorySpec extends SpecBase {
       val out = repo.createSubmission(req).futureValue
       out mustBe "12345"
 
+      verify(csCreate).setString(1, "123")
+      verify(csCreate).setString(2, "MONTHLY_RETURN")
+      verify(csCreate).setLong(3, 7777L)
+      verify(csCreate).setString(4, "Dj5TVJDyRYCn9zta5EdySeY4fyA=")
+      verify(csCreate).setString(5, null)
+      verify(csCreate).setString(6, "test@test.com")
+      verify(csCreate).setString(7, null)
+      verify(csCreate).setString(8, "STARTED")
       verify(csCreate).execute()
     }
   }
