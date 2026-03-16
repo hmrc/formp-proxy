@@ -122,6 +122,8 @@ class SubcontractorControllerSpec extends SpecBase {
           |  "subcontractorType": "partnership",
           |  "utr": "1111111111",
           |  "partnerUtr": "2222222222",
+          |  "crn": "CRN123",
+          |  "nino": "AA123456A",
           |  "partnershipTradingName": "My Partnership",
           |  "tradingName": "Nominated Partner",
           |  "addressLine1": "1 Main Street",
@@ -138,7 +140,30 @@ class SubcontractorControllerSpec extends SpecBase {
         .apply(postJson("/subcontractor/create-and-update", json))
 
       status(result) mustBe NO_CONTENT
-      verify(mockService).createAndUpdateSubcontractor(any[CreateAndUpdateSubcontractorRequest])
+
+      verify(mockService).createAndUpdateSubcontractor(
+        eqTo(
+          CreateAndUpdateSubcontractorRequest.PartnershipRequest(
+            cisId = "123",
+            utr = Some("1111111111"),
+            partnerUtr = Some("2222222222"),
+            crn = Some("CRN123"),
+            nino = Some("AA123456A"),
+            partnershipTradingName = Some("My Partnership"),
+            tradingName = Some("Nominated Partner"),
+            addressLine1 = Some("1 Main Street"),
+            addressLine2 = None,
+            city = Some("London"),
+            county = Some("Greater London"),
+            country = Some("United Kingdom"),
+            postcode = Some("AA1 1AA"),
+            emailAddress = None,
+            phoneNumber = None,
+            mobilePhoneNumber = None,
+            worksReferenceNumber = Some("WRN-123")
+          )
+        )
+      )
     }
 
     "returns 400 BadRequest for invalid JSON" in {
