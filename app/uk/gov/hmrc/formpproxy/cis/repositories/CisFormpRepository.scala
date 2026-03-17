@@ -48,7 +48,7 @@ trait CisMonthlyReturnSource {
   def updateScheme(contractorScheme: UpdateContractorSchemeParams): Future[Int]
   def updateSchemeVersion(instanceId: String, version: Int): Future[Int]
   def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int]
-  def createAndUpdateSubcontractor(request: CreateAndUpdateSubcontractorRequest): Future[Unit]
+  def createAndUpdateSubcontractor(record: CreateAndUpdateSubcontractorDatabaseRecord): Future[Unit]
   def getSubcontractorList(cisId: String): Future[GetSubcontractorListResponse]
   def getMonthlyReturnForEdit(instanceId: String, taxYear: Int, taxMonth: Int): Future[GetMonthlyReturnForEditResponse]
   def createMonthlyReturnItem(request: CreateMonthlyReturnItemRequest): Future[Unit]
@@ -304,15 +304,15 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
   // Subcontractor
 
-  override def createAndUpdateSubcontractor(request: CreateAndUpdateSubcontractorRequest): Future[Unit] = {
+  override def createAndUpdateSubcontractor(record: CreateAndUpdateSubcontractorDatabaseRecord): Future[Unit] = {
     logger.info(
-      s"[CIS] createAndUpdateSubcontractor(instanceId=${request.cisId})"
+      s"[CIS] createAndUpdateSubcontractor(instanceId=${record.cisId})"
     )
     db.withTransaction { conn =>
-      val scheme            = loadScheme(conn, request.cisId)
-      val subbieResourceRef = callCreateSubcontractor(conn, scheme.schemeId, request.subcontractorType)
-      callUpdateSchemeVersion(conn, request.cisId, scheme.version.getOrElse(0))
-      callUpdateSubcontractor(conn, scheme.schemeId, subbieResourceRef, request)
+      val scheme            = loadScheme(conn, record.cisId)
+      val subbieResourceRef = callCreateSubcontractor(conn, scheme.schemeId, record.subcontractorType)
+      callUpdateSchemeVersion(conn, record.cisId, scheme.version.getOrElse(0))
+      callUpdateSubcontractor(conn, scheme.schemeId, subbieResourceRef, record)
     }
   }
 
@@ -871,7 +871,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     conn: Connection,
     schemeId: Long,
     subbieResourceRef: Int,
-    request: CreateAndUpdateSubcontractorRequest
+    record: CreateAndUpdateSubcontractorDatabaseRecord
   ): Future[Unit] =
     Future {
       val cs = conn.prepareCall(CallUpdateSubcontractor)
@@ -879,30 +879,30 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         cs.setLong(1, schemeId)
 
         cs.setInt(2, subbieResourceRef)
-        cs.setOptionalString(3, request.utr)
+        cs.setOptionalString(3, record.utr)
         cs.setOptionalInt(4, None)
-        cs.setOptionalString(5, request.partnerUtr)
-        cs.setOptionalString(6, request.crn)
+        cs.setOptionalString(5, record.partnerUtr)
+        cs.setOptionalString(6, record.crn)
 
-        cs.setOptionalString(7, request.firstName)
-        cs.setOptionalString(8, request.nino)
-        cs.setOptionalString(9, request.secondName)
-        cs.setOptionalString(10, request.surname)
+        cs.setOptionalString(7, record.firstName)
+        cs.setOptionalString(8, record.nino)
+        cs.setOptionalString(9, record.secondName)
+        cs.setOptionalString(10, record.surname)
 
-        cs.setOptionalString(11, request.partnershipTradingName)
-        cs.setOptionalString(12, request.tradingName)
+        cs.setOptionalString(11, record.partnershipTradingName)
+        cs.setOptionalString(12, record.tradingName)
 
-        cs.setOptionalString(13, request.addressLine1)
-        cs.setOptionalString(14, request.addressLine2)
-        cs.setOptionalString(15, request.city)
-        cs.setOptionalString(16, request.county)
-        cs.setOptionalString(17, request.country)
-        cs.setOptionalString(18, request.postcode)
+        cs.setOptionalString(13, record.addressLine1)
+        cs.setOptionalString(14, record.addressLine2)
+        cs.setOptionalString(15, record.city)
+        cs.setOptionalString(16, record.county)
+        cs.setOptionalString(17, record.country)
+        cs.setOptionalString(18, record.postcode)
 
-        cs.setOptionalString(19, request.emailAddress)
-        cs.setOptionalString(20, request.phoneNumber)
-        cs.setOptionalString(21, request.mobilePhoneNumber)
-        cs.setOptionalString(22, request.worksReferenceNumber)
+        cs.setOptionalString(19, record.emailAddress)
+        cs.setOptionalString(20, record.phoneNumber)
+        cs.setOptionalString(21, record.mobilePhoneNumber)
+        cs.setOptionalString(22, record.worksReferenceNumber)
 
         cs.setOptionalString(23, None)
         cs.setOptionalString(24, None)

@@ -1131,15 +1131,15 @@ final class CisFormpRepositorySpec extends SpecBase {
 
   "createAndUpdateSubcontractor" - {
 
-    "call underlying procedures with correct parameters and execute" in {
-      val db          = mock[Database]
-      val conn        = mock[java.sql.Connection]
-      val csGetScheme = mock[CallableStatement]
-      val rsScheme    = mock[java.sql.ResultSet]
-      val csCreate    = mock[CallableStatement]
-      val csVersion   = mock[CallableStatement]
-      val csUpdate    = mock[CallableStatement]
-
+    def stubCommon(
+      db: Database,
+      conn: Connection,
+      csGetScheme: CallableStatement,
+      rsScheme: ResultSet,
+      csCreate: CallableStatement,
+      csVersion: CallableStatement,
+      csUpdate: CallableStatement
+    ): Unit = {
       when(db.withTransaction(org.mockito.ArgumentMatchers.any[java.sql.Connection => Any]))
         .thenAnswer { inv =>
           val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
@@ -1162,23 +1162,37 @@ final class CisFormpRepositorySpec extends SpecBase {
         .thenReturn(csVersion)
       when(csVersion.getInt(2)).thenReturn(2)
 
-      val updateCall =
-        "{ call SUBCONTRACTOR_PROCS.Update_Subcontractor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
-      when(conn.prepareCall(updateCall)).thenReturn(csUpdate)
+      when(
+        conn.prepareCall(
+          "{ call SUBCONTRACTOR_PROCS.Update_Subcontractor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+        )
+      ).thenReturn(csUpdate)
+    }
+
+    "call underlying procedures with correct parameters for SoleTrader" in {
+      val db          = mock[Database]
+      val conn        = mock[Connection]
+      val csGetScheme = mock[CallableStatement]
+      val rsScheme    = mock[ResultSet]
+      val csCreate    = mock[CallableStatement]
+      val csVersion   = mock[CallableStatement]
+      val csUpdate    = mock[CallableStatement]
+
+      stubCommon(db, conn, csGetScheme, rsScheme, csCreate, csVersion, csUpdate)
 
       val repo = new CisFormpRepository(db)
 
-      val request = CreateAndUpdateSubcontractorRequest(
+      val request = CreateAndUpdateSubcontractorDatabaseRecord(
         cisId = "abc-123",
         subcontractorType = SoleTrader,
         utr = Some("1234567890"),
-        partnerUtr = Some("9999999999"),
-        crn = Some("CRN123"),
+        partnerUtr = None,
+        crn = None,
         firstName = Some("John"),
         secondName = Some("Q"),
         surname = Some("Smith"),
         nino = Some("AA123456A"),
-        partnershipTradingName = Some("My Partnership"),
+        partnershipTradingName = None,
         tradingName = Some("ACME"),
         addressLine1 = Some("1 Main Street"),
         addressLine2 = Some("Flat 2"),
@@ -1194,46 +1208,117 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       repo.createAndUpdateSubcontractor(request).futureValue
 
-      verify(conn).prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }")
-      verify(csGetScheme).execute()
-
-      verify(conn).prepareCall("{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }")
-      verify(csCreate).execute()
-
-      verify(conn).prepareCall("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }")
-      verify(csVersion).execute()
-
-      verify(conn).prepareCall(updateCall)
-
-      verify(csUpdate).setLong(1, 123L)
-      verify(csUpdate).setInt(2, 999)
-
-      verify(csUpdate).setString(3, "1234567890")
-      verify(csUpdate).setNull(eqTo(4), anyInt())
-
-      verify(csUpdate).setString(5, "9999999999")
-      verify(csUpdate).setString(6, "CRN123")
-
+      verify(csCreate).setString(3, "soletrader")
       verify(csUpdate).setString(7, "John")
-      verify(csUpdate).setString(8, "AA123456A")
       verify(csUpdate).setString(9, "Q")
       verify(csUpdate).setString(10, "Smith")
-
-      verify(csUpdate).setString(11, "My Partnership")
-      verify(csUpdate).setString(12, "ACME")
-
-      verify(csUpdate).setString(13, "1 Main Street")
-      verify(csUpdate).setString(14, "Flat 2")
-      verify(csUpdate).setString(15, "London")
-      verify(csUpdate).setString(16, "Greater London")
+      verify(csUpdate).setString(8, "AA123456A")
       verify(csUpdate).setString(17, "United Kingdom")
+      verify(csUpdate).execute()
+    }
 
-      verify(csUpdate).setString(18, "AA1 1AA")
-      verify(csUpdate).setString(19, "test@test.com")
-      verify(csUpdate).setString(20, "01234567890")
-      verify(csUpdate).setString(21, "07123456789")
-      verify(csUpdate).setString(22, "34567")
+    "call underlying procedures with correct parameters for Partnership" in {
+      val db          = mock[Database]
+      val conn        = mock[Connection]
+      val csGetScheme = mock[CallableStatement]
+      val rsScheme    = mock[ResultSet]
+      val csCreate    = mock[CallableStatement]
+      val csVersion   = mock[CallableStatement]
+      val csUpdate    = mock[CallableStatement]
 
+      stubCommon(db, conn, csGetScheme, rsScheme, csCreate, csVersion, csUpdate)
+
+      val repo = new CisFormpRepository(db)
+
+      val request = CreateAndUpdateSubcontractorDatabaseRecord(
+        cisId = "abc-123",
+        subcontractorType = Partnership,
+        utr = Some("2234567890"),
+        partnerUtr = None,
+        crn = None,
+        firstName = None,
+        secondName = None,
+        surname = None,
+        nino = None,
+        partnershipTradingName = Some("ABC Partnership"),
+        tradingName = Some("Nominated Partner"),
+        addressLine1 = Some("2 High Street"),
+        addressLine2 = Some("Suite 5"),
+        city = Some("Leeds"),
+        county = Some("West Yorkshire"),
+        country = Some("United Kingdom"),
+        postcode = Some("LS1 1AA"),
+        emailAddress = Some("partnership@test.com"),
+        phoneNumber = Some("01131234567"),
+        mobilePhoneNumber = Some("07999999999"),
+        worksReferenceNumber = Some("PART-001")
+      )
+
+      repo.createAndUpdateSubcontractor(request).futureValue
+
+      verify(csCreate).setString(3, "partnership")
+      verify(csUpdate).setNull(eqTo(7), anyInt())
+      verify(csUpdate).setNull(eqTo(9), anyInt())
+      verify(csUpdate).setNull(eqTo(10), anyInt())
+      verify(csUpdate).setNull(eqTo(8), anyInt())
+      verify(csUpdate).setString(11, "ABC Partnership")
+      verify(csUpdate).setString(12, "Nominated Partner")
+      verify(csUpdate).setString(15, "Leeds")
+      verify(csUpdate).setString(16, "West Yorkshire")
+      verify(csUpdate).setString(17, "United Kingdom")
+      verify(csUpdate).execute()
+    }
+
+    "call underlying procedures with correct parameters for Company" in {
+      val db          = mock[Database]
+      val conn        = mock[Connection]
+      val csGetScheme = mock[CallableStatement]
+      val rsScheme    = mock[ResultSet]
+      val csCreate    = mock[CallableStatement]
+      val csVersion   = mock[CallableStatement]
+      val csUpdate    = mock[CallableStatement]
+
+      stubCommon(db, conn, csGetScheme, rsScheme, csCreate, csVersion, csUpdate)
+
+      val repo = new CisFormpRepository(db)
+
+      val request = CreateAndUpdateSubcontractorDatabaseRecord(
+        cisId = "abc-123",
+        subcontractorType = Company,
+        utr = Some("3234567890"),
+        partnerUtr = None,
+        crn = Some("CRN-999"),
+        firstName = None,
+        secondName = None,
+        surname = None,
+        nino = None,
+        partnershipTradingName = None,
+        tradingName = Some("ABC Limited"),
+        addressLine1 = Some("3 Business Park"),
+        addressLine2 = Some("Block A"),
+        city = Some("Manchester"),
+        county = Some("Greater Manchester"),
+        country = Some("United Kingdom"),
+        postcode = Some("M1 1AA"),
+        emailAddress = Some("company@test.com"),
+        phoneNumber = Some("01611234567"),
+        mobilePhoneNumber = Some("07888888888"),
+        worksReferenceNumber = Some("COMP-001")
+      )
+
+      repo.createAndUpdateSubcontractor(request).futureValue
+
+      verify(csCreate).setString(3, "company")
+      verify(csUpdate).setString(6, "CRN-999")
+      verify(csUpdate).setNull(eqTo(7), anyInt())
+      verify(csUpdate).setNull(eqTo(8), anyInt())
+      verify(csUpdate).setNull(eqTo(9), anyInt())
+      verify(csUpdate).setNull(eqTo(10), anyInt())
+      verify(csUpdate).setNull(eqTo(11), anyInt())
+      verify(csUpdate).setString(12, "ABC Limited")
+      verify(csUpdate).setString(15, "Manchester")
+      verify(csUpdate).setString(16, "Greater Manchester")
+      verify(csUpdate).setString(17, "United Kingdom")
       verify(csUpdate).execute()
     }
   }
