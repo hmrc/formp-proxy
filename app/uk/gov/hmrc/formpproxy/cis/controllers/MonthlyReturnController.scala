@@ -82,15 +82,15 @@ class MonthlyReturnController @Inject() (
         }
     }
 
-  def updateNilMonthlyReturn: Action[CreateNilMonthlyReturnRequest] =
-    authorise.async(parse.json[CreateNilMonthlyReturnRequest]) { implicit request =>
+  def updateMonthlyReturn: Action[UpdateMonthlyReturnRequest] =
+    authorise.async(parse.json[UpdateMonthlyReturnRequest]) { implicit request =>
       service
-        .updateNilMonthlyReturn(request.body)
+        .updateMonthlyReturn(request.body)
         .map(_ => NoContent)
         .recover {
           case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
-          case t: Throwable             =>
-            logger.error("[updateNilMonthlyReturn] failed", t)
+          case NonFatal(t)              =>
+            logger.error("[updateMonthlyReturn] failed", t)
             InternalServerError(Json.obj("message" -> "Unexpected error"))
         }
     }
