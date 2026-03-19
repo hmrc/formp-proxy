@@ -146,15 +146,18 @@ class SubcontractorServiceSpec extends SpecBase {
     }
 
     "maps PartnershipRequest -> CreateAndUpdateSubcontractorDatabaseRecord and delegates to repo" in {
-      val c = Ctx(); import c.*
+      val c = Ctx();
+      import c.*
 
       val req: CreateAndUpdateSubcontractorRequest =
         CreateAndUpdateSubcontractorRequest.PartnershipRequest(
           cisId = "123",
           utr = Some("1111111111"),
           partnerUtr = Some("2222222222"),
+          partnerCrn = Some("CRN123"),
+          partnerNino = Some("AA123456A"),
           partnershipTradingName = Some("My Partnership"),
-          tradingName = Some("Nominated Partner"),
+          partnerTradingName = Some("Nominated Partner"),
           addressLine1 = Some("1 Main Street"),
           city = Some("London"),
           county = Some("Greater London"),
@@ -176,11 +179,11 @@ class SubcontractorServiceSpec extends SpecBase {
         subcontractorType = Partnership,
         utr = Some("1111111111"),
         partnerUtr = Some("2222222222"),
-        crn = None,
+        crn = Some("CRN123"),
         firstName = None,
         secondName = None,
         surname = None,
-        nino = None,
+        nino = Some("AA123456A"),
         partnershipTradingName = Some("My Partnership"),
         tradingName = Some("Nominated Partner"),
         addressLine1 = Some("1 Main Street"),

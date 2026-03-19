@@ -46,7 +46,10 @@ class GovTalkController @Inject() (
           body =>
             service
               .getGovTalkStatus(body)
-              .map(response => Ok(Json.toJson(response)))
+              .map {
+                case Some(response) => Ok(Json.toJson(response))
+                case None           => NotFound
+              }
               .recover { case t =>
                 logger.error("[getGovTalkStatus] failed", t)
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
