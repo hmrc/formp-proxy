@@ -23,7 +23,7 @@ import java.time.LocalDateTime
 case class UpdateGovTalkStatusRequest(
   userIdentifier: String,
   formResultID: String,
-  endStateDate: LocalDateTime,
+  endStateDate: Option[LocalDateTime] = None,
   protocolStatus: String
 )
 

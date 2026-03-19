@@ -54,7 +54,7 @@ final class GovTalkServiceSpec extends SpecBase {
 
     val request = GetGovTalkStatusRequest("1", "1234")
 
-    "returns multiple records when repository returns rows" in {
+    "returns Some(response) when repository returns rows" in {
       val c       = Ctx()
       val payload = GetGovTalkStatusResponse(Seq(mkRecord("dataRequest", 0, 0), mkRecord("endState", 1, 1)))
 
@@ -62,19 +62,19 @@ final class GovTalkServiceSpec extends SpecBase {
         .thenReturn(Future.successful(payload))
 
       val result = c.service.getGovTalkStatus(request).futureValue
-      result mustBe payload
+      result mustBe Some(payload)
 
       verify(c.repo).getGovTalkStatus(request)
       verifyNoMoreInteractions(c.repo)
     }
 
-    "returns empty response when repository returns empty list" in {
+    "returns None when repository returns empty list" in {
       val c = Ctx()
       when(c.repo.getGovTalkStatus(request))
         .thenReturn(Future.successful(GetGovTalkStatusResponse(Seq.empty)))
 
       val result = c.service.getGovTalkStatus(request).futureValue
-      result.govtalk_status mustBe empty
+      result mustBe None
 
       verify(c.repo).getGovTalkStatus(request)
       verifyNoMoreInteractions(c.repo)
@@ -171,7 +171,8 @@ final class GovTalkServiceSpec extends SpecBase {
 
   "GovTalkService updateGovTalkStatus" - {
 
-    val request = UpdateGovTalkStatusRequest("1", "1234", LocalDateTime.parse("2026-02-03T00:00:00"), "dataRequest")
+    val request =
+      UpdateGovTalkStatusRequest("1", "1234", Some(LocalDateTime.parse("2026-02-03T00:00:00")), "dataRequest")
 
     "should update the record when repository executed successfully" in {
       val c = Ctx()
