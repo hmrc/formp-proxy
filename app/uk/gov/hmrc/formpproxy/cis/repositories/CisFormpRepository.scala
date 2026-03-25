@@ -332,7 +332,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           hmrcMarkGgis = null,
           emailRecipient = request.emailRecipient.orNull,
           agentId = request.agentId.orNull,
-          submittableStatus = "PENDING"
+          submittableStatus = "STARTED"
         )
 
         submissionId.toString
