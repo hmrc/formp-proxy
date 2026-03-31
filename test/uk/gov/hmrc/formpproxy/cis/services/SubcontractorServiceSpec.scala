@@ -20,7 +20,7 @@ import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.{any, eq as eqTo}
 import org.mockito.Mockito.*
 import uk.gov.hmrc.formpproxy.base.SpecBase
-import uk.gov.hmrc.formpproxy.cis.models.{Company, Partnership, SoleTrader}
+import uk.gov.hmrc.formpproxy.cis.models.{Company, Partnership, SoleTrader, Trust}
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
 import uk.gov.hmrc.formpproxy.cis.models.CreateAndUpdateSubcontractorDatabaseRecord
 import uk.gov.hmrc.formpproxy.cis.models.requests.CreateAndUpdateSubcontractorRequest
@@ -196,6 +196,60 @@ class SubcontractorServiceSpec extends SpecBase {
         phoneNumber = None,
         mobilePhoneNumber = None,
         worksReferenceNumber = Some("WRN-123")
+      )
+    }
+
+    "maps TrustRequest -> CreateAndUpdateSubcontractorDatabaseRecord and delegates to repo" in {
+      val c = Ctx();
+      import c.*
+
+      val req: CreateAndUpdateSubcontractorRequest =
+        CreateAndUpdateSubcontractorRequest.TrustRequest(
+          cisId = "123",
+          utr = Some("1111111111"),
+          trustTradingName = Some("The Big Trust"),
+          addressLine1 = Some("1 Trust Street"),
+          addressLine2 = Some("Line 2"),
+          city = Some("London"),
+          county = Some("Greater London"),
+          country = Some("United Kingdom"),
+          postcode = Some("AA1 1AA"),
+          emailAddress = Some("trust@test.com"),
+          phoneNumber = Some("02000000000"),
+          mobilePhoneNumber = Some("07123456789"),
+          worksReferenceNumber = Some("WRN-TRUST-1")
+        )
+
+      when(repo.createAndUpdateSubcontractor(any[CreateAndUpdateSubcontractorDatabaseRecord]))
+        .thenReturn(Future.successful(()))
+
+      service.createAndUpdateSubcontractor(req).futureValue mustBe ((): Unit)
+
+      val captor = ArgumentCaptor.forClass(classOf[CreateAndUpdateSubcontractorDatabaseRecord])
+      verify(repo).createAndUpdateSubcontractor(captor.capture())
+
+      captor.getValue mustBe CreateAndUpdateSubcontractorDatabaseRecord(
+        cisId = "123",
+        subcontractorType = Trust,
+        utr = Some("1111111111"),
+        partnerUtr = None,
+        crn = None,
+        firstName = None,
+        secondName = None,
+        surname = None,
+        nino = None,
+        partnershipTradingName = None,
+        tradingName = Some("The Big Trust"),
+        addressLine1 = Some("1 Trust Street"),
+        addressLine2 = Some("Line 2"),
+        city = Some("London"),
+        county = Some("Greater London"),
+        country = Some("United Kingdom"),
+        postcode = Some("AA1 1AA"),
+        emailAddress = Some("trust@test.com"),
+        phoneNumber = Some("02000000000"),
+        mobilePhoneNumber = Some("07123456789"),
+        worksReferenceNumber = Some("WRN-TRUST-1")
       )
     }
 
