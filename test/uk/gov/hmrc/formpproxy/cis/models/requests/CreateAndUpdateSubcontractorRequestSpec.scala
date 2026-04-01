@@ -19,7 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.models.requests
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.{JsError, JsObject, Json}
-import uk.gov.hmrc.formpproxy.cis.models.{Company, Partnership, SoleTrader}
+import uk.gov.hmrc.formpproxy.cis.models.{Company, Partnership, SoleTrader, Trust}
 
 class CreateAndUpdateSubcontractorRequestSpec extends AnyWordSpec with Matchers {
 
@@ -291,6 +291,67 @@ class CreateAndUpdateSubcontractorRequestSpec extends AnyWordSpec with Matchers 
       json.keys must not contain "crn"
       json.keys must not contain "postcode"
       json.keys must not contain "emailAddress"
+    }
+
+    "read and write with required fields only (trust)" in {
+      val json = Json.parse(
+        """
+          |{
+          |  "cisId": "1234567890",
+          |  "subcontractorType": "trust"
+          |}
+          |""".stripMargin
+      )
+
+      val model = json.as[CreateAndUpdateSubcontractorRequest]
+      model mustBe CreateAndUpdateSubcontractorRequest.TrustRequest(
+        cisId = "1234567890",
+        subcontractorType = Trust
+      )
+
+      Json.toJson(model) mustBe json
+    }
+
+    "round-trip (write then read) with all fields populated (trust)" in {
+      val model: CreateAndUpdateSubcontractorRequest =
+        CreateAndUpdateSubcontractorRequest.TrustRequest(
+          cisId = "1234567890",
+          subcontractorType = Trust,
+          utr = Some("1234567890"),
+          trustTradingName = Some("The Big Trust"),
+          addressLine1 = Some("1 Trust Street"),
+          addressLine2 = Some("Line 2"),
+          city = Some("London"),
+          county = Some("Greater London"),
+          country = Some("United Kingdom"),
+          postcode = Some("AA1 1AA"),
+          emailAddress = Some("trust@test.com"),
+          phoneNumber = Some("02000000000"),
+          mobilePhoneNumber = Some("07123456789"),
+          worksReferenceNumber = Some("WRN-TRUST-1")
+        )
+
+      val json = Json.parse(
+        """{
+          | "cisId":"1234567890",
+          | "subcontractorType":"trust",
+          | "utr":"1234567890",
+          | "trustTradingName":"The Big Trust",
+          | "addressLine1":"1 Trust Street",
+          | "addressLine2":"Line 2",
+          | "city":"London",
+          | "county":"Greater London",
+          | "country":"United Kingdom",
+          | "postcode":"AA1 1AA",
+          | "emailAddress":"trust@test.com",
+          | "phoneNumber":"02000000000",
+          | "mobilePhoneNumber":"07123456789",
+          | "worksReferenceNumber":"WRN-TRUST-1"
+          |}""".stripMargin
+      )
+
+      json.as[CreateAndUpdateSubcontractorRequest] mustBe model
+      Json.toJson(model) mustBe json
     }
   }
 }

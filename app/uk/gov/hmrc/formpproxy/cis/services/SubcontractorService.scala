@@ -110,5 +110,31 @@ class SubcontractorService @Inject() (repo: CisMonthlyReturnSource) {
           mobilePhoneNumber = p.mobilePhoneNumber,
           worksReferenceNumber = p.worksReferenceNumber
         )
+
+      case t: CreateAndUpdateSubcontractorRequest.TrustRequest =>
+        CreateAndUpdateSubcontractorDatabaseRecord(
+          cisId = t.cisId,
+          subcontractorType = t.subcontractorType,
+          utr = t.utr,
+          partnerUtr = None,
+          crn = None,
+          firstName = None,
+          secondName = None,
+          surname = None,
+          nino = None,
+          partnershipTradingName = None,
+          tradingName = t.trustTradingName,
+          addressLine1 = t.addressLine1,
+          addressLine2 = t.addressLine2,
+          city = t.city,
+          county = t.county,
+          country = t.country,
+          postcode = t.postcode,
+          emailAddress = t.emailAddress,
+          phoneNumber = t.phoneNumber,
+          mobilePhoneNumber = t.mobilePhoneNumber,
+          worksReferenceNumber = t.worksReferenceNumber
+        )
     }
+
 }
