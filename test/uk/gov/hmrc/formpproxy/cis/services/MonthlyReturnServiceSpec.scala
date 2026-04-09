@@ -276,4 +276,42 @@ final class MonthlyReturnServiceSpec extends SpecBase {
       verifyNoMoreInteractions(repo)
     }
   }
+
+  "MonthlyReturnService deleteUnsubmittedMonthlyReturn" - {
+
+    "delegates to repo (happy path)" in new Ctx {
+      val request = DeleteUnsubmittedMonthlyReturnRequest(
+        instanceId = id,
+        taxYear = 2025,
+        taxMonth = 1,
+        amendment = "N"
+      )
+
+      when(repo.deleteUnsubmittedMonthlyReturn(eqTo(request)))
+        .thenReturn(Future.successful(()))
+
+      service.deleteUnsubmittedMonthlyReturn(request).futureValue mustBe ()
+
+      verify(repo).deleteUnsubmittedMonthlyReturn(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failures from repo" in new Ctx {
+      val request = DeleteUnsubmittedMonthlyReturnRequest(
+        instanceId = id,
+        taxYear = 2025,
+        taxMonth = 1,
+        amendment = "N"
+      )
+
+      val boom = new RuntimeException("db failed")
+      when(repo.deleteUnsubmittedMonthlyReturn(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      service.deleteUnsubmittedMonthlyReturn(request).failed.futureValue mustBe boom
+
+      verify(repo).deleteUnsubmittedMonthlyReturn(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
 }
