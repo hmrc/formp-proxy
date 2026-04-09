@@ -584,8 +584,6 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     logger.info(
       s"[CIS] deleteUnsubmittedMonthlyReturn(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
     )
-    println("yo")
-    println(request)
     Future {
       db.withConnection { conn =>
         withCall(conn, CallUnsubmittedMonthlyReturn) { cs =>
