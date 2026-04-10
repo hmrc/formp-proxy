@@ -17,9 +17,12 @@
 package uk.gov.hmrc.formpproxy.nova.repositories
 
 object NovaStoredProcedures {
-  val CallGetForms         = "{ call COMMON_FORMS_PACKAGE.getForms(?, ?, ?, ?) }"
-  val CallGetForm          = "{ call COMMON_FORMS_PACKAGE.getForm(?, ?) }"
-  val CallStoreForm        = "{ call COMMON_FORMS_PACKAGE.storeForm(?, ?, ?, ?, ?) }"
-  val CallUpdateFormStatus = "{ call COMMON_FORMS_PACKAGE.updateFormStatus(?, ?, ?, ?, ?) }"
-  val CallDeleteForm       = "{ call COMMON_FORMS_PACKAGE.deleteForm(?) }"
+  val CallGetForms               = "{ call COMMON_FORMS_PACKAGE.getForms(?, ?, ?, ?) }"
+  val CallGetForm                = "{ call COMMON_FORMS_PACKAGE.getForm(?, ?) }"
+  val CallStoreForm              = "{ call COMMON_FORMS_PACKAGE.storeForm(?, ?, ?, ?, ?) }"
+  val CallUpdateFormStatus       = "{ call COMMON_FORMS_PACKAGE.updateFormStatus(?, ?, ?, ?, ?) }"
+  val CallDeleteForm             = "{ call COMMON_FORMS_PACKAGE.deleteForm(?) }"
+  val CallGetNovaNotificationRef = "{ call NOVA_NOTIF_REF_GENERATOR.getNovaNotificationRef(?, ?, ?, ?, ?, ?) }"
+  val CallGetFormData            = "{ call COMMON_FORMS_PACKAGE.getFormData(?, ?, ?) }"
+  val CallStoreFormData          = "{ call COMMON_FORMS_PACKAGE.storeFormData(?, ?, ?, ?, ?) }"
 }
