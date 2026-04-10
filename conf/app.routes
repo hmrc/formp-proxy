@@ -77,3 +77,5 @@ POST       /filing/update/return-info                               uk.gov.hmrc.
 
 GET        /charities/:charityReference/unregulated-donations       uk.gov.hmrc.formpproxy.charities.controllers.UnregulatedDonationsController.getTotalUnregulatedDonations(charityReference: String)
 POST       /charities/:charityReference/unregulated-donations       uk.gov.hmrc.formpproxy.charities.controllers.UnregulatedDonationsController.saveUnregulatedDonation(charityReference: String)
+
+GET        /cis/verification-batch/newest/:instanceId               uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.getNewestVerificationBatch(instanceId: String)

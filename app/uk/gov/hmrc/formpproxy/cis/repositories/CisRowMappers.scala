@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.formpproxy.cis.repositories
 
-import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, GovTalkStatusRecord, MonthlyReturn, MonthlyReturnItem, Subcontractor, Submission}
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, GovTalkStatusRecord, MonthlyReturn, MonthlyReturnItem, Subcontractor, Submission, Verification, VerificationBatch}
 import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
 
 import java.sql.ResultSet
@@ -76,6 +76,56 @@ object CisRowMappers {
   private def collectGovtTalkStatusRecords(rs: ResultSet, acc: Seq[GovTalkStatusRecord]): Seq[GovTalkStatusRecord] =
     if (rs == null || !rs.next()) acc
     else collectGovtTalkStatusRecords(rs, acc :+ readGovtTalkStatusRecord(rs))
+
+  def collectVerificationBatches(rs: ResultSet): Seq[VerificationBatch] =
+    collectVerificationBatches(rs, Nil)
+
+  def collectVerifications(rs: ResultSet): Seq[Verification] =
+    collectVerifications(rs, Nil)
+
+  @tailrec
+  private def collectVerificationBatches(rs: ResultSet, acc: Seq[VerificationBatch]): Seq[VerificationBatch] =
+    if (rs == null || !rs.next()) acc
+    else collectVerificationBatches(rs, acc :+ readVerificationBatch(rs))
+
+  @tailrec
+  private def collectVerifications(rs: ResultSet, acc: Seq[Verification]): Seq[Verification] =
+    if (rs == null || !rs.next()) acc
+    else collectVerifications(rs, acc :+ readVerification(rs))
+
+  private def readVerificationBatch(rs: ResultSet): VerificationBatch =
+    VerificationBatch(
+      verificationBatchId = rs.getLong("verification_batch_id"),
+      schemeId = rs.getLong("scheme_id"),
+      verificationsCounter = rs.getOptionalLong("verifications_counter"),
+      verifBatchResourceRef = rs.getOptionalLong("verif_batch_resource_ref"),
+      proceedSession = rs.getOptionalString("proceed_session"),
+      confirmArrangement = rs.getOptionalString("confirm_arrangement"),
+      confirmCorrect = rs.getOptionalString("confirm_correct"),
+      status = rs.getOptionalString("status"),
+      verificationNumber = rs.getOptionalString("verification_number"),
+      createDate = rs.getOptionalLocalDateTime("create_date"),
+      lastUpdate = rs.getOptionalLocalDateTime("last_update"),
+      version = rs.getOptionalInt("version")
+    )
+
+  private def readVerification(rs: ResultSet): Verification =
+    Verification(
+      verificationId = rs.getLong("verification_id"),
+      matched = rs.getOptionalString("matched"),
+      verificationNumber = rs.getOptionalString("verification_number"),
+      taxTreatment = rs.getOptionalString("tax_treatment"),
+      actionIndicator = rs.getOptionalString("action_indicator"),
+      verificationBatchId = rs.getOptionalLong("verification_batch_id"),
+      schemeId = rs.getOptionalLong("scheme_id"),
+      subcontractorId = rs.getOptionalLong("subcontractor_id"),
+      subcontractorName = rs.getOptionalString("subcontractor_name"),
+      verificationResourceRef = rs.getOptionalLong("verification_resource_ref"),
+      proceed = rs.getOptionalString("proceed"),
+      createDate = rs.getOptionalLocalDateTime("create_date"),
+      lastUpdate = rs.getOptionalLocalDateTime("last_update"),
+      version = rs.getOptionalInt("version")
+    )
 
 // Row readers
 
