@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.formpproxy.cis.services
 
-import uk.gov.hmrc.formpproxy.cis.models.{UnsubmittedMonthlyReturns, UserMonthlyReturns}
+import uk.gov.hmrc.formpproxy.cis.models.{SubmittedMonthlyReturns, UnsubmittedMonthlyReturns, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
@@ -34,6 +34,15 @@ class MonthlyReturnService @Inject() (repo: CisMonthlyReturnSource)(implicit ec:
     repo.getUnsubmittedMonthlyReturns(instanceId).map { unsubmitted =>
       unsubmitted.copy(
         monthlyReturn = unsubmitted.monthlyReturn.map { monthlyReturn =>
+          monthlyReturn.copy(status = Some(mapStatus(monthlyReturn.status)))
+        }
+      )
+    }
+
+  def getSubmittedMonthlyReturns(instanceId: String): Future[SubmittedMonthlyReturns] =
+    repo.getSubmittedMonthlyReturns(instanceId).map { submitted =>
+      submitted.copy(
+        monthlyReturn = submitted.monthlyReturn.map { monthlyReturn =>
           monthlyReturn.copy(status = Some(mapStatus(monthlyReturn.status)))
         }
       )

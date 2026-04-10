@@ -22,6 +22,7 @@ import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
 import java.sql.ResultSet
 import scala.annotation.tailrec
 import java.time.LocalDateTime
+import scala.util.Try
 
 object CisRowMappers {
 
@@ -227,7 +228,7 @@ object CisRowMappers {
       lastUpdate = rs.getOptionalLocalDateTime("last_update"),
       schemeId = rs.getLong("scheme_id"),
       agentId = Option(rs.getString("agent_id")),
-      l_Migrated = rs.getOptionalLong("l_migrated"),
+      l_Migrated = Try(rs.getOptionalLong("l_migrated")).toOption.flatten,
       submissionRequestDate = rs.getOptionalLocalDateTime("submission_request_date"),
       govTalkErrorCode = Option(rs.getString("govtalk_error_code")),
       govTalkErrorType = Option(rs.getString("govtalk_error_type")),
