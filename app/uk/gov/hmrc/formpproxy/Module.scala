@@ -20,6 +20,7 @@ import play.api.inject.{Binding, Module as AppModule}
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.formpproxy.actions.{AuthAction, DefaultAuthAction}
 import uk.gov.hmrc.formpproxy.cis.repositories.{CisFormpRepository, CisMonthlyReturnSource}
+import uk.gov.hmrc.formpproxy.nova.repositories.{NovaFormpRepository, NovaSource}
 import uk.gov.hmrc.formpproxy.sdlt.repositories.{SdltFormpRepository, SdltSource}
 
 class Module extends AppModule:
@@ -31,5 +32,6 @@ class Module extends AppModule:
     List(
       bind[AuthAction].to(classOf[DefaultAuthAction]),
       bind[CisMonthlyReturnSource].to(classOf[CisFormpRepository]),
-      bind[SdltSource].to(classOf[SdltFormpRepository])
+      bind[SdltSource].to(classOf[SdltFormpRepository]),
+      bind[NovaSource].to(classOf[NovaFormpRepository])
     )
