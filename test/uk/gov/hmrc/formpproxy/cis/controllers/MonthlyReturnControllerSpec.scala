@@ -29,7 +29,7 @@ import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
-import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, UnsubmittedMonthlyReturns, UserMonthlyReturns, requests}
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, SubmittedMonthlyReturns, UnsubmittedMonthlyReturns, UserMonthlyReturns, requests}
 import uk.gov.hmrc.formpproxy.cis.services.MonthlyReturnService
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
@@ -504,6 +504,68 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
           .withBody(Json.obj("instanceId" -> "abc-123"))
 
       val res: Future[Result] = controller.retrieveUnsubmittedMonthlyReturns(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
+    }
+  }
+
+  "MonthlyReturnController retrieveSubmittedMonthlyReturns" - {
+
+    "returns 200 with payload when service succeeds" in new Setup {
+      val scheme = ContractorScheme(
+        schemeId = 1,
+        instanceId = "abc-123",
+        taxOfficeNumber = "123",
+        taxOfficeReference = "AB456",
+        accountsOfficeReference = "123PA12345678"
+      )
+
+      val payload = SubmittedMonthlyReturns(
+        scheme = scheme,
+        monthlyReturn = Seq(mkReturn(11111L, 1)),
+        submission = Seq.empty
+      )
+
+      when(mockService.getSubmittedMonthlyReturns(eqTo("abc-123")))
+        .thenReturn(Future.successful(payload))
+
+      val req: FakeRequest[JsValue] =
+        FakeRequest(POST, "/cis/retrieve-submitted-monthly-returns")
+          .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
+          .withBody(Json.obj("instanceId" -> "abc-123"))
+
+      val res: Future[Result] = controller.retrieveSubmittedMonthlyReturns(req)
+
+      status(res) mustBe OK
+      contentType(res) mustBe Some(JSON)
+      contentAsJson(res) mustBe Json.toJson(payload)
+
+      verify(mockService).getSubmittedMonthlyReturns(eqTo("abc-123"))
+    }
+
+    "returns 400 when JSON body is missing" in new Setup {
+      val req: FakeRequest[JsValue] =
+        FakeRequest(POST, "/cis/retrieve-submitted-monthly-returns")
+          .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
+          .withBody(Json.obj())
+
+      val res: Future[Result] = controller.retrieveSubmittedMonthlyReturns(req)
+
+      status(res) mustBe BAD_REQUEST
+      (contentAsJson(res) \ "message").as[String] mustBe "Invalid JSON body"
+    }
+
+    "return 500 with generic message on unexpected exception" in new Setup {
+      when(mockService.getSubmittedMonthlyReturns(eqTo("abc-123")))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val req: FakeRequest[JsValue] =
+        FakeRequest(POST, "/cis/retrieve-submitted-monthly-returns")
+          .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
+          .withBody(Json.obj("instanceId" -> "abc-123"))
+
+      val res: Future[Result] = controller.retrieveSubmittedMonthlyReturns(req)
 
       status(res) mustBe INTERNAL_SERVER_ERROR
       (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
