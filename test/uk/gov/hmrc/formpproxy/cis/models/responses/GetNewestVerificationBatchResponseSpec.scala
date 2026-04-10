@@ -211,7 +211,6 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
         )
       )
 
-
       val json = Json.toJson(model)
 
       val scheme0 = (json \ "scheme")(0)
@@ -322,7 +321,6 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
       (subm0 \ "govTalkErrorType").toOption mustBe None
       (subm0 \ "govTalkErrorMessage").toOption mustBe None
 
-
       val mr0 = (json \ "monthlyReturn")(0)
 
       (mr0 \ "monthlyReturnId").as[Long] mustBe 777L
@@ -338,7 +336,6 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
       (mr0 \ "lastUpdate").as[String] mustBe "2026-01-31T12:34:56"
       (mr0 \ "amendment").as[String] mustBe "N"
       (mr0 \ "supersededBy").toOption mustBe None
-
 
       val mrs0 = (json \ "mrSubmission")(0)
 

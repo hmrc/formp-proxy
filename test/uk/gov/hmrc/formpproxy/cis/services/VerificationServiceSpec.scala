@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.formpproxy.cis.services
 
-import org.mockito.ArgumentMatchers.{eq as eqTo}
+import org.mockito.ArgumentMatchers.eq as eqTo
 import org.mockito.Mockito._
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.response.GetNewestVerificationBatchResponse

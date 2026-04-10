@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.formpproxy.cis.controllers
 
-
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
@@ -28,17 +27,17 @@ import javax.inject.Inject
 import scala.concurrent.ExecutionContext
 
 class VerificationController @Inject() (
-                                          authorise: AuthAction,
-                                          service: VerificationService,
-                                          cc: ControllerComponents
-                                        )(implicit ec: ExecutionContext)
-  extends BackendController(cc)
+  authorise: AuthAction,
+  service: VerificationService,
+  cc: ControllerComponents
+)(implicit ec: ExecutionContext)
+    extends BackendController(cc)
     with Logging {
-  
 
   def getNewestVerificationBatch(instanceId: String): Action[AnyContent] =
     authorise.async { implicit request =>
-      service.getNewestVerificationBatch(instanceId)
+      service
+        .getNewestVerificationBatch(instanceId)
         .map(res => Ok(Json.toJson(res)))
         .recover { case t =>
           logger.error(s"[getNewestVerificationBatch] failed (instanceId=$instanceId)", t)

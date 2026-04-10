@@ -22,11 +22,10 @@ import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 
-
 @Singleton
 class VerificationService @Inject() (repo: CisMonthlyReturnSource) {
-  
+
   def getNewestVerificationBatch(instanceId: String): Future[GetNewestVerificationBatchResponse] =
     repo.getNewestVerificationBatch(instanceId)
-    
+
 }

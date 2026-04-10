@@ -34,7 +34,9 @@ class VerificationControllerSpec extends SpecBase {
   trait Setup {
     val mockService: VerificationService = mock[VerificationService]
     val auth                             = new FakeAuthAction(cc.parsers)
-    lazy val controller                  = new VerificationController(auth, mockService, cc)(scala.concurrent.ExecutionContext.Implicits.global)
+    lazy val controller                  = new VerificationController(auth, mockService, cc)(
+      scala.concurrent.ExecutionContext.Implicits.global
+    )
   }
 
   private def setup: Setup = new Setup {}
@@ -87,7 +89,6 @@ class VerificationControllerSpec extends SpecBase {
       verify(mockService).getNewestVerificationBatch(eqTo(instanceId))
       verifyNoMoreInteractions(mockService)
     }
-
 
     "returns 200 OK with JSON body when service succeeds (all fields has values)" in {
       val s = setup;
@@ -252,7 +253,7 @@ class VerificationControllerSpec extends SpecBase {
       when(mockService.getNewestVerificationBatch(eqTo(instId)))
         .thenReturn(Future.successful(response))
 
-      val req = FakeRequest(GET, s"/cis/verification-batch/newest/$instId")
+      val req    = FakeRequest(GET, s"/cis/verification-batch/newest/$instId")
       val result = controller.getNewestVerificationBatch(instId).apply(req)
 
       status(result) mustBe OK
