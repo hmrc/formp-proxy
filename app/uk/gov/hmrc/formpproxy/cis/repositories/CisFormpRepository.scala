@@ -984,7 +984,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
             verifications = verifications,
             submission = submission,
             monthlyReturn = monthlyReturn,
-            mrSubmission = mrSubmission
+            monthlyReturnSubmission = mrSubmission
           )
         }
       }

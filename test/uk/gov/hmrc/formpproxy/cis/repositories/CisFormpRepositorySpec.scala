@@ -2209,13 +2209,13 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       val out = repo.getNewestVerificationBatch("abc-123").futureValue
 
-      out.scheme            must have size 1
-      out.subcontractors    must have size 1
-      out.verificationBatch must have size 1
-      out.verifications     must have size 1
-      out.submission        must have size 1
-      out.monthlyReturn     must have size 1
-      out.mrSubmission      must have size 1
+      out.scheme                  must have size 1
+      out.subcontractors          must have size 1
+      out.verificationBatch       must have size 1
+      out.verifications           must have size 1
+      out.submission              must have size 1
+      out.monthlyReturn           must have size 1
+      out.monthlyReturnSubmission must have size 1
 
       out.scheme.head.schemeId mustBe 999
       out.subcontractors.head.subcontractorId mustBe 1L
@@ -2223,7 +2223,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       out.verifications.head.verificationId mustBe 9001L
       out.submission.head.submissionId mustBe 500L
       out.monthlyReturn.head.monthlyReturnId mustBe 66666L
-      out.mrSubmission.head.submissionId mustBe 600L
+      out.monthlyReturnSubmission.head.submissionId mustBe 600L
 
       verify(cs).setString(1, "abc-123")
       verify(cs).registerOutParameter(2, OracleTypes.CURSOR)
@@ -2290,7 +2290,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       out.verifications mustBe empty
       out.submission mustBe empty
       out.monthlyReturn mustBe empty
-      out.mrSubmission mustBe empty
+      out.monthlyReturnSubmission mustBe empty
 
       verify(cs).execute()
       verify(rsScheme).close()
