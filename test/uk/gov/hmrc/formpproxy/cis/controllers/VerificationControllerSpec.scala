@@ -135,7 +135,7 @@ class VerificationControllerSpec extends SpecBase {
             addressLine3 = None,
             addressLine4 = None,
             country = Some("United Kingdom"),
-            postCode = Some("AA1 1AA"),
+            postcode = Some("AA1 1AA"),
             emailAddress = Some("test@test.com"),
             phoneNumber = Some("01234567890"),
             mobilePhoneNumber = Some("07123456789"),

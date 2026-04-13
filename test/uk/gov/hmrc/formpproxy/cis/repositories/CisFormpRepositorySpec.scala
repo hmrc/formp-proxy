@@ -1632,7 +1632,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       s.tradingName mustBe Some("ACME")
       s.addressLine1 mustBe Some("1 Main Street")
       s.country mustBe Some("United Kingdom")
-      s.postCode mustBe Some("AA1 1AA")
+      s.postcode mustBe Some("AA1 1AA")
       s.version mustBe Some(1)
       s.createDate mustBe Some(LocalDateTime.of(2026, 1, 10, 9, 0, 0))
       s.lastUpdate mustBe Some(LocalDateTime.of(2026, 1, 11, 10, 0, 0))

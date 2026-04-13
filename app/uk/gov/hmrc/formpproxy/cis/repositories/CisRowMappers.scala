@@ -220,7 +220,7 @@ object CisRowMappers {
       addressLine3 = Option(rs.getString("address_line_3")),
       addressLine4 = Option(rs.getString("address_line_4")),
       country = Option(rs.getString("country")),
-      postCode = Option(rs.getString("postcode")),
+      postcode = Option(rs.getString("postcode")),
       emailAddress = Option(rs.getString("email_address")),
       phoneNumber = Option(rs.getString("phone_number")),
       mobilePhoneNumber = Option(rs.getString("mobile_phone_number")),

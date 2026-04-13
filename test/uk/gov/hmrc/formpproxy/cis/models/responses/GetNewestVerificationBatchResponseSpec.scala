@@ -96,7 +96,7 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
             addressLine3 = None,
             addressLine4 = None,
             country = Some("United Kingdom"),
-            postCode = Some("AA1 1AA"),
+            postcode = Some("AA1 1AA"),
             emailAddress = Some("test@test.com"),
             phoneNumber = Some("01234567890"),
             mobilePhoneNumber = Some("07123456789"),
@@ -250,7 +250,7 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
       (sub0 \ "addressLine3").toOption mustBe None
       (sub0 \ "addressLine4").toOption mustBe None
       (sub0 \ "country").as[String] mustBe "United Kingdom"
-      (sub0 \ "postCode").as[String] mustBe "AA1 1AA"
+      (sub0 \ "postcode").as[String] mustBe "AA1 1AA"
       (sub0 \ "emailAddress").as[String] mustBe "test@test.com"
       (sub0 \ "phoneNumber").as[String] mustBe "01234567890"
       (sub0 \ "mobilePhoneNumber").as[String] mustBe "07123456789"
