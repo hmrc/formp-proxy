@@ -22,7 +22,7 @@ import org.scalatest.freespec.AnyFreeSpec
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
-import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, SubmittedMonthlyReturns, UserMonthlyReturns}
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, SubmittedMonthlyReturn, SubmittedMonthlyReturns, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
 import java.time.LocalDateTime
@@ -31,9 +31,9 @@ import scala.concurrent.Future
 final class MonthlyReturnServiceSpec extends SpecBase {
 
   case class Ctx() {
-    val repo: CisMonthlyReturnSource = mock[CisMonthlyReturnSource]
+    val repo: CisMonthlyReturnSource  = mock[CisMonthlyReturnSource]
     val service: MonthlyReturnService = new MonthlyReturnService(repo)
-    val id: String = "123"
+    val id: String                    = "123"
   }
 
   private def mkReturn(
@@ -56,6 +56,30 @@ final class MonthlyReturnServiceSpec extends SpecBase {
       lastUpdate = Some(LocalDateTime.parse("2025-01-01T00:00:00")),
       amendment = Some("N"),
       supersededBy = None
+    )
+
+  private def mkSubmittedReturn(
+    id: Long,
+    month: Int,
+    year: Int = 2025,
+    status: Option[String] = Some("SUBMITTED")
+  ): SubmittedMonthlyReturn =
+    SubmittedMonthlyReturn(
+      monthlyReturnId = id,
+      taxYear = year,
+      taxMonth = month,
+      nilReturnIndicator = Some("N"),
+      decEmpStatusConsidered = Some("Y"),
+      decAllSubsVerified = Some("Y"),
+      decInformationCorrect = Some("Y"),
+      decNoMoreSubPayments = Some("N"),
+      decNilReturnNoPayments = Some("N"),
+      status = status,
+      lastUpdate = Some(LocalDateTime.parse("2025-01-01T00:00:00")),
+      amendment = Some("N"),
+      supersededBy = None,
+      amendmentStatus = None,
+      monthlyReturnItems = None
     )
 
   "MonthlyReturnService getAllMonthlyReturns" - {
@@ -106,8 +130,8 @@ final class MonthlyReturnServiceSpec extends SpecBase {
     "returns payload with mapped statuses (happy path)" in new Ctx {
       val scheme    = ContractorScheme(1, id, "123", "AB456", "123PA123")
       val returns   = Seq(
-        mkReturn(1, 1, status = Some("ACCEPTED")),
-        mkReturn(2, 2, status = Some("FATAL_ERROR"))
+        mkSubmittedReturn(1, 1, status = Some("ACCEPTED")),
+        mkSubmittedReturn(2, 2, status = Some("FATAL_ERROR"))
       )
       val submitted = SubmittedMonthlyReturns(scheme, returns, Seq.empty)
 

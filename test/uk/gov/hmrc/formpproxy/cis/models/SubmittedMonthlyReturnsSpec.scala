@@ -35,7 +35,7 @@ class SubmittedMonthlyReturnsSpec extends AnyWordSpec with Matchers {
         accountsOfficeReference = "123PA12345678"
       )
 
-      val monthlyReturn = MonthlyReturn(
+      val monthlyReturn = SubmittedMonthlyReturn(
         monthlyReturnId = 1L,
         taxYear = 2025,
         taxMonth = 1,
@@ -48,7 +48,9 @@ class SubmittedMonthlyReturnsSpec extends AnyWordSpec with Matchers {
         status = Some("SUBMITTED"),
         lastUpdate = Some(LocalDateTime.of(2025, 1, 1, 0, 0)),
         amendment = Some("N"),
-        supersededBy = None
+        supersededBy = None,
+        amendmentStatus = None,
+        monthlyReturnItems = None
       )
 
       val submission = Submission(
@@ -74,14 +76,14 @@ class SubmittedMonthlyReturnsSpec extends AnyWordSpec with Matchers {
       val model = SubmittedMonthlyReturns(
         scheme = scheme,
         monthlyReturn = Seq(monthlyReturn),
-        submission = Seq(submission)
+        submissions = Seq(submission)
       )
 
       val json = Json.toJson(model)
 
       (json \ "scheme" \ "instanceId").as[String] mustBe "abc-123"
       (json \ "monthlyReturn").as[Seq[JsValue]] must have size 1
-      (json \ "submission").as[Seq[JsValue]] must have size 1
+      (json \ "submission").as[Seq[JsValue]]    must have size 1
 
       json.as[SubmittedMonthlyReturns] mustBe model
     }

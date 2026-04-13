@@ -29,7 +29,7 @@ import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
-import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, SubmittedMonthlyReturns, UnsubmittedMonthlyReturns, UserMonthlyReturns, requests}
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, SubmittedMonthlyReturn, SubmittedMonthlyReturns, UnsubmittedMonthlyReturns, UserMonthlyReturns, requests}
 import uk.gov.hmrc.formpproxy.cis.services.MonthlyReturnService
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
@@ -523,8 +523,8 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
 
       val payload = SubmittedMonthlyReturns(
         scheme = scheme,
-        monthlyReturn = Seq(mkReturn(11111L, 1)),
-        submission = Seq.empty
+        monthlyReturn = Seq(mkSubmittedReturn(11111L, 1)),
+        submissions = Seq.empty
       )
 
       when(mockService.getSubmittedMonthlyReturns(eqTo("abc-123")))
@@ -793,6 +793,25 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         lastUpdate = Some(LocalDateTime.parse("2025-01-01T00:00:00")),
         amendment = Some("N"),
         supersededBy = None
+      )
+
+    def mkSubmittedReturn(id: Long, month: Int, year: Int = 2025): SubmittedMonthlyReturn =
+      SubmittedMonthlyReturn(
+        monthlyReturnId = id,
+        taxYear = year,
+        taxMonth = month,
+        nilReturnIndicator = Some("N"),
+        decEmpStatusConsidered = Some("Y"),
+        decAllSubsVerified = Some("Y"),
+        decInformationCorrect = Some("Y"),
+        decNoMoreSubPayments = Some("N"),
+        decNilReturnNoPayments = Some("N"),
+        status = Some("SUBMITTED"),
+        lastUpdate = Some(LocalDateTime.parse("2025-01-01T00:00:00")),
+        amendment = Some("N"),
+        supersededBy = None,
+        amendmentStatus = None,
+        monthlyReturnItems = None
       )
 
     val nonEmptyWrapper: UserMonthlyReturns =

@@ -20,8 +20,8 @@ import play.api.libs.json.{Json, OFormat}
 
 case class SubmittedMonthlyReturns(
   scheme: ContractorScheme,
-  monthlyReturn: Seq[MonthlyReturn],
-  submission: Seq[Submission]
+  monthlyReturn: Seq[SubmittedMonthlyReturn],
+  submissions: Seq[Submission]
 )
 
 object SubmittedMonthlyReturns {

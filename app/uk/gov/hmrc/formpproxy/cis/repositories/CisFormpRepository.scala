@@ -127,7 +127,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   }
 
   override def getSubmittedMonthlyReturns(instanceId: String): Future[SubmittedMonthlyReturns] = {
-    logger.info(s"[CIS] getUnsubmittedMonthlyReturns(instanceId=$instanceId)")
+    logger.info(s"[CIS] getSubmittedMonthlyReturns(instanceId=$instanceId)")
     Future {
       db.withConnection { conn =>
         withCall(conn, CallGetSubmittedMonthlyReturns) { cs =>
@@ -138,7 +138,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           cs.execute()
 
           val scheme      = withCursor(cs, 2)(rs => readSingleSchemeRow(rs, instanceId))
-          val returns     = withCursor(cs, 3)(collectMonthlyReturns)
+          val returns     = withCursor(cs, 3)(collectSubmittedMonthlyReturns)
           val submissions = withCursor(cs, 4)(collectSubmissions)
 
           SubmittedMonthlyReturns(scheme, returns, submissions)
