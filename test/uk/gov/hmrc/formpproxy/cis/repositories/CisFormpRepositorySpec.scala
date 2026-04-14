@@ -2064,6 +2064,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsScheme.wasNull()).thenReturn(true)
       when(rsScheme.getInt("verif_batch_counter")).thenReturn(0);
       when(rsScheme.wasNull()).thenReturn(true)
+      when(rsScheme.getTimestamp("create_date")).thenReturn(null)
       when(rsScheme.getTimestamp("last_update")).thenReturn(null)
       when(rsScheme.getInt("version")).thenReturn(0);
       when(rsScheme.wasNull()).thenReturn(true)
