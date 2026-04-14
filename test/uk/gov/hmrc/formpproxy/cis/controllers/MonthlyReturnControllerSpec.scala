@@ -523,7 +523,7 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
 
       val payload = SubmittedMonthlyReturns(
         scheme = scheme,
-        monthlyReturn = Seq(mkSubmittedReturn(11111L, 1)),
+        monthlyReturns = Seq(mkSubmittedReturn(11111L, 1)),
         submissions = Seq.empty
       )
 

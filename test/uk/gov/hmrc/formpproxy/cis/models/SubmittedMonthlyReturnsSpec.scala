@@ -75,15 +75,15 @@ class SubmittedMonthlyReturnsSpec extends AnyWordSpec with Matchers {
 
       val model = SubmittedMonthlyReturns(
         scheme = scheme,
-        monthlyReturn = Seq(monthlyReturn),
+        monthlyReturns = Seq(monthlyReturn),
         submissions = Seq(submission)
       )
 
       val json = Json.toJson(model)
 
       (json \ "scheme" \ "instanceId").as[String] mustBe "abc-123"
-      (json \ "monthlyReturn").as[Seq[JsValue]] must have size 1
-      (json \ "submission").as[Seq[JsValue]]    must have size 1
+      (json \ "monthlyReturns").as[Seq[JsValue]] must have size 1
+      (json \ "submissions").as[Seq[JsValue]]    must have size 1
 
       json.as[SubmittedMonthlyReturns] mustBe model
     }

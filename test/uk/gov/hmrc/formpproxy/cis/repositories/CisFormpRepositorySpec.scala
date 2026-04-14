@@ -1111,9 +1111,9 @@ final class CisFormpRepositorySpec extends SpecBase {
       val result = repo.getSubmittedMonthlyReturns("abc-123").futureValue
 
       result.scheme.instanceId mustBe "abc-123"
-      result.monthlyReturn must have size 1
-      result.monthlyReturn.head.nilReturnIndicator mustBe Some("Y")
-      result.monthlyReturn.head.status mustBe Some("PENDING")
+      result.monthlyReturns must have size 1
+      result.monthlyReturns.head.nilReturnIndicator mustBe Some("Y")
+      result.monthlyReturns.head.status mustBe Some("PENDING")
     }
   }
 

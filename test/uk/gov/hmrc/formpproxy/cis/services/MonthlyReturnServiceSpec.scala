@@ -140,9 +140,9 @@ final class MonthlyReturnServiceSpec extends SpecBase {
       private val out = service.getSubmittedMonthlyReturns(id).futureValue
 
       out.scheme mustBe scheme
-      out.monthlyReturn must have size 2
-      out.monthlyReturn.head.status mustBe Some("PENDING")
-      out.monthlyReturn.last.status mustBe Some("REJECTED")
+      out.monthlyReturns must have size 2
+      out.monthlyReturns.head.status mustBe Some("PENDING")
+      out.monthlyReturns.last.status mustBe Some("REJECTED")
 
       verify(repo).getSubmittedMonthlyReturns(eqTo(id))
       verifyNoMoreInteractions(repo)

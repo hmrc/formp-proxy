@@ -42,7 +42,7 @@ class MonthlyReturnService @Inject() (repo: CisMonthlyReturnSource)(implicit ec:
   def getSubmittedMonthlyReturns(instanceId: String): Future[SubmittedMonthlyReturns] =
     repo.getSubmittedMonthlyReturns(instanceId).map { submitted =>
       submitted.copy(
-        monthlyReturn = submitted.monthlyReturn.map { monthlyReturn =>
+        monthlyReturns = submitted.monthlyReturns.map { monthlyReturn =>
           monthlyReturn.copy(status = Some(mapStatus(monthlyReturn.status)))
         }
       )
