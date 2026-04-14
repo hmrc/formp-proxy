@@ -77,3 +77,15 @@ POST       /filing/update/return-info                               uk.gov.hmrc.
 
 GET        /charities/:charityReference/unregulated-donations       uk.gov.hmrc.formpproxy.charities.controllers.UnregulatedDonationsController.getTotalUnregulatedDonations(charityReference: String)
 POST       /charities/:charityReference/unregulated-donations       uk.gov.hmrc.formpproxy.charities.controllers.UnregulatedDonationsController.saveUnregulatedDonation(charityReference: String)
+
+# NOVA routes
+
+GET        /nova/forms                                              uk.gov.hmrc.formpproxy.nova.controllers.NovaFormsController.getForms(userId: String, formType: Option[String], formStatus: Option[String])
+GET        /nova/forms/:formId                                      uk.gov.hmrc.formpproxy.nova.controllers.NovaFormsController.getForm(formId: Long)
+POST       /nova/forms                                              uk.gov.hmrc.formpproxy.nova.controllers.NovaFormsController.createForm()
+PUT        /nova/forms/:formId                                      uk.gov.hmrc.formpproxy.nova.controllers.NovaFormsController.updateForm(formId: Long)
+PUT        /nova/forms/:formId/status                               uk.gov.hmrc.formpproxy.nova.controllers.NovaFormsController.updateFormStatus(formId: Long)
+DELETE     /nova/forms/:formId                                      uk.gov.hmrc.formpproxy.nova.controllers.NovaFormsController.deleteForm(formId: Long)
+POST       /nova/forms/:formId/notification-refs                     uk.gov.hmrc.formpproxy.nova.controllers.NovaFormDataController.getNovaNotificationRef(formId: Long)
+GET        /nova/forms/:formId/data                                  uk.gov.hmrc.formpproxy.nova.controllers.NovaFormDataController.getFormData(formId: Long, formDataIds: Seq[String])
+PUT        /nova/forms/:formId/data/:formDataId                      uk.gov.hmrc.formpproxy.nova.controllers.NovaFormDataController.storeFormData(formId: Long, formDataId: String)
