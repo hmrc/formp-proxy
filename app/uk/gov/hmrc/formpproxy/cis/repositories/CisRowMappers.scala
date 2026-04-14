@@ -161,7 +161,7 @@ object CisRowMappers {
       prePopSuccessful = rs.getOptionalString("pre_pop_successful"),
       subcontractorCounter = rs.getOptionalInt("subcontractor_counter"),
       verificationBatchCounter = rs.getOptionalInt("verif_batch_counter"),
-      createdDate = rs.getOptionalInstant("create_date"),
+      createDate = rs.getOptionalInstant("create_date"),
       lastUpdate = rs.getOptionalInstant("last_update"),
       version = rs.getOptionalInt("version")
     )
