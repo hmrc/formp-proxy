@@ -83,6 +83,22 @@ object CisRowMappers {
   def collectVerifications(rs: ResultSet): Seq[Verification] =
     collectVerifications(rs, Nil)
 
+  def collectSubmissionsForGetVerificationBatch(rs: ResultSet): Seq[Submission] =
+    collectSubmissionsForGetVerificationBatch(rs, Nil)
+
+  def collectMonthlyReturnsForGetVerificationBatch(rs: ResultSet): Seq[MonthlyReturn] =
+    collectMonthlyReturnsForGetVerificationBatch(rs, Nil)
+
+  @tailrec
+  private def collectMonthlyReturnsForGetVerificationBatch(rs: ResultSet, acc: Seq[MonthlyReturn]): Seq[MonthlyReturn] =
+    if (rs == null || !rs.next()) acc
+    else collectMonthlyReturnsForGetVerificationBatch(rs, acc :+ readMonthlyReturnForGetVerificationBatch(rs))
+
+  @tailrec
+  private def collectSubmissionsForGetVerificationBatch(rs: ResultSet, acc: Seq[Submission]): Seq[Submission] =
+    if (rs == null || !rs.next()) acc
+    else collectSubmissionsForGetVerificationBatch(rs, acc :+ readSubmissionForGetVerificationBatch(rs))
+
   @tailrec
   private def collectVerificationBatches(rs: ResultSet, acc: Seq[VerificationBatch]): Seq[VerificationBatch] =
     if (rs == null || !rs.next()) acc
@@ -146,6 +162,23 @@ object CisRowMappers {
       supersededBy = rs.getOptionalLong("superseded_by")
     )
 
+  def readMonthlyReturnForGetVerificationBatch(rs: ResultSet): MonthlyReturn =
+    MonthlyReturn(
+      monthlyReturnId = rs.getLong("monthly_return_id"),
+      taxYear = rs.getInt("tax_year"),
+      taxMonth = rs.getInt("tax_month"),
+      nilReturnIndicator = rs.getOptionalString("nil_return_indicator"),
+      decEmpStatusConsidered = rs.getOptionalString("dec_emp_status_considered"),
+      decAllSubsVerified = rs.getOptionalString("dec_all_subs_verified"),
+      decInformationCorrect = rs.getOptionalString("dec_information_correct"),
+      decNoMoreSubPayments = rs.getOptionalString("dec_no_more_sub_payments"),
+      decNilReturnNoPayments = rs.getOptionalString("dec_nil_return_no_payments"),
+      status = rs.getOptionalString("status"),
+      lastUpdate = rs.getOptionalLocalDateTime("last_update"),
+      amendment = None,
+      supersededBy = None
+    )
+
   def readContractorScheme(rs: ResultSet): ContractorScheme =
     ContractorScheme(
       schemeId = rs.getInt("scheme_id"),
@@ -195,6 +228,27 @@ object CisRowMappers {
       schemeId = rs.getLong("scheme_id"),
       agentId = Option(rs.getString("agent_id")),
       l_Migrated = rs.getOptionalLong("l_migrated"),
+      submissionRequestDate = rs.getOptionalLocalDateTime("submission_request_date"),
+      govTalkErrorCode = Option(rs.getString("govtalk_error_code")),
+      govTalkErrorType = Option(rs.getString("govtalk_error_type")),
+      govTalkErrorMessage = Option(rs.getString("govtalk_error_message"))
+    )
+
+  def readSubmissionForGetVerificationBatch(rs: ResultSet): Submission =
+    Submission(
+      submissionId = rs.getLong("submission_id"),
+      submissionType = rs.getString("submission_type"),
+      activeObjectId = rs.getOptionalLong("active_object_id"),
+      status = Option(rs.getString("status")),
+      hmrcMarkGenerated = Option(rs.getString("hmrc_mark_generated")),
+      hmrcMarkGgis = Option(rs.getString("hmrc_mark_ggis")),
+      emailRecipient = Option(rs.getString("email_recipient")),
+      acceptedTime = Option(rs.getString("accepted_time")),
+      createDate = rs.getOptionalLocalDateTime("create_date"),
+      lastUpdate = rs.getOptionalLocalDateTime("last_update"),
+      schemeId = rs.getLong("scheme_id"),
+      agentId = Option(rs.getString("agent_id")),
+      l_Migrated = None,
       submissionRequestDate = rs.getOptionalLocalDateTime("submission_request_date"),
       govTalkErrorCode = Option(rs.getString("govtalk_error_code")),
       govTalkErrorType = Option(rs.getString("govtalk_error_type")),

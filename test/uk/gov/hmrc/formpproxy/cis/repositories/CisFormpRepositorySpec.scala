@@ -2162,7 +2162,6 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsSubmission.getTimestamp("last_update")).thenReturn(Timestamp.valueOf("2026-04-03 09:30:00"))
       when(rsSubmission.getLong("scheme_id")).thenReturn(999L)
       when(rsSubmission.getString("agent_id")).thenReturn(null)
-      when(rsSubmission.getLong("l_migrated")).thenReturn(0L);
       when(rsSubmission.wasNull()).thenReturn(true)
       when(rsSubmission.getTimestamp("submission_request_date")).thenReturn(Timestamp.valueOf("2026-04-03 08:00:00"))
       when(rsSubmission.getString("govtalk_error_code")).thenReturn(null)
@@ -2181,8 +2180,6 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsMonthlyReturn.getString("dec_nil_return_no_payments")).thenReturn(null)
       when(rsMonthlyReturn.getString("status")).thenReturn("STARTED")
       when(rsMonthlyReturn.getTimestamp("last_update")).thenReturn(Timestamp.valueOf("2026-04-01 12:00:00"))
-      when(rsMonthlyReturn.getString("amendment")).thenReturn(null)
-      when(rsMonthlyReturn.getLong("superseded_by")).thenReturn(0L);
       when(rsMonthlyReturn.wasNull()).thenReturn(true)
 
       when(rsMrSubmission.next()).thenReturn(true, false)
@@ -2203,7 +2200,6 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsMrSubmission.getString("govtalk_error_code")).thenReturn(null)
       when(rsMrSubmission.getString("govtalk_error_type")).thenReturn(null)
       when(rsMrSubmission.getString("govtalk_error_message")).thenReturn(null)
-      when(rsMrSubmission.getLong("l_migrated")).thenReturn(0L);
       when(rsMrSubmission.wasNull()).thenReturn(true)
 
       val repo = new CisFormpRepository(db)
