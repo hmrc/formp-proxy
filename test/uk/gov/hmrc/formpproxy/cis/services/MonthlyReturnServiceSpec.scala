@@ -110,7 +110,7 @@ final class MonthlyReturnServiceSpec extends SpecBase {
 
       when(repo.createNilMonthlyReturn(eqTo(request))).thenReturn(Future.successful(res))
 
-      val out = service.createNilMonthlyReturn(request).futureValue
+      val out: CreateNilMonthlyReturnResponse = service.createNilMonthlyReturn(request).futureValue
       out mustBe res
 
       verify(repo).createNilMonthlyReturn(eqTo(request))
@@ -280,7 +280,7 @@ final class MonthlyReturnServiceSpec extends SpecBase {
       when(repo.getSchemeEmail(eqTo(id)))
         .thenReturn(Future.successful(payload))
 
-      val out = service.getSchemeEmail(id).futureValue
+      val out: Option[String] = service.getSchemeEmail(id).futureValue
 
       out mustBe payload
 
@@ -298,6 +298,88 @@ final class MonthlyReturnServiceSpec extends SpecBase {
       ex mustBe boom
 
       verify(repo).getSchemeEmail(eqTo(id))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "MonthlyReturnService getMonthlyReturnForEdit" - {
+
+    "returns wrapper when repository returns MonthlyReturnsForEdit (happy path)" in {
+      val c = Ctx()
+
+      val request = GetMonthlyReturnForEditRequest("abc-123", 2025, 1)
+
+      val payload = GetMonthlyReturnForEditResponse(
+        scheme = Seq.empty,
+        monthlyReturn = Seq.empty,
+        subcontractors = Seq.empty,
+        monthlyReturnItems = Seq.empty,
+        submission = Seq.empty
+      )
+      when(c.repo.getMonthlyReturnForEdit(eqTo(request.instanceId), eqTo(request.taxYear), eqTo(request.taxMonth)))
+        .thenReturn(Future.successful(payload))
+
+      val out = c.service.getMonthlyReturnForEdit(request).futureValue
+      out mustBe payload
+
+      verify(c.repo).getMonthlyReturnForEdit(eqTo(request.instanceId), eqTo(request.taxYear), eqTo(request.taxMonth))
+      verifyNoMoreInteractions(c.repo)
+    }
+
+    "propagates failures from the repository" in {
+      val c    = Ctx()
+      val boom = new RuntimeException("formp failed")
+
+      val request = GetMonthlyReturnForEditRequest("abc-123", 2025, 1)
+
+      when(c.repo.getMonthlyReturnForEdit(eqTo(request.instanceId), eqTo(request.taxYear), eqTo(request.taxMonth)))
+        .thenReturn(Future.failed(boom))
+
+      val ex = c.service.getMonthlyReturnForEdit(request).failed.futureValue
+      ex mustBe boom
+
+      verify(c.repo).getMonthlyReturnForEdit(eqTo(request.instanceId), eqTo(request.taxYear), eqTo(request.taxMonth))
+      verifyNoMoreInteractions(c.repo)
+    }
+  }
+
+  "MonthlyReturnService syncMonthlyReturnItems" - {
+
+    "delegates to repo (happy path)" in new Ctx {
+      val request = SyncMonthlyReturnItemsRequest(
+        instanceId = id,
+        taxYear = 2025,
+        taxMonth = 2,
+        amendment = "Y",
+        createResourceReferences = Seq.empty,
+        deleteResourceReferences = Seq.empty
+      )
+
+      when(repo.syncMonthlyReturnItems(eqTo(request))).thenReturn(Future.successful(()))
+
+      service.syncMonthlyReturnItems(request).futureValue
+
+      verify(repo).syncMonthlyReturnItems(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failures from the repository" in new Ctx {
+      val request = SyncMonthlyReturnItemsRequest(
+        instanceId = id,
+        taxYear = 2025,
+        taxMonth = 2,
+        amendment = "Y",
+        createResourceReferences = Seq.empty,
+        deleteResourceReferences = Seq.empty
+      )
+      val boom    = new RuntimeException("db failed")
+
+      when(repo.syncMonthlyReturnItems(eqTo(request))).thenReturn(Future.failed(boom))
+
+      val ex = service.syncMonthlyReturnItems(request).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).syncMonthlyReturnItems(eqTo(request))
       verifyNoMoreInteractions(repo)
     }
   }
