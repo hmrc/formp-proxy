@@ -89,3 +89,5 @@ DELETE     /nova/forms/:formId                                      uk.gov.hmrc.
 POST       /nova/forms/:formId/notification-refs                     uk.gov.hmrc.formpproxy.nova.controllers.NovaFormDataController.getNovaNotificationRef(formId: Long)
 GET        /nova/forms/:formId/data                                  uk.gov.hmrc.formpproxy.nova.controllers.NovaFormDataController.getFormData(formId: Long, formDataIds: Seq[String])
 PUT        /nova/forms/:formId/data/:formDataId                      uk.gov.hmrc.formpproxy.nova.controllers.NovaFormDataController.storeFormData(formId: Long, formDataId: String)
+
+GET        /cis/verification-batch/newest/:instanceId               uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.getNewestVerificationBatch(instanceId: String)

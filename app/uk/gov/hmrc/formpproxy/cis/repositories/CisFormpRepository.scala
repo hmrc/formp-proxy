@@ -60,6 +60,7 @@ trait CisMonthlyReturnSource {
   def updateGovTalkStatus(req: UpdateGovTalkStatusRequest): Future[Unit]
   def updateGovTalkStatusStatistics(req: UpdateGovTalkStatusStatisticsRequest): Future[Unit]
   def createGovTalkStatusRecord(req: CreateGovTalkStatusRecordRequest): Future[Unit]
+  def getNewestVerificationBatch(instanceId: String): Future[GetNewestVerificationBatchResponse]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -950,5 +951,44 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       while (rs.next()) b += readSubcontractor(rs)
       b.result()
     }
+
+  override def getNewestVerificationBatch(instanceId: String): Future[GetNewestVerificationBatchResponse] = {
+    logger.info(s"[CIS] getNewestVerificationBatch(instanceId=$instanceId)")
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallGetNewestVerificationBatch) { cs =>
+          cs.setString(1, instanceId)
+
+          cs.registerOutParameter(2, OracleTypes.CURSOR) // scheme
+          cs.registerOutParameter(3, OracleTypes.CURSOR) // subcontractors
+          cs.registerOutParameter(4, OracleTypes.CURSOR) // verification_batch
+          cs.registerOutParameter(5, OracleTypes.CURSOR) // verifications
+          cs.registerOutParameter(6, OracleTypes.CURSOR) // ubmission
+          cs.registerOutParameter(7, OracleTypes.CURSOR) // monthly_return
+          cs.registerOutParameter(8, OracleTypes.CURSOR) // mr_submission
+
+          cs.execute()
+
+          val scheme            = withCursor(cs, 2)(collectSchemes)
+          val subcontractors    = withCursor(cs, 3)(collectSubcontractors)
+          val verificationBatch = withCursor(cs, 4)(collectVerificationBatches)
+          val verifications     = withCursor(cs, 5)(collectVerifications)
+          val submission        = withCursor(cs, 6)(collectSubmissionsForGetVerificationBatch)
+          val monthlyReturn     = withCursor(cs, 7)(collectMonthlyReturnsForGetVerificationBatch)
+          val mrSubmission      = withCursor(cs, 8)(collectSubmissionsForGetVerificationBatch)
+
+          GetNewestVerificationBatchResponse(
+            scheme = scheme,
+            subcontractors = subcontractors,
+            verificationBatch = verificationBatch,
+            verifications = verifications,
+            submission = submission,
+            monthlyReturn = monthlyReturn,
+            monthlyReturnSubmission = mrSubmission
+          )
+        }
+      }
+    }
+  }
 
 }
