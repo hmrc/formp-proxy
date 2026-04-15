@@ -653,6 +653,50 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
     }
   }
 
+  "retrieveSubmittedMonthlyReturns" - {
+
+    "returns 200 with json payload when service succeeds" in new Setup {
+      val requestBody = GetSubmittedMonthlyReturnsRequest("abc-123", 2025, 1, "Y")
+
+      val payload = GetSubmittedMonthlyReturnsResponse(
+        scheme = ContractorScheme(
+          schemeId = 100,
+          instanceId = "abc-123",
+          accountsOfficeReference = "accountsOfficeReference",
+          taxOfficeNumber = "taxOfficeNumber",
+          taxOfficeReference = "taxOfficeReference"
+        ),
+        monthlyReturn = Seq.empty,
+        monthlyReturnItems = Seq.empty,
+        submission = Seq.empty
+      )
+
+      when(mockService.getSubmittedMonthlyReturns(eqTo(requestBody)))
+        .thenReturn(Future.successful(payload))
+
+      val request: FakeRequest[JsValue] = makeJsonRequest(Json.toJson(requestBody))
+      val result: Future[Result]        = controller.retrieveSubmittedMonthlyReturns(request)
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe Json.toJson(payload)
+      verify(mockService).getSubmittedMonthlyReturns(eqTo(requestBody))
+    }
+
+    "returns 500 with Unexpected error when service fails with NonFatal" in new Setup {
+      val requestBody = GetSubmittedMonthlyReturnsRequest("abc-123", 2025, 1, "Y")
+
+      when(mockService.getSubmittedMonthlyReturns(eqTo(requestBody)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val request: FakeRequest[JsValue] = makeJsonRequest(Json.toJson(requestBody))
+      val result: Future[Result]        = controller.retrieveSubmittedMonthlyReturns(request)
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
+      verify(mockService).getSubmittedMonthlyReturns(eqTo(requestBody))
+    }
+  }
+
   private trait Setup {
     implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.global
     private val cc: ControllerComponents = stubControllerComponents()

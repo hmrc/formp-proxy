@@ -20,8 +20,9 @@ import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
-import uk.gov.hmrc.formpproxy.cis.models.{UnsubmittedMonthlyReturns, UserMonthlyReturns}
+import uk.gov.hmrc.formpproxy.cis.models.UserMonthlyReturns
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
+import uk.gov.hmrc.formpproxy.cis.models.response.GetSubmittedMonthlyReturnsResponse
 import uk.gov.hmrc.formpproxy.cis.services.MonthlyReturnService
 import uk.gov.hmrc.formpproxy.cis.utils.JsResultUtils.*
 import uk.gov.hmrc.http.UpstreamErrorResponse
@@ -171,4 +172,18 @@ class MonthlyReturnController @Inject() (
         }
     }
 
+  def retrieveSubmittedMonthlyReturns: Action[JsValue] =
+    authorise.async(parse.json) { implicit request =>
+      request.body
+        .validate[GetSubmittedMonthlyReturnsRequest]
+        .foldErrorsIntoBadRequest { request =>
+          service
+            .getSubmittedMonthlyReturns(request)
+            .map(payload => Ok(Json.toJson(payload)))
+            .recover { case NonFatal(e) =>
+              logger.error("[retrieveSubmittedMonthlyReturns] failed", e)
+              InternalServerError(Json.obj("message" -> "Unexpected error"))
+            }
+        }
+    }
 }

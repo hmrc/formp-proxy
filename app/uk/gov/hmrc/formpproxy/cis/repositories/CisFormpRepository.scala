@@ -60,6 +60,7 @@ trait CisMonthlyReturnSource {
   def updateGovTalkStatus(req: UpdateGovTalkStatusRequest): Future[Unit]
   def updateGovTalkStatusStatistics(req: UpdateGovTalkStatusStatisticsRequest): Future[Unit]
   def createGovTalkStatusRecord(req: CreateGovTalkStatusRecordRequest): Future[Unit]
+  def getSubmittedMonthlyReturns(request: GetSubmittedMonthlyReturnsRequest): Future[GetSubmittedMonthlyReturnsResponse]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -254,6 +255,36 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         callUpdateSchemeVersion(conn, request.instanceId, schemeVersionBefore)
       }
     }
+
+  override def getSubmittedMonthlyReturns(
+    request: GetSubmittedMonthlyReturnsRequest
+  ): Future[GetSubmittedMonthlyReturnsResponse] = {
+    logger.info(
+      s"[CIS] getSubmittedMonthlyReturns(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
+    )
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallGetSubmittedMonthlyReturns) { cs =>
+          cs.setString(1, request.instanceId)
+          cs.setInt(2, request.taxYear)
+          cs.setInt(3, request.taxMonth)
+          cs.setString(4, request.amendment)
+          cs.registerOutParameter(5, OracleTypes.CURSOR)
+          cs.registerOutParameter(6, OracleTypes.CURSOR)
+          cs.registerOutParameter(7, OracleTypes.CURSOR)
+          cs.registerOutParameter(8, OracleTypes.CURSOR)
+          cs.execute()
+
+          val monthlyReturn      = withCursor(cs, 5)(collectMonthlyReturns)
+          val monthlyReturnItems = withCursor(cs, 6)(collectMonthlyReturnItems)
+          val scheme             = withCursor(cs, 7)(rs => readSingleSchemeRow(rs, request.instanceId))
+          val submission         = withCursor(cs, 8)(collectSubmissions)
+
+          GetSubmittedMonthlyReturnsResponse(scheme, monthlyReturn, monthlyReturnItems, submission)
+        }
+      }
+    }
+  }
 
   // Scheme
 
