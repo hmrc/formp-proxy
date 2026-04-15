@@ -257,6 +257,36 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
 
+  override def getSubmittedMonthlyReturns(
+    request: GetSubmittedMonthlyReturnsRequest
+  ): Future[GetSubmittedMonthlyReturnsResponse] = {
+    logger.info(
+      s"[CIS] getSubmittedMonthlyReturns(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
+    )
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallGetSubmittedMonthlyReturns) { cs =>
+          cs.setString(1, request.instanceId)
+          cs.setInt(2, request.taxYear)
+          cs.setInt(3, request.taxMonth)
+          cs.setString(4, request.amendment)
+          cs.registerOutParameter(5, OracleTypes.CURSOR)
+          cs.registerOutParameter(6, OracleTypes.CURSOR)
+          cs.registerOutParameter(7, OracleTypes.CURSOR)
+          cs.registerOutParameter(8, OracleTypes.CURSOR)
+          cs.execute()
+
+          val monthlyReturn      = withCursor(cs, 5)(collectMonthlyReturns)
+          val monthlyReturnItems = withCursor(cs, 6)(collectMonthlyReturnItems)
+          val scheme             = withCursor(cs, 7)(rs => readSingleSchemeRow(rs, request.instanceId))
+          val submission         = withCursor(cs, 8)(collectSubmissions)
+
+          GetSubmittedMonthlyReturnsResponse(scheme, monthlyReturn, monthlyReturnItems, submission)
+        }
+      }
+    }
+  }
+
   // Scheme
 
   override def getScheme(instanceId: String): Future[Option[ContractorScheme]] =
@@ -952,5 +982,44 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       while (rs.next()) b += readSubcontractor(rs)
       b.result()
     }
+
+  override def getNewestVerificationBatch(instanceId: String): Future[GetNewestVerificationBatchResponse] = {
+    logger.info(s"[CIS] getNewestVerificationBatch(instanceId=$instanceId)")
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallGetNewestVerificationBatch) { cs =>
+          cs.setString(1, instanceId)
+
+          cs.registerOutParameter(2, OracleTypes.CURSOR) // scheme
+          cs.registerOutParameter(3, OracleTypes.CURSOR) // subcontractors
+          cs.registerOutParameter(4, OracleTypes.CURSOR) // verification_batch
+          cs.registerOutParameter(5, OracleTypes.CURSOR) // verifications
+          cs.registerOutParameter(6, OracleTypes.CURSOR) // ubmission
+          cs.registerOutParameter(7, OracleTypes.CURSOR) // monthly_return
+          cs.registerOutParameter(8, OracleTypes.CURSOR) // mr_submission
+
+          cs.execute()
+
+          val scheme            = withCursor(cs, 2)(collectSchemes)
+          val subcontractors    = withCursor(cs, 3)(collectSubcontractors)
+          val verificationBatch = withCursor(cs, 4)(collectVerificationBatches)
+          val verifications     = withCursor(cs, 5)(collectVerifications)
+          val submission        = withCursor(cs, 6)(collectSubmissionsForGetVerificationBatch)
+          val monthlyReturn     = withCursor(cs, 7)(collectMonthlyReturnsForGetVerificationBatch)
+          val mrSubmission      = withCursor(cs, 8)(collectSubmissionsForGetVerificationBatch)
+
+          GetNewestVerificationBatchResponse(
+            scheme = scheme,
+            subcontractors = subcontractors,
+            verificationBatch = verificationBatch,
+            verifications = verifications,
+            submission = submission,
+            monthlyReturn = monthlyReturn,
+            monthlyReturnSubmission = mrSubmission
+          )
+        }
+      }
+    }
+  }
 
 }
