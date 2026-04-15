@@ -231,7 +231,7 @@ class SubcontractorControllerSpec extends SpecBase {
             addressLine3 = None,
             addressLine4 = None,
             country = Some("United Kingdom"),
-            postCode = Some("AA1 1AA"),
+            postcode = Some("AA1 1AA"),
             emailAddress = None,
             phoneNumber = None,
             mobilePhoneNumber = None,

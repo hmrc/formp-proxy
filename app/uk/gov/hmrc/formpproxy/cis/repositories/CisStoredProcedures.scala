@@ -52,4 +52,6 @@ object CisStoredProcedures {
     "{ call SUBMISSION_ADMIN.UpdateGovtalkStatistics(?, ?, ?, ?, ?, ?) }"
   val CallCreateGovTalkStatus                 =
     "{ call SUBMISSION_ADMIN.InsertInitialGovTalkStatus(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+  val CallGetNewestVerificationBatch          =
+    "{ call VERIFICATION_PROCS.GET_NEWEST_VERIFICATION_BATCH(?, ?, ?, ?, ?, ?, ?, ?) }"
 }
