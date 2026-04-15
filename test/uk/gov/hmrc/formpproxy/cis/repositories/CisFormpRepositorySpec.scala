@@ -2300,4 +2300,51 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(cs).close()
     }
   }
+
+  "getSubmittedMonthlyReturns" - {
+
+    "calls MONTHLY_RETURN_PROCS_2016.GET_SUB_MONTHLY_RETURN_DATA and returns list of instance IDs" in {
+      val db   = mock[Database]
+      val conn = mock[java.sql.Connection]
+      val cs   = mock[CallableStatement]
+
+      val rsMonthlyReturn = mock[ResultSet]
+      val rsItems         = mock[ResultSet]
+      val rsScheme        = mock[ResultSet]
+      val rsSubmission    = mock[ResultSet]
+
+      val request = GetSubmittedMonthlyReturnsRequest("abc-123", 2025, 2, "Y")
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.GET_SUB_MONTHLY_RETURN_DATA(?, ?, ?, ?, ?, ?, ? ,?) }"))
+        .thenReturn(cs)
+      when(cs.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsMonthlyReturn)
+      when(cs.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsItems)
+      when(cs.getObject(eqTo(7), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+      when(cs.getObject(eqTo(8), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+
+      when(rsScheme.next()).thenReturn(true, false)
+      when(rsScheme.getString("instance_id")).thenReturn("abc-123")
+      when(rsScheme.getString("aoref")).thenReturn("123pa132456789")
+      when(rsScheme.getString("tax_office_number")).thenReturn("123")
+      when(rsScheme.getString("tax_office_reference")).thenReturn("AB456")
+
+      when(rsMonthlyReturn.next()).thenReturn(true, false)
+      when(rsMonthlyReturn.getString("tax_year")).thenReturn("2025")
+      when(rsMonthlyReturn.getString("tax_month")).thenReturn("2")
+      when(rsMonthlyReturn.getString("nil_return_indicator")).thenReturn("Y")
+      when(rsMonthlyReturn.getString("status")).thenReturn("PENDING")
+      when(rsMonthlyReturn.getTimestamp("last_update")).thenReturn(Timestamp.valueOf("2025-01-31 12:34:56"))
+
+      val repo   = new CisFormpRepository(db)
+      val result = repo.getSubmittedMonthlyReturns(request).futureValue
+
+      result.scheme.instanceId mustBe "abc-123"
+      result.monthlyReturn must have size 1
+      result.monthlyReturn.head.nilReturnIndicator mustBe Some("Y")
+      result.monthlyReturn.head.status mustBe Some("PENDING")
+    }
+  }
 }
