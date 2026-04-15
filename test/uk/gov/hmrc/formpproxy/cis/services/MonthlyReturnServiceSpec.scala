@@ -22,7 +22,7 @@ import org.scalatest.freespec.AnyFreeSpec
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
-import uk.gov.hmrc.formpproxy.cis.models.{MonthlyReturn, UserMonthlyReturns}
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, UnsubmittedMonthlyReturns, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
 import java.time.LocalDateTime
@@ -237,6 +237,71 @@ final class MonthlyReturnServiceSpec extends SpecBase {
     }
   }
 
+  "MonthlyReturnService createMonthlyReturn" - {
+
+    "delegates to repo and create return (happy path)" in new Ctx {
+      val request = CreateMonthlyReturnRequest(
+        instanceId = id,
+        taxYear = 2025,
+        taxMonth = 2
+      )
+
+      when(repo.createMonthlyReturn(eqTo(request))).thenReturn(Future.successful(()))
+
+      service.createMonthlyReturn(request).futureValue
+
+      verify(repo).createMonthlyReturn(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failures from the repository" in new Ctx {
+      val request = CreateMonthlyReturnRequest(
+        instanceId = id,
+        taxYear = 2025,
+        taxMonth = 2
+      )
+      val boom    = new RuntimeException("db failed")
+
+      when(repo.createMonthlyReturn(eqTo(request))).thenReturn(Future.failed(boom))
+
+      val ex: Throwable = service.createMonthlyReturn(request).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).createMonthlyReturn(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "MonthlyReturnService getSchemeEmail" - {
+
+    "delegates to repo and returns email (happy path)" in new Ctx {
+      val payload = Some("test@test.com")
+
+      when(repo.getSchemeEmail(eqTo(id)))
+        .thenReturn(Future.successful(payload))
+
+      val out = service.getSchemeEmail(id).futureValue
+
+      out mustBe payload
+
+      verify(repo).getSchemeEmail(eqTo(id))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failures from the repository" in new Ctx {
+      val payload = Some("test@test.com")
+      val boom    = new RuntimeException("db failed")
+
+      when(repo.getSchemeEmail(eqTo(id))).thenReturn(Future.failed(boom))
+
+      val ex: Throwable = service.getSchemeEmail(id).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).getSchemeEmail(eqTo(id))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
   "MonthlyReturnService deleteMonthlyReturnItem" - {
 
     "delegates to repo (happy path)" in new Ctx {
@@ -274,6 +339,93 @@ final class MonthlyReturnServiceSpec extends SpecBase {
 
       verify(repo).deleteMonthlyReturnItem(eqTo(request))
       verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "MonthlyReturnService getUnsubmittedMonthlyReturns" - {
+
+    "returns wrapper when repository returns UnsubmittedMonthlyReturns (happy path)" in {
+      val c = Ctx()
+
+      val payload = UnsubmittedMonthlyReturns(
+        scheme = ContractorScheme(
+          schemeId = 100,
+          instanceId = "abc-123",
+          accountsOfficeReference = "accountsOfficeReference",
+          taxOfficeNumber = "taxOfficeNumber",
+          taxOfficeReference = "taxOfficeReference"
+        ),
+        monthlyReturn = Seq.empty
+      )
+
+      when(c.repo.getUnsubmittedMonthlyReturns(eqTo(c.id)))
+        .thenReturn(Future.successful(payload))
+
+      val out = c.service.getUnsubmittedMonthlyReturns(c.id).futureValue
+      out mustBe payload
+
+      verify(c.repo).getUnsubmittedMonthlyReturns(eqTo(c.id))
+      verifyNoMoreInteractions(c.repo)
+    }
+
+    "propagates failures from the repository" in {
+      val c    = Ctx()
+      val boom = new RuntimeException("formp failed")
+
+      when(c.repo.getUnsubmittedMonthlyReturns(eqTo(c.id)))
+        .thenReturn(Future.failed(boom))
+
+      val ex = c.service.getUnsubmittedMonthlyReturns(c.id).failed.futureValue
+      ex mustBe boom
+
+      verify(c.repo).getUnsubmittedMonthlyReturns(eqTo(c.id))
+      verifyNoMoreInteractions(c.repo)
+    }
+  }
+
+  "MonthlyReturnService getSubmittedMonthlyReturns" - {
+
+    "returns wrapper when repository returns SubmittedMonthlyReturns (happy path)" in {
+      val c       = Ctx()
+      val request = GetSubmittedMonthlyReturnsRequest("abc-123", 2025, 1, "Y")
+
+      val payload = GetSubmittedMonthlyReturnsResponse(
+        scheme = ContractorScheme(
+          schemeId = 100,
+          instanceId = "abc-123",
+          accountsOfficeReference = "accountsOfficeReference",
+          taxOfficeNumber = "taxOfficeNumber",
+          taxOfficeReference = "taxOfficeReference"
+        ),
+        monthlyReturn = Seq.empty,
+        monthlyReturnItems = Seq.empty,
+        submission = Seq.empty
+      )
+
+      when(c.repo.getSubmittedMonthlyReturns(eqTo(request)))
+        .thenReturn(Future.successful(payload))
+
+      val out = c.service.getSubmittedMonthlyReturns(request).futureValue
+      out mustBe payload
+
+      verify(c.repo).getSubmittedMonthlyReturns(eqTo(request))
+      verifyNoMoreInteractions(c.repo)
+    }
+
+    "propagates failures from the repository" in {
+      val c    = Ctx()
+      val boom = new RuntimeException("formp failed")
+
+      val request = GetSubmittedMonthlyReturnsRequest("abc-123", 2025, 1, "Y")
+
+      when(c.repo.getSubmittedMonthlyReturns(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      val ex = c.service.getSubmittedMonthlyReturns(request).failed.futureValue
+      ex mustBe boom
+
+      verify(c.repo).getSubmittedMonthlyReturns(eqTo(request))
+      verifyNoMoreInteractions(c.repo)
     }
   }
 }

@@ -653,7 +653,7 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
     }
   }
 
-  "retrieveSubmittedMonthlyReturns" - {
+  "MonthlyReturnController retrieveSubmittedMonthlyReturns" - {
 
     "returns 200 with json payload when service succeeds" in new Setup {
       val requestBody = GetSubmittedMonthlyReturnsRequest("abc-123", 2025, 1, "Y")

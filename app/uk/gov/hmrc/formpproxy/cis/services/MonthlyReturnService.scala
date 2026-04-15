@@ -20,6 +20,7 @@ import uk.gov.hmrc.formpproxy.cis.models.{UnsubmittedMonthlyReturns, UserMonthly
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
+import uk.gov.hmrc.formpproxy.cis.utils.MonthlyReturnStatusUtils.mapStatus
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -37,17 +38,6 @@ class MonthlyReturnService @Inject() (repo: CisMonthlyReturnSource)(implicit ec:
           monthlyReturn.copy(status = Some(mapStatus(monthlyReturn.status)))
         }
       )
-    }
-
-  private def mapStatus(raw: Option[String]): String =
-    raw.map(_.trim.toUpperCase) match {
-      case Some("STARTED")            => "STARTED"
-      case Some("VALIDATED")          => "VALIDATED"
-      case Some("PENDING")            => "PENDING"
-      case Some("ACCEPTED")           => "PENDING"
-      case Some("DEPARTMENTAL_ERROR") => "REJECTED"
-      case Some("FATAL_ERROR")        => "REJECTED"
-      case _                          => "STARTED"
     }
 
   def createNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[CreateNilMonthlyReturnResponse] =
