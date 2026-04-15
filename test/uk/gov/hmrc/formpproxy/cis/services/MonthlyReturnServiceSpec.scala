@@ -437,7 +437,8 @@ final class MonthlyReturnServiceSpec extends SpecBase {
           taxOfficeNumber = "taxOfficeNumber",
           taxOfficeReference = "taxOfficeReference"
         ),
-        monthlyReturn = Seq.empty
+        monthlyReturn =
+          Seq(MonthlyReturn(100L, 2025, 1, None, None, None, None, None, None, Some("STARTED"), None, None, None))
       )
 
       when(c.repo.getUnsubmittedMonthlyReturns(eqTo(c.id)))
@@ -479,7 +480,8 @@ final class MonthlyReturnServiceSpec extends SpecBase {
           taxOfficeNumber = "taxOfficeNumber",
           taxOfficeReference = "taxOfficeReference"
         ),
-        monthlyReturn = Seq.empty,
+        monthlyReturn =
+          Seq(MonthlyReturn(100L, 2025, 1, None, None, None, None, None, None, Some("STARTED"), None, None, None)),
         monthlyReturnItems = Seq.empty,
         submission = Seq.empty
       )
