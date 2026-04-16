@@ -61,6 +61,7 @@ trait CisMonthlyReturnSource {
   def updateGovTalkStatusStatistics(req: UpdateGovTalkStatusStatisticsRequest): Future[Unit]
   def createGovTalkStatusRecord(req: CreateGovTalkStatusRecordRequest): Future[Unit]
   def getNewestVerificationBatch(instanceId: String): Future[GetNewestVerificationBatchResponse]
+  def deleteUnsubmittedMonthlyReturn(req: DeleteUnsubmittedMonthlyReturnRequest): Future[Unit]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -579,6 +580,22 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
   }
+
+  override def deleteUnsubmittedMonthlyReturn(request: DeleteUnsubmittedMonthlyReturnRequest): Future[Unit] =
+    logger.info(
+      s"[CIS] deleteUnsubmittedMonthlyReturn(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
+    )
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallUnsubmittedMonthlyReturn) { cs =>
+          cs.setString(1, request.instanceId)
+          cs.setInt(2, request.taxYear)
+          cs.setInt(3, request.taxMonth)
+          cs.setString(4, request.amendment)
+          cs.execute()
+        }
+      }
+    }
 
   // private helpers
   private def callCreateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit =

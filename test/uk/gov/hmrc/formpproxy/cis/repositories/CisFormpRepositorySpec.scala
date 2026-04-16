@@ -2300,4 +2300,43 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(cs).close()
     }
   }
+
+  "deleteUnsubmittedMonthlyReturn" - {
+
+    "call MONTHLY_RETURN_PROCS_2016.DELETE_MONTHLY_RETURN with correct parameters and execute" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      val call =
+        "{ call MONTHLY_RETURN_PROCS_2016.DELETE_MONTHLY_RETURN(?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+
+      val repo = new CisFormpRepository(db)
+
+      val request = DeleteUnsubmittedMonthlyReturnRequest(
+        instanceId = "1",
+        taxYear = 2026,
+        taxMonth = 4,
+        amendment = "Y"
+      )
+
+      repo.deleteUnsubmittedMonthlyReturn(request).futureValue
+
+      verify(conn).prepareCall(eqTo(call))
+
+      verify(cs).setString(1, request.instanceId)
+      verify(cs).setInt(2, request.taxYear)
+      verify(cs).setInt(3, request.taxMonth)
+      verify(cs).setString(4, "Y")
+
+      verify(cs).execute()
+      verify(cs).close()
+    }
+  }
 }
