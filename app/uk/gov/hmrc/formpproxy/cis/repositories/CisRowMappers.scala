@@ -16,12 +16,13 @@
 
 package uk.gov.hmrc.formpproxy.cis.repositories
 
-import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, GovTalkStatusRecord, MonthlyReturn, MonthlyReturnItem, Subcontractor, Submission, Verification, VerificationBatch}
+import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
 
 import java.sql.ResultSet
 import scala.annotation.tailrec
 import java.time.LocalDateTime
+import scala.util.Try
 
 object CisRowMappers {
 
@@ -29,6 +30,9 @@ object CisRowMappers {
 
   def collectMonthlyReturns(rs: ResultSet): Seq[MonthlyReturn] =
     collectMonthlyReturns(rs, Nil)
+
+  def collectSubmittedMonthlyReturns(rs: ResultSet): Seq[SubmittedMonthlyReturn] =
+    collectSubmittedMonthlyReturns(rs, Nil)
 
   def collectSchemes(rs: ResultSet): Seq[ContractorScheme] =
     collectSchemes(rs, Nil)
@@ -51,6 +55,14 @@ object CisRowMappers {
   private def collectMonthlyReturns(rs: ResultSet, acc: Seq[MonthlyReturn]): Seq[MonthlyReturn] =
     if (rs == null || !rs.next()) acc
     else collectMonthlyReturns(rs, acc :+ readMonthlyReturn(rs))
+
+  @tailrec
+  private def collectSubmittedMonthlyReturns(
+    rs: ResultSet,
+    acc: Seq[SubmittedMonthlyReturn]
+  ): Seq[SubmittedMonthlyReturn] =
+    if (rs == null || !rs.next()) acc
+    else collectSubmittedMonthlyReturns(rs, acc :+ readSubmittedMonthlyReturn(rs))
 
   @tailrec
   private def collectSchemes(rs: ResultSet, acc: Seq[ContractorScheme]): Seq[ContractorScheme] =
@@ -162,6 +174,25 @@ object CisRowMappers {
       supersededBy = rs.getOptionalLong("superseded_by")
     )
 
+  def readSubmittedMonthlyReturn(rs: ResultSet): SubmittedMonthlyReturn =
+    SubmittedMonthlyReturn(
+      monthlyReturnId = rs.getLong("monthly_return_id"),
+      taxYear = rs.getInt("tax_year"),
+      taxMonth = rs.getInt("tax_month"),
+      nilReturnIndicator = rs.getOptionalString("nil_return_indicator"),
+      decEmpStatusConsidered = rs.getOptionalString("dec_emp_status_considered"),
+      decAllSubsVerified = rs.getOptionalString("dec_all_subs_verified"),
+      decInformationCorrect = rs.getOptionalString("dec_information_correct"),
+      decNoMoreSubPayments = rs.getOptionalString("dec_no_more_sub_payments"),
+      decNilReturnNoPayments = rs.getOptionalString("dec_nil_return_no_payments"),
+      status = rs.getOptionalString("status"),
+      lastUpdate = rs.getOptionalLocalDateTime("last_update"),
+      amendment = rs.getOptionalString("amendment"),
+      supersededBy = rs.getOptionalLong("superseded_by"),
+      amendmentStatus = rs.getOptionalString("amendment_status"),
+      monthlyReturnItems = rs.getOptionalString("monthly_return_items")
+    )
+
   def readMonthlyReturnForGetVerificationBatch(rs: ResultSet): MonthlyReturn =
     MonthlyReturn(
       monthlyReturnId = rs.getLong("monthly_return_id"),
@@ -227,7 +258,7 @@ object CisRowMappers {
       lastUpdate = rs.getOptionalLocalDateTime("last_update"),
       schemeId = rs.getLong("scheme_id"),
       agentId = Option(rs.getString("agent_id")),
-      l_Migrated = rs.getOptionalLong("l_migrated"),
+      l_Migrated = Try(rs.getOptionalLong("l_migrated")).toOption.flatten,
       submissionRequestDate = rs.getOptionalLocalDateTime("submission_request_date"),
       govTalkErrorCode = Option(rs.getString("govtalk_error_code")),
       govTalkErrorType = Option(rs.getString("govtalk_error_type")),
