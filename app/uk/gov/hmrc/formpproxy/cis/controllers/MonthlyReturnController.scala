@@ -182,7 +182,7 @@ class MonthlyReturnController @Inject() (
           InternalServerError(Json.obj("message" -> "Unexpected error"))
         }
     }
-  def retrieveSubmittedMonthlyReturns: Action[JsValue] =
+  def retrieveSubmittedMonthlyReturns: Action[GetSubmittedMonthlyReturnsRequest]    =
     authorise.async(parse.json) { implicit request =>
       request.body
         .validate[GetSubmittedMonthlyReturnsRequest]
