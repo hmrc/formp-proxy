@@ -172,6 +172,16 @@ class MonthlyReturnController @Inject() (
         }
     }
 
+  def deleteUnsubmittedMonthlyReturn: Action[DeleteUnsubmittedMonthlyReturnRequest] =
+    authorise.async(parse.json[DeleteUnsubmittedMonthlyReturnRequest]) { implicit request =>
+      service
+        .deleteUnsubmittedMonthlyReturn(request.body)
+        .map(_ => NoContent)
+        .recover { case NonFatal(e) =>
+          logger.error("[deleteUnsubmittedMonthlyReturn] failed", e)
+          InternalServerError(Json.obj("message" -> "Unexpected error"))
+        }
+    }
   def retrieveSubmittedMonthlyReturns: Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
       request.body

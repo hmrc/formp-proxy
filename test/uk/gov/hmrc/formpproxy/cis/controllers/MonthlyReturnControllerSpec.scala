@@ -653,6 +653,55 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
     }
   }
 
+  "MonthlyReturnController deleteUnsubmittedMonthlyReturn" - {
+
+    "returns 204 NoContent when service succeeds" in new Setup {
+      val requestBody = DeleteUnsubmittedMonthlyReturnRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 1,
+        amendment = "N"
+      )
+
+      when(mockService.deleteUnsubmittedMonthlyReturn(eqTo(requestBody)))
+        .thenReturn(Future.successful(()))
+
+      val req: FakeRequest[DeleteUnsubmittedMonthlyReturnRequest] =
+        FakeRequest(POST, "/formp-proxy/cis/monthly-returns/unsubmitted/delete").withBody(requestBody)
+
+      val res: Future[Result] = controller.deleteUnsubmittedMonthlyReturn(req)
+
+      status(res) mustBe NO_CONTENT
+      contentAsString(res) mustBe ""
+
+      verify(mockService).deleteUnsubmittedMonthlyReturn(eqTo(requestBody))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 500 with generic message on unexpected exception" in new Setup {
+      val requestBody = DeleteUnsubmittedMonthlyReturnRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 1,
+        amendment = "N"
+      )
+
+      when(mockService.deleteUnsubmittedMonthlyReturn(eqTo(requestBody)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val req: FakeRequest[DeleteUnsubmittedMonthlyReturnRequest] =
+        FakeRequest(POST, "/formp-proxy/cis/monthly-returns/unsubmitted/delete").withBody(requestBody)
+
+      val res: Future[Result] = controller.deleteUnsubmittedMonthlyReturn(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      contentAsJson(res) mustBe Json.obj("message" -> "Unexpected error")
+
+      verify(mockService).deleteUnsubmittedMonthlyReturn(eqTo(requestBody))
+      verifyNoMoreInteractions(mockService)
+    }
+  }
+
   "MonthlyReturnController retrieveSubmittedMonthlyReturns" - {
 
     "returns 200 with json payload when service succeeds" in new Setup {
