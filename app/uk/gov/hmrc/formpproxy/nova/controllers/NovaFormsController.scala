@@ -70,13 +70,16 @@ class NovaFormsController @Inject() (
         .fold(
           errors => scala.concurrent.Future.successful(BadRequest(Json.obj("message" -> "Invalid request body"))),
           body =>
-            service
-              .createForm(body)
-              .map(response => Created(Json.toJson(response)))
-              .recover { case t: Throwable =>
-                logger.error("[createForm] failed", t)
-                InternalServerError(Json.obj("message" -> "Unexpected error"))
-              }
+            if (body.userId.trim.isEmpty)
+              scala.concurrent.Future.successful(BadRequest(Json.obj("message" -> "userId must not be blank")))
+            else
+              service
+                .createForm(body)
+                .map(response => Created(Json.toJson(response)))
+                .recover { case t: Throwable =>
+                  logger.error("[createForm] failed", t)
+                  InternalServerError(Json.obj("message" -> "Unexpected error"))
+                }
         )
     }
 
@@ -90,7 +93,7 @@ class NovaFormsController @Inject() (
             service
               .updateForm(formId, body)
               .map(response => Ok(Json.toJson(response)))
-              .recover(handleFormErrors("updateForm"))
+              .recover(handleFormErrors("updateForm", formId))
         )
     }
 
@@ -104,7 +107,7 @@ class NovaFormsController @Inject() (
             service
               .updateFormStatus(formId, body)
               .map(response => Ok(Json.toJson(response)))
-              .recover(handleFormErrors("updateFormStatus"))
+              .recover(handleFormErrors("updateFormStatus", formId))
         )
     }
 
@@ -113,12 +116,12 @@ class NovaFormsController @Inject() (
       service
         .deleteForm(formId)
         .map(_ => NoContent)
-        .recover(handleFormErrors("deleteForm"))
+        .recover(handleFormErrors("deleteForm", formId))
     }
 
-  private def handleFormErrors(operation: String): PartialFunction[Throwable, play.api.mvc.Result] = {
+  private def handleFormErrors(operation: String, formId: Long): PartialFunction[Throwable, play.api.mvc.Result] = {
     case _: FormNotFoundException       =>
-      NotFound(Json.obj("code" -> "FORM_NOT_FOUND", "message" -> "Form not found"))
+      NotFound(Json.obj("code" -> "FORM_NOT_FOUND", "message" -> s"No form found with id $formId"))
     case _: FormAlreadyUpdatedException =>
       Conflict(Json.obj("code" -> "FORM_ALREADY_UPDATED", "message" -> "Form already updated by another session"))
     case t: Throwable                   =>
