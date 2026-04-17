@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.formpproxy.cis.services
 
-import uk.gov.hmrc.formpproxy.cis.models.response.GetNewestVerificationBatchResponse
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
-
+import uk.gov.hmrc.formpproxy.cis.models.response.*
+import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 
@@ -27,5 +27,10 @@ class VerificationService @Inject() (repo: CisMonthlyReturnSource) {
 
   def getNewestVerificationBatch(instanceId: String): Future[GetNewestVerificationBatchResponse] =
     repo.getNewestVerificationBatch(instanceId)
+
+  def createVerificationBatchAndVerifications(
+    request: CreateVerificationBatchAndVerificationsRequest
+  ): Future[CreateVerificationBatchAndVerificationsResponse] =
+    repo.createVerificationBatchAndVerifications(request)
 
 }
