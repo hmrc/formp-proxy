@@ -31,9 +31,9 @@ class CreateVerificationBatchAndVerificationsRequestSpec extends PlaySpec {
       )
 
       Json.toJson(model) mustBe Json.obj(
-        "instanceId" -> "instance-123",
+        "instanceId"                     -> "instance-123",
         "verificationResourceReferences" -> Json.arr(123, 456, 789),
-        "actionIndicator" -> "A"
+        "actionIndicator"                -> "A"
       )
     }
 
@@ -45,16 +45,16 @@ class CreateVerificationBatchAndVerificationsRequestSpec extends PlaySpec {
       )
 
       Json.toJson(model) mustBe Json.obj(
-        "instanceId" -> "instance-123",
+        "instanceId"                     -> "instance-123",
         "verificationResourceReferences" -> Json.arr(123, 456)
       )
     }
 
     "deserialise from JSON when actionIndicator is present" in {
       val json = Json.obj(
-        "instanceId" -> "instance-123",
+        "instanceId"                     -> "instance-123",
         "verificationResourceReferences" -> Json.arr(123, 456, 789),
-        "actionIndicator" -> "A"
+        "actionIndicator"                -> "A"
       )
 
       json.as[CreateVerificationBatchAndVerificationsRequest] mustBe
@@ -64,11 +64,10 @@ class CreateVerificationBatchAndVerificationsRequestSpec extends PlaySpec {
           actionIndicator = Some("A")
         )
     }
-    
 
     "deserialise from JSON when actionIndicator is missing" in {
       val json = Json.obj(
-        "instanceId" -> "instance-123",
+        "instanceId"                     -> "instance-123",
         "verificationResourceReferences" -> Json.arr(123, 456)
       )
 
