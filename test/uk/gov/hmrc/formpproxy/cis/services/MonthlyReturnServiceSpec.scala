@@ -127,7 +127,7 @@ final class MonthlyReturnServiceSpec extends SpecBase {
 
   "MonthlyReturnService getSubmittedMonthlyReturns" - {
 
-    "returns payload with mapped statuses (happy path)" in new Ctx {
+    "returns payload with raw statuses (happy path)" in new Ctx {
       val scheme    = ContractorScheme(1, id, "123", "AB456", "123PA123")
       val returns   = Seq(
         mkSubmittedReturn(1, 1, status = Some("ACCEPTED")),
@@ -141,8 +141,8 @@ final class MonthlyReturnServiceSpec extends SpecBase {
 
       out.scheme mustBe scheme
       out.monthlyReturns must have size 2
-      out.monthlyReturns.head.status mustBe Some("PENDING")
-      out.monthlyReturns.last.status mustBe Some("REJECTED")
+      out.monthlyReturns.head.status mustBe Some("ACCEPTED")
+      out.monthlyReturns.last.status mustBe Some("FATAL_ERROR")
 
       verify(repo).getSubmittedMonthlyReturns(eqTo(id))
       verifyNoMoreInteractions(repo)
