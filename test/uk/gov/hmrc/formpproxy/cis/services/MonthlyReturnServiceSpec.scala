@@ -22,7 +22,7 @@ import org.scalatest.freespec.AnyFreeSpec
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
-import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, SubmittedMonthlyReturn, SubmittedMonthlyReturns, UserMonthlyReturns}
+import uk.gov.hmrc.formpproxy.cis.models.{MonthlyReturn, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
 import java.time.LocalDateTime
@@ -374,6 +374,53 @@ final class MonthlyReturnServiceSpec extends SpecBase {
       service.deleteUnsubmittedMonthlyReturn(request).failed.futureValue mustBe boom
 
       verify(repo).deleteUnsubmittedMonthlyReturn(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "MonthlyReturnService getMonthlyReturnComplete" - {
+
+    "delegates to repo (happy path)" in new Ctx {
+      val request = GetMonthlyReturnCompleteRequest(
+        instanceId = id,
+        taxYear = 2025,
+        taxMonth = 1,
+        amendment = "N"
+      )
+
+      val response = GetMonthlyReturnCompleteResponse(
+        scheme = Seq.empty,
+        monthlyReturn = Seq.empty,
+        subcontractors = Seq.empty,
+        monthlyReturnItems = Seq.empty,
+        submission = Seq.empty
+      )
+
+      when(repo.getMonthlyReturnComplete(eqTo(id), eqTo(2025), eqTo(1), eqTo("N")))
+        .thenReturn(Future.successful(response))
+
+      service.getMonthlyReturnComplete(request).futureValue mustBe response
+
+      verify(repo).getMonthlyReturnComplete(eqTo(id), eqTo(2025), eqTo(1), eqTo("N"))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failures from the repository" in new Ctx {
+      val request = GetMonthlyReturnCompleteRequest(
+        instanceId = id,
+        taxYear = 2025,
+        taxMonth = 1,
+        amendment = "N"
+      )
+
+      val boom = new RuntimeException("db failed")
+
+      when(repo.getMonthlyReturnComplete(eqTo(id), eqTo(2025), eqTo(1), eqTo("N")))
+        .thenReturn(Future.failed(boom))
+
+      service.getMonthlyReturnComplete(request).failed.futureValue mustBe boom
+
+      verify(repo).getMonthlyReturnComplete(eqTo(id), eqTo(2025), eqTo(1), eqTo("N"))
       verifyNoMoreInteractions(repo)
     }
   }
