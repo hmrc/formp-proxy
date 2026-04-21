@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.formpproxy.cis.services
 
-import uk.gov.hmrc.formpproxy.cis.models.{UnsubmittedMonthlyReturns, UserMonthlyReturns}
+import uk.gov.hmrc.formpproxy.cis.models.{SubmittedMonthlyReturns, UnsubmittedMonthlyReturns, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
@@ -38,6 +38,9 @@ class MonthlyReturnService @Inject() (repo: CisMonthlyReturnSource)(implicit ec:
         }
       )
     }
+
+  def getSubmittedMonthlyReturns(instanceId: String): Future[SubmittedMonthlyReturns] =
+    repo.getSubmittedMonthlyReturns(instanceId)
 
   private def mapStatus(raw: Option[String]): String =
     raw.map(_.trim.toUpperCase) match {
@@ -77,4 +80,7 @@ class MonthlyReturnService @Inject() (repo: CisMonthlyReturnSource)(implicit ec:
 
   def deleteMonthlyReturnItem(request: DeleteMonthlyReturnItemRequest): Future[Unit] =
     repo.deleteMonthlyReturnItem(request)
+
+  def deleteUnsubmittedMonthlyReturn(request: DeleteUnsubmittedMonthlyReturnRequest): Future[Unit] =
+    repo.deleteUnsubmittedMonthlyReturn(request)
 }

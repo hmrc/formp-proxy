@@ -39,6 +39,27 @@ case class MonthlyReturn(
 object MonthlyReturn:
   implicit val format: OFormat[MonthlyReturn] = Json.format[MonthlyReturn]
 
+case class SubmittedMonthlyReturn(
+  monthlyReturnId: Long,
+  taxYear: Int,
+  taxMonth: Int,
+  nilReturnIndicator: Option[String],
+  decEmpStatusConsidered: Option[String],
+  decAllSubsVerified: Option[String],
+  decInformationCorrect: Option[String],
+  decNoMoreSubPayments: Option[String],
+  decNilReturnNoPayments: Option[String],
+  status: Option[String],
+  lastUpdate: Option[LocalDateTime],
+  amendment: Option[String],
+  supersededBy: Option[Long],
+  amendmentStatus: Option[String],
+  monthlyReturnItems: Option[String]
+)
+
+object SubmittedMonthlyReturn:
+  implicit val format: OFormat[SubmittedMonthlyReturn] = Json.format[SubmittedMonthlyReturn]
+
 case class UserMonthlyReturns(monthlyReturnList: Seq[MonthlyReturn])
 
 object UserMonthlyReturns:

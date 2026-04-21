@@ -3,6 +3,8 @@
 # CIS routes
 POST       /monthly-returns                                         uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.retrieveMonthlyReturns
 POST       /cis/retrieve-unsubmitted-monthly-returns                uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.retrieveUnsubmittedMonthlyReturns
+POST       /cis/retrieve-submitted-monthly-returns                  uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.retrieveSubmittedMonthlyReturns
+POST       /cis/monthly-returns/unsubmitted/delete                  uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.deleteUnsubmittedMonthlyReturn
 POST       /cis/monthly-return/nil/create                           uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.createNilMonthlyReturn
 POST       /cis/monthly-return/update                               uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.updateMonthlyReturn
 POST       /cis/monthly-return-edit                                 uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.getMonthlyReturnForEdit

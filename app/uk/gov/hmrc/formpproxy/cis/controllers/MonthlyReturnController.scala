@@ -69,6 +69,21 @@ class MonthlyReturnController @Inject() (
         }
     }
 
+  def retrieveSubmittedMonthlyReturns: Action[JsValue] =
+    authorise.async(parse.json) { implicit request =>
+      request.body
+        .validate[InstanceIdRequest]
+        .foldErrorsIntoBadRequest { req =>
+          service
+            .getSubmittedMonthlyReturns(req.instanceId)
+            .map(payload => Ok(Json.toJson(payload)))
+            .recover { case NonFatal(e) =>
+              logger.error("[retrieveUnsubmittedMonthlyReturns] failed", e)
+              InternalServerError(Json.obj("message" -> "Unexpected error"))
+            }
+        }
+    }
+
   def createNilMonthlyReturn: Action[CreateNilMonthlyReturnRequest] =
     authorise.async(parse.json[CreateNilMonthlyReturnRequest]) { implicit request =>
       service
@@ -171,4 +186,14 @@ class MonthlyReturnController @Inject() (
         }
     }
 
+  def deleteUnsubmittedMonthlyReturn: Action[DeleteUnsubmittedMonthlyReturnRequest] =
+    authorise.async(parse.json[DeleteUnsubmittedMonthlyReturnRequest]) { implicit request =>
+      service
+        .deleteUnsubmittedMonthlyReturn(request.body)
+        .map(_ => NoContent)
+        .recover { case NonFatal(e) =>
+          logger.error("[deleteUnsubmittedMonthlyReturn] failed", e)
+          InternalServerError(Json.obj("message" -> "Unexpected error"))
+        }
+    }
 }
