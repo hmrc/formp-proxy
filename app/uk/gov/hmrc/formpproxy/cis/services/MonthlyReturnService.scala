@@ -50,6 +50,7 @@ class MonthlyReturnService @Inject() (repo: CisMonthlyReturnSource)(implicit ec:
       case "DEPARTMENTAL_ERROR" => "REJECTED"
       case "FATAL_ERROR"        => "REJECTED"
       case other                => other
+    }
 
   def getSubmittedMonthlyReturns(instanceId: String): Future[SubmittedMonthlyReturns] =
     repo.getSubmittedMonthlyReturns(instanceId)
