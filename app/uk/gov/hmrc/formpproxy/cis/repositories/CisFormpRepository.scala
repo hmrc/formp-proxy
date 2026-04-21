@@ -19,16 +19,17 @@ package uk.gov.hmrc.formpproxy.cis.repositories
 import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
+import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
-import uk.gov.hmrc.formpproxy.cis.models.*
+import uk.gov.hmrc.formpproxy.cis.repositories.CisRowMappers.*
+import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.*
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
-import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.*
-import uk.gov.hmrc.formpproxy.cis.repositories.CisRowMappers.*
+
 import java.lang.Long
-import java.sql.{CallableStatement, Connection, ResultSet, Timestamp, Types}
-import java.time.{Instant, LocalDateTime}
+import java.sql.*
+import java.time.LocalDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Using
@@ -376,7 +377,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           hmrcMarkGenerated = request.hmrcMarkGenerated,
           hmrcMarkGgis = request.hmrcMarkGgis.orNull,
           emailRecipient = request.emailRecipient.orNull,
-          submissionRequestDate = request.submissionRequestDate.map(Timestamp.from).orNull,
+          submissionRequestDate = request.submissionRequestDate.map(Timestamp.valueOf).orNull,
           acceptedTime = request.acceptedTime.orNull,
           agentId = request.agentId.orNull,
           submittableStatus = request.submittableStatus,
