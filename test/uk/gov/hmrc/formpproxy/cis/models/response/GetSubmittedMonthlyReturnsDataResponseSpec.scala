@@ -14,26 +14,33 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.cis.models.requests
+package uk.gov.hmrc.formpproxy.cis.models.response
 
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.Json
+import uk.gov.hmrc.formpproxy.cis.models.ContractorScheme
 
-class GetSubmittedMonthlyReturnsRequestSpec extends AnyWordSpec with Matchers {
+class GetSubmittedMonthlyReturnsDataResponseSpec extends AnyWordSpec with Matchers {
 
-  "GetSubmittedMonthlyReturnsRequest JSON format" should {
+  "GetSubmittedMonthlyReturnsDataResponse JSON format" should {
 
     "serialize and deserialize correctly" in {
-      val model = GetSubmittedMonthlyReturnsRequest(
-        instanceId = "abc-123",
-        taxYear = 2025,
-        taxMonth = 1,
-        amendment = "Y"
+      val model = GetSubmittedMonthlyReturnsDataResponse(
+        scheme = ContractorScheme(
+          schemeId = 100,
+          instanceId = "abc-123",
+          accountsOfficeReference = "accountsOfficeReference",
+          taxOfficeNumber = "taxOfficeNumber",
+          taxOfficeReference = "taxOfficeReference"
+        ),
+        monthlyReturn = Seq.empty,
+        monthlyReturnItems = Seq.empty,
+        submission = Seq.empty
       )
 
       val json = Json.toJson(model)
-      json.as[GetSubmittedMonthlyReturnsRequest] mustBe model
+      json.as[GetSubmittedMonthlyReturnsDataResponse] mustBe model
     }
   }
 }

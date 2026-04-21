@@ -22,7 +22,7 @@ import org.scalatest.freespec.AnyFreeSpec
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
-import uk.gov.hmrc.formpproxy.cis.models.{MonthlyReturn, UserMonthlyReturns}
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, SubmittedMonthlyReturn, SubmittedMonthlyReturns, UnsubmittedMonthlyReturns, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
 import java.time.LocalDateTime
@@ -439,7 +439,7 @@ final class MonthlyReturnServiceSpec extends SpecBase {
 
       when(repo.syncMonthlyReturnItems(eqTo(request))).thenReturn(Future.failed(boom))
 
-      val ex = service.syncMonthlyReturnItems(request).failed.futureValue
+      val ex: Throwable = service.syncMonthlyReturnItems(request).failed.futureValue
       ex mustBe boom
 
       verify(repo).syncMonthlyReturnItems(eqTo(request))
@@ -571,9 +571,9 @@ final class MonthlyReturnServiceSpec extends SpecBase {
 
     "returns wrapper when repository returns SubmittedMonthlyReturns (happy path)" in {
       val c       = Ctx()
-      val request = GetSubmittedMonthlyReturnsRequest("abc-123", 2025, 1, "Y")
+      val request = GetSubmittedMonthlyReturnsDataRequest("abc-123", 2025, 1, "Y")
 
-      val payload = GetSubmittedMonthlyReturnsResponse(
+      val payload = GetSubmittedMonthlyReturnsDataResponse(
         scheme = ContractorScheme(
           schemeId = 100,
           instanceId = "abc-123",
@@ -587,13 +587,13 @@ final class MonthlyReturnServiceSpec extends SpecBase {
         submission = Seq.empty
       )
 
-      when(c.repo.getSubmittedMonthlyReturns2(eqTo(request)))
+      when(c.repo.getSubmittedMonthlyReturnsData(eqTo(request)))
         .thenReturn(Future.successful(payload))
 
-      val out = c.service.getSubmittedMonthlyReturns2(request).futureValue
+      val out = c.service.getSubmittedMonthlyReturnsData(request).futureValue
       out mustBe payload
 
-      verify(c.repo).getSubmittedMonthlyReturns2(eqTo(request))
+      verify(c.repo).getSubmittedMonthlyReturnsData(eqTo(request))
       verifyNoMoreInteractions(c.repo)
     }
 
@@ -601,15 +601,15 @@ final class MonthlyReturnServiceSpec extends SpecBase {
       val c    = Ctx()
       val boom = new RuntimeException("formp failed")
 
-      val request = GetSubmittedMonthlyReturnsRequest("abc-123", 2025, 1, "Y")
+      val request = GetSubmittedMonthlyReturnsDataRequest("abc-123", 2025, 1, "Y")
 
-      when(c.repo.getSubmittedMonthlyReturns2(eqTo(request)))
+      when(c.repo.getSubmittedMonthlyReturnsData(eqTo(request)))
         .thenReturn(Future.failed(boom))
 
-      val ex = c.service.getSubmittedMonthlyReturns2(request).failed.futureValue
+      val ex = c.service.getSubmittedMonthlyReturnsData(request).failed.futureValue
       ex mustBe boom
 
-      verify(c.repo).getSubmittedMonthlyReturns2(eqTo(request))
+      verify(c.repo).getSubmittedMonthlyReturnsData(eqTo(request))
       verifyNoMoreInteractions(c.repo)
     }
   }

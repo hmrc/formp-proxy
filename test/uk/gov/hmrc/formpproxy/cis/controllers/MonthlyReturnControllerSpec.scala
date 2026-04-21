@@ -764,12 +764,12 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
     }
   }
 
-  "MonthlyReturnController retrieveSubmittedMonthlyReturns" - {
+  "MonthlyReturnController retrieveSubmittedMonthlyReturnsData" - {
 
     "returns 200 with json payload when service succeeds" in new Setup {
-      val requestBody = GetSubmittedMonthlyReturnsRequest("abc-123", 2025, 1, "Y")
+      val requestBody = GetSubmittedMonthlyReturnsDataRequest("abc-123", 2025, 1, "Y")
 
-      val payload = GetSubmittedMonthlyReturnsResponse(
+      val payload = GetSubmittedMonthlyReturnsDataResponse(
         scheme = ContractorScheme(
           schemeId = 100,
           instanceId = "abc-123",
@@ -782,29 +782,29 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         submission = Seq.empty
       )
 
-      when(mockService.getSubmittedMonthlyReturns(eqTo(requestBody)))
+      when(mockService.getSubmittedMonthlyReturnsData(eqTo(requestBody)))
         .thenReturn(Future.successful(payload))
 
       val request: FakeRequest[JsValue] = makeJsonRequest(Json.toJson(requestBody))
-      val result: Future[Result]        = controller.retrieveSubmittedMonthlyReturns(request)
+      val result: Future[Result]        = controller.retrieveSubmittedMonthlyReturnsData(request)
 
       status(result) mustBe OK
       contentAsJson(result) mustBe Json.toJson(payload)
-      verify(mockService).getSubmittedMonthlyReturns(eqTo(requestBody))
+      verify(mockService).getSubmittedMonthlyReturnsData(eqTo(requestBody))
     }
 
     "returns 500 with Unexpected error when service fails with NonFatal" in new Setup {
-      val requestBody = GetSubmittedMonthlyReturnsRequest("abc-123", 2025, 1, "Y")
+      val requestBody = GetSubmittedMonthlyReturnsDataRequest("abc-123", 2025, 1, "Y")
 
-      when(mockService.getSubmittedMonthlyReturns(eqTo(requestBody)))
+      when(mockService.getSubmittedMonthlyReturnsData(eqTo(requestBody)))
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val request: FakeRequest[JsValue] = makeJsonRequest(Json.toJson(requestBody))
-      val result: Future[Result]        = controller.retrieveSubmittedMonthlyReturns(request)
+      val result: Future[Result]        = controller.retrieveSubmittedMonthlyReturnsData(request)
 
       status(result) mustBe INTERNAL_SERVER_ERROR
       contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
-      verify(mockService).getSubmittedMonthlyReturns(eqTo(requestBody))
+      verify(mockService).getSubmittedMonthlyReturnsData(eqTo(requestBody))
     }
   }
 

@@ -63,7 +63,9 @@ trait CisMonthlyReturnSource {
   def createGovTalkStatusRecord(req: CreateGovTalkStatusRecordRequest): Future[Unit]
   def getNewestVerificationBatch(instanceId: String): Future[GetNewestVerificationBatchResponse]
   def deleteUnsubmittedMonthlyReturn(req: DeleteUnsubmittedMonthlyReturnRequest): Future[Unit]
-  def getSubmittedMonthlyReturns(request: GetSubmittedMonthlyReturnsRequest): Future[GetSubmittedMonthlyReturnsResponse]
+  def getSubmittedMonthlyReturnsData(
+    request: GetSubmittedMonthlyReturnsDataRequest
+  ): Future[GetSubmittedMonthlyReturnsDataResponse]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -280,15 +282,15 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
 
-  override def getSubmittedMonthlyReturns(
-    request: GetSubmittedMonthlyReturnsRequest
-  ): Future[GetSubmittedMonthlyReturnsResponse] = {
+  override def getSubmittedMonthlyReturnsData(
+    request: GetSubmittedMonthlyReturnsDataRequest
+  ): Future[GetSubmittedMonthlyReturnsDataResponse] = {
     logger.info(
       s"[CIS] getSubmittedMonthlyReturns(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
     )
     Future {
       db.withConnection { conn =>
-        withCall(conn, CallGetSubmittedMonthlyReturns) { cs =>
+        withCall(conn, CallGetSubmittedMonthlyReturnsData) { cs =>
           cs.setString(1, request.instanceId)
           cs.setInt(2, request.taxYear)
           cs.setInt(3, request.taxMonth)
@@ -304,7 +306,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           val scheme             = withCursor(cs, 7)(rs => readSingleSchemeRow(rs, request.instanceId))
           val submission         = withCursor(cs, 8)(collectSubmissions)
 
-          GetSubmittedMonthlyReturnsResponse(scheme, monthlyReturn, monthlyReturnItems, submission)
+          GetSubmittedMonthlyReturnsDataResponse(scheme, monthlyReturn, monthlyReturnItems, submission)
         }
       }
     }
