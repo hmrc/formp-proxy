@@ -141,6 +141,15 @@ class NovaFormsControllerSpec extends SpecBase {
       (contentAsJson(result) \ "versionId").as[Long] mustBe 0L
     }
 
+    "returns 400 when userId is blank" in {
+      val s = setup; import s.*
+
+      val result = controller.createForm()(postJson("/nova/forms", CreateFormRequest("  ")))
+
+      status(result) mustBe BAD_REQUEST
+      (contentAsJson(result) \ "message").as[String] must include("userId")
+    }
+
     "returns 500 when service throws" in {
       val s = setup; import s.*
       when(mockService.createForm(any[CreateFormRequest]))

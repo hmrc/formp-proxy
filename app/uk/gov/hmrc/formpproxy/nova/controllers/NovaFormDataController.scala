@@ -69,7 +69,7 @@ class NovaFormDataController @Inject() (
             service
               .storeFormData(formId, formDataId, body)
               .map(response => Ok(Json.toJson(response)))
-              .recover(handleFormErrors("storeFormData"))
+              .recover(handleFormErrors("storeFormData", formId))
         )
     }
 
@@ -82,17 +82,19 @@ class NovaFormDataController @Inject() (
           body =>
             if (body.requestRefNumCount < 1)
               Future.successful(BadRequest(Json.obj("message" -> "requestRefNumCount must be at least 1")))
+            else if (body.userCredentials.trim.isEmpty)
+              Future.successful(BadRequest(Json.obj("message" -> "userCredentials must not be blank")))
             else
               service
                 .getNovaNotificationRef(formId, body)
                 .map(response => Ok(Json.toJson(response)))
-                .recover(handleFormErrors("getNovaNotificationRef"))
+                .recover(handleFormErrors("getNovaNotificationRef", formId))
         )
     }
 
-  private def handleFormErrors(operation: String): PartialFunction[Throwable, play.api.mvc.Result] = {
+  private def handleFormErrors(operation: String, formId: Long): PartialFunction[Throwable, play.api.mvc.Result] = {
     case _: FormNotFoundException       =>
-      NotFound(Json.obj("code" -> "FORM_NOT_FOUND", "message" -> "Form not found"))
+      NotFound(Json.obj("code" -> "FORM_NOT_FOUND", "message" -> s"No form found with id $formId"))
     case _: FormAlreadyUpdatedException =>
       Conflict(Json.obj("code" -> "FORM_ALREADY_UPDATED", "message" -> "Form already updated by another session"))
     case t: Throwable                   =>

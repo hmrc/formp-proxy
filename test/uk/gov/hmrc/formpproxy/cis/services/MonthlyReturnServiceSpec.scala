@@ -22,7 +22,7 @@ import org.scalatest.freespec.AnyFreeSpec
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
-import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, UnsubmittedMonthlyReturns, UserMonthlyReturns}
+import uk.gov.hmrc.formpproxy.cis.models.{MonthlyReturn, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
 import java.time.LocalDateTime
@@ -31,12 +31,17 @@ import scala.concurrent.Future
 final class MonthlyReturnServiceSpec extends SpecBase {
 
   case class Ctx() {
-    val repo    = mock[CisMonthlyReturnSource]
-    val service = new MonthlyReturnService(repo)
-    val id      = "123"
+    val repo: CisMonthlyReturnSource  = mock[CisMonthlyReturnSource]
+    val service: MonthlyReturnService = new MonthlyReturnService(repo)
+    val id: String                    = "123"
   }
 
-  private def mkReturn(id: Long, month: Int, year: Int = 2025): MonthlyReturn =
+  private def mkReturn(
+    id: Long,
+    month: Int,
+    year: Int = 2025,
+    status: Option[String] = Some("SUBMITTED")
+  ): MonthlyReturn =
     MonthlyReturn(
       monthlyReturnId = id,
       taxYear = year,
@@ -47,10 +52,34 @@ final class MonthlyReturnServiceSpec extends SpecBase {
       decInformationCorrect = Some("Y"),
       decNoMoreSubPayments = Some("N"),
       decNilReturnNoPayments = Some("N"),
-      status = Some("SUBMITTED"),
+      status = status,
       lastUpdate = Some(LocalDateTime.parse("2025-01-01T00:00:00")),
       amendment = Some("N"),
       supersededBy = None
+    )
+
+  private def mkSubmittedReturn(
+    id: Long,
+    month: Int,
+    year: Int = 2025,
+    status: Option[String] = Some("SUBMITTED")
+  ): SubmittedMonthlyReturn =
+    SubmittedMonthlyReturn(
+      monthlyReturnId = id,
+      taxYear = year,
+      taxMonth = month,
+      nilReturnIndicator = Some("N"),
+      decEmpStatusConsidered = Some("Y"),
+      decAllSubsVerified = Some("Y"),
+      decInformationCorrect = Some("Y"),
+      decNoMoreSubPayments = Some("N"),
+      decNilReturnNoPayments = Some("N"),
+      status = status,
+      lastUpdate = Some(LocalDateTime.parse("2025-01-01T00:00:00")),
+      amendment = Some("N"),
+      supersededBy = None,
+      amendmentStatus = None,
+      monthlyReturnItems = None
     )
 
   "MonthlyReturnService getAllMonthlyReturns" - {
@@ -96,6 +125,40 @@ final class MonthlyReturnServiceSpec extends SpecBase {
     }
   }
 
+  "MonthlyReturnService getSubmittedMonthlyReturns" - {
+
+    "returns payload with raw statuses (happy path)" in new Ctx {
+      val scheme    = ContractorScheme(1, id, "123", "AB456", "123PA123")
+      val returns   = Seq(
+        mkSubmittedReturn(1, 1, status = Some("ACCEPTED")),
+        mkSubmittedReturn(2, 2, status = Some("FATAL_ERROR"))
+      )
+      val submitted = SubmittedMonthlyReturns(scheme, returns, Seq.empty)
+
+      when(repo.getSubmittedMonthlyReturns(eqTo(id))).thenReturn(Future.successful(submitted))
+
+      private val out = service.getSubmittedMonthlyReturns(id).futureValue
+
+      out.scheme mustBe scheme
+      out.monthlyReturns must have size 2
+      out.monthlyReturns.head.status mustBe Some("ACCEPTED")
+      out.monthlyReturns.last.status mustBe Some("FATAL_ERROR")
+
+      verify(repo).getSubmittedMonthlyReturns(eqTo(id))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failures from the repository" in new Ctx {
+      val boom = new RuntimeException("formp failed")
+      when(repo.getSubmittedMonthlyReturns(eqTo(id))).thenReturn(Future.failed(boom))
+
+      service.getSubmittedMonthlyReturns(id).failed.futureValue mustBe boom
+
+      verify(repo).getSubmittedMonthlyReturns(eqTo(id))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
   "MonthlyReturnService createNilMonthlyReturn" - {
 
     "delegates to repo and returns status (happy path)" in new Ctx {
@@ -110,7 +173,7 @@ final class MonthlyReturnServiceSpec extends SpecBase {
 
       when(repo.createNilMonthlyReturn(eqTo(request))).thenReturn(Future.successful(res))
 
-      val out: CreateNilMonthlyReturnResponse = service.createNilMonthlyReturn(request).futureValue
+      private val out = service.createNilMonthlyReturn(request).futureValue
       out mustBe res
 
       verify(repo).createNilMonthlyReturn(eqTo(request))
@@ -129,7 +192,7 @@ final class MonthlyReturnServiceSpec extends SpecBase {
 
       when(repo.createNilMonthlyReturn(eqTo(request))).thenReturn(Future.failed(boom))
 
-      val ex = service.createNilMonthlyReturn(request).failed.futureValue
+      private val ex = service.createNilMonthlyReturn(request).failed.futureValue
       ex mustBe boom
 
       verify(repo).createNilMonthlyReturn(eqTo(request))
@@ -178,7 +241,7 @@ final class MonthlyReturnServiceSpec extends SpecBase {
       when(repo.updateMonthlyReturn(eqTo(request)))
         .thenReturn(Future.failed(boom))
 
-      val ex = service.updateMonthlyReturn(request).failed.futureValue
+      private val ex = service.updateMonthlyReturn(request).failed.futureValue
       ex mustBe boom
 
       verify(repo).updateMonthlyReturn(eqTo(request))
@@ -504,7 +567,7 @@ final class MonthlyReturnServiceSpec extends SpecBase {
     }
   }
 
-  "MonthlyReturnService getSubmittedMonthlyReturns" - {
+  "MonthlyReturnService getSubmittedMonthlyReturns2" - {
 
     "returns wrapper when repository returns SubmittedMonthlyReturns (happy path)" in {
       val c       = Ctx()
@@ -524,13 +587,13 @@ final class MonthlyReturnServiceSpec extends SpecBase {
         submission = Seq.empty
       )
 
-      when(c.repo.getSubmittedMonthlyReturns(eqTo(request)))
+      when(c.repo.getSubmittedMonthlyReturns2(eqTo(request)))
         .thenReturn(Future.successful(payload))
 
-      val out = c.service.getSubmittedMonthlyReturns(request).futureValue
+      val out = c.service.getSubmittedMonthlyReturns2(request).futureValue
       out mustBe payload
 
-      verify(c.repo).getSubmittedMonthlyReturns(eqTo(request))
+      verify(c.repo).getSubmittedMonthlyReturns2(eqTo(request))
       verifyNoMoreInteractions(c.repo)
     }
 
@@ -540,13 +603,13 @@ final class MonthlyReturnServiceSpec extends SpecBase {
 
       val request = GetSubmittedMonthlyReturnsRequest("abc-123", 2025, 1, "Y")
 
-      when(c.repo.getSubmittedMonthlyReturns(eqTo(request)))
+      when(c.repo.getSubmittedMonthlyReturns2(eqTo(request)))
         .thenReturn(Future.failed(boom))
 
-      val ex = c.service.getSubmittedMonthlyReturns(request).failed.futureValue
+      val ex = c.service.getSubmittedMonthlyReturns2(request).failed.futureValue
       ex mustBe boom
 
-      verify(c.repo).getSubmittedMonthlyReturns(eqTo(request))
+      verify(c.repo).getSubmittedMonthlyReturns2(eqTo(request))
       verifyNoMoreInteractions(c.repo)
     }
   }
