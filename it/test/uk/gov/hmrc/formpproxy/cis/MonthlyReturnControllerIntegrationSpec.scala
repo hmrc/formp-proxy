@@ -63,4 +63,22 @@ class MonthlyReturnControllerIntegrationSpec
       res.status mustBe NOT_FOUND
     }
   }
+
+  "POST /cis/retrieve-submitted-monthly-returns" should {
+
+    "return 400 when JSON is missing required fields" in {
+      AuthStub.authorised()
+
+      val res1 = postAwait("/cis/retrieve-submitted-monthly-returns", Json.obj())
+      res1.status mustBe BAD_REQUEST
+      (res1.json \ "message").as[String].toLowerCase must include("invalid json")
+    }
+
+    "return 401 when there is no active session" in {
+      AuthStub.unauthorised()
+
+      val res = postAwait("/cis/retrieve-submitted-monthly-returns", Json.obj("instanceId" -> "abc-123"))
+      res.status mustBe UNAUTHORIZED
+    }
+  }
 }

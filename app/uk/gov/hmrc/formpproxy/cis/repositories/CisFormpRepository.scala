@@ -36,6 +36,7 @@ import scala.util.Using
 trait CisMonthlyReturnSource {
   def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns]
   def getUnsubmittedMonthlyReturns(instanceId: String): Future[UnsubmittedMonthlyReturns]
+  def getSubmittedMonthlyReturns(instanceId: String): Future[SubmittedMonthlyReturns]
   def createSubmission(request: CreateSubmissionRequest): Future[String]
   def updateMonthlyReturnSubmission(request: UpdateSubmissionRequest): Future[Unit]
   def createNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[CreateNilMonthlyReturnResponse]
@@ -120,6 +121,27 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           val returns = withCursor(cs, 3)(collectMonthlyReturns)
 
           UnsubmittedMonthlyReturns(scheme, returns)
+        }
+      }
+    }
+  }
+
+  override def getSubmittedMonthlyReturns(instanceId: String): Future[SubmittedMonthlyReturns] = {
+    logger.info(s"[CIS] getSubmittedMonthlyReturns(instanceId=$instanceId)")
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallGetSubmittedMonthlyReturns) { cs =>
+          cs.setString(1, instanceId)
+          cs.registerOutParameter(2, OracleTypes.CURSOR)
+          cs.registerOutParameter(3, OracleTypes.CURSOR)
+          cs.registerOutParameter(4, OracleTypes.CURSOR)
+          cs.execute()
+
+          val scheme      = withCursor(cs, 2)(rs => readSingleSchemeRow(rs, instanceId))
+          val returns     = withCursor(cs, 3)(collectSubmittedMonthlyReturns)
+          val submissions = withCursor(cs, 4)(collectSubmissions)
+
+          SubmittedMonthlyReturns(scheme, returns, submissions)
         }
       }
     }

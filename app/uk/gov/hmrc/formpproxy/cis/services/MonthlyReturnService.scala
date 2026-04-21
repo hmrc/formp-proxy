@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.formpproxy.cis.services
 
-import uk.gov.hmrc.formpproxy.cis.models.{UnsubmittedMonthlyReturns, UserMonthlyReturns}
+import uk.gov.hmrc.formpproxy.cis.models.{SubmittedMonthlyReturns, UnsubmittedMonthlyReturns, UserMonthlyReturns}
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
@@ -50,7 +50,9 @@ class MonthlyReturnService @Inject() (repo: CisMonthlyReturnSource)(implicit ec:
       case "DEPARTMENTAL_ERROR" => "REJECTED"
       case "FATAL_ERROR"        => "REJECTED"
       case other                => other
-    }
+
+  def getSubmittedMonthlyReturns(instanceId: String): Future[SubmittedMonthlyReturns] =
+    repo.getSubmittedMonthlyReturns(instanceId)
 
   def createNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[CreateNilMonthlyReturnResponse] =
     repo.createNilMonthlyReturn(request)

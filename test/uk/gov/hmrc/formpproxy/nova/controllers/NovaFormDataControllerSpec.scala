@@ -190,6 +190,18 @@ class NovaFormDataControllerSpec extends SpecBase {
       status(result) mustBe BAD_REQUEST
     }
 
+    "returns 400 when userCredentials is blank" in {
+      val s = setup; import s.*
+
+      val body   = NotificationRefsRequest(1, "  ", 3L)
+      val result = controller.getNovaNotificationRef(12345L)(
+        withJson(FakeRequest(POST, "/nova/forms/12345/notification-refs"), body)
+      )
+
+      status(result) mustBe BAD_REQUEST
+      (contentAsJson(result) \ "message").as[String] must include("userCredentials")
+    }
+
     "returns 200 with notification refs" in {
       val s = setup; import s.*
       when(mockService.getNovaNotificationRef(eqTo(12345L), any[NotificationRefsRequest]))
