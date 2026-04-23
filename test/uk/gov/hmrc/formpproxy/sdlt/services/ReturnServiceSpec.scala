@@ -25,6 +25,8 @@ import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.*
 import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
 import uk.gov.hmrc.formpproxy.sdlt.models.land.*
+import uk.gov.hmrc.formpproxy.sdlt.models.residency.*
+import uk.gov.hmrc.formpproxy.sdlt.models.transaction.*
 import uk.gov.hmrc.formpproxy.sdlt.models.returns.SdltReturnRecordResponse
 import uk.gov.hmrc.formpproxy.sdlt.repositories.{SdltFormpRepoDataHelper, SdltFormpRepository}
 
@@ -2155,6 +2157,434 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
       ex mustBe boom
 
       verify(repo).sdltDeleteLand(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "ReturnService createResidency" - {
+
+    "must delegate to repository" in {
+      val repo                                    = mock[SdltFormpRepository]
+      val service                                 = new ReturnService(repo)
+      val request: CreateResidencyRequest         = CreateResidencyRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        residency = ResidencyPayload(
+          isNonUkResidents = "NO",
+          isCompany = "NO",
+          isCrownRelief = "NO"
+        )
+      )
+      val expectedResponse: CreateResidencyReturn = CreateResidencyReturn(created = true)
+
+      when(repo.sdltCreateResidency(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: CreateResidencyReturn = service.createResidency(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltCreateResidency(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must handle all YES flags" in {
+      val repo                                    = mock[SdltFormpRepository]
+      val service                                 = new ReturnService(repo)
+      val request: CreateResidencyRequest         = CreateResidencyRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        residency = ResidencyPayload(
+          isNonUkResidents = "YES",
+          isCompany = "YES",
+          isCrownRelief = "YES"
+        )
+      )
+      val expectedResponse: CreateResidencyReturn = CreateResidencyReturn(created = true)
+
+      when(repo.sdltCreateResidency(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: CreateResidencyReturn = service.createResidency(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltCreateResidency(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must handle mixed flags" in {
+      val repo                                    = mock[SdltFormpRepository]
+      val service                                 = new ReturnService(repo)
+      val request: CreateResidencyRequest         = CreateResidencyRequest(
+        stornId = "STORN88888",
+        returnResourceRef = "100003",
+        residency = ResidencyPayload(
+          isNonUkResidents = "YES",
+          isCompany = "NO",
+          isCrownRelief = "YES"
+        )
+      )
+      val expectedResponse: CreateResidencyReturn = CreateResidencyReturn(created = true)
+
+      when(repo.sdltCreateResidency(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: CreateResidencyReturn = service.createResidency(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltCreateResidency(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must propagate failures from repository" in {
+      val repo                            = mock[SdltFormpRepository]
+      val service                         = new ReturnService(repo)
+      val request: CreateResidencyRequest = CreateResidencyRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        residency = ResidencyPayload(
+          isNonUkResidents = "NO",
+          isCompany = "NO",
+          isCrownRelief = "NO"
+        )
+      )
+      val boom                            = new RuntimeException("database connection failed")
+
+      when(repo.sdltCreateResidency(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      val ex: Throwable = service.createResidency(request).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).sdltCreateResidency(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "ReturnService updateResidency" - {
+
+    "must delegate to repository" in {
+      val repo                                    = mock[SdltFormpRepository]
+      val service                                 = new ReturnService(repo)
+      val request: UpdateResidencyRequest         = UpdateResidencyRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        residency = ResidencyPayload(
+          isNonUkResidents = "NO",
+          isCompany = "NO",
+          isCrownRelief = "NO"
+        )
+      )
+      val expectedResponse: UpdateResidencyReturn = UpdateResidencyReturn(updated = true)
+
+      when(repo.sdltUpdateResidency(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: UpdateResidencyReturn = service.updateResidency(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltUpdateResidency(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must return false when update result is false" in {
+      val repo                                    = mock[SdltFormpRepository]
+      val service                                 = new ReturnService(repo)
+      val request: UpdateResidencyRequest         = UpdateResidencyRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        residency = ResidencyPayload(
+          isNonUkResidents = "NO",
+          isCompany = "NO",
+          isCrownRelief = "NO"
+        )
+      )
+      val expectedResponse: UpdateResidencyReturn = UpdateResidencyReturn(updated = false)
+
+      when(repo.sdltUpdateResidency(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: UpdateResidencyReturn = service.updateResidency(request).futureValue
+      result.updated mustBe false
+
+      verify(repo).sdltUpdateResidency(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must handle all YES flags" in {
+      val repo                                    = mock[SdltFormpRepository]
+      val service                                 = new ReturnService(repo)
+      val request: UpdateResidencyRequest         = UpdateResidencyRequest(
+        stornId = "STORN88888",
+        returnResourceRef = "100003",
+        residency = ResidencyPayload(
+          isNonUkResidents = "YES",
+          isCompany = "YES",
+          isCrownRelief = "YES"
+        )
+      )
+      val expectedResponse: UpdateResidencyReturn = UpdateResidencyReturn(updated = true)
+
+      when(repo.sdltUpdateResidency(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: UpdateResidencyReturn = service.updateResidency(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltUpdateResidency(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must propagate failures from repository" in {
+      val repo                            = mock[SdltFormpRepository]
+      val service                         = new ReturnService(repo)
+      val request: UpdateResidencyRequest = UpdateResidencyRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        residency = ResidencyPayload(
+          isNonUkResidents = "NO",
+          isCompany = "NO",
+          isCrownRelief = "NO"
+        )
+      )
+      val boom                            = new RuntimeException("database timeout")
+
+      when(repo.sdltUpdateResidency(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      val ex: Throwable = service.updateResidency(request).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).sdltUpdateResidency(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "ReturnService deleteResidency" - {
+
+    "must delegate to repository" in {
+      val repo                                    = mock[SdltFormpRepository]
+      val service                                 = new ReturnService(repo)
+      val request: DeleteResidencyRequest         = DeleteResidencyRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001"
+      )
+      val expectedResponse: DeleteResidencyReturn = DeleteResidencyReturn(deleted = true)
+
+      when(repo.sdltDeleteResidency(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: DeleteResidencyReturn = service.deleteResidency(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltDeleteResidency(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must return false when delete result is false" in {
+      val repo                                    = mock[SdltFormpRepository]
+      val service                                 = new ReturnService(repo)
+      val request: DeleteResidencyRequest         = DeleteResidencyRequest(
+        storn = "STORN99999",
+        returnResourceRef = "100002"
+      )
+      val expectedResponse: DeleteResidencyReturn = DeleteResidencyReturn(deleted = false)
+
+      when(repo.sdltDeleteResidency(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: DeleteResidencyReturn = service.deleteResidency(request).futureValue
+      result.deleted mustBe false
+
+      verify(repo).sdltDeleteResidency(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must handle different storn formats" in {
+      val repo                             = mock[SdltFormpRepository]
+      val service                          = new ReturnService(repo)
+      val request1: DeleteResidencyRequest = DeleteResidencyRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001"
+      )
+      val request2: DeleteResidencyRequest = DeleteResidencyRequest(
+        storn = "STORN-ABC-123",
+        returnResourceRef = "100002"
+      )
+
+      when(repo.sdltDeleteResidency(eqTo(request1)))
+        .thenReturn(Future.successful(DeleteResidencyReturn(deleted = true)))
+      when(repo.sdltDeleteResidency(eqTo(request2)))
+        .thenReturn(Future.successful(DeleteResidencyReturn(deleted = true)))
+
+      service.deleteResidency(request1).futureValue.deleted mustBe true
+      service.deleteResidency(request2).futureValue.deleted mustBe true
+
+      verify(repo).sdltDeleteResidency(eqTo(request1))
+      verify(repo).sdltDeleteResidency(eqTo(request2))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must propagate failures from repository" in {
+      val repo                            = mock[SdltFormpRepository]
+      val service                         = new ReturnService(repo)
+      val request: DeleteResidencyRequest = DeleteResidencyRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001"
+      )
+      val boom                            = new RuntimeException("database error")
+
+      when(repo.sdltDeleteResidency(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      val ex: Throwable = service.deleteResidency(request).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).sdltDeleteResidency(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "ReturnService updateTransaction" - {
+
+    "must delegate to repository" in {
+      val repo                                      = mock[SdltFormpRepository]
+      val service                                   = new ReturnService(repo)
+      val request: UpdateTransactionRequest         = UpdateTransactionRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001",
+        transaction = TransactionPayload(
+          claimingRelief = Some("N"),
+          isLinked = Some("N"),
+          totalConsider = Some("250000"),
+          considerCash = Some("Y"),
+          contractDate = Some("2025-01-15"),
+          effectiveDate = Some("2025-02-01"),
+          transactionDescription = Some("RESIDENTIAL"),
+          newTransactionDescription = Some("RESIDENTIAL")
+        )
+      )
+      val expectedResponse: UpdateTransactionReturn = UpdateTransactionReturn(updated = true)
+
+      when(repo.sdltUpdateTransaction(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: UpdateTransactionReturn = service.updateTransaction(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltUpdateTransaction(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must handle minimal transaction request (all None)" in {
+      val repo                                      = mock[SdltFormpRepository]
+      val service                                   = new ReturnService(repo)
+      val request: UpdateTransactionRequest         = UpdateTransactionRequest(
+        storn = "STORN99999",
+        returnResourceRef = "100002",
+        transaction = TransactionPayload()
+      )
+      val expectedResponse: UpdateTransactionReturn = UpdateTransactionReturn(updated = true)
+
+      when(repo.sdltUpdateTransaction(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: UpdateTransactionReturn = service.updateTransaction(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltUpdateTransaction(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must handle transaction with relief fields" in {
+      val repo                                      = mock[SdltFormpRepository]
+      val service                                   = new ReturnService(repo)
+      val request: UpdateTransactionRequest         = UpdateTransactionRequest(
+        storn = "STORN88888",
+        returnResourceRef = "100003",
+        transaction = TransactionPayload(
+          claimingRelief = Some("Y"),
+          reliefAmount = Some("5000"),
+          reliefReason = Some("CHARITY"),
+          reliefSchemeNumber = Some("CIS123456")
+        )
+      )
+      val expectedResponse: UpdateTransactionReturn = UpdateTransactionReturn(updated = true)
+
+      when(repo.sdltUpdateTransaction(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: UpdateTransactionReturn = service.updateTransaction(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltUpdateTransaction(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must handle transaction with land exchange fields" in {
+      val repo                                      = mock[SdltFormpRepository]
+      val service                                   = new ReturnService(repo)
+      val request: UpdateTransactionRequest         = UpdateTransactionRequest(
+        storn = "STORN77777",
+        returnResourceRef = "100004",
+        transaction = TransactionPayload(
+          isLandExchanged = Some("Y"),
+          exLandHouseNumber = Some("10"),
+          exLandAddress1 = Some("Exchange Street"),
+          exLandPostcode = Some("EX1 1CH")
+        )
+      )
+      val expectedResponse: UpdateTransactionReturn = UpdateTransactionReturn(updated = true)
+
+      when(repo.sdltUpdateTransaction(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: UpdateTransactionReturn = service.updateTransaction(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltUpdateTransaction(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must handle transaction with sale of business fields" in {
+      val repo                                      = mock[SdltFormpRepository]
+      val service                                   = new ReturnService(repo)
+      val request: UpdateTransactionRequest         = UpdateTransactionRequest(
+        storn = "STORN66666",
+        returnResourceRef = "100005",
+        transaction = TransactionPayload(
+          isPartOfSaleOfBusiness = Some("Y"),
+          totalConsiderationOfBusiness = Some("500000")
+        )
+      )
+      val expectedResponse: UpdateTransactionReturn = UpdateTransactionReturn(updated = true)
+
+      when(repo.sdltUpdateTransaction(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: UpdateTransactionReturn = service.updateTransaction(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltUpdateTransaction(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must propagate failures from repository" in {
+      val repo                              = mock[SdltFormpRepository]
+      val service                           = new ReturnService(repo)
+      val request: UpdateTransactionRequest = UpdateTransactionRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001",
+        transaction = TransactionPayload()
+      )
+      val boom                              = new RuntimeException("database connection failed")
+
+      when(repo.sdltUpdateTransaction(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      val ex: Throwable = service.updateTransaction(request).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).sdltUpdateTransaction(eqTo(request))
       verifyNoMoreInteractions(repo)
     }
   }
