@@ -22,6 +22,8 @@ import uk.gov.hmrc.formpproxy.sdlt.models.returns.SdltReturnRecordResponse
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.*
 import uk.gov.hmrc.formpproxy.sdlt.models.land.*
+import uk.gov.hmrc.formpproxy.sdlt.models.residency.*
+import uk.gov.hmrc.formpproxy.sdlt.models.transaction.{UpdateTransactionRequest, UpdateTransactionReturn}
 import uk.gov.hmrc.formpproxy.sdlt.repositories.SdltFormpRepository
 
 import javax.inject.Inject
@@ -88,5 +90,17 @@ class ReturnService @Inject() (repo: SdltFormpRepository) {
 
   def updateReturn(request: UpdateReturnRequest): Future[UpdateReturnReturn] =
     repo.sdltUpdateReturn(request)
+
+  def createResidency(req: CreateResidencyRequest): Future[CreateResidencyReturn] =
+    repo.sdltCreateResidency(req)
+
+  def updateResidency(req: UpdateResidencyRequest): Future[UpdateResidencyReturn] =
+    repo.sdltUpdateResidency(req)
+
+  def deleteResidency(req: DeleteResidencyRequest): Future[DeleteResidencyReturn] =
+    repo.sdltDeleteResidency(req)
+
+  def updateTransaction(req: UpdateTransactionRequest): Future[UpdateTransactionReturn] =
+    repo.sdltUpdateTransaction(req)
 
 }

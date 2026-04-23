@@ -26,6 +26,8 @@ import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.*
 import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
 import uk.gov.hmrc.formpproxy.sdlt.models.land.*
+import uk.gov.hmrc.formpproxy.sdlt.models.transaction.*
+import uk.gov.hmrc.formpproxy.sdlt.models.residency.*
 
 import java.sql.*
 
@@ -3507,6 +3509,581 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).setString(6, "IRMark888888")
       verify(cs).setString(7, "NO")
       verify(cs).setString(8, "NO")
+      verify(cs).execute()
+    }
+  }
+
+  "sdltCreateResidency" - {
+
+    "call CREATE_RESIDENCY stored procedure with correct parameters and return created=true" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call RESIDENCY_PROCS.CREATE_RESIDENCY(?, ?, ?, ?, ?) }")))
+        .thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = CreateResidencyRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        residency = ResidencyPayload(
+          isNonUkResidents = "NO",
+          isCompany = "NO",
+          isCrownRelief = "NO"
+        )
+      )
+
+      val result = repo.sdltCreateResidency(request).futureValue
+
+      result.created mustBe true
+
+      verify(conn).prepareCall("{ call RESIDENCY_PROCS.CREATE_RESIDENCY(?, ?, ?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setString(3, "NO")
+      verify(cs).setString(4, "NO")
+      verify(cs).setString(5, "NO")
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "call CREATE_RESIDENCY with all YES flags" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = CreateResidencyRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        residency = ResidencyPayload(
+          isNonUkResidents = "YES",
+          isCompany = "YES",
+          isCrownRelief = "YES"
+        )
+      )
+
+      val result = repo.sdltCreateResidency(request).futureValue
+
+      result.created mustBe true
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).setString(3, "YES")
+      verify(cs).setString(4, "YES")
+      verify(cs).setString(5, "YES")
+      verify(cs).execute()
+    }
+
+    "call CREATE_RESIDENCY with mixed flags" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = CreateResidencyRequest(
+        stornId = "STORN88888",
+        returnResourceRef = "100003",
+        residency = ResidencyPayload(
+          isNonUkResidents = "YES",
+          isCompany = "NO",
+          isCrownRelief = "YES"
+        )
+      )
+
+      val result = repo.sdltCreateResidency(request).futureValue
+
+      result.created mustBe true
+
+      verify(cs).setString(1, "STORN88888")
+      verify(cs).setLong(2, 100003L)
+      verify(cs).setString(3, "YES")
+      verify(cs).setString(4, "NO")
+      verify(cs).setString(5, "YES")
+      verify(cs).execute()
+    }
+  }
+
+  "sdltUpdateResidency" - {
+
+    "call UPDATE_RESIDENCY stored procedure with correct parameters and return updated=true" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call RESIDENCY_PROCS.UPDATE_RESIDENCY(?, ?, ?, ?, ?) }")))
+        .thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateResidencyRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        residency = ResidencyPayload(
+          isNonUkResidents = "NO",
+          isCompany = "NO",
+          isCrownRelief = "NO"
+        )
+      )
+
+      val result = repo.sdltUpdateResidency(request).futureValue
+
+      result.updated mustBe true
+
+      verify(conn).prepareCall("{ call RESIDENCY_PROCS.UPDATE_RESIDENCY(?, ?, ?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setString(3, "NO")
+      verify(cs).setString(4, "NO")
+      verify(cs).setString(5, "NO")
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "call UPDATE_RESIDENCY with all YES flags" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateResidencyRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        residency = ResidencyPayload(
+          isNonUkResidents = "YES",
+          isCompany = "YES",
+          isCrownRelief = "YES"
+        )
+      )
+
+      val result = repo.sdltUpdateResidency(request).futureValue
+
+      result.updated mustBe true
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).setString(3, "YES")
+      verify(cs).setString(4, "YES")
+      verify(cs).setString(5, "YES")
+      verify(cs).execute()
+    }
+
+    "call UPDATE_RESIDENCY with mixed flags" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateResidencyRequest(
+        stornId = "STORN88888",
+        returnResourceRef = "100003",
+        residency = ResidencyPayload(
+          isNonUkResidents = "NO",
+          isCompany = "YES",
+          isCrownRelief = "NO"
+        )
+      )
+
+      val result = repo.sdltUpdateResidency(request).futureValue
+
+      result.updated mustBe true
+
+      verify(cs).setString(1, "STORN88888")
+      verify(cs).setLong(2, 100003L)
+      verify(cs).setString(3, "NO")
+      verify(cs).setString(4, "YES")
+      verify(cs).setString(5, "NO")
+      verify(cs).execute()
+    }
+  }
+
+  "sdltDeleteResidency" - {
+
+    "call DELETE_RESIDENCY stored procedure with correct parameters and return deleted=true" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call RESIDENCY_PROCS.DELETE_RESIDENCY(?, ?) }")))
+        .thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = DeleteResidencyRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001"
+      )
+
+      val result = repo.sdltDeleteResidency(request).futureValue
+
+      result.deleted mustBe true
+
+      verify(conn).prepareCall("{ call RESIDENCY_PROCS.DELETE_RESIDENCY(?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "handle different return resource references" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = DeleteResidencyRequest(
+        storn = "STORN99999",
+        returnResourceRef = "100002"
+      )
+
+      val result = repo.sdltDeleteResidency(request).futureValue
+
+      result.deleted mustBe true
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).execute()
+    }
+
+    "handle different storn formats" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = DeleteResidencyRequest(
+        storn = "STORN88888",
+        returnResourceRef = "100003"
+      )
+
+      val result = repo.sdltDeleteResidency(request).futureValue
+
+      result.deleted mustBe true
+
+      verify(cs).setString(1, "STORN88888")
+      verify(cs).setLong(2, 100003L)
+      verify(cs).execute()
+    }
+  }
+
+  "sdltUpdateTransaction" - {
+
+    "call UPDATE_TRANSACTION stored procedure with correct parameters and return updated=true" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo(
+            "{ call TRANSACTION_PROCS.UPDATE_TRANSACTION(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+          )
+        )
+      ).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateTransactionRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001",
+        transaction = TransactionPayload(
+          claimingRelief = Some("N"),
+          isLinked = Some("N"),
+          totalConsider = Some("250000"),
+          considerCash = Some("Y"),
+          includesChattel = Some("N"),
+          includesGoodwill = Some("N"),
+          includesOther = Some("N"),
+          includesStock = Some("N"),
+          usedAsFactory = Some("N"),
+          usedAsHotel = Some("N"),
+          usedAsIndustrial = Some("N"),
+          usedAsOffice = Some("N"),
+          usedAsOther = Some("N"),
+          usedAsShop = Some("N"),
+          usedAsWarehouse = Some("N"),
+          contractDate = Some("2025-01-15"),
+          isDependOnFutureEvent = Some("N"),
+          transactionDescription = Some("RESIDENTIAL"),
+          newTransactionDescription = Some("RESIDENTIAL"),
+          effectiveDate = Some("2025-02-01"),
+          isLandExchanged = Some("N"),
+          agreedDeferPay = Some("N"),
+          postTransactionRulingApplied = Some("N"),
+          isPursuantToPreviousOption = Some("N"),
+          restAffectInt = Some("N"),
+          postTransactionRulingFollowed = Some("N"),
+          isPartOfSaleOfBusiness = Some("N")
+        )
+      )
+
+      val result = repo.sdltUpdateTransaction(request).futureValue
+
+      result.updated mustBe true
+
+      verify(conn).prepareCall(
+        "{ call TRANSACTION_PROCS.UPDATE_TRANSACTION(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+      )
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setString(3, "N")
+      verify(cs).setString(7, "N")
+      verify(cs).setString(9, "250000")
+      verify(cs).setString(11, "Y")
+      verify(cs).setString(32, "2025-01-15")
+      verify(cs).setString(34, "RESIDENTIAL")
+      verify(cs).setString(36, "2025-02-01")
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "handle all None optional fields" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateTransactionRequest(
+        storn = "STORN99999",
+        returnResourceRef = "100002",
+        transaction = TransactionPayload()
+      )
+
+      val result = repo.sdltUpdateTransaction(request).futureValue
+
+      result.updated mustBe true
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).setNull(3, Types.VARCHAR)
+      verify(cs).setNull(4, Types.VARCHAR)
+      verify(cs).setNull(5, Types.VARCHAR)
+      verify(cs).setNull(6, Types.VARCHAR)
+      verify(cs).setNull(7, Types.VARCHAR)
+      verify(cs).setNull(8, Types.VARCHAR)
+      verify(cs).setNull(9, Types.VARCHAR)
+      verify(cs).setNull(10, Types.VARCHAR)
+      verify(cs).setNull(11, Types.VARCHAR)
+      verify(cs).setNull(12, Types.VARCHAR)
+      verify(cs).setNull(13, Types.VARCHAR)
+      verify(cs).setNull(14, Types.VARCHAR)
+      verify(cs).setNull(15, Types.VARCHAR)
+      verify(cs).setNull(16, Types.VARCHAR)
+      verify(cs).setNull(17, Types.VARCHAR)
+      verify(cs).setNull(18, Types.VARCHAR)
+      verify(cs).setNull(19, Types.VARCHAR)
+      verify(cs).setNull(20, Types.VARCHAR)
+      verify(cs).setNull(21, Types.VARCHAR)
+      verify(cs).setNull(22, Types.VARCHAR)
+      verify(cs).setNull(23, Types.VARCHAR)
+      verify(cs).setNull(24, Types.VARCHAR)
+      verify(cs).setNull(25, Types.VARCHAR)
+      verify(cs).setNull(26, Types.VARCHAR)
+      verify(cs).setNull(27, Types.VARCHAR)
+      verify(cs).setNull(28, Types.VARCHAR)
+      verify(cs).setNull(29, Types.VARCHAR)
+      verify(cs).setNull(30, Types.VARCHAR)
+      verify(cs).setNull(31, Types.VARCHAR)
+      verify(cs).setNull(32, Types.VARCHAR)
+      verify(cs).setNull(33, Types.VARCHAR)
+      verify(cs).setNull(34, Types.VARCHAR)
+      verify(cs).setNull(35, Types.VARCHAR)
+      verify(cs).setNull(36, Types.VARCHAR)
+      verify(cs).setNull(37, Types.VARCHAR)
+      verify(cs).setNull(38, Types.VARCHAR)
+      verify(cs).setNull(39, Types.VARCHAR)
+      verify(cs).setNull(40, Types.VARCHAR)
+      verify(cs).setNull(41, Types.VARCHAR)
+      verify(cs).setNull(42, Types.VARCHAR)
+      verify(cs).setNull(43, Types.VARCHAR)
+      verify(cs).setNull(44, Types.VARCHAR)
+      verify(cs).setNull(45, Types.VARCHAR)
+      verify(cs).setNull(46, Types.VARCHAR)
+      verify(cs).setNull(47, Types.VARCHAR)
+      verify(cs).setNull(48, Types.VARCHAR)
+      verify(cs).setNull(49, Types.VARCHAR)
+      verify(cs).setNull(50, Types.VARCHAR)
+      verify(cs).setNull(51, Types.VARCHAR)
+      verify(cs).execute()
+    }
+
+    "handle relief fields when claiming relief" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateTransactionRequest(
+        storn = "STORN88888",
+        returnResourceRef = "100003",
+        transaction = TransactionPayload(
+          claimingRelief = Some("Y"),
+          reliefAmount = Some("5000"),
+          reliefReason = Some("CHARITY"),
+          reliefSchemeNumber = Some("CIS123456")
+        )
+      )
+
+      val result = repo.sdltUpdateTransaction(request).futureValue
+
+      result.updated mustBe true
+
+      verify(cs).setString(1, "STORN88888")
+      verify(cs).setLong(2, 100003L)
+      verify(cs).setString(3, "Y")
+      verify(cs).setString(4, "5000")
+      verify(cs).setString(5, "CHARITY")
+      verify(cs).setString(6, "CIS123456")
+      verify(cs).execute()
+    }
+
+    "handle land exchange fields" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateTransactionRequest(
+        storn = "STORN77777",
+        returnResourceRef = "100004",
+        transaction = TransactionPayload(
+          isLandExchanged = Some("Y"),
+          exLandHouseNumber = Some("10"),
+          exLandAddress1 = Some("Exchange Street"),
+          exLandAddress2 = Some("Exchange Town"),
+          exLandAddress3 = Some("Exchange City"),
+          exLandAddress4 = None,
+          exLandPostcode = Some("EX1 1CH")
+        )
+      )
+
+      val result = repo.sdltUpdateTransaction(request).futureValue
+
+      result.updated mustBe true
+
+      verify(cs).setString(1, "STORN77777")
+      verify(cs).setLong(2, 100004L)
+      verify(cs).setString(37, "Y")
+      verify(cs).setString(38, "10")
+      verify(cs).setString(39, "Exchange Street")
+      verify(cs).setString(40, "Exchange Town")
+      verify(cs).setString(41, "Exchange City")
+      verify(cs).setNull(42, Types.VARCHAR)
+      verify(cs).setString(43, "EX1 1CH")
+      verify(cs).execute()
+    }
+
+    "handle sale of business fields" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateTransactionRequest(
+        storn = "STORN66666",
+        returnResourceRef = "100005",
+        transaction = TransactionPayload(
+          isPartOfSaleOfBusiness = Some("Y"),
+          totalConsiderationOfBusiness = Some("500000")
+        )
+      )
+
+      val result = repo.sdltUpdateTransaction(request).futureValue
+
+      result.updated mustBe true
+
+      verify(cs).setString(1, "STORN66666")
+      verify(cs).setLong(2, 100005L)
+      verify(cs).setString(50, "Y")
+      verify(cs).setString(51, "500000")
       verify(cs).execute()
     }
   }
