@@ -28,8 +28,6 @@ import uk.gov.hmrc.formpproxy.cis.models.response.GetNewestVerificationBatchResp
 import uk.gov.hmrc.formpproxy.cis.models.requests.CreateVerificationBatchAndVerificationsRequest
 import uk.gov.hmrc.formpproxy.cis.models.response.CreateVerificationBatchAndVerificationsResponse
 import uk.gov.hmrc.formpproxy.cis.services.VerificationService
-import play.api.http.Status.{BAD_REQUEST, OK}
-import play.api.test.Helpers.{CONTENT_TYPE, POST}
 
 import scala.concurrent.Future
 
@@ -95,7 +93,7 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 200 OK with JSON body when service succeeds (all fields has values)" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val instId = "abc-123"
@@ -276,7 +274,7 @@ class VerificationControllerSpec extends SpecBase {
     val url = "/cis/verification-batch/create"
 
     "returns 200 OK with JSON body when service succeeds" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val requestModel = CreateVerificationBatchAndVerificationsRequest(
@@ -309,7 +307,7 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 400 BadRequest with error payload when JSON is invalid" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val badJson = Json.obj(
@@ -334,7 +332,7 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 500 InternalServerError with error body when service fails" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val requestModel = CreateVerificationBatchAndVerificationsRequest(
