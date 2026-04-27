@@ -42,16 +42,15 @@ class MonthlyReturnService @Inject() (repo: CisMonthlyReturnSource)(implicit ec:
   def getSubmittedMonthlyReturns(instanceId: String): Future[SubmittedMonthlyReturns] =
     repo.getSubmittedMonthlyReturns(instanceId)
 
-  private def mapStatus(raw: Option[String]): String =
-    raw.map(_.trim.toUpperCase) match {
-      case Some("STARTED")            => "STARTED"
-      case Some("VALIDATED")          => "VALIDATED"
-      case Some("PENDING")            => "PENDING"
-      case Some("ACCEPTED")           => "PENDING"
-      case Some("DEPARTMENTAL_ERROR") => "REJECTED"
-      case Some("FATAL_ERROR")        => "REJECTED"
-      case _                          => "STARTED"
-    }
+  private def mapStatus(raw: Option[String]): String = raw.map(_.trim.toUpperCase) match {
+    case Some("STARTED")            => "STARTED"
+    case Some("VALIDATED")          => "VALIDATED"
+    case Some("PENDING")            => "PENDING"
+    case Some("ACCEPTED")           => "PENDING"
+    case Some("DEPARTMENTAL_ERROR") => "REJECTED"
+    case Some("FATAL_ERROR")        => "REJECTED"
+    case _                          => "STARTED"
+  }
 
   def createNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[CreateNilMonthlyReturnResponse] =
     repo.createNilMonthlyReturn(request)
@@ -83,4 +82,9 @@ class MonthlyReturnService @Inject() (repo: CisMonthlyReturnSource)(implicit ec:
 
   def deleteUnsubmittedMonthlyReturn(request: DeleteUnsubmittedMonthlyReturnRequest): Future[Unit] =
     repo.deleteUnsubmittedMonthlyReturn(request)
+
+  def getSubmittedMonthlyReturnsData(
+    request: GetSubmittedMonthlyReturnsDataRequest
+  ): Future[GetSubmittedMonthlyReturnsDataResponse] =
+    repo.getSubmittedMonthlyReturnsData(request)
 }

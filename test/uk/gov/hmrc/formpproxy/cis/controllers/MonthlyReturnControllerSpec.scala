@@ -764,6 +764,50 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
     }
   }
 
+  "MonthlyReturnController retrieveSubmittedMonthlyReturnsData" - {
+
+    "returns 200 with json payload when service succeeds" in new Setup {
+      val requestBody = GetSubmittedMonthlyReturnsDataRequest("abc-123", 2025, 1, "Y")
+
+      val payload = GetSubmittedMonthlyReturnsDataResponse(
+        scheme = ContractorScheme(
+          schemeId = 100,
+          instanceId = "abc-123",
+          accountsOfficeReference = "accountsOfficeReference",
+          taxOfficeNumber = "taxOfficeNumber",
+          taxOfficeReference = "taxOfficeReference"
+        ),
+        monthlyReturn = Seq.empty,
+        monthlyReturnItems = Seq.empty,
+        submission = Seq.empty
+      )
+
+      when(mockService.getSubmittedMonthlyReturnsData(eqTo(requestBody)))
+        .thenReturn(Future.successful(payload))
+
+      val request: FakeRequest[JsValue] = makeJsonRequest(Json.toJson(requestBody))
+      val result: Future[Result]        = controller.retrieveSubmittedMonthlyReturnsData(request)
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe Json.toJson(payload)
+      verify(mockService).getSubmittedMonthlyReturnsData(eqTo(requestBody))
+    }
+
+    "returns 500 with Unexpected error when service fails with NonFatal" in new Setup {
+      val requestBody = GetSubmittedMonthlyReturnsDataRequest("abc-123", 2025, 1, "Y")
+
+      when(mockService.getSubmittedMonthlyReturnsData(eqTo(requestBody)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val request: FakeRequest[JsValue] = makeJsonRequest(Json.toJson(requestBody))
+      val result: Future[Result]        = controller.retrieveSubmittedMonthlyReturnsData(request)
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
+      verify(mockService).getSubmittedMonthlyReturnsData(eqTo(requestBody))
+    }
+  }
+
   private trait Setup {
     implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.global
     private val cc: ControllerComponents = stubControllerComponents()
