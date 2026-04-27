@@ -2383,6 +2383,129 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
   }
 
+  "createVerificationBatchAndVerifications" - {
+
+    "creates a verification batch then creates verifications for each distinct subcontractor ref and returns batch ref" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csCreateBatch = mock[CallableStatement]
+      val csCreateV1    = mock[CallableStatement]
+      val csCreateV2    = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      val callCreateBatch = "{ call VERIFICATION_PROCS.Create_Verification_Batch(?, ?) }"
+      val callCreateVerif = "{ call VERIFICATION_PROCS.Create_Verification(?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(callCreateBatch))).thenReturn(csCreateBatch)
+      when(conn.prepareCall(eqTo(callCreateVerif))).thenReturn(csCreateV1, csCreateV2)
+
+      when(csCreateBatch.getLong(2)).thenReturn(10L)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = CreateVerificationBatchAndVerificationsRequest(
+        instanceId = "abc-123",
+        verificationResourceReferences = Seq(111L, 111L, 222L),
+        actionIndicator = None
+      )
+
+      val out = repo.createVerificationBatchAndVerifications(req).futureValue
+      out.verificationBatchResourceReference mustBe 10L
+
+      verify(conn).prepareCall(eqTo(callCreateBatch))
+      verify(csCreateBatch).setString(1, "abc-123")
+      verify(csCreateBatch).registerOutParameter(2, Types.NUMERIC)
+      verify(csCreateBatch).execute()
+      verify(csCreateBatch).getLong(2)
+      verify(csCreateBatch).close()
+
+      verify(conn, times(2)).prepareCall(eqTo(callCreateVerif))
+
+      verify(csCreateV1).setString(1, "abc-123")
+      verify(csCreateV1).setLong(2, 10L)
+      verify(csCreateV1).setLong(3, 111L)
+      verify(csCreateV1).setString(4, null)
+      verify(csCreateV1).execute()
+      verify(csCreateV1).close()
+
+      verify(csCreateV2).setString(1, "abc-123")
+      verify(csCreateV2).setLong(2, 10L)
+      verify(csCreateV2).setLong(3, 222L)
+      verify(csCreateV2).setString(4, null)
+      verify(csCreateV2).execute()
+      verify(csCreateV2).close()
+    }
+
+    "propagates failure if Create_Verification_Batch fails" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csCreateBatch = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      val callCreateBatch = "{ call VERIFICATION_PROCS.Create_Verification_Batch(?, ?) }"
+      when(conn.prepareCall(eqTo(callCreateBatch))).thenReturn(csCreateBatch)
+
+      when(csCreateBatch.execute()).thenThrow(new RuntimeException("boom"))
+
+      val repo = new CisFormpRepository(db)
+
+      val req = CreateVerificationBatchAndVerificationsRequest(
+        instanceId = "abc-123",
+        verificationResourceReferences = Seq(111L),
+        actionIndicator = None
+      )
+
+      val ex = repo.createVerificationBatchAndVerifications(req).failed.futureValue
+      ex.getMessage must include("boom")
+
+      verify(csCreateBatch).close()
+      verify(conn, never).prepareCall(eqTo("{ call VERIFICATION_PROCS.Create_Verification(?, ?, ?, ?) }"))
+    }
+
+    "propagates failure if Create_Verification fails" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csCreateBatch = mock[CallableStatement]
+      val csCreateV1    = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      val callCreateBatch = "{ call VERIFICATION_PROCS.Create_Verification_Batch(?, ?) }"
+      val callCreateVerif = "{ call VERIFICATION_PROCS.Create_Verification(?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(callCreateBatch))).thenReturn(csCreateBatch)
+      when(conn.prepareCall(eqTo(callCreateVerif))).thenReturn(csCreateV1)
+
+      when(csCreateBatch.getLong(2)).thenReturn(10L)
+      when(csCreateV1.execute()).thenThrow(new RuntimeException("verif boom"))
+
+      val repo = new CisFormpRepository(db)
+
+      val req = CreateVerificationBatchAndVerificationsRequest(
+        instanceId = "abc-123",
+        verificationResourceReferences = Seq(111L),
+        actionIndicator = None
+      )
+
+      val ex = repo.createVerificationBatchAndVerifications(req).failed.futureValue
+      ex.getMessage must include("verif boom")
+
+      verify(csCreateBatch).close()
+      verify(csCreateV1).close()
+    }
+  }
+
   "getSubmittedMonthlyReturnsData" - {
 
     "calls MONTHLY_RETURN_PROCS_2016.GET_SUB_MONTHLY_RETURN_DATA and returns list of instance IDs" in {

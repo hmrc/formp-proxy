@@ -25,7 +25,11 @@ import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, Subcontractor, Submission, Verification, VerificationBatch}
 import uk.gov.hmrc.formpproxy.cis.models.response.GetNewestVerificationBatchResponse
+import uk.gov.hmrc.formpproxy.cis.models.requests.CreateVerificationBatchAndVerificationsRequest
+import uk.gov.hmrc.formpproxy.cis.models.response.CreateVerificationBatchAndVerificationsResponse
 import uk.gov.hmrc.formpproxy.cis.services.VerificationService
+import play.api.http.Status.{BAD_REQUEST, OK}
+import play.api.test.Helpers.{CONTENT_TYPE, POST}
 
 import scala.concurrent.Future
 
@@ -261,6 +265,100 @@ class VerificationControllerSpec extends SpecBase {
       contentAsJson(result) mustBe Json.toJson(response)
 
       verify(mockService).getNewestVerificationBatch(eqTo(instId))
+      verifyNoMoreInteractions(mockService)
+    }
+  }
+
+  // add this new block to VerificationControllerSpec.scala (e.g. after the GET tests)
+
+  "POST /cis/verification-batch/create (createVerificationBatchAndVerifications)" - {
+
+    val url = "/cis/verification-batch/create"
+
+    "returns 200 OK with JSON body when service succeeds" in {
+      val s = setup;
+      import s.*
+
+      val requestModel = CreateVerificationBatchAndVerificationsRequest(
+        instanceId = "abc-123",
+        verificationResourceReferences = Seq(1L, 2L, 3L),
+        actionIndicator = Some("A")
+      )
+
+      val requestJson = Json.toJson(requestModel)
+
+      val responseModel = CreateVerificationBatchAndVerificationsResponse(
+        verificationBatchResourceReference = 99L
+      )
+
+      when(mockService.createVerificationBatchAndVerifications(eqTo(requestModel)))
+        .thenReturn(Future.successful(responseModel))
+
+      val req = FakeRequest(POST, url)
+        .withHeaders(CONTENT_TYPE -> JSON)
+        .withBody(requestJson)
+
+      val result = controller.createVerificationBatchAndVerifications().apply(req)
+
+      status(result) mustBe OK
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.toJson(responseModel)
+
+      verify(mockService).createVerificationBatchAndVerifications(eqTo(requestModel))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 400 BadRequest with error payload when JSON is invalid" in {
+      val s = setup;
+      import s.*
+
+      val badJson = Json.obj(
+        "instanceId" -> "abc-123"
+        // missing verificationResourceReferences etc
+      )
+
+      val req = FakeRequest(POST, url)
+        .withHeaders(CONTENT_TYPE -> JSON)
+        .withBody(badJson)
+
+      val result = controller.createVerificationBatchAndVerifications().apply(req)
+
+      status(result) mustBe BAD_REQUEST
+      contentType(result) mustBe Some(JSON)
+
+      val body = contentAsJson(result)
+      (body \ "message").as[String] mustBe "Invalid payload"
+      (body \ "errors").isDefined mustBe true
+
+      verifyNoInteractions(mockService)
+    }
+
+    "returns 500 InternalServerError with error body when service fails" in {
+      val s = setup;
+      import s.*
+
+      val requestModel = CreateVerificationBatchAndVerificationsRequest(
+        instanceId = "abc-123",
+        verificationResourceReferences = Seq(1L),
+        actionIndicator = None
+      )
+
+      val requestJson = Json.toJson(requestModel)
+
+      when(mockService.createVerificationBatchAndVerifications(eqTo(requestModel)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val req = FakeRequest(POST, url)
+        .withHeaders(CONTENT_TYPE -> JSON)
+        .withBody(requestJson)
+
+      val result = controller.createVerificationBatchAndVerifications().apply(req)
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
+
+      verify(mockService).createVerificationBatchAndVerifications(eqTo(requestModel))
       verifyNoMoreInteractions(mockService)
     }
   }

@@ -76,6 +76,13 @@ POST       /filing/delete/land                                      uk.gov.hmrc.
 
 POST       /filing/update/return-info                               uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.updateReturnInfo()
 
+POST       /filing/create/residency                                 uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ResidencyReturnsController.createResidency()
+POST       /filing/update/residency                                 uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ResidencyReturnsController.updateResidency()
+POST       /filing/delete/residency                                 uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ResidencyReturnsController.deleteResidency()
+
+POST       /filing/update/transaction                               uk.gov.hmrc.formpproxy.sdlt.controllers.returns.TransactionReturnsController.updateTransaction()
+
+
 # CHARITIES routes
 
 GET        /charities/:charityReference/unregulated-donations       uk.gov.hmrc.formpproxy.charities.controllers.UnregulatedDonationsController.getTotalUnregulatedDonations(charityReference: String)
@@ -94,3 +101,5 @@ GET        /nova/forms/:formId/data                                  uk.gov.hmrc
 PUT        /nova/forms/:formId/data/:formDataId                      uk.gov.hmrc.formpproxy.nova.controllers.NovaFormDataController.storeFormData(formId: Long, formDataId: String)
 
 GET        /cis/verification-batch/newest/:instanceId               uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.getNewestVerificationBatch(instanceId: String)
+
+POST       /cis/verification-batch/create                           uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.createVerificationBatchAndVerifications()

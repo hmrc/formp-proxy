@@ -14,53 +14,45 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.cis.controllers
+package uk.gov.hmrc.formpproxy.sdlt.controllers.returns
 
 import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
-import uk.gov.hmrc.formpproxy.cis.services.VerificationService
+import uk.gov.hmrc.formpproxy.sdlt.models.transaction.*
+import uk.gov.hmrc.formpproxy.sdlt.services.ReturnService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.formpproxy.cis.models.requests.CreateVerificationBatchAndVerificationsRequest
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class VerificationController @Inject() (
+class TransactionReturnsController @Inject() (
   authorise: AuthAction,
-  service: VerificationService,
+  service: ReturnService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
-  def getNewestVerificationBatch(instanceId: String): Action[AnyContent] =
-    authorise.async { implicit request =>
-      service
-        .getNewestVerificationBatch(instanceId)
-        .map(res => Ok(Json.toJson(res)))
-        .recover { case t =>
-          logger.error(s"[getNewestVerificationBatch] failed (instanceId=$instanceId)", t)
-          InternalServerError(Json.obj("message" -> "Unexpected error"))
-        }
-    }
-
-  def createVerificationBatchAndVerifications(): Action[JsValue] =
-    authorise(parse.json).async { implicit request =>
+  def updateTransaction(): Action[JsValue] =
+    authorise.async(parse.json) { implicit request =>
       request.body
-        .validate[CreateVerificationBatchAndVerificationsRequest]
+        .validate[UpdateTransactionRequest]
         .fold(
           errs =>
             Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
-          req =>
+          body =>
             service
-              .createVerificationBatchAndVerifications(req)
-              .map(res => Ok(Json.toJson(res)))
+              .updateTransaction(body)
+              .map { UpdateTransactionReturn =>
+                Ok(Json.toJson(UpdateTransactionReturn))
+              }
               .recover { case t =>
-                logger.error("[createVerificationBatchAndVerifications] failed", t)
+                logger.error("[updateTransaction] failed", t)
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )
     }
+
 }
