@@ -581,8 +581,7 @@ final class MonthlyReturnServiceSpec extends SpecBase {
           taxOfficeNumber = "taxOfficeNumber",
           taxOfficeReference = "taxOfficeReference"
         ),
-        monthlyReturn =
-          Seq(MonthlyReturn(100L, 2025, 1, None, None, None, None, None, None, Some("STARTED"), None, None, None)),
+        monthlyReturn = Seq(MonthlyReturn(100L, 2025, 1, None, None, None, None, None, None, None, None, None, None)),
         monthlyReturnItems = Seq.empty,
         submission = Seq.empty
       )
