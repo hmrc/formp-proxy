@@ -69,6 +69,9 @@ trait CisMonthlyReturnSource {
     taxMonth: Int,
     amendment: String
   ): Future[GetMonthlyReturnCompleteResponse]
+  def createVerificationBatchAndVerifications(
+    req: CreateVerificationBatchAndVerificationsRequest
+  ): Future[CreateVerificationBatchAndVerificationsResponse]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -1076,5 +1079,55 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
   }
+
+  override def createVerificationBatchAndVerifications(
+    req: CreateVerificationBatchAndVerificationsRequest
+  ): Future[CreateVerificationBatchAndVerificationsResponse] = {
+    logger.info(
+      s"[CIS] createVerificationBatchAndVerifications(instanceId=${req.instanceId}, subs=${req.verificationResourceReferences.size})"
+    )
+
+    Future {
+      db.withTransaction { conn =>
+        val batchRef: Long =
+          callCreateVerificationBatch(conn, req.instanceId)
+
+        req.verificationResourceReferences.distinct.foreach { verificationResourceRef =>
+          callCreateVerification(
+            conn = conn,
+            instanceId = req.instanceId,
+            verifBatchResourceRef = batchRef,
+            verificationResourceRef = verificationResourceRef,
+            actionIndicator = req.actionIndicator.orNull
+          )
+        }
+
+        CreateVerificationBatchAndVerificationsResponse(batchRef)
+      }
+    }
+  }
+
+  private def callCreateVerificationBatch(conn: Connection, instanceId: String): Long =
+    withCall(conn, CallCreateVerificationBatch) { cs =>
+      cs.setString(1, instanceId)
+      cs.registerOutParameter(2, Types.NUMERIC)
+      cs.execute()
+      cs.getLong(2)
+    }
+
+  private def callCreateVerification(
+    conn: Connection,
+    instanceId: String,
+    verifBatchResourceRef: Long,
+    verificationResourceRef: Long,
+    actionIndicator: String
+  ): Unit =
+    withCall(conn, CallCreateVerification) { cs =>
+      cs.setString(1, instanceId)
+      cs.setLong(2, verifBatchResourceRef)
+      cs.setLong(3, verificationResourceRef)
+      cs.setString(4, actionIndicator)
+      cs.execute()
+    }
 
 }
