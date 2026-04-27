@@ -26,6 +26,8 @@ import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnSummary, SdltReturnReco
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.*
 import uk.gov.hmrc.formpproxy.sdlt.models.land.*
+import uk.gov.hmrc.formpproxy.sdlt.models.residency.*
+import uk.gov.hmrc.formpproxy.sdlt.models.transaction.*
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 
 import java.lang.Long
@@ -60,6 +62,10 @@ trait SdltSource {
   def sdltUpdateLand(request: UpdateLandRequest): Future[UpdateLandReturn]
   def sdltDeleteLand(request: DeleteLandRequest): Future[DeleteLandReturn]
   def sdltUpdateReturn(request: UpdateReturnRequest): Future[UpdateReturnReturn]
+  def sdltCreateResidency(request: CreateResidencyRequest): Future[CreateResidencyReturn]
+  def sdltUpdateResidency(request: UpdateResidencyRequest): Future[UpdateResidencyReturn]
+  def sdltDeleteResidency(request: DeleteResidencyRequest): Future[DeleteResidencyReturn]
+  def sdltUpdateTransaction(request: UpdateTransactionRequest): Future[UpdateTransactionReturn]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -392,7 +398,8 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       postcode = Option(rs.getString("POSTCODE")),
       isRepresentedByAgent = Option(rs.getString("IS_REPRESENTED_BY_AGENT")),
       vendorResourceRef = Option(rs.getString("VENDOR_RESOURCE_REF")),
-      nextVendorID = Option(rs.getString("NEXT_VENDOR_ID"))
+      nextVendorID = Option(rs.getString("NEXT_VENDOR_ID")),
+      lastUpdateDate = Option(rs.getString("LAST_UPDATE_DATE"))
     )
 
   private def processLand(rs: ResultSet): Land =
@@ -416,7 +423,8 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       titleNumber = Option(rs.getString("TITLE_NUMBER")),
       landResourceRef = Option(rs.getString("LAND_RESOURCE_REF")),
       nextLandID = Option(rs.getString("NEXT_LAND_ID")),
-      DARPostcode = None
+      DARPostcode = None,
+      lastUpdateDate = Option(rs.getString("LAST_UPDATE_DATE"))
     )
 
   private def getBigDecimalSafely(rs: ResultSet, columnName: String): Option[BigDecimal] =
@@ -1850,6 +1858,281 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
         updated = true
       )
 
+    } finally cs.close()
+  }
+
+  override def sdltCreateResidency(request: CreateResidencyRequest): Future[CreateResidencyReturn] = Future {
+    db.withTransaction { conn =>
+      callCreateResidency(
+        conn = conn,
+        p_storn = request.stornId,
+        p_return_resource_ref = request.returnResourceRef.toLong,
+        p_is_non_uk_residents = request.residency.isNonUkResidents,
+        p_is_close_company = request.residency.isCompany,
+        p_is_crown_relief = request.residency.isCrownRelief
+      )
+    }
+  }
+
+  private def callCreateResidency(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_is_non_uk_residents: String,
+    p_is_close_company: String,
+    p_is_crown_relief: String
+  ): CreateResidencyReturn = {
+
+    val cs = conn.prepareCall("{ call RESIDENCY_PROCS.CREATE_RESIDENCY(?, ?, ?, ?, ?) }")
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.setString(3, p_is_non_uk_residents)
+      cs.setString(4, p_is_close_company)
+      cs.setString(5, p_is_crown_relief)
+
+      cs.execute()
+
+      CreateResidencyReturn(created = true)
+    } finally cs.close()
+  }
+
+  override def sdltUpdateResidency(request: UpdateResidencyRequest): Future[UpdateResidencyReturn] = Future {
+    db.withTransaction { conn =>
+      callUpdateResidency(
+        conn = conn,
+        p_storn = request.stornId,
+        p_return_resource_ref = request.returnResourceRef.toLong,
+        p_is_non_uk_residents = request.residency.isNonUkResidents,
+        p_is_close_company = request.residency.isCompany,
+        p_is_crown_relief = request.residency.isCrownRelief
+      )
+    }
+  }
+
+  private def callUpdateResidency(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_is_non_uk_residents: String,
+    p_is_close_company: String,
+    p_is_crown_relief: String
+  ): UpdateResidencyReturn = {
+
+    val cs = conn.prepareCall("{ call RESIDENCY_PROCS.UPDATE_RESIDENCY(?, ?, ?, ?, ?) }")
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.setString(3, p_is_non_uk_residents)
+      cs.setString(4, p_is_close_company)
+      cs.setString(5, p_is_crown_relief)
+
+      cs.execute()
+
+      UpdateResidencyReturn(updated = true)
+    } finally cs.close()
+  }
+
+  override def sdltDeleteResidency(request: DeleteResidencyRequest): Future[DeleteResidencyReturn] = Future {
+    db.withTransaction { conn =>
+      callDeleteResidency(
+        conn = conn,
+        p_storn = request.storn,
+        p_return_resource_ref = request.returnResourceRef.toLong
+      )
+    }
+  }
+
+  private def callDeleteResidency(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long
+  ): DeleteResidencyReturn = {
+
+    val cs = conn.prepareCall("{ call RESIDENCY_PROCS.DELETE_RESIDENCY(?, ?) }")
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+
+      cs.execute()
+
+      DeleteResidencyReturn(deleted = true)
+    } finally cs.close()
+  }
+
+  override def sdltUpdateTransaction(request: UpdateTransactionRequest): Future[UpdateTransactionReturn] = Future {
+    db.withTransaction { conn =>
+      callUpdateTransaction(
+        conn = conn,
+        p_storn = request.storn,
+        p_return_resource_ref = request.returnResourceRef.toLong,
+        p_claiming_relief = request.transaction.claimingRelief,
+        p_relief_amount = request.transaction.reliefAmount,
+        p_relief_reason = request.transaction.reliefReason,
+        p_relief_scheme_number = request.transaction.reliefSchemeNumber,
+        p_is_linked = request.transaction.isLinked,
+        p_total_consider_linked = request.transaction.totalConsiderLinked,
+        p_total_consider = request.transaction.totalConsider,
+        p_consider_build = request.transaction.considerBuild,
+        p_consider_cash = request.transaction.considerCash,
+        p_consider_contingent = request.transaction.considerContingent,
+        p_consider_debt = request.transaction.considerDebt,
+        p_consider_employ = request.transaction.considerEmploy,
+        p_consider_other = request.transaction.considerOther,
+        p_consider_land = request.transaction.considerLand,
+        p_consider_services = request.transaction.considerServices,
+        p_consider_shares_qtd = request.transaction.considerSharesQtd,
+        p_consider_shares_unqtd = request.transaction.considerSharesUnqtd,
+        p_consider_vat = request.transaction.considerVat,
+        p_includes_chattel = request.transaction.includesChattel,
+        p_includes_goodwill = request.transaction.includesGoodwill,
+        p_includes_other = request.transaction.includesOther,
+        p_includes_stock = request.transaction.includesStock,
+        p_used_as_factory = request.transaction.usedAsFactory,
+        p_used_as_hotel = request.transaction.usedAsHotel,
+        p_used_as_industrial = request.transaction.usedAsIndustrial,
+        p_used_as_office = request.transaction.usedAsOffice,
+        p_used_as_other = request.transaction.usedAsOther,
+        p_used_as_shop = request.transaction.usedAsShop,
+        p_used_as_warehouse = request.transaction.usedAsWarehouse,
+        p_contract_date = request.transaction.contractDate,
+        p_is_depend_future_event = request.transaction.isDependOnFutureEvent,
+        p_transaction_des = request.transaction.transactionDescription,
+        p_new_transaction_des = request.transaction.newTransactionDescription,
+        p_effective_date = request.transaction.effectiveDate,
+        p_is_land_exchanged = request.transaction.isLandExchanged,
+        p_ex_land_house_number = request.transaction.exLandHouseNumber,
+        p_ex_land_address_1 = request.transaction.exLandAddress1,
+        p_ex_land_address_2 = request.transaction.exLandAddress2,
+        p_ex_land_address_3 = request.transaction.exLandAddress3,
+        p_ex_land_address_4 = request.transaction.exLandAddress4,
+        p_ex_land_postcode = request.transaction.exLandPostcode,
+        p_agreed_defer_pay = request.transaction.agreedDeferPay,
+        p_post_tr_rul_applied = request.transaction.postTransactionRulingApplied,
+        p_is_pur_to_pre_opt = request.transaction.isPursuantToPreviousOption,
+        p_rest_affect_int = request.transaction.restAffectInt,
+        p_rest_details = request.transaction.restDetails,
+        p_post_tr_rul_foll = request.transaction.postTransactionRulingFollowed,
+        p_is_part_sale_of_busi = request.transaction.isPartOfSaleOfBusiness,
+        p_total_consider_busi = request.transaction.totalConsiderationOfBusiness
+      )
+    }
+  }
+
+  private def callUpdateTransaction(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_claiming_relief: Option[String],
+    p_relief_amount: Option[String],
+    p_relief_reason: Option[String],
+    p_relief_scheme_number: Option[String],
+    p_is_linked: Option[String],
+    p_total_consider_linked: Option[String],
+    p_total_consider: Option[String],
+    p_consider_build: Option[String],
+    p_consider_cash: Option[String],
+    p_consider_contingent: Option[String],
+    p_consider_debt: Option[String],
+    p_consider_employ: Option[String],
+    p_consider_other: Option[String],
+    p_consider_land: Option[String],
+    p_consider_services: Option[String],
+    p_consider_shares_qtd: Option[String],
+    p_consider_shares_unqtd: Option[String],
+    p_consider_vat: Option[String],
+    p_includes_chattel: Option[String],
+    p_includes_goodwill: Option[String],
+    p_includes_other: Option[String],
+    p_includes_stock: Option[String],
+    p_used_as_factory: Option[String],
+    p_used_as_hotel: Option[String],
+    p_used_as_industrial: Option[String],
+    p_used_as_office: Option[String],
+    p_used_as_other: Option[String],
+    p_used_as_shop: Option[String],
+    p_used_as_warehouse: Option[String],
+    p_contract_date: Option[String],
+    p_is_depend_future_event: Option[String],
+    p_transaction_des: Option[String],
+    p_new_transaction_des: Option[String],
+    p_effective_date: Option[String],
+    p_is_land_exchanged: Option[String],
+    p_ex_land_house_number: Option[String],
+    p_ex_land_address_1: Option[String],
+    p_ex_land_address_2: Option[String],
+    p_ex_land_address_3: Option[String],
+    p_ex_land_address_4: Option[String],
+    p_ex_land_postcode: Option[String],
+    p_agreed_defer_pay: Option[String],
+    p_post_tr_rul_applied: Option[String],
+    p_is_pur_to_pre_opt: Option[String],
+    p_rest_affect_int: Option[String],
+    p_rest_details: Option[String],
+    p_post_tr_rul_foll: Option[String],
+    p_is_part_sale_of_busi: Option[String],
+    p_total_consider_busi: Option[String]
+  ): UpdateTransactionReturn = {
+
+    val cs = conn.prepareCall(
+      "{ call TRANSACTION_PROCS.UPDATE_TRANSACTION(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+    )
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.setOptionalString(3, p_claiming_relief)
+      cs.setOptionalString(4, p_relief_amount)
+      cs.setOptionalString(5, p_relief_reason)
+      cs.setOptionalString(6, p_relief_scheme_number)
+      cs.setOptionalString(7, p_is_linked)
+      cs.setOptionalString(8, p_total_consider_linked)
+      cs.setOptionalString(9, p_total_consider)
+      cs.setOptionalString(10, p_consider_build)
+      cs.setOptionalString(11, p_consider_cash)
+      cs.setOptionalString(12, p_consider_contingent)
+      cs.setOptionalString(13, p_consider_debt)
+      cs.setOptionalString(14, p_consider_employ)
+      cs.setOptionalString(15, p_consider_other)
+      cs.setOptionalString(16, p_consider_land)
+      cs.setOptionalString(17, p_consider_services)
+      cs.setOptionalString(18, p_consider_shares_qtd)
+      cs.setOptionalString(19, p_consider_shares_unqtd)
+      cs.setOptionalString(20, p_consider_vat)
+      cs.setOptionalString(21, p_includes_chattel)
+      cs.setOptionalString(22, p_includes_goodwill)
+      cs.setOptionalString(23, p_includes_other)
+      cs.setOptionalString(24, p_includes_stock)
+      cs.setOptionalString(25, p_used_as_factory)
+      cs.setOptionalString(26, p_used_as_hotel)
+      cs.setOptionalString(27, p_used_as_industrial)
+      cs.setOptionalString(28, p_used_as_office)
+      cs.setOptionalString(29, p_used_as_other)
+      cs.setOptionalString(30, p_used_as_shop)
+      cs.setOptionalString(31, p_used_as_warehouse)
+      cs.setOptionalString(32, p_contract_date)
+      cs.setOptionalString(33, p_is_depend_future_event)
+      cs.setOptionalString(34, p_transaction_des)
+      cs.setOptionalString(35, p_new_transaction_des)
+      cs.setOptionalString(36, p_effective_date)
+      cs.setOptionalString(37, p_is_land_exchanged)
+      cs.setOptionalString(38, p_ex_land_house_number)
+      cs.setOptionalString(39, p_ex_land_address_1)
+      cs.setOptionalString(40, p_ex_land_address_2)
+      cs.setOptionalString(41, p_ex_land_address_3)
+      cs.setOptionalString(42, p_ex_land_address_4)
+      cs.setOptionalString(43, p_ex_land_postcode)
+      cs.setOptionalString(44, p_agreed_defer_pay)
+      cs.setOptionalString(45, p_post_tr_rul_applied)
+      cs.setOptionalString(46, p_is_pur_to_pre_opt)
+      cs.setOptionalString(47, p_rest_affect_int)
+      cs.setOptionalString(48, p_rest_details)
+      cs.setOptionalString(49, p_post_tr_rul_foll)
+      cs.setOptionalString(50, p_is_part_sale_of_busi)
+      cs.setOptionalString(51, p_total_consider_busi)
+
+      cs.execute()
+
+      UpdateTransactionReturn(updated = true)
     } finally cs.close()
   }
 

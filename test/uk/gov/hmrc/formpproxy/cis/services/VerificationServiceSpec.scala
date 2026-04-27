@@ -19,7 +19,8 @@ package uk.gov.hmrc.formpproxy.cis.services
 import org.mockito.ArgumentMatchers.eq as eqTo
 import org.mockito.Mockito.*
 import uk.gov.hmrc.formpproxy.base.SpecBase
-import uk.gov.hmrc.formpproxy.cis.models.response.{GetCurrentVerificationBatchResponse, GetNewestVerificationBatchResponse}
+import uk.gov.hmrc.formpproxy.cis.models.response.*
+import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
 import scala.concurrent.Future
@@ -54,6 +55,28 @@ class VerificationServiceSpec extends SpecBase {
 
       verify(repo).getNewestVerificationBatch(eqTo(instanceId))
       verifyNoMoreInteractions(repo)
+    }
+
+    "VerificationService.createVerificationBatchAndVerifications" - {
+      "delegates to repository" in {
+        val repo    = mock[CisMonthlyReturnSource]
+        val service = new VerificationService(repo)
+
+        val req = CreateVerificationBatchAndVerificationsRequest(
+          instanceId = "abc-123",
+          verificationResourceReferences = Seq(111L, 222L),
+          actionIndicator = Some("A")
+        )
+
+        val response = CreateVerificationBatchAndVerificationsResponse(
+          verificationBatchResourceReference = 10L
+        )
+
+        when(repo.createVerificationBatchAndVerifications(eqTo(req))).thenReturn(Future.successful(response))
+
+        service.createVerificationBatchAndVerifications(req).futureValue mustBe response
+        verify(repo).createVerificationBatchAndVerifications(eqTo(req))
+      }
     }
 
     "propagates failure from repo" in {
