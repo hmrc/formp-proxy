@@ -196,4 +196,19 @@ class MonthlyReturnController @Inject() (
           InternalServerError(Json.obj("message" -> "Unexpected error"))
         }
     }
+  def getMonthlyReturnComplete: Action[JsValue]                                     =
+    authorise.async(parse.json) { implicit request =>
+      request.body
+        .validate[GetMonthlyReturnCompleteRequest]
+        .foldErrorsIntoBadRequest { req =>
+          service
+            .getMonthlyReturnComplete(req)
+            .map(payload => Ok(Json.toJson(payload)))
+            .recover { case NonFatal(e) =>
+              logger.error("[getMonthlyReturnComplete] failed", e)
+              InternalServerError(Json.obj("message" -> "Unexpected error"))
+            }
+        }
+    }
+
 }
