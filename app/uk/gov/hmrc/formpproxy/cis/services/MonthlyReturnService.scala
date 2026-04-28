@@ -34,24 +34,26 @@ class MonthlyReturnService @Inject() (repo: CisMonthlyReturnSource)(implicit ec:
     repo.getUnsubmittedMonthlyReturns(instanceId).map { unsubmitted =>
       unsubmitted.copy(
         monthlyReturn = unsubmitted.monthlyReturn.map { monthlyReturn =>
-          monthlyReturn.copy(status = Some(mapStatus(monthlyReturn.status)))
+          monthlyReturn.copy(
+            status = monthlyReturn.status.map(mapStatusForUnsubmittedReturns)
+          )
         }
       )
     }
 
+  private def mapStatusForUnsubmittedReturns(raw: String): String =
+    raw.trim.toUpperCase match {
+      case "STARTED"            => "STARTED"
+      case "VALIDATED"          => "VALIDATED"
+      case "PENDING"            => "PENDING"
+      case "ACCEPTED"           => "PENDING"
+      case "DEPARTMENTAL_ERROR" => "REJECTED"
+      case "FATAL_ERROR"        => "REJECTED"
+      case other                => other
+    }
+
   def getSubmittedMonthlyReturns(instanceId: String): Future[SubmittedMonthlyReturns] =
     repo.getSubmittedMonthlyReturns(instanceId)
-
-  private def mapStatus(raw: Option[String]): String =
-    raw.map(_.trim.toUpperCase) match {
-      case Some("STARTED")            => "STARTED"
-      case Some("VALIDATED")          => "VALIDATED"
-      case Some("PENDING")            => "PENDING"
-      case Some("ACCEPTED")           => "PENDING"
-      case Some("DEPARTMENTAL_ERROR") => "REJECTED"
-      case Some("FATAL_ERROR")        => "REJECTED"
-      case _                          => "STARTED"
-    }
 
   def createNilMonthlyReturn(request: CreateNilMonthlyReturnRequest): Future[CreateNilMonthlyReturnResponse] =
     repo.createNilMonthlyReturn(request)
