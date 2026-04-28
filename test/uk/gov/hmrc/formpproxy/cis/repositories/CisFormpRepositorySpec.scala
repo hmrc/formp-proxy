@@ -2344,6 +2344,234 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
   }
 
+  "getCurrentVerificationBatch" - {
+
+    "calls SP and returns subs,verificationBatch,verifications data" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      val rsScheme            = mock[ResultSet]
+      val rsSubcontractors    = mock[ResultSet]
+      val rsVerificationBatch = mock[ResultSet]
+      val rsVerifications     = mock[ResultSet]
+      val rsSubmission        = mock[ResultSet]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetCurrentVerificationBatch)))
+        .thenReturn(cs)
+
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+      when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
+      when(cs.getObject(eqTo(4), eqTo(classOf[ResultSet]))).thenReturn(rsVerificationBatch)
+      when(cs.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsVerifications)
+      when(cs.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+
+      when(rsScheme.next()).thenReturn(true, false)
+      when(rsScheme.getInt("scheme_id")).thenReturn(999)
+      when(rsScheme.getString("instance_id")).thenReturn("abc-123")
+      when(rsScheme.getString("aoref")).thenReturn("123PA00123456")
+      when(rsScheme.getString("tax_office_number")).thenReturn("163")
+      when(rsScheme.getString("tax_office_reference")).thenReturn("AB0063")
+      when(rsScheme.getString("utr")).thenReturn(null)
+      when(rsScheme.getString("name")).thenReturn(null)
+      when(rsScheme.getString("email_address")).thenReturn(null)
+      when(rsScheme.getString("display_welcome_page")).thenReturn(null)
+      when(rsScheme.getInt("pre_pop_count")).thenReturn(0);
+      when(rsScheme.wasNull()).thenReturn(true)
+      when(rsScheme.getString("pre_pop_successful")).thenReturn(null)
+      when(rsScheme.getInt("subcontractor_counter")).thenReturn(0);
+      when(rsScheme.wasNull()).thenReturn(true)
+      when(rsScheme.getInt("verif_batch_counter")).thenReturn(0);
+      when(rsScheme.wasNull()).thenReturn(true)
+      when(rsScheme.getTimestamp("create_date")).thenReturn(null)
+      when(rsScheme.getTimestamp("last_update")).thenReturn(null)
+      when(rsScheme.getInt("version")).thenReturn(0);
+      when(rsScheme.wasNull()).thenReturn(true)
+
+      when(rsSubcontractors.next()).thenReturn(true, false)
+      when(rsSubcontractors.getLong("subcontractor_id")).thenReturn(1L)
+      when(rsSubcontractors.getLong("subbie_resource_ref")).thenReturn(10L);
+      when(rsSubcontractors.wasNull()).thenReturn(false)
+      when(rsSubcontractors.getString("type")).thenReturn("soletrader")
+      when(rsSubcontractors.getString("utr")).thenReturn("1111111111")
+      when(rsSubcontractors.getInt("page_visited")).thenReturn(2);
+      when(rsSubcontractors.wasNull()).thenReturn(false)
+      when(rsSubcontractors.getString("partner_utr")).thenReturn(null)
+      when(rsSubcontractors.getString("crn")).thenReturn(null)
+      when(rsSubcontractors.getString("firstname")).thenReturn("John")
+      when(rsSubcontractors.getString("nino")).thenReturn("AA123456A")
+      when(rsSubcontractors.getString("secondname")).thenReturn(null)
+      when(rsSubcontractors.getString("surname")).thenReturn("Smith")
+      when(rsSubcontractors.getString("partnership_tradingname")).thenReturn(null)
+      when(rsSubcontractors.getString("tradingname")).thenReturn("ACME")
+      when(rsSubcontractors.getString("address_line_1")).thenReturn("1 Main Street")
+      when(rsSubcontractors.getString("address_line_2")).thenReturn(null)
+      when(rsSubcontractors.getString("address_line_3")).thenReturn(null)
+      when(rsSubcontractors.getString("address_line_4")).thenReturn(null)
+      when(rsSubcontractors.getString("country")).thenReturn("United Kingdom")
+      when(rsSubcontractors.getString("postcode")).thenReturn("AA1 1AA")
+      when(rsSubcontractors.getString("email_address")).thenReturn(null)
+      when(rsSubcontractors.getString("phone_number")).thenReturn(null)
+      when(rsSubcontractors.getString("mobile_phone_number")).thenReturn(null)
+      when(rsSubcontractors.getString("works_reference_number")).thenReturn(null)
+      when(rsSubcontractors.getInt("version")).thenReturn(1);
+      when(rsSubcontractors.wasNull()).thenReturn(false)
+      when(rsSubcontractors.getString("tax_treatment")).thenReturn(null)
+      when(rsSubcontractors.getString("updated_tax_treatment")).thenReturn(null)
+      when(rsSubcontractors.getString("verification_number")).thenReturn(null)
+      when(rsSubcontractors.getTimestamp("create_date")).thenReturn(null)
+      when(rsSubcontractors.getTimestamp("last_update")).thenReturn(null)
+      when(rsSubcontractors.getString("matched")).thenReturn(null)
+      when(rsSubcontractors.getString("verified")).thenReturn(null)
+      when(rsSubcontractors.getString("auto_verified")).thenReturn(null)
+      when(rsSubcontractors.getTimestamp("verification_date")).thenReturn(null)
+      when(rsSubcontractors.getTimestamp("last_monthly_return_date")).thenReturn(null)
+      when(rsSubcontractors.getInt("pending_verifications")).thenReturn(0);
+      when(rsSubcontractors.wasNull()).thenReturn(false)
+
+      when(rsVerificationBatch.next()).thenReturn(true, false)
+      when(rsVerificationBatch.getLong("verification_batch_id")).thenReturn(55L)
+      when(rsVerificationBatch.getLong("scheme_id")).thenReturn(999L)
+      when(rsVerificationBatch.getLong("verifications_counter")).thenReturn(1L);
+      when(rsVerificationBatch.wasNull()).thenReturn(false)
+      when(rsVerificationBatch.getLong("verif_batch_resource_ref")).thenReturn(101L);
+      when(rsVerificationBatch.wasNull()).thenReturn(false)
+      when(rsVerificationBatch.getString("proceed_session")).thenReturn("Y")
+      when(rsVerificationBatch.getString("confirm_arrangement")).thenReturn("Y")
+      when(rsVerificationBatch.getString("confirm_correct")).thenReturn("Y")
+      when(rsVerificationBatch.getString("status")).thenReturn("SUBMITTED")
+      when(rsVerificationBatch.getString("verification_number")).thenReturn("VB123")
+      when(rsVerificationBatch.getTimestamp("create_date")).thenReturn(Timestamp.valueOf("2026-04-01 10:00:00"))
+      when(rsVerificationBatch.getTimestamp("last_update")).thenReturn(Timestamp.valueOf("2026-04-02 11:00:00"))
+      when(rsVerificationBatch.getInt("version")).thenReturn(1);
+      when(rsVerificationBatch.wasNull()).thenReturn(false)
+
+      when(rsVerifications.next()).thenReturn(true, false)
+      when(rsVerifications.getLong("verification_id")).thenReturn(9001L)
+      when(rsVerifications.getString("matched")).thenReturn("Y")
+      when(rsVerifications.getString("verification_number")).thenReturn("V0001")
+      when(rsVerifications.getString("tax_treatment")).thenReturn("NET")
+      when(rsVerifications.getString("action_indicator")).thenReturn("A")
+      when(rsVerifications.getLong("verification_batch_id")).thenReturn(55L);
+      when(rsVerifications.wasNull()).thenReturn(false)
+      when(rsVerifications.getLong("scheme_id")).thenReturn(999L);
+      when(rsVerifications.wasNull()).thenReturn(false)
+      when(rsVerifications.getLong("subcontractor_id")).thenReturn(1L);
+      when(rsVerifications.wasNull()).thenReturn(false)
+      when(rsVerifications.getString("subcontractor_name")).thenReturn("ACME")
+      when(rsVerifications.getLong("verification_resource_ref")).thenReturn(777L);
+      when(rsVerifications.wasNull()).thenReturn(false)
+      when(rsVerifications.getString("proceed")).thenReturn("Y")
+      when(rsVerifications.getTimestamp("create_date")).thenReturn(Timestamp.valueOf("2026-04-01 10:00:00"))
+      when(rsVerifications.getTimestamp("last_update")).thenReturn(Timestamp.valueOf("2026-04-02 11:00:00"))
+      when(rsVerifications.getInt("version")).thenReturn(1);
+      when(rsVerifications.wasNull()).thenReturn(false)
+
+      when(rsSubmission.next()).thenReturn(true, false)
+      when(rsSubmission.getLong("submission_id")).thenReturn(500L)
+      when(rsSubmission.getString("submission_type")).thenReturn("VERIFICATIONS")
+      when(rsSubmission.getLong("active_object_id")).thenReturn(55L);
+      when(rsSubmission.wasNull()).thenReturn(false)
+      when(rsSubmission.getString("status")).thenReturn("ACCEPTED")
+      when(rsSubmission.getString("hmrc_mark_generated")).thenReturn(null)
+      when(rsSubmission.getString("hmrc_mark_ggis")).thenReturn(null)
+      when(rsSubmission.getString("email_recipient")).thenReturn("ops@test.com")
+      when(rsSubmission.getString("accepted_time")).thenReturn(null)
+      when(rsSubmission.getTimestamp("create_date")).thenReturn(Timestamp.valueOf("2026-04-03 09:00:00"))
+      when(rsSubmission.getTimestamp("last_update")).thenReturn(Timestamp.valueOf("2026-04-03 09:30:00"))
+      when(rsSubmission.getLong("scheme_id")).thenReturn(999L)
+      when(rsSubmission.getString("agent_id")).thenReturn(null)
+      when(rsSubmission.wasNull()).thenReturn(true)
+      when(rsSubmission.getTimestamp("submission_request_date")).thenReturn(Timestamp.valueOf("2026-04-03 08:00:00"))
+      when(rsSubmission.getString("govtalk_error_code")).thenReturn(null)
+      when(rsSubmission.getString("govtalk_error_type")).thenReturn(null)
+      when(rsSubmission.getString("govtalk_error_message")).thenReturn(null)
+
+      val repo = new CisFormpRepository(db)
+
+      val out = repo.getCurrentVerificationBatch("abc-123").futureValue
+
+      out.scheme            must have size 1
+      out.subcontractors    must have size 1
+      out.verificationBatch must have size 1
+      out.verifications     must have size 1
+      out.submission        must have size 1
+
+      out.scheme.head.schemeId mustBe 999
+      out.subcontractors.head.subcontractorId mustBe 1L
+      out.verificationBatch.head.verificationBatchId mustBe 55L
+      out.verifications.head.verificationId mustBe 9001L
+      out.submission.head.submissionId mustBe 500L
+
+      verify(cs).setString(1, "abc-123")
+      verify(cs).registerOutParameter(2, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(3, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(4, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(5, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(6, OracleTypes.CURSOR)
+      verify(cs).execute()
+
+      verify(rsScheme).close()
+      verify(rsSubcontractors).close()
+      verify(rsVerificationBatch).close()
+      verify(rsVerifications).close()
+      verify(rsSubmission).close()
+      verify(cs).close()
+    }
+
+    "returns empty lists when all cursor are empty" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      val rsScheme            = mock[ResultSet]
+      val rsSubcontractors    = mock[ResultSet]
+      val rsVerificationBatch = mock[ResultSet]
+      val rsVerifications     = mock[ResultSet]
+      val rsSubmission        = mock[ResultSet]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetCurrentVerificationBatch)))
+        .thenReturn(cs)
+
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+      when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
+      when(cs.getObject(eqTo(4), eqTo(classOf[ResultSet]))).thenReturn(rsVerificationBatch)
+      when(cs.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsVerifications)
+      when(cs.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+
+      when(rsScheme.next()).thenReturn(false)
+      when(rsSubcontractors.next()).thenReturn(false)
+      when(rsVerificationBatch.next()).thenReturn(false)
+      when(rsVerifications.next()).thenReturn(false)
+      when(rsSubmission.next()).thenReturn(false)
+
+      val repo = new CisFormpRepository(db)
+      val out  = repo.getCurrentVerificationBatch("abc-123").futureValue
+
+      out.scheme mustBe empty
+      out.subcontractors mustBe empty
+      out.verificationBatch mustBe empty
+      out.verifications mustBe empty
+      out.submission mustBe empty
+
+      verify(cs).execute()
+      verify(rsScheme).close()
+      verify(rsSubcontractors).close()
+      verify(rsVerificationBatch).close()
+      verify(rsVerifications).close()
+      verify(rsSubmission).close()
+      verify(cs).close()
+    }
+  }
+
   "deleteUnsubmittedMonthlyReturn" - {
 
     "call MONTHLY_RETURN_PROCS_2016.DELETE_MONTHLY_RETURN with correct parameters and execute" in {

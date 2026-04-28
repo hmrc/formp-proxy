@@ -17,7 +17,7 @@
 package uk.gov.hmrc.formpproxy.cis.services
 
 import org.mockito.ArgumentMatchers.eq as eqTo
-import org.mockito.Mockito._
+import org.mockito.Mockito.*
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
@@ -95,4 +95,47 @@ class VerificationServiceSpec extends SpecBase {
       verifyNoMoreInteractions(repo)
     }
   }
+
+  "VerificationService#getCurrentVerificationBatch" - {
+
+    "return successful response from repo" in {
+      val c = Ctx();
+      import c.*
+
+      val instanceId = "abc-123"
+      val response   = GetCurrentVerificationBatchResponse(
+        scheme = Seq.empty,
+        subcontractors = Seq.empty,
+        verificationBatch = Seq.empty,
+        verifications = Seq.empty,
+        submission = Seq.empty
+      )
+
+      when(repo.getCurrentVerificationBatch(eqTo(instanceId)))
+        .thenReturn(Future.successful(response))
+
+      service.getCurrentVerificationBatch(instanceId).futureValue mustBe response
+
+      verify(repo).getCurrentVerificationBatch(eqTo(instanceId))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failure from repo" in {
+      val c = Ctx();
+      import c.*
+
+      val instanceId = "abc-123"
+      val boom       = new RuntimeException("boom")
+
+      when(repo.getCurrentVerificationBatch(eqTo(instanceId)))
+        .thenReturn(Future.failed(boom))
+
+      val ex = service.getCurrentVerificationBatch(instanceId).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).getCurrentVerificationBatch(eqTo(instanceId))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
 }

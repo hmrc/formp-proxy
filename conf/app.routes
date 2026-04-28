@@ -35,6 +35,10 @@ POST       /cis/govtalkstatus/update-status                         uk.gov.hmrc.
 POST       /cis/govtalkstatus/update-statistics                     uk.gov.hmrc.formpproxy.cis.controllers.GovTalkController.updateGovTalkStatusStatistics
 POST       /cis/govtalkstatus/create                                uk.gov.hmrc.formpproxy.cis.controllers.GovTalkController.createGovTalkStatusRecord
 
+GET        /cis/verification-batch/newest/:instanceId               uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.getNewestVerificationBatch(instanceId: String)
+GET        /cis/verification-batch/current/:instanceId              uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.getCurrentVerificationBatch(instanceId: String)
+POST       /cis/verification-batch/create                           uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.createVerificationBatchAndVerifications()
+
 # SDLT routes
 
 POST       /create/return                                           uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.createSDLTReturn()
@@ -98,7 +102,3 @@ DELETE     /nova/forms/:formId                                      uk.gov.hmrc.
 POST       /nova/forms/:formId/notification-refs                     uk.gov.hmrc.formpproxy.nova.controllers.NovaFormDataController.getNovaNotificationRef(formId: Long)
 GET        /nova/forms/:formId/data                                  uk.gov.hmrc.formpproxy.nova.controllers.NovaFormDataController.getFormData(formId: Long, formDataIds: Seq[String])
 PUT        /nova/forms/:formId/data/:formDataId                      uk.gov.hmrc.formpproxy.nova.controllers.NovaFormDataController.storeFormData(formId: Long, formDataId: String)
-
-GET        /cis/verification-batch/newest/:instanceId               uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.getNewestVerificationBatch(instanceId: String)
-
-POST       /cis/verification-batch/create                           uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.createVerificationBatchAndVerifications()
