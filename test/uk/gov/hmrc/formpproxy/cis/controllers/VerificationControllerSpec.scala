@@ -28,8 +28,6 @@ import uk.gov.hmrc.formpproxy.cis.models.response.{GetCurrentVerificationBatchRe
 import uk.gov.hmrc.formpproxy.cis.models.requests.CreateVerificationBatchAndVerificationsRequest
 import uk.gov.hmrc.formpproxy.cis.models.response.CreateVerificationBatchAndVerificationsResponse
 import uk.gov.hmrc.formpproxy.cis.services.VerificationService
-import play.api.http.Status.{BAD_REQUEST, OK}
-import play.api.test.Helpers.{CONTENT_TYPE, POST}
 
 import scala.concurrent.Future
 
