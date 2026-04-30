@@ -2249,12 +2249,12 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       val out = repo.getNewestVerificationBatch("abc-123").futureValue
 
-      out.scheme                  must have size 1
+      out.scheme.isDefined mustBe true
       out.subcontractors          must have size 1
-      out.verificationBatch       must have size 1
+      out.verificationBatch.isDefined mustBe true
       out.verifications           must have size 1
-      out.submission              must have size 1
-      out.monthlyReturn           must have size 1
+      out.submission.isDefined mustBe true
+      out.monthlyReturn.isDefined mustBe true
       out.monthlyReturnSubmission must have size 1
 
       out.scheme.head.schemeId mustBe 999
@@ -2324,11 +2324,11 @@ final class CisFormpRepositorySpec extends SpecBase {
       val repo = new CisFormpRepository(db)
       val out  = repo.getNewestVerificationBatch("abc-123").futureValue
 
-      out.scheme mustBe empty
+      out.scheme mustBe None
       out.subcontractors mustBe empty
-      out.verificationBatch mustBe empty
+      out.verificationBatch mustBe None
       out.verifications mustBe empty
-      out.submission mustBe empty
+      out.submission mustBe None
       out.monthlyReturn mustBe empty
       out.monthlyReturnSubmission mustBe empty
 
@@ -2495,11 +2495,11 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       val out = repo.getCurrentVerificationBatch("abc-123").futureValue
 
-      out.scheme            must have size 1
-      out.subcontractors    must have size 1
-      out.verificationBatch must have size 1
-      out.verifications     must have size 1
-      out.submission        must have size 1
+      out.scheme.isDefined mustBe true
+      out.subcontractors must have size 1
+      out.verificationBatch.isDefined mustBe true
+      out.verifications  must have size 1
+      out.submission.isDefined mustBe true
 
       out.scheme.head.schemeId mustBe 999
       out.subcontractors.head.subcontractorId mustBe 1L
@@ -2556,11 +2556,11 @@ final class CisFormpRepositorySpec extends SpecBase {
       val repo = new CisFormpRepository(db)
       val out  = repo.getCurrentVerificationBatch("abc-123").futureValue
 
-      out.scheme mustBe empty
+      out.scheme mustBe None
       out.subcontractors mustBe empty
-      out.verificationBatch mustBe empty
+      out.verificationBatch mustBe None
       out.verifications mustBe empty
-      out.submission mustBe empty
+      out.submission mustBe None
 
       verify(cs).execute()
       verify(rsScheme).close()

@@ -1012,12 +1012,12 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
           cs.execute()
 
-          val scheme            = withCursor(cs, 2)(collectSchemes)
+          val scheme            = withCursor(cs, 2)(collectSchemes).headOption
           val subcontractors    = withCursor(cs, 3)(collectSubcontractors)
-          val verificationBatch = withCursor(cs, 4)(collectVerificationBatches)
+          val verificationBatch = withCursor(cs, 4)(collectVerificationBatches).headOption
           val verifications     = withCursor(cs, 5)(collectVerifications)
-          val submission        = withCursor(cs, 6)(collectSubmissionsForGetVerificationBatch)
-          val monthlyReturn     = withCursor(cs, 7)(collectMonthlyReturnsForGetVerificationBatch)
+          val submission        = withCursor(cs, 6)(collectSubmissionsForGetVerificationBatch).headOption
+          val monthlyReturn     = withCursor(cs, 7)(collectMonthlyReturnsForGetVerificationBatch).headOption
           val mrSubmission      = withCursor(cs, 8)(collectSubmissionsForGetVerificationBatch)
 
           GetNewestVerificationBatchResponse(
@@ -1049,11 +1049,11 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
           cs.execute()
 
-          val scheme            = withCursor(cs, 2)(collectSchemes)
+          val scheme            = withCursor(cs, 2)(collectSchemes).headOption
           val subcontractors    = withCursor(cs, 3)(collectSubcontractors)
-          val verificationBatch = withCursor(cs, 4)(collectVerificationBatches)
+          val verificationBatch = withCursor(cs, 4)(collectVerificationBatches).headOption
           val verifications     = withCursor(cs, 5)(collectVerifications)
-          val submission        = withCursor(cs, 6)(collectSubmissionsForGetVerificationBatch)
+          val submission        = withCursor(cs, 6)(collectSubmissionsForGetVerificationBatch).headOption
 
           GetCurrentVerificationBatchResponse(
             scheme = scheme,

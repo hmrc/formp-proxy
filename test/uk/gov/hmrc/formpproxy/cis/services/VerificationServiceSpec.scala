@@ -39,12 +39,12 @@ class VerificationServiceSpec extends SpecBase {
 
       val instanceId = "abc-123"
       val response   = GetNewestVerificationBatchResponse(
-        scheme = Seq.empty,
+        scheme = None,
         subcontractors = Seq.empty,
-        verificationBatch = Seq.empty,
+        verificationBatch = None,
         verifications = Seq.empty,
-        submission = Seq.empty,
-        monthlyReturn = Seq.empty,
+        submission = None,
+        monthlyReturn = None,
         monthlyReturnSubmission = Seq.empty
       )
 
@@ -104,11 +104,11 @@ class VerificationServiceSpec extends SpecBase {
 
       val instanceId = "abc-123"
       val response   = GetCurrentVerificationBatchResponse(
-        scheme = Seq.empty,
+        scheme = None,
         subcontractors = Seq.empty,
-        verificationBatch = Seq.empty,
+        verificationBatch = None,
         verifications = Seq.empty,
-        submission = Seq.empty
+        submission = None
       )
 
       when(repo.getCurrentVerificationBatch(eqTo(instanceId)))
