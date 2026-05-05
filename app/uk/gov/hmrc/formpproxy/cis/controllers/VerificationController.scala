@@ -46,6 +46,17 @@ class VerificationController @Inject() (
         }
     }
 
+  def getCurrentVerificationBatch(instanceId: String): Action[AnyContent] =
+    authorise.async { implicit request =>
+      service
+        .getCurrentVerificationBatch(instanceId)
+        .map(res => Ok(Json.toJson(res)))
+        .recover { case t =>
+          logger.error(s"[getCurrentVerificationBatch] failed (instanceId=$instanceId)", t)
+          InternalServerError(Json.obj("message" -> "Unexpected error"))
+        }
+    }
+
   def createVerificationBatchAndVerifications(): Action[JsValue] =
     authorise(parse.json).async { implicit request =>
       request.body

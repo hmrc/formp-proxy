@@ -14,21 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.cis.models.response
+package uk.gov.hmrc.formpproxy.cis.models.requests
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.formpproxy.cis.models.*
 
-final case class GetNewestVerificationBatchResponse(
-  scheme: Option[ContractorScheme],
-  subcontractors: Seq[Subcontractor],
-  verificationBatch: Option[VerificationBatch],
-  verifications: Seq[Verification],
-  submission: Option[Submission],
-  monthlyReturn: Option[MonthlyReturn],
-  monthlyReturnSubmission: Seq[Submission]
+case class GetMonthlyReturnCompleteRequest(
+  instanceId: String,
+  taxYear: Int,
+  taxMonth: Int,
+  amendment: String
 )
 
-object GetNewestVerificationBatchResponse {
-  given format: OFormat[GetNewestVerificationBatchResponse] = Json.format[GetNewestVerificationBatchResponse]
-}
+object GetMonthlyReturnCompleteRequest:
+  given format: OFormat[GetMonthlyReturnCompleteRequest] = Json.format[GetMonthlyReturnCompleteRequest]

@@ -16,19 +16,25 @@
 
 package uk.gov.hmrc.formpproxy.cis.models.response
 
-import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.formpproxy.cis.models.*
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import play.api.libs.json.Json
 
-final case class GetNewestVerificationBatchResponse(
-  scheme: Option[ContractorScheme],
-  subcontractors: Seq[Subcontractor],
-  verificationBatch: Option[VerificationBatch],
-  verifications: Seq[Verification],
-  submission: Option[Submission],
-  monthlyReturn: Option[MonthlyReturn],
-  monthlyReturnSubmission: Seq[Submission]
-)
+class GetMonthlyReturnCompleteResponseSpec extends AnyWordSpec with Matchers {
 
-object GetNewestVerificationBatchResponse {
-  given format: OFormat[GetNewestVerificationBatchResponse] = Json.format[GetNewestVerificationBatchResponse]
+  "GetMonthlyReturnCompleteResponse JSON format" should {
+
+    "serialize and deserialize correctly" in {
+      val model = GetMonthlyReturnCompleteResponse(
+        scheme = Seq.empty,
+        monthlyReturn = Seq.empty,
+        subcontractors = Seq.empty,
+        monthlyReturnItems = Seq.empty,
+        submission = Seq.empty
+      )
+
+      val json = Json.toJson(model)
+      json.as[GetMonthlyReturnCompleteResponse] mustBe model
+    }
+  }
 }

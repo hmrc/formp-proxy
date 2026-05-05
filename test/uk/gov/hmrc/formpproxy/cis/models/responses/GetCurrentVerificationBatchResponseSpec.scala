@@ -20,13 +20,13 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.{JsSuccess, Json}
 import uk.gov.hmrc.formpproxy.cis.models.*
-import uk.gov.hmrc.formpproxy.cis.models.response.GetNewestVerificationBatchResponse
+import uk.gov.hmrc.formpproxy.cis.models.response.GetCurrentVerificationBatchResponse
 
 import java.time.{Instant, LocalDateTime}
 
-final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matchers {
+final class GetCurrentVerificationBatchResponseSpec extends AnyWordSpec with Matchers {
 
-  "GetNewestVerificationBatchResponse Json format" should {
+  "GetCurrentVerificationBatchResponse Json format" should {
 
     "read FormP response JSON and parse all sections (including empty cursors)" in {
       val json = Json.parse(
@@ -36,14 +36,12 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
           |  "subcontractors": [],
           |  "verificationBatch": null,
           |  "verifications": [],
-          |  "submission": null,
-          |  "monthlyReturn": null,
-          |  "monthlyReturnSubmission": []
+          |  "submission": null
           |}
           |""".stripMargin
       )
 
-      val result = json.validate[GetNewestVerificationBatchResponse]
+      val result = json.validate[GetCurrentVerificationBatchResponse]
       result mustBe a[JsSuccess[?]]
 
       val out = result.get
@@ -52,12 +50,10 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
       out.verificationBatch mustBe None
       out.verifications mustBe empty
       out.submission mustBe None
-      out.monthlyReturn mustBe None
-      out.monthlyReturnSubmission mustBe empty
     }
 
     "write a response to JSON" in {
-      val model = GetNewestVerificationBatchResponse(
+      val model = GetCurrentVerificationBatchResponse(
         scheme = Some(
           ContractorScheme(
             schemeId = 123,
@@ -167,44 +163,6 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
             agentId = None,
             l_Migrated = None,
             submissionRequestDate = Some(LocalDateTime.of(2026, 1, 12, 11, 59, 0)),
-            govTalkErrorCode = None,
-            govTalkErrorType = None,
-            govTalkErrorMessage = None
-          )
-        ),
-        monthlyReturn = Some(
-          MonthlyReturn(
-            monthlyReturnId = 777L,
-            taxYear = 2025,
-            taxMonth = 1,
-            nilReturnIndicator = Some("N"),
-            decEmpStatusConsidered = Some("Y"),
-            decAllSubsVerified = Some("Y"),
-            decInformationCorrect = Some("Y"),
-            decNoMoreSubPayments = Some("N"),
-            decNilReturnNoPayments = Some("N"),
-            status = Some("SUBMITTED"),
-            lastUpdate = Some(LocalDateTime.of(2026, 1, 31, 12, 34, 56)),
-            amendment = Some("N"),
-            supersededBy = None
-          )
-        ),
-        monthlyReturnSubmission = Seq(
-          Submission(
-            submissionId = 556L,
-            submissionType = "MONTHLY_RETURN",
-            activeObjectId = Some(777L),
-            status = Some("ACCEPTED"),
-            hmrcMarkGenerated = Some("mark-gen-mr"),
-            hmrcMarkGgis = None,
-            emailRecipient = Some("ops@example.com"),
-            acceptedTime = Some("12:01:00"),
-            createDate = Some(LocalDateTime.of(2026, 2, 1, 9, 0, 0)),
-            lastUpdate = Some(LocalDateTime.of(2026, 2, 1, 9, 1, 0)),
-            schemeId = 123L,
-            agentId = None,
-            l_Migrated = None,
-            submissionRequestDate = Some(LocalDateTime.of(2026, 2, 1, 8, 59, 0)),
             govTalkErrorCode = None,
             govTalkErrorType = None,
             govTalkErrorMessage = None
@@ -322,46 +280,10 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
       (subm0 \ "govTalkErrorCode").toOption mustBe None
       (subm0 \ "govTalkErrorType").toOption mustBe None
       (subm0 \ "govTalkErrorMessage").toOption mustBe None
-
-      val mr0 = json \ "monthlyReturn"
-
-      (mr0 \ "monthlyReturnId").as[Long] mustBe 777L
-      (mr0 \ "taxYear").as[Int] mustBe 2025
-      (mr0 \ "taxMonth").as[Int] mustBe 1
-      (mr0 \ "nilReturnIndicator").as[String] mustBe "N"
-      (mr0 \ "decEmpStatusConsidered").as[String] mustBe "Y"
-      (mr0 \ "decAllSubsVerified").as[String] mustBe "Y"
-      (mr0 \ "decInformationCorrect").as[String] mustBe "Y"
-      (mr0 \ "decNoMoreSubPayments").as[String] mustBe "N"
-      (mr0 \ "decNilReturnNoPayments").as[String] mustBe "N"
-      (mr0 \ "status").as[String] mustBe "SUBMITTED"
-      (mr0 \ "lastUpdate").as[String] mustBe "2026-01-31T12:34:56"
-      (mr0 \ "amendment").as[String] mustBe "N"
-      (mr0 \ "supersededBy").toOption mustBe None
-
-      val mrs0 = (json \ "monthlyReturnSubmission")(0)
-
-      (mrs0 \ "submissionId").as[Long] mustBe 556L
-      (mrs0 \ "submissionType").as[String] mustBe "MONTHLY_RETURN"
-      (mrs0 \ "activeObjectId").as[Long] mustBe 777L
-      (mrs0 \ "status").as[String] mustBe "ACCEPTED"
-      (mrs0 \ "hmrcMarkGenerated").as[String] mustBe "mark-gen-mr"
-      (mrs0 \ "hmrcMarkGgis").toOption mustBe None
-      (mrs0 \ "emailRecipient").as[String] mustBe "ops@example.com"
-      (mrs0 \ "acceptedTime").as[String] mustBe "12:01:00"
-      (mrs0 \ "createDate").as[String] mustBe "2026-02-01T09:00:00"
-      (mrs0 \ "lastUpdate").as[String] mustBe "2026-02-01T09:01:00"
-      (mrs0 \ "schemeId").as[Long] mustBe 123L
-      (mrs0 \ "agentId").toOption mustBe None
-      (mrs0 \ "l_Migrated").toOption mustBe None
-      (mrs0 \ "submissionRequestDate").as[String] mustBe "2026-02-01T08:59:00"
-      (mrs0 \ "govTalkErrorCode").toOption mustBe None
-      (mrs0 \ "govTalkErrorType").toOption mustBe None
-      (mrs0 \ "govTalkErrorMessage").toOption mustBe None
     }
 
     "round-trip (model -> json -> model) without losing data" in {
-      val model = GetNewestVerificationBatchResponse(
+      val model = GetCurrentVerificationBatchResponse(
         scheme = Some(
           ContractorScheme(
             schemeId = 999,
@@ -375,13 +297,11 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
         subcontractors = Seq.empty,
         verificationBatch = None,
         verifications = Seq.empty,
-        submission = None,
-        monthlyReturn = None,
-        monthlyReturnSubmission = Seq.empty
+        submission = None
       )
 
       val json = Json.toJson(model)
-      json.validate[GetNewestVerificationBatchResponse] mustBe JsSuccess(model)
+      json.validate[GetCurrentVerificationBatchResponse] mustBe JsSuccess(model)
     }
   }
 }

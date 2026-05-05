@@ -32,6 +32,8 @@ object CisStoredProcedures {
   val CallGetSubmittedMonthlyReturns          = "{ call MONTHLY_RETURN_PROCS_2016.GET_SUBMITTED_RETURNS(?, ?, ?, ?) }"
   val CallGetMonthlyReturnForEdit             =
     "{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_For_Edit(?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+  val CallGetMonthlyReturnComplete            =
+    "{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_Complete(?, ?, ?, ?, ?, ?, ?, ?, ?) }"
   val CallGetSubmittedMonthlyReturnsData      =
     "{ call MONTHLY_RETURN_PROCS_2016.GET_SUB_MONTHLY_RETURN_DATA(?, ?, ?, ?, ?, ?, ? ,?) }"
   val CallUpdateSubcontractor                 =
@@ -56,6 +58,8 @@ object CisStoredProcedures {
     "{ call SUBMISSION_ADMIN.InsertInitialGovTalkStatus(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
   val CallGetNewestVerificationBatch          =
     "{ call VERIFICATION_PROCS.GET_NEWEST_VERIFICATION_BATCH(?, ?, ?, ?, ?, ?, ?, ?) }"
+  val CallGetCurrentVerificationBatch         =
+    "{ call VERIFICATION_PROCS.Get_Current_Verification_Batch(?, ?, ?, ?, ?, ?) }"
   val CallCreateVerificationBatch             =
     "{ call VERIFICATION_PROCS.Create_Verification_Batch(?, ?) }"
   val CallCreateVerification                  =

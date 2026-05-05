@@ -62,7 +62,14 @@ trait CisMonthlyReturnSource {
   def updateGovTalkStatusStatistics(req: UpdateGovTalkStatusStatisticsRequest): Future[Unit]
   def createGovTalkStatusRecord(req: CreateGovTalkStatusRecordRequest): Future[Unit]
   def getNewestVerificationBatch(instanceId: String): Future[GetNewestVerificationBatchResponse]
+  def getCurrentVerificationBatch(instanceId: String): Future[GetCurrentVerificationBatchResponse]
   def deleteUnsubmittedMonthlyReturn(req: DeleteUnsubmittedMonthlyReturnRequest): Future[Unit]
+  def getMonthlyReturnComplete(
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int,
+    amendment: String
+  ): Future[GetMonthlyReturnCompleteResponse]
   def createVerificationBatchAndVerifications(
     req: CreateVerificationBatchAndVerificationsRequest
   ): Future[CreateVerificationBatchAndVerificationsResponse]
@@ -1019,6 +1026,47 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
+  override def getMonthlyReturnComplete(
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int,
+    amendment: String
+  ): Future[GetMonthlyReturnCompleteResponse] = {
+    logger.info(
+      s"[CIS] getMonthlyReturnComplete(instanceId=$instanceId, taxYear=$taxYear, taxMonth=$taxMonth, amendment=$amendment)"
+    )
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallGetMonthlyReturnComplete) { cs =>
+          cs.setString(1, instanceId)
+          cs.setInt(2, taxYear)
+          cs.setInt(3, taxMonth)
+          cs.setString(4, amendment)
+          cs.registerOutParameter(5, OracleTypes.CURSOR)
+          cs.registerOutParameter(6, OracleTypes.CURSOR)
+          cs.registerOutParameter(7, OracleTypes.CURSOR)
+          cs.registerOutParameter(8, OracleTypes.CURSOR)
+          cs.registerOutParameter(9, OracleTypes.CURSOR)
+          cs.execute()
+
+          val scheme             = withCursor(cs, 5)(collectSchemes)
+          val monthlyReturn      = withCursor(cs, 6)(collectMonthlyReturns)
+          val monthlyReturnItems = withCursor(cs, 7)(collectMonthlyReturnItems)
+          val subcontractors     = withCursor(cs, 8)(collectSubcontractors)
+          val submission         = withCursor(cs, 9)(collectSubmissions)
+
+          GetMonthlyReturnCompleteResponse(
+            scheme = scheme,
+            monthlyReturn = monthlyReturn,
+            monthlyReturnItems = monthlyReturnItems,
+            subcontractors = subcontractors,
+            submission = submission
+          )
+        }
+      }
+    }
+  }
+
   private def collectSubcontractorsResponse(rs: ResultSet): Seq[Subcontractor] =
     if (rs == null) Seq.empty
     else {
@@ -1044,12 +1092,12 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
           cs.execute()
 
-          val scheme            = withCursor(cs, 2)(collectSchemes)
+          val scheme            = withCursor(cs, 2)(collectSchemes).headOption
           val subcontractors    = withCursor(cs, 3)(collectSubcontractors)
-          val verificationBatch = withCursor(cs, 4)(collectVerificationBatches)
+          val verificationBatch = withCursor(cs, 4)(collectVerificationBatches).headOption
           val verifications     = withCursor(cs, 5)(collectVerifications)
-          val submission        = withCursor(cs, 6)(collectSubmissionsForGetVerificationBatch)
-          val monthlyReturn     = withCursor(cs, 7)(collectMonthlyReturnsForGetVerificationBatch)
+          val submission        = withCursor(cs, 6)(collectSubmissionsForGetVerificationBatch).headOption
+          val monthlyReturn     = withCursor(cs, 7)(collectMonthlyReturnsForGetVerificationBatch).headOption
           val mrSubmission      = withCursor(cs, 8)(collectSubmissionsForGetVerificationBatch)
 
           GetNewestVerificationBatchResponse(
@@ -1060,6 +1108,39 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
             submission = submission,
             monthlyReturn = monthlyReturn,
             monthlyReturnSubmission = mrSubmission
+          )
+        }
+      }
+    }
+  }
+
+  override def getCurrentVerificationBatch(instanceId: String): Future[GetCurrentVerificationBatchResponse] = {
+    logger.info(s"[CIS] getCurrentVerificationBatch(instanceId=$instanceId)")
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallGetCurrentVerificationBatch) { cs =>
+          cs.setString(1, instanceId)
+
+          cs.registerOutParameter(2, OracleTypes.CURSOR) // scheme
+          cs.registerOutParameter(3, OracleTypes.CURSOR) // subcontractors
+          cs.registerOutParameter(4, OracleTypes.CURSOR) // verification_batch
+          cs.registerOutParameter(5, OracleTypes.CURSOR) // verifications
+          cs.registerOutParameter(6, OracleTypes.CURSOR) // submission
+
+          cs.execute()
+
+          val scheme            = withCursor(cs, 2)(collectSchemes).headOption
+          val subcontractors    = withCursor(cs, 3)(collectSubcontractors)
+          val verificationBatch = withCursor(cs, 4)(collectVerificationBatches).headOption
+          val verifications     = withCursor(cs, 5)(collectVerifications)
+          val submission        = withCursor(cs, 6)(collectSubmissionsForGetVerificationBatch).headOption
+
+          GetCurrentVerificationBatchResponse(
+            scheme = scheme,
+            subcontractors = subcontractors,
+            verificationBatch = verificationBatch,
+            verifications = verifications,
+            submission = submission
           )
         }
       }
