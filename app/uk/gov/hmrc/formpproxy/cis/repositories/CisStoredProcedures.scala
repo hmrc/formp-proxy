@@ -32,6 +32,8 @@ object CisStoredProcedures {
   val CallGetSubmittedMonthlyReturns          = "{ call MONTHLY_RETURN_PROCS_2016.GET_SUBMITTED_RETURNS(?, ?, ?, ?) }"
   val CallGetMonthlyReturnForEdit             =
     "{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_For_Edit(?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+  val CallGetMonthlyReturnComplete            =
+    "{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_Complete(?, ?, ?, ?, ?, ?, ?, ?, ?) }"
   val CallUpdateSubcontractor                 =
     "{ call SUBCONTRACTOR_PROCS.Update_Subcontractor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
   val CallCreateSubmission                    = "{ call SUBMISSION_PROCS.Create_Submission(?, ?, ?, ?, ?, ?, ?, ?, ?) }"

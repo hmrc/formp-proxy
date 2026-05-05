@@ -611,6 +611,45 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
     }
   }
 
+  "getMonthlyReturnComplete" - {
+
+    "returns 200 with json payload when service succeeds" in new Setup {
+      val requestBody = GetMonthlyReturnCompleteRequest("abc-123", 2025, 1, "N")
+
+      val payload = GetMonthlyReturnCompleteResponse(
+        scheme = Seq.empty,
+        monthlyReturn = Seq.empty,
+        subcontractors = Seq.empty,
+        monthlyReturnItems = Seq.empty,
+        submission = Seq.empty
+      )
+
+      when(mockService.getMonthlyReturnComplete(eqTo(requestBody)))
+        .thenReturn(Future.successful(payload))
+
+      val request = makeJsonRequest(Json.toJson(requestBody))
+      val result  = controller.getMonthlyReturnComplete(request)
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe Json.toJson(payload)
+      verify(mockService).getMonthlyReturnComplete(eqTo(requestBody))
+    }
+
+    "returns 500 with Unexpected error when service fails with NonFatal" in new Setup {
+      val requestBody = GetMonthlyReturnCompleteRequest("abc-123", 2025, 1, "N")
+
+      when(mockService.getMonthlyReturnComplete(eqTo(requestBody)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val request = makeJsonRequest(Json.toJson(requestBody))
+      val result  = controller.getMonthlyReturnComplete(request)
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
+      verify(mockService).getMonthlyReturnComplete(eqTo(requestBody))
+    }
+  }
+
   "MonthlyReturnController syncMonthlyReturnItems" - {
 
     "returns 204 NoContent when service succeeds" in new Setup {

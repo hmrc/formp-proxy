@@ -1179,6 +1179,68 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
   }
 
+  "getMonthlyReturnComplete" - {
+
+    "calls SP and returns empty response when all cursors are empty" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      val rsScheme         = mock[ResultSet]
+      val rsMonthlyReturn  = mock[ResultSet]
+      val rsItems          = mock[ResultSet]
+      val rsSubcontractors = mock[ResultSet]
+      val rsSubmission     = mock[ResultSet]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_Complete(?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+        )
+      )
+        .thenReturn(cs)
+
+      when(cs.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+      when(cs.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsMonthlyReturn)
+      when(cs.getObject(eqTo(7), eqTo(classOf[ResultSet]))).thenReturn(rsItems)
+      when(cs.getObject(eqTo(8), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
+      when(cs.getObject(eqTo(9), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+
+      when(rsScheme.next()).thenReturn(false)
+      when(rsMonthlyReturn.next()).thenReturn(false)
+      when(rsItems.next()).thenReturn(false)
+      when(rsSubcontractors.next()).thenReturn(false)
+      when(rsSubmission.next()).thenReturn(false)
+
+      val repo = new CisFormpRepository(db)
+
+      val out = repo.getMonthlyReturnComplete("abc-123", 2025, 1, "N").futureValue
+
+      out.scheme mustBe empty
+      out.monthlyReturn mustBe empty
+      out.monthlyReturnItems mustBe empty
+      out.subcontractors mustBe empty
+      out.submission mustBe empty
+
+      verify(conn).prepareCall(
+        eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_Complete(?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+      )
+      verify(cs).setString(1, "abc-123")
+      verify(cs).setInt(2, 2025)
+      verify(cs).setInt(3, 1)
+      verify(cs).setString(4, "N")
+      verify(cs).registerOutParameter(5, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(6, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(7, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(8, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(9, OracleTypes.CURSOR)
+      verify(cs).execute()
+    }
+  }
+
   "createAndUpdateSubcontractor" - {
 
     def stubCommon(
@@ -2249,12 +2311,12 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       val out = repo.getNewestVerificationBatch("abc-123").futureValue
 
-      out.scheme                  must have size 1
+      out.scheme.isDefined mustBe true
       out.subcontractors          must have size 1
-      out.verificationBatch       must have size 1
+      out.verificationBatch.isDefined mustBe true
       out.verifications           must have size 1
-      out.submission              must have size 1
-      out.monthlyReturn           must have size 1
+      out.submission.isDefined mustBe true
+      out.monthlyReturn.isDefined mustBe true
       out.monthlyReturnSubmission must have size 1
 
       out.scheme.head.schemeId mustBe 999
@@ -2324,11 +2386,11 @@ final class CisFormpRepositorySpec extends SpecBase {
       val repo = new CisFormpRepository(db)
       val out  = repo.getNewestVerificationBatch("abc-123").futureValue
 
-      out.scheme mustBe empty
+      out.scheme mustBe None
       out.subcontractors mustBe empty
-      out.verificationBatch mustBe empty
+      out.verificationBatch mustBe None
       out.verifications mustBe empty
-      out.submission mustBe empty
+      out.submission mustBe None
       out.monthlyReturn mustBe empty
       out.monthlyReturnSubmission mustBe empty
 
@@ -2495,11 +2557,11 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       val out = repo.getCurrentVerificationBatch("abc-123").futureValue
 
-      out.scheme            must have size 1
-      out.subcontractors    must have size 1
-      out.verificationBatch must have size 1
-      out.verifications     must have size 1
-      out.submission        must have size 1
+      out.scheme.isDefined mustBe true
+      out.subcontractors must have size 1
+      out.verificationBatch.isDefined mustBe true
+      out.verifications  must have size 1
+      out.submission.isDefined mustBe true
 
       out.scheme.head.schemeId mustBe 999
       out.subcontractors.head.subcontractorId mustBe 1L
@@ -2556,11 +2618,11 @@ final class CisFormpRepositorySpec extends SpecBase {
       val repo = new CisFormpRepository(db)
       val out  = repo.getCurrentVerificationBatch("abc-123").futureValue
 
-      out.scheme mustBe empty
+      out.scheme mustBe None
       out.subcontractors mustBe empty
-      out.verificationBatch mustBe empty
+      out.verificationBatch mustBe None
       out.verifications mustBe empty
-      out.submission mustBe empty
+      out.submission mustBe None
 
       verify(cs).execute()
       verify(rsScheme).close()
