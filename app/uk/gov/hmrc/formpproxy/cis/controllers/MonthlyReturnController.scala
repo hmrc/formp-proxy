@@ -212,7 +212,6 @@ class MonthlyReturnController @Inject() (
         }
     }
 
-
   def retrieveSubmittedMonthlyReturnsData: Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
       request.body
