@@ -379,13 +379,17 @@ final class MonthlyReturnServiceSpec extends SpecBase {
         monthlyReturnItems = Seq.empty,
         submission = Seq.empty
       )
-      when(c.repo.getMonthlyReturnForEdit(eqTo(request.instanceId), eqTo(request.taxYear), eqTo(request.taxMonth)))
+      when(
+        c.repo
+          .getMonthlyReturnForEdit(eqTo(request.instanceId), eqTo(request.taxYear), eqTo(request.taxMonth), eqTo(false))
+      )
         .thenReturn(Future.successful(payload))
 
       val out = c.service.getMonthlyReturnForEdit(request).futureValue
       out mustBe payload
 
-      verify(c.repo).getMonthlyReturnForEdit(eqTo(request.instanceId), eqTo(request.taxYear), eqTo(request.taxMonth))
+      verify(c.repo)
+        .getMonthlyReturnForEdit(eqTo(request.instanceId), eqTo(request.taxYear), eqTo(request.taxMonth), eqTo(false))
       verifyNoMoreInteractions(c.repo)
     }
 
@@ -395,13 +399,17 @@ final class MonthlyReturnServiceSpec extends SpecBase {
 
       val request = GetMonthlyReturnForEditRequest("abc-123", 2025, 1)
 
-      when(c.repo.getMonthlyReturnForEdit(eqTo(request.instanceId), eqTo(request.taxYear), eqTo(request.taxMonth)))
+      when(
+        c.repo
+          .getMonthlyReturnForEdit(eqTo(request.instanceId), eqTo(request.taxYear), eqTo(request.taxMonth), eqTo(false))
+      )
         .thenReturn(Future.failed(boom))
 
       val ex = c.service.getMonthlyReturnForEdit(request).failed.futureValue
       ex mustBe boom
 
-      verify(c.repo).getMonthlyReturnForEdit(eqTo(request.instanceId), eqTo(request.taxYear), eqTo(request.taxMonth))
+      verify(c.repo)
+        .getMonthlyReturnForEdit(eqTo(request.instanceId), eqTo(request.taxYear), eqTo(request.taxMonth), eqTo(false))
       verifyNoMoreInteractions(c.repo)
     }
   }
