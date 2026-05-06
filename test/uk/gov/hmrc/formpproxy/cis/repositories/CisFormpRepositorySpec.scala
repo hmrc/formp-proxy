@@ -1155,7 +1155,7 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       val repo = new CisFormpRepository(db)
 
-      val out = repo.getMonthlyReturnForEdit("abc-123", 2025, 1).futureValue
+      val out = repo.getMonthlyReturnForEdit("abc-123", 2025, 1, false).futureValue
 
       out.scheme mustBe empty
       out.monthlyReturn mustBe empty

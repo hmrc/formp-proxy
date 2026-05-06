@@ -74,7 +74,8 @@ class MonthlyReturnService @Inject() (repo: CisMonthlyReturnSource)(implicit ec:
     repo.getMonthlyReturnForEdit(
       instanceId = request.instanceId,
       taxYear = request.taxYear,
-      taxMonth = request.taxMonth
+      taxMonth = request.taxMonth,
+      isAmendment = request.isAmendment.getOrElse(false)
     )
 
   def getMonthlyReturnComplete(request: GetMonthlyReturnCompleteRequest): Future[GetMonthlyReturnCompleteResponse] =
