@@ -26,7 +26,6 @@ import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateVerificationBatchAndVer
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.control.NonFatal
 
 class VerificationController @Inject() (
   authorise: AuthAction,
