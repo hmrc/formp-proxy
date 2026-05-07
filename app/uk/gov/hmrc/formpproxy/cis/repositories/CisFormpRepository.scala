@@ -77,6 +77,7 @@ trait CisMonthlyReturnSource {
   def getSubmittedMonthlyReturnsData(
     request: GetSubmittedMonthlyReturnsDataRequest
   ): Future[GetSubmittedMonthlyReturnsDataResponse]
+  def createAmendedMonthlyReturn(request: CreateAmendedMonthlyReturnRequest): Future[Unit]
   def modifyVerifications(req: ModifyVerificationsRequest): Future[Unit]
 }
 
@@ -663,6 +664,25 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         }
       }
     }
+
+  // Amend monthly return
+
+  override def createAmendedMonthlyReturn(request: CreateAmendedMonthlyReturnRequest): Future[Unit] = {
+    logger.info(
+      s"[CIS] createAmendedMonthlyReturn(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
+    )
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallCreateAmendedMonthlyReturn) { cs =>
+          cs.setString(1, request.instanceId)
+          cs.setInt(2, request.taxYear)
+          cs.setInt(3, request.taxMonth)
+          cs.setInt(4, request.version)
+          cs.execute()
+        }
+      }
+    }
+  }
 
   // private helpers
   private def callCreateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit =
