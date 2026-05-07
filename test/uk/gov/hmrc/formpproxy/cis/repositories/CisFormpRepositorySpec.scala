@@ -2673,6 +2673,43 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
   }
 
+  "createAmendedMonthlyReturn" - {
+
+    "call amend monthly return with correct parameters and execute" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any])
+        f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new CisFormpRepository(db)
+
+      val request = CreateAmendedMonthlyReturnRequest(
+        instanceId = "1",
+        taxYear = 2026,
+        taxMonth = 4,
+        version = 0
+      )
+
+      repo.createAmendedMonthlyReturn(request).futureValue
+
+      verify(conn).prepareCall(anyArg[String])
+
+      verify(cs).setString(1, request.instanceId)
+      verify(cs).setInt(2, request.taxYear)
+      verify(cs).setInt(3, request.taxMonth)
+      verify(cs).setInt(4, request.version)
+
+      verify(cs).execute()
+      verify(cs).close()
+    }
+  }
+
   "createVerificationBatchAndVerifications" - {
 
     "creates a verification batch then creates verifications for each distinct subcontractor ref and returns batch ref" in {
