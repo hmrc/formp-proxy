@@ -17,18 +17,15 @@
 package uk.gov.hmrc.formpproxy.cis.models.response
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.formpproxy.cis.models.*
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, MonthlyReturnItem, Subcontractor, Submission}
 
-final case class GetNewestVerificationBatchResponse(
-  scheme: Option[ContractorScheme],
+case class GetMonthlyReturnCompleteResponse(
+  scheme: Seq[ContractorScheme],
+  monthlyReturn: Seq[MonthlyReturn],
   subcontractors: Seq[Subcontractor],
-  verificationBatch: Option[VerificationBatch],
-  verifications: Seq[Verification],
-  submission: Option[Submission],
-  monthlyReturn: Option[MonthlyReturn],
-  monthlyReturnSubmission: Seq[Submission]
+  monthlyReturnItems: Seq[MonthlyReturnItem],
+  submission: Seq[Submission]
 )
 
-object GetNewestVerificationBatchResponse {
-  given format: OFormat[GetNewestVerificationBatchResponse] = Json.format[GetNewestVerificationBatchResponse]
-}
+object GetMonthlyReturnCompleteResponse:
+  given format: OFormat[GetMonthlyReturnCompleteResponse] = Json.format[GetMonthlyReturnCompleteResponse]

@@ -32,12 +32,12 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
       val json = Json.parse(
         """
           |{
-          |  "scheme": [],
+          |  "scheme": null,
           |  "subcontractors": [],
-          |  "verificationBatch": [],
+          |  "verificationBatch": null,
           |  "verifications": [],
-          |  "submission": [],
-          |  "monthlyReturn": [],
+          |  "submission": null,
+          |  "monthlyReturn": null,
           |  "monthlyReturnSubmission": []
           |}
           |""".stripMargin
@@ -47,18 +47,18 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
       result mustBe a[JsSuccess[?]]
 
       val out = result.get
-      out.scheme mustBe empty
+      out.scheme mustBe None
       out.subcontractors mustBe empty
-      out.verificationBatch mustBe empty
+      out.verificationBatch mustBe None
       out.verifications mustBe empty
-      out.submission mustBe empty
-      out.monthlyReturn mustBe empty
+      out.submission mustBe None
+      out.monthlyReturn mustBe None
       out.monthlyReturnSubmission mustBe empty
     }
 
     "write a response to JSON" in {
       val model = GetNewestVerificationBatchResponse(
-        scheme = Seq(
+        scheme = Some(
           ContractorScheme(
             schemeId = 123,
             instanceId = "abc-123",
@@ -117,7 +117,7 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
             pendingVerifications = Some(0)
           )
         ),
-        verificationBatch = Seq(
+        verificationBatch = Some(
           VerificationBatch(
             verificationBatchId = 99L,
             schemeId = 123L,
@@ -151,7 +151,7 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
             version = Some(1)
           )
         ),
-        submission = Seq(
+        submission = Some(
           Submission(
             submissionId = 555L,
             submissionType = "VERIFICATIONS",
@@ -172,7 +172,7 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
             govTalkErrorMessage = None
           )
         ),
-        monthlyReturn = Seq(
+        monthlyReturn = Some(
           MonthlyReturn(
             monthlyReturnId = 777L,
             taxYear = 2025,
@@ -214,7 +214,7 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
 
       val json = Json.toJson(model)
 
-      val scheme0 = (json \ "scheme")(0)
+      val scheme0 = json \ "scheme"
 
       (scheme0 \ "schemeId").as[Int] mustBe 123
       (scheme0 \ "instanceId").as[String] mustBe "abc-123"
@@ -271,7 +271,7 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
       (sub0 \ "lastMonthlyReturnDate").toOption mustBe None
       (sub0 \ "pendingVerifications").as[Int] mustBe 0
 
-      val vb0 = (json \ "verificationBatch")(0)
+      val vb0 = json \ "verificationBatch"
 
       (vb0 \ "verificationBatchId").as[Long] mustBe 99L
       (vb0 \ "schemeId").as[Long] mustBe 123L
@@ -303,7 +303,7 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
       (v0 \ "lastUpdate").as[String] mustBe "2026-01-12T11:45:00"
       (v0 \ "version").as[Int] mustBe 1
 
-      val subm0 = (json \ "submission")(0)
+      val subm0 = json \ "submission"
 
       (subm0 \ "submissionId").as[Long] mustBe 555L
       (subm0 \ "submissionType").as[String] mustBe "VERIFICATIONS"
@@ -323,7 +323,7 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
       (subm0 \ "govTalkErrorType").toOption mustBe None
       (subm0 \ "govTalkErrorMessage").toOption mustBe None
 
-      val mr0 = (json \ "monthlyReturn")(0)
+      val mr0 = json \ "monthlyReturn"
 
       (mr0 \ "monthlyReturnId").as[Long] mustBe 777L
       (mr0 \ "taxYear").as[Int] mustBe 2025
@@ -362,7 +362,7 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
 
     "round-trip (model -> json -> model) without losing data" in {
       val model = GetNewestVerificationBatchResponse(
-        scheme = Seq(
+        scheme = Some(
           ContractorScheme(
             schemeId = 999,
             instanceId = "roundtrip-1",
@@ -373,10 +373,10 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
           )
         ),
         subcontractors = Seq.empty,
-        verificationBatch = Seq.empty,
+        verificationBatch = None,
         verifications = Seq.empty,
-        submission = Seq.empty,
-        monthlyReturn = Seq.empty,
+        submission = None,
+        monthlyReturn = None,
         monthlyReturnSubmission = Seq.empty
       )
 

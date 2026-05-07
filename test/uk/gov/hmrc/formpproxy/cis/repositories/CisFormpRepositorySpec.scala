@@ -1179,6 +1179,68 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
   }
 
+  "getMonthlyReturnComplete" - {
+
+    "calls SP and returns empty response when all cursors are empty" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      val rsScheme         = mock[ResultSet]
+      val rsMonthlyReturn  = mock[ResultSet]
+      val rsItems          = mock[ResultSet]
+      val rsSubcontractors = mock[ResultSet]
+      val rsSubmission     = mock[ResultSet]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_Complete(?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+        )
+      )
+        .thenReturn(cs)
+
+      when(cs.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+      when(cs.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsMonthlyReturn)
+      when(cs.getObject(eqTo(7), eqTo(classOf[ResultSet]))).thenReturn(rsItems)
+      when(cs.getObject(eqTo(8), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
+      when(cs.getObject(eqTo(9), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+
+      when(rsScheme.next()).thenReturn(false)
+      when(rsMonthlyReturn.next()).thenReturn(false)
+      when(rsItems.next()).thenReturn(false)
+      when(rsSubcontractors.next()).thenReturn(false)
+      when(rsSubmission.next()).thenReturn(false)
+
+      val repo = new CisFormpRepository(db)
+
+      val out = repo.getMonthlyReturnComplete("abc-123", 2025, 1, "N").futureValue
+
+      out.scheme mustBe empty
+      out.monthlyReturn mustBe empty
+      out.monthlyReturnItems mustBe empty
+      out.subcontractors mustBe empty
+      out.submission mustBe empty
+
+      verify(conn).prepareCall(
+        eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_Complete(?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+      )
+      verify(cs).setString(1, "abc-123")
+      verify(cs).setInt(2, 2025)
+      verify(cs).setInt(3, 1)
+      verify(cs).setString(4, "N")
+      verify(cs).registerOutParameter(5, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(6, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(7, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(8, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(9, OracleTypes.CURSOR)
+      verify(cs).execute()
+    }
+  }
+
   "createAndUpdateSubcontractor" - {
 
     def stubCommon(
@@ -2100,25 +2162,25 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsScheme.getString("name")).thenReturn(null)
       when(rsScheme.getString("email_address")).thenReturn(null)
       when(rsScheme.getString("display_welcome_page")).thenReturn(null)
-      when(rsScheme.getInt("pre_pop_count")).thenReturn(0);
+      when(rsScheme.getInt("pre_pop_count")).thenReturn(0)
       when(rsScheme.wasNull()).thenReturn(true)
       when(rsScheme.getString("pre_pop_successful")).thenReturn(null)
-      when(rsScheme.getInt("subcontractor_counter")).thenReturn(0);
+      when(rsScheme.getInt("subcontractor_counter")).thenReturn(0)
       when(rsScheme.wasNull()).thenReturn(true)
-      when(rsScheme.getInt("verif_batch_counter")).thenReturn(0);
+      when(rsScheme.getInt("verif_batch_counter")).thenReturn(0)
       when(rsScheme.wasNull()).thenReturn(true)
       when(rsScheme.getTimestamp("create_date")).thenReturn(null)
       when(rsScheme.getTimestamp("last_update")).thenReturn(null)
-      when(rsScheme.getInt("version")).thenReturn(0);
+      when(rsScheme.getInt("version")).thenReturn(0)
       when(rsScheme.wasNull()).thenReturn(true)
 
       when(rsSubcontractors.next()).thenReturn(true, false)
       when(rsSubcontractors.getLong("subcontractor_id")).thenReturn(1L)
-      when(rsSubcontractors.getLong("subbie_resource_ref")).thenReturn(10L);
+      when(rsSubcontractors.getLong("subbie_resource_ref")).thenReturn(10L)
       when(rsSubcontractors.wasNull()).thenReturn(false)
       when(rsSubcontractors.getString("type")).thenReturn("soletrader")
       when(rsSubcontractors.getString("utr")).thenReturn("1111111111")
-      when(rsSubcontractors.getInt("page_visited")).thenReturn(2);
+      when(rsSubcontractors.getInt("page_visited")).thenReturn(2)
       when(rsSubcontractors.wasNull()).thenReturn(false)
       when(rsSubcontractors.getString("partner_utr")).thenReturn(null)
       when(rsSubcontractors.getString("crn")).thenReturn(null)
@@ -2138,7 +2200,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsSubcontractors.getString("phone_number")).thenReturn(null)
       when(rsSubcontractors.getString("mobile_phone_number")).thenReturn(null)
       when(rsSubcontractors.getString("works_reference_number")).thenReturn(null)
-      when(rsSubcontractors.getInt("version")).thenReturn(1);
+      when(rsSubcontractors.getInt("version")).thenReturn(1)
       when(rsSubcontractors.wasNull()).thenReturn(false)
       when(rsSubcontractors.getString("tax_treatment")).thenReturn(null)
       when(rsSubcontractors.getString("updated_tax_treatment")).thenReturn(null)
@@ -2150,15 +2212,15 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsSubcontractors.getString("auto_verified")).thenReturn(null)
       when(rsSubcontractors.getTimestamp("verification_date")).thenReturn(null)
       when(rsSubcontractors.getTimestamp("last_monthly_return_date")).thenReturn(null)
-      when(rsSubcontractors.getInt("pending_verifications")).thenReturn(0);
+      when(rsSubcontractors.getInt("pending_verifications")).thenReturn(0)
       when(rsSubcontractors.wasNull()).thenReturn(false)
 
       when(rsVerificationBatch.next()).thenReturn(true, false)
       when(rsVerificationBatch.getLong("verification_batch_id")).thenReturn(55L)
       when(rsVerificationBatch.getLong("scheme_id")).thenReturn(999L)
-      when(rsVerificationBatch.getLong("verifications_counter")).thenReturn(1L);
+      when(rsVerificationBatch.getLong("verifications_counter")).thenReturn(1L)
       when(rsVerificationBatch.wasNull()).thenReturn(false)
-      when(rsVerificationBatch.getLong("verif_batch_resource_ref")).thenReturn(101L);
+      when(rsVerificationBatch.getLong("verif_batch_resource_ref")).thenReturn(101L)
       when(rsVerificationBatch.wasNull()).thenReturn(false)
       when(rsVerificationBatch.getString("proceed_session")).thenReturn("Y")
       when(rsVerificationBatch.getString("confirm_arrangement")).thenReturn("Y")
@@ -2167,7 +2229,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsVerificationBatch.getString("verification_number")).thenReturn("VB123")
       when(rsVerificationBatch.getTimestamp("create_date")).thenReturn(Timestamp.valueOf("2026-04-01 10:00:00"))
       when(rsVerificationBatch.getTimestamp("last_update")).thenReturn(Timestamp.valueOf("2026-04-02 11:00:00"))
-      when(rsVerificationBatch.getInt("version")).thenReturn(1);
+      when(rsVerificationBatch.getInt("version")).thenReturn(1)
       when(rsVerificationBatch.wasNull()).thenReturn(false)
 
       when(rsVerifications.next()).thenReturn(true, false)
@@ -2176,25 +2238,25 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsVerifications.getString("verification_number")).thenReturn("V0001")
       when(rsVerifications.getString("tax_treatment")).thenReturn("NET")
       when(rsVerifications.getString("action_indicator")).thenReturn("A")
-      when(rsVerifications.getLong("verification_batch_id")).thenReturn(55L);
+      when(rsVerifications.getLong("verification_batch_id")).thenReturn(55L)
       when(rsVerifications.wasNull()).thenReturn(false)
-      when(rsVerifications.getLong("scheme_id")).thenReturn(999L);
+      when(rsVerifications.getLong("scheme_id")).thenReturn(999L)
       when(rsVerifications.wasNull()).thenReturn(false)
-      when(rsVerifications.getLong("subcontractor_id")).thenReturn(1L);
+      when(rsVerifications.getLong("subcontractor_id")).thenReturn(1L)
       when(rsVerifications.wasNull()).thenReturn(false)
       when(rsVerifications.getString("subcontractor_name")).thenReturn("ACME")
-      when(rsVerifications.getLong("verification_resource_ref")).thenReturn(777L);
+      when(rsVerifications.getLong("verification_resource_ref")).thenReturn(777L)
       when(rsVerifications.wasNull()).thenReturn(false)
       when(rsVerifications.getString("proceed")).thenReturn("Y")
       when(rsVerifications.getTimestamp("create_date")).thenReturn(Timestamp.valueOf("2026-04-01 10:00:00"))
       when(rsVerifications.getTimestamp("last_update")).thenReturn(Timestamp.valueOf("2026-04-02 11:00:00"))
-      when(rsVerifications.getInt("version")).thenReturn(1);
+      when(rsVerifications.getInt("version")).thenReturn(1)
       when(rsVerifications.wasNull()).thenReturn(false)
 
       when(rsSubmission.next()).thenReturn(true, false)
       when(rsSubmission.getLong("submission_id")).thenReturn(500L)
       when(rsSubmission.getString("submission_type")).thenReturn("VERIFICATIONS")
-      when(rsSubmission.getLong("active_object_id")).thenReturn(55L);
+      when(rsSubmission.getLong("active_object_id")).thenReturn(55L)
       when(rsSubmission.wasNull()).thenReturn(false)
       when(rsSubmission.getString("status")).thenReturn("ACCEPTED")
       when(rsSubmission.getString("hmrc_mark_generated")).thenReturn(null)
@@ -2228,7 +2290,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsMrSubmission.next()).thenReturn(true, false)
       when(rsMrSubmission.getLong("submission_id")).thenReturn(600L)
       when(rsMrSubmission.getString("submission_type")).thenReturn("MONTHLY_RETURN")
-      when(rsMrSubmission.getLong("active_object_id")).thenReturn(66666L);
+      when(rsMrSubmission.getLong("active_object_id")).thenReturn(66666L)
       when(rsMrSubmission.wasNull()).thenReturn(false)
       when(rsMrSubmission.getString("status")).thenReturn("ACCEPTED")
       when(rsMrSubmission.getString("hmrc_mark_generated")).thenReturn(null)
@@ -2249,12 +2311,12 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       val out = repo.getNewestVerificationBatch("abc-123").futureValue
 
-      out.scheme                  must have size 1
+      out.scheme.isDefined mustBe true
       out.subcontractors          must have size 1
-      out.verificationBatch       must have size 1
+      out.verificationBatch.isDefined mustBe true
       out.verifications           must have size 1
-      out.submission              must have size 1
-      out.monthlyReturn           must have size 1
+      out.submission.isDefined mustBe true
+      out.monthlyReturn.isDefined mustBe true
       out.monthlyReturnSubmission must have size 1
 
       out.scheme.head.schemeId mustBe 999
@@ -2324,11 +2386,11 @@ final class CisFormpRepositorySpec extends SpecBase {
       val repo = new CisFormpRepository(db)
       val out  = repo.getNewestVerificationBatch("abc-123").futureValue
 
-      out.scheme mustBe empty
+      out.scheme mustBe None
       out.subcontractors mustBe empty
-      out.verificationBatch mustBe empty
+      out.verificationBatch mustBe None
       out.verifications mustBe empty
-      out.submission mustBe empty
+      out.submission mustBe None
       out.monthlyReturn mustBe empty
       out.monthlyReturnSubmission mustBe empty
 
@@ -2495,11 +2557,11 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       val out = repo.getCurrentVerificationBatch("abc-123").futureValue
 
-      out.scheme            must have size 1
-      out.subcontractors    must have size 1
-      out.verificationBatch must have size 1
-      out.verifications     must have size 1
-      out.submission        must have size 1
+      out.scheme.isDefined mustBe true
+      out.subcontractors must have size 1
+      out.verificationBatch.isDefined mustBe true
+      out.verifications  must have size 1
+      out.submission.isDefined mustBe true
 
       out.scheme.head.schemeId mustBe 999
       out.subcontractors.head.subcontractorId mustBe 1L
@@ -2556,11 +2618,11 @@ final class CisFormpRepositorySpec extends SpecBase {
       val repo = new CisFormpRepository(db)
       val out  = repo.getCurrentVerificationBatch("abc-123").futureValue
 
-      out.scheme mustBe empty
+      out.scheme mustBe None
       out.subcontractors mustBe empty
-      out.verificationBatch mustBe empty
+      out.verificationBatch mustBe None
       out.verifications mustBe empty
-      out.submission mustBe empty
+      out.submission mustBe None
 
       verify(cs).execute()
       verify(rsScheme).close()
@@ -2731,6 +2793,53 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       verify(csCreateBatch).close()
       verify(csCreateV1).close()
+    }
+  }
+
+  "getSubmittedMonthlyReturnsData" - {
+
+    "calls MONTHLY_RETURN_PROCS_2016.GET_SUB_MONTHLY_RETURN_DATA and returns list of instance IDs" in {
+      val db   = mock[Database]
+      val conn = mock[java.sql.Connection]
+      val cs   = mock[CallableStatement]
+
+      val rsMonthlyReturn = mock[ResultSet]
+      val rsItems         = mock[ResultSet]
+      val rsScheme        = mock[ResultSet]
+      val rsSubmission    = mock[ResultSet]
+
+      val request = GetSubmittedMonthlyReturnsDataRequest("abc-123", 2025, 2, "Y")
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.GET_SUB_MONTHLY_RETURN_DATA(?, ?, ?, ?, ?, ?, ? ,?) }"))
+        .thenReturn(cs)
+      when(cs.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsMonthlyReturn)
+      when(cs.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsItems)
+      when(cs.getObject(eqTo(7), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+      when(cs.getObject(eqTo(8), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+
+      when(rsScheme.next()).thenReturn(true, false)
+      when(rsScheme.getString("instance_id")).thenReturn("abc-123")
+      when(rsScheme.getString("aoref")).thenReturn("123pa132456789")
+      when(rsScheme.getString("tax_office_number")).thenReturn("123")
+      when(rsScheme.getString("tax_office_reference")).thenReturn("AB456")
+
+      when(rsMonthlyReturn.next()).thenReturn(true, false)
+      when(rsMonthlyReturn.getString("tax_year")).thenReturn("2025")
+      when(rsMonthlyReturn.getString("tax_month")).thenReturn("2")
+      when(rsMonthlyReturn.getString("nil_return_indicator")).thenReturn("Y")
+      when(rsMonthlyReturn.getString("status")).thenReturn("PENDING")
+      when(rsMonthlyReturn.getTimestamp("last_update")).thenReturn(Timestamp.valueOf("2025-01-31 12:34:56"))
+
+      val repo   = new CisFormpRepository(db)
+      val result = repo.getSubmittedMonthlyReturnsData(request).futureValue
+
+      result.scheme.instanceId mustBe "abc-123"
+      result.monthlyReturn must have size 1
+      result.monthlyReturn.head.nilReturnIndicator mustBe Some("Y")
+      result.monthlyReturn.head.status mustBe Some("PENDING")
     }
   }
 

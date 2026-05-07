@@ -50,12 +50,12 @@ class VerificationControllerSpec extends SpecBase {
 
       val instanceId = "abc-123"
       val response   = GetNewestVerificationBatchResponse(
-        scheme = Seq.empty,
+        scheme = None,
         subcontractors = Seq.empty,
-        verificationBatch = Seq.empty,
+        verificationBatch = None,
         verifications = Seq.empty,
-        submission = Seq.empty,
-        monthlyReturn = Seq.empty,
+        submission = None,
+        monthlyReturn = None,
         monthlyReturnSubmission = Seq.empty
       )
 
@@ -93,13 +93,13 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 200 OK with JSON body when service succeeds (all fields has values)" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val instId = "abc-123"
 
       val response = GetNewestVerificationBatchResponse(
-        scheme = Seq(
+        scheme = Some(
           ContractorScheme(
             schemeId = 123,
             instanceId = instId,
@@ -157,7 +157,7 @@ class VerificationControllerSpec extends SpecBase {
             pendingVerifications = Some(0)
           )
         ),
-        verificationBatch = Seq(
+        verificationBatch = Some(
           VerificationBatch(
             verificationBatchId = 99L,
             schemeId = 123L,
@@ -191,7 +191,7 @@ class VerificationControllerSpec extends SpecBase {
             version = Some(1)
           )
         ),
-        submission = Seq(
+        submission = Some(
           Submission(
             submissionId = 555L,
             submissionType = "VERIFICATIONS",
@@ -212,7 +212,7 @@ class VerificationControllerSpec extends SpecBase {
             govTalkErrorMessage = None
           )
         ),
-        monthlyReturn = Seq(
+        monthlyReturn = Some(
           MonthlyReturn(
             monthlyReturnId = 777L,
             taxYear = 2025,
@@ -275,11 +275,11 @@ class VerificationControllerSpec extends SpecBase {
 
       val instanceId = "abc-123"
       val response   = GetCurrentVerificationBatchResponse(
-        scheme = Seq.empty,
+        scheme = None,
         subcontractors = Seq.empty,
-        verificationBatch = Seq.empty,
+        verificationBatch = None,
         verifications = Seq.empty,
-        submission = Seq.empty
+        submission = None
       )
 
       when(mockService.getCurrentVerificationBatch(eqTo(instanceId)))
@@ -323,7 +323,7 @@ class VerificationControllerSpec extends SpecBase {
       val instId = "abc-123"
 
       val response = GetCurrentVerificationBatchResponse(
-        scheme = Seq(
+        scheme = Some(
           ContractorScheme(
             schemeId = 123,
             instanceId = instId,
@@ -381,7 +381,7 @@ class VerificationControllerSpec extends SpecBase {
             pendingVerifications = Some(0)
           )
         ),
-        verificationBatch = Seq(
+        verificationBatch = Some(
           VerificationBatch(
             verificationBatchId = 99L,
             schemeId = 123L,
@@ -415,7 +415,7 @@ class VerificationControllerSpec extends SpecBase {
             version = Some(1)
           )
         ),
-        submission = Seq(
+        submission = Some(
           Submission(
             submissionId = 555L,
             submissionType = "VERIFICATIONS",
@@ -458,7 +458,7 @@ class VerificationControllerSpec extends SpecBase {
     val url = "/cis/verification-batch/create"
 
     "returns 200 OK with JSON body when service succeeds" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val requestModel = CreateVerificationBatchAndVerificationsRequest(
@@ -491,7 +491,7 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 400 BadRequest with error payload when JSON is invalid" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val badJson = Json.obj(
@@ -516,7 +516,7 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 500 InternalServerError with error body when service fails" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val requestModel = CreateVerificationBatchAndVerificationsRequest(
