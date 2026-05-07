@@ -67,6 +67,7 @@ trait CisMonthlyReturnSource {
   def createVerificationBatchAndVerifications(
     req: CreateVerificationBatchAndVerificationsRequest
   ): Future[CreateVerificationBatchAndVerificationsResponse]
+  def modifyVerifications(req: ModifyVerificationsRequest): Future[Unit]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -1116,5 +1117,51 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setString(4, actionIndicator)
       cs.execute()
     }
+
+  private def callDeleteVerifications(
+    conn: Connection,
+    instanceId: String,
+    verificationResourceRef: Long
+  ): Unit =
+    withCall(conn, CallDeleteVerification) { cs =>
+      cs.setString(1, instanceId)
+      cs.setLong(2, verificationResourceRef)
+      cs.execute()
+    }
+
+  override def modifyVerifications(req: ModifyVerificationsRequest): Future[Unit] = {
+    logger.info(
+      s"[CIS] modifyVerifications(instanceId=${req.instanceId}, " +
+        s"noOfDeleteVerifications=${req.deleteVerifications.map(_.verificationResourceReferences.size).getOrElse(0)}, " +
+        s"noOfCreateVerifications=${req.createVerifications.map(_.verificationResourceReferences.size).getOrElse(0)})"
+    )
+
+    Future {
+      db.withTransaction { conn =>
+
+        req.deleteVerifications.foreach { deleteVerifications =>
+          deleteVerifications.verificationResourceReferences.distinct.foreach { verificationResourceRef =>
+            callDeleteVerifications(
+              conn = conn,
+              instanceId = req.instanceId,
+              verificationResourceRef = verificationResourceRef
+            )
+          }
+        }
+
+        req.createVerifications.foreach { createVerifications =>
+          createVerifications.verificationResourceReferences.distinct.foreach { verificationResourceReference =>
+            callCreateVerification(
+              conn = conn,
+              instanceId = req.instanceId,
+              verifBatchResourceRef = createVerifications.verificationBatchResourceRef,
+              verificationResourceRef = verificationResourceReference,
+              actionIndicator = createVerifications.actionIndicator.orNull
+            )
+          }
+        }
+      }
+    }
+  }
 
 }
