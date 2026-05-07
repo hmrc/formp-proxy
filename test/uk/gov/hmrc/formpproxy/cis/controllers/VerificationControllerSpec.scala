@@ -93,7 +93,7 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 200 OK with JSON body when service succeeds (all fields has values)" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val instId = "abc-123"
@@ -458,7 +458,7 @@ class VerificationControllerSpec extends SpecBase {
     val url = "/cis/verification-batch/create"
 
     "returns 200 OK with JSON body when service succeeds" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val requestModel = CreateVerificationBatchAndVerificationsRequest(
@@ -491,7 +491,7 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 400 BadRequest with error payload when JSON is invalid" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val badJson = Json.obj(
@@ -516,7 +516,7 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 500 InternalServerError with error body when service fails" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val requestModel = CreateVerificationBatchAndVerificationsRequest(

@@ -19,16 +19,17 @@ package uk.gov.hmrc.formpproxy.cis.repositories
 import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
+import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
-import uk.gov.hmrc.formpproxy.cis.models.*
+import uk.gov.hmrc.formpproxy.cis.repositories.CisRowMappers.*
+import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.*
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
-import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.*
-import uk.gov.hmrc.formpproxy.cis.repositories.CisRowMappers.*
+
 import java.lang.Long
-import java.sql.{CallableStatement, Connection, ResultSet, Timestamp, Types}
-import java.time.{Instant, LocalDateTime}
+import java.sql.*
+import java.time.LocalDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Using
@@ -73,6 +74,9 @@ trait CisMonthlyReturnSource {
   def createVerificationBatchAndVerifications(
     req: CreateVerificationBatchAndVerificationsRequest
   ): Future[CreateVerificationBatchAndVerificationsResponse]
+  def getSubmittedMonthlyReturnsData(
+    request: GetSubmittedMonthlyReturnsDataRequest
+  ): Future[GetSubmittedMonthlyReturnsDataResponse]
   def createAmendedMonthlyReturn(request: CreateAmendedMonthlyReturnRequest): Future[Unit]
 }
 
@@ -290,6 +294,36 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
 
+  override def getSubmittedMonthlyReturnsData(
+    request: GetSubmittedMonthlyReturnsDataRequest
+  ): Future[GetSubmittedMonthlyReturnsDataResponse] = {
+    logger.info(
+      s"[CIS] getSubmittedMonthlyReturns(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
+    )
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallGetSubmittedMonthlyReturnsData) { cs =>
+          cs.setString(1, request.instanceId)
+          cs.setInt(2, request.taxYear)
+          cs.setInt(3, request.taxMonth)
+          cs.setString(4, request.amendment)
+          cs.registerOutParameter(5, OracleTypes.CURSOR)
+          cs.registerOutParameter(6, OracleTypes.CURSOR)
+          cs.registerOutParameter(7, OracleTypes.CURSOR)
+          cs.registerOutParameter(8, OracleTypes.CURSOR)
+          cs.execute()
+
+          val monthlyReturn      = withCursor(cs, 5)(collectMonthlyReturns)
+          val monthlyReturnItems = withCursor(cs, 6)(collectMonthlyReturnItems)
+          val scheme             = withCursor(cs, 7)(rs => readSingleSchemeRow(rs, request.instanceId))
+          val submission         = withCursor(cs, 8)(collectSubmissions)
+
+          GetSubmittedMonthlyReturnsDataResponse(scheme, monthlyReturn, monthlyReturnItems, submission)
+        }
+      }
+    }
+  }
+
   // Scheme
 
   override def getScheme(instanceId: String): Future[Option[ContractorScheme]] =
@@ -387,7 +421,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           hmrcMarkGenerated = request.hmrcMarkGenerated,
           hmrcMarkGgis = request.hmrcMarkGgis.orNull,
           emailRecipient = request.emailRecipient.orNull,
-          submissionRequestDate = request.submissionRequestDate.map(Timestamp.from).orNull,
+          submissionRequestDate = request.submissionRequestDate.map(Timestamp.valueOf).orNull,
           acceptedTime = request.acceptedTime.orNull,
           agentId = request.agentId.orNull,
           submittableStatus = request.submittableStatus,
