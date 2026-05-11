@@ -22,7 +22,7 @@ import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
 import uk.gov.hmrc.formpproxy.cis.services.VerificationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.formpproxy.cis.models.requests.CreateVerificationBatchAndVerificationsRequest
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateVerificationBatchAndVerificationsRequest, ModifyVerificationsRequest}
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -70,6 +70,24 @@ class VerificationController @Inject() (
               .map(res => Ok(Json.toJson(res)))
               .recover { case t =>
                 logger.error("[createVerificationBatchAndVerifications] failed", t)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
+              }
+        )
+    }
+
+  def modifyVerifications(): Action[JsValue] =
+    authorise(parse.json).async { implicit request =>
+      request.body
+        .validate[ModifyVerificationsRequest]
+        .fold(
+          errs =>
+            Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
+          req =>
+            service
+              .modifyVerifications(req)
+              .map(_ => NoContent)
+              .recover { case t =>
+                logger.error("[modifyVerifications] failed", t)
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )

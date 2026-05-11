@@ -65,4 +65,6 @@ object CisStoredProcedures {
   val CallCreateVerification                  =
     "{ call VERIFICATION_PROCS.Create_Verification(?, ?, ?, ?) }"
   val CallCreateAmendedMonthlyReturn          = "{ call MONTHLY_RETURN_PROCS_2016.Amend_Monthly_Return(?, ?, ?, ?) }"
+  val CallDeleteVerification                  =
+    "{ call VERIFICATION_PROCS.DELETE_VERIFICATION_2(?, ?) }"
 }

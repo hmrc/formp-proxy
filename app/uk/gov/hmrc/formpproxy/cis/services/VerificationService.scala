@@ -16,9 +16,11 @@
 
 package uk.gov.hmrc.formpproxy.cis.services
 
+import uk.gov.hmrc.formpproxy.cis.models.{CreateVerifications, DeleteVerifications}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
+
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 
@@ -36,4 +38,36 @@ class VerificationService @Inject() (repo: CisMonthlyReturnSource) {
   ): Future[CreateVerificationBatchAndVerificationsResponse] =
     repo.createVerificationBatchAndVerifications(request)
 
+  def modifyVerifications(request: ModifyVerificationsRequest): Future[Unit] =
+    validateModifyVerificationsRequest(request) match {
+      case Left(errorMessage) => Future.failed(new IllegalArgumentException(errorMessage))
+
+      case Right(validRequest) =>
+        if (hasNoSubcontractorToModify(validRequest)) {
+          Future.failed(
+            new RuntimeException("deleteVerifications or createVerifications is required when instanceId is provided")
+          )
+        } else {
+          repo.modifyVerifications(request)
+        }
+    }
+
+  private def validateModifyVerificationsRequest(
+    request: ModifyVerificationsRequest
+  ): Either[String, ModifyVerificationsRequest] =
+    request match {
+      case ModifyVerificationsRequest(_, Some(DeleteVerifications(verificationResourceReferences)), _)
+          if verificationResourceReferences.isEmpty =>
+        Left("verificationResourceReferences must not be empty when deleteVerifications is provided")
+
+      case ModifyVerificationsRequest(_, _, Some(CreateVerifications(_, verificationResourceReferences, _)))
+          if verificationResourceReferences.isEmpty =>
+        Left("verificationResourceReferences must not be empty when createVerifications is provided")
+
+      case _ =>
+        Right(request)
+    }
+
+  private def hasNoSubcontractorToModify(request: ModifyVerificationsRequest): Boolean =
+    request.deleteVerifications.isEmpty && request.createVerifications.isEmpty
 }

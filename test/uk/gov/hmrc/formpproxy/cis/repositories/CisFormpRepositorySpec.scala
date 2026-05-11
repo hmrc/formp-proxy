@@ -2880,4 +2880,256 @@ final class CisFormpRepositorySpec extends SpecBase {
       result.monthlyReturn.head.status mustBe Some("PENDING")
     }
   }
+
+  "modifyVerifications" - {
+
+    "creates / delete verifications for each distinct subcontractor ref and returns Unit" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csDeleteV1 = mock[CallableStatement]
+      val csDeleteV2 = mock[CallableStatement]
+      val csCreateV1 = mock[CallableStatement]
+      val csCreateV2 = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      val callDeleteVerification = "{ call VERIFICATION_PROCS.DELETE_VERIFICATION_2(?, ?) }"
+      val callCreateVerif        = "{ call VERIFICATION_PROCS.Create_Verification(?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(callDeleteVerification))).thenReturn(csDeleteV1, csDeleteV2)
+      when(conn.prepareCall(eqTo(callCreateVerif))).thenReturn(csCreateV1, csCreateV2)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = ModifyVerificationsRequest(
+        instanceId = "abc-123",
+        deleteVerifications = Some(
+          DeleteVerifications(
+            verificationResourceReferences = Seq(111L, 111L, 222L)
+          )
+        ),
+        createVerifications = Some(
+          CreateVerifications(
+            verificationBatchResourceRef = 10L,
+            verificationResourceReferences = Seq(333L, 333L, 444L),
+            actionIndicator = None
+          )
+        )
+      )
+
+      val result: Unit = repo.modifyVerifications(req).futureValue
+      result mustBe ()
+
+      verify(conn, times(2)).prepareCall(eqTo(callDeleteVerification))
+
+      verify(csDeleteV1).setString(1, "abc-123")
+      verify(csDeleteV1).setLong(2, 111L)
+      verify(csDeleteV1).execute()
+      verify(csDeleteV1).close()
+
+      verify(csDeleteV2).setString(1, "abc-123")
+      verify(csDeleteV2).setLong(2, 222L)
+      verify(csDeleteV2).execute()
+      verify(csDeleteV2).close()
+
+      verify(conn, times(2)).prepareCall(eqTo(callCreateVerif))
+
+      verify(csCreateV1).setString(1, "abc-123")
+      verify(csCreateV1).setLong(2, 10L)
+      verify(csCreateV1).setLong(3, 333L)
+      verify(csCreateV1).setString(4, null)
+      verify(csCreateV1).execute()
+      verify(csCreateV1).close()
+
+      verify(csCreateV2).setString(1, "abc-123")
+      verify(csCreateV2).setLong(2, 10L)
+      verify(csCreateV2).setLong(3, 444L)
+      verify(csCreateV2).setString(4, null)
+      verify(csCreateV2).execute()
+      verify(csCreateV2).close()
+    }
+
+    "delete verifications only for each distinct subcontractor ref and returns Unit" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csDeleteV1 = mock[CallableStatement]
+      val csDeleteV2 = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      val callDeleteVerification = "{ call VERIFICATION_PROCS.DELETE_VERIFICATION_2(?, ?) }"
+      val callCreateVerif        = "{ call VERIFICATION_PROCS.Create_Verification(?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(callDeleteVerification))).thenReturn(csDeleteV1, csDeleteV2)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = ModifyVerificationsRequest(
+        instanceId = "abc-123",
+        deleteVerifications = Some(
+          DeleteVerifications(
+            verificationResourceReferences = Seq(111L, 111L, 222L)
+          )
+        ),
+        createVerifications = None
+      )
+
+      val result: Unit = repo.modifyVerifications(req).futureValue
+      result mustBe ()
+
+      verify(conn, times(2)).prepareCall(eqTo(callDeleteVerification))
+      verify(conn, never()).prepareCall(eqTo(callCreateVerif))
+
+      verify(csDeleteV1).setString(1, "abc-123")
+      verify(csDeleteV1).setLong(2, 111L)
+      verify(csDeleteV1).execute()
+      verify(csDeleteV1).close()
+
+      verify(csDeleteV2).setString(1, "abc-123")
+      verify(csDeleteV2).setLong(2, 222L)
+      verify(csDeleteV2).execute()
+      verify(csDeleteV2).close()
+    }
+
+    "creates verifications only for each distinct subcontractor ref and returns Unit" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csCreateV1 = mock[CallableStatement]
+      val csCreateV2 = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      val callDeleteVerification = "{ call VERIFICATION_PROCS.DELETE_VERIFICATION_2(?, ?) }"
+      val callCreateVerif        = "{ call VERIFICATION_PROCS.Create_Verification(?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(callCreateVerif))).thenReturn(csCreateV1, csCreateV2)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = ModifyVerificationsRequest(
+        instanceId = "abc-123",
+        deleteVerifications = None,
+        createVerifications = Some(
+          CreateVerifications(
+            verificationBatchResourceRef = 10L,
+            verificationResourceReferences = Seq(333L, 333L, 444L),
+            actionIndicator = None
+          )
+        )
+      )
+
+      val result: Unit = repo.modifyVerifications(req).futureValue
+      result mustBe ()
+
+      verify(conn, never()).prepareCall(eqTo(callDeleteVerification))
+      verify(conn, times(2)).prepareCall(eqTo(callCreateVerif))
+
+      verify(csCreateV1).setString(1, "abc-123")
+      verify(csCreateV1).setLong(2, 10L)
+      verify(csCreateV1).setLong(3, 333L)
+      verify(csCreateV1).setString(4, null)
+      verify(csCreateV1).execute()
+      verify(csCreateV1).close()
+
+      verify(csCreateV2).setString(1, "abc-123")
+      verify(csCreateV2).setLong(2, 10L)
+      verify(csCreateV2).setLong(3, 444L)
+      verify(csCreateV2).setString(4, null)
+      verify(csCreateV2).execute()
+      verify(csCreateV2).close()
+    }
+
+    "propagates failure if Delete_Verification fails" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csDeleteV1 = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      val callDeleteVerification = "{ call VERIFICATION_PROCS.DELETE_VERIFICATION_2(?, ?) }"
+
+      when(conn.prepareCall(eqTo(callDeleteVerification))).thenReturn(csDeleteV1)
+
+      when(csDeleteV1.execute()).thenThrow(new RuntimeException("verification boom"))
+
+      val repo = new CisFormpRepository(db)
+
+      val req = ModifyVerificationsRequest(
+        instanceId = "abc-123",
+        deleteVerifications = Some(
+          DeleteVerifications(
+            verificationResourceReferences = Seq(111L)
+          )
+        ),
+        createVerifications = Some(
+          CreateVerifications(
+            verificationBatchResourceRef = 10L,
+            verificationResourceReferences = Seq(333L),
+            actionIndicator = None
+          )
+        )
+      )
+
+      val ex = repo.modifyVerifications(req).failed.futureValue
+      ex.getMessage must include("verification boom")
+
+      verify(csDeleteV1).close()
+    }
+
+    "propagates failure if Create_Verification fails" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csDeleteV1 = mock[CallableStatement]
+      val csCreateV1 = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      val callDeleteVerification = "{ call VERIFICATION_PROCS.DELETE_VERIFICATION_2(?, ?) }"
+      val callCreateVerification = "{ call VERIFICATION_PROCS.Create_Verification(?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(callDeleteVerification))).thenReturn(csDeleteV1)
+      when(conn.prepareCall(eqTo(callCreateVerification))).thenReturn(csCreateV1)
+
+      when(csCreateV1.execute()).thenThrow(new RuntimeException("verification boom"))
+
+      val repo = new CisFormpRepository(db)
+
+      val req = ModifyVerificationsRequest(
+        instanceId = "abc-123",
+        deleteVerifications = Some(
+          DeleteVerifications(
+            verificationResourceReferences = Seq(111L)
+          )
+        ),
+        createVerifications = Some(
+          CreateVerifications(
+            verificationBatchResourceRef = 10L,
+            verificationResourceReferences = Seq(333L),
+            actionIndicator = None
+          )
+        )
+      )
+
+      val ex = repo.modifyVerifications(req).failed.futureValue
+      ex.getMessage must include("verification boom")
+
+      verify(csDeleteV1).close()
+      verify(csCreateV1).close()
+    }
+  }
 }
