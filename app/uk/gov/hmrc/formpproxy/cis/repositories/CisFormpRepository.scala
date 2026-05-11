@@ -52,7 +52,12 @@ trait CisMonthlyReturnSource {
   def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int]
   def createAndUpdateSubcontractor(record: CreateAndUpdateSubcontractorDatabaseRecord): Future[Unit]
   def getSubcontractorList(cisId: String): Future[GetSubcontractorListResponse]
-  def getMonthlyReturnForEdit(instanceId: String, taxYear: Int, taxMonth: Int): Future[GetMonthlyReturnForEditResponse]
+  def getMonthlyReturnForEdit(
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int,
+    isAmendment: Boolean
+  ): Future[GetMonthlyReturnForEditResponse]
   def createMonthlyReturnItem(request: CreateMonthlyReturnItemRequest): Future[Unit]
   def deleteMonthlyReturnItem(request: DeleteMonthlyReturnItemRequest): Future[Unit]
   def syncMonthlyReturnItems(request: SyncMonthlyReturnItemsRequest): Future[Unit]
@@ -165,7 +170,8 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   override def getMonthlyReturnForEdit(
     instanceId: String,
     taxYear: Int,
-    taxMonth: Int
+    taxMonth: Int,
+    isAmendment: Boolean
   ): Future[GetMonthlyReturnForEditResponse] = {
     logger.info(s"[CIS] getMonthlyReturnForEdit(instanceId=$instanceId, taxYear=$taxYear, taxMonth=$taxMonth)")
     Future {
@@ -174,7 +180,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           cs.setString(1, instanceId)
           cs.setInt(2, taxYear)
           cs.setInt(3, taxMonth)
-          cs.setString(4, "N")
+          cs.setString(4, if (isAmendment) "Y" else "N")
           cs.registerOutParameter(5, OracleTypes.CURSOR)
           cs.registerOutParameter(6, OracleTypes.CURSOR)
           cs.registerOutParameter(7, OracleTypes.CURSOR)

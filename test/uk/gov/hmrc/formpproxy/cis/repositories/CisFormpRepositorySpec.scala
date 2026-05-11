@@ -1118,64 +1118,65 @@ final class CisFormpRepositorySpec extends SpecBase {
   }
 
   "getMonthlyReturnForEdit" - {
+    Seq(true -> "Y", false -> "N").foreach { case isAmendment -> amendmentFlag =>
+      s"calls SP and returns empty response when all cursors are empty and isAmendment = $isAmendment" in {
+        val db   = mock[Database]
+        val conn = mock[Connection]
+        val cs   = mock[CallableStatement]
 
-    "calls SP and returns empty response when all cursors are empty" in {
-      val db   = mock[Database]
-      val conn = mock[Connection]
-      val cs   = mock[CallableStatement]
+        val rsScheme         = mock[ResultSet]
+        val rsMonthlyReturn  = mock[ResultSet]
+        val rsItems          = mock[ResultSet]
+        val rsSubcontractors = mock[ResultSet]
+        val rsSubmission     = mock[ResultSet]
 
-      val rsScheme         = mock[ResultSet]
-      val rsMonthlyReturn  = mock[ResultSet]
-      val rsItems          = mock[ResultSet]
-      val rsSubcontractors = mock[ResultSet]
-      val rsSubmission     = mock[ResultSet]
+        when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+          val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+        }
 
-      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
-        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
-      }
+        when(
+          conn.prepareCall(
+            eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_For_Edit(?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+          )
+        )
+          .thenReturn(cs)
 
-      when(
-        conn.prepareCall(
+        when(cs.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+        when(cs.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsMonthlyReturn)
+        when(cs.getObject(eqTo(7), eqTo(classOf[ResultSet]))).thenReturn(rsItems)
+        when(cs.getObject(eqTo(8), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
+        when(cs.getObject(eqTo(9), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+
+        when(rsScheme.next()).thenReturn(false)
+        when(rsMonthlyReturn.next()).thenReturn(false)
+        when(rsItems.next()).thenReturn(false)
+        when(rsSubcontractors.next()).thenReturn(false)
+        when(rsSubmission.next()).thenReturn(false)
+
+        val repo = new CisFormpRepository(db)
+
+        val out = repo.getMonthlyReturnForEdit("abc-123", 2025, 1, isAmendment).futureValue
+
+        out.scheme mustBe empty
+        out.monthlyReturn mustBe empty
+        out.monthlyReturnItems mustBe empty
+        out.subcontractors mustBe empty
+        out.submission mustBe empty
+
+        verify(conn).prepareCall(
           eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_For_Edit(?, ?, ?, ?, ?, ?, ?, ?, ?) }")
         )
-      )
-        .thenReturn(cs)
-
-      when(cs.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
-      when(cs.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsMonthlyReturn)
-      when(cs.getObject(eqTo(7), eqTo(classOf[ResultSet]))).thenReturn(rsItems)
-      when(cs.getObject(eqTo(8), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
-      when(cs.getObject(eqTo(9), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
-
-      when(rsScheme.next()).thenReturn(false)
-      when(rsMonthlyReturn.next()).thenReturn(false)
-      when(rsItems.next()).thenReturn(false)
-      when(rsSubcontractors.next()).thenReturn(false)
-      when(rsSubmission.next()).thenReturn(false)
-
-      val repo = new CisFormpRepository(db)
-
-      val out = repo.getMonthlyReturnForEdit("abc-123", 2025, 1).futureValue
-
-      out.scheme mustBe empty
-      out.monthlyReturn mustBe empty
-      out.monthlyReturnItems mustBe empty
-      out.subcontractors mustBe empty
-      out.submission mustBe empty
-
-      verify(conn).prepareCall(
-        eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_For_Edit(?, ?, ?, ?, ?, ?, ?, ?, ?) }")
-      )
-      verify(cs).setString(1, "abc-123")
-      verify(cs).setInt(2, 2025)
-      verify(cs).setInt(3, 1)
-      verify(cs).setString(4, "N")
-      verify(cs).registerOutParameter(5, OracleTypes.CURSOR)
-      verify(cs).registerOutParameter(6, OracleTypes.CURSOR)
-      verify(cs).registerOutParameter(7, OracleTypes.CURSOR)
-      verify(cs).registerOutParameter(8, OracleTypes.CURSOR)
-      verify(cs).registerOutParameter(9, OracleTypes.CURSOR)
-      verify(cs).execute()
+        verify(cs).setString(1, "abc-123")
+        verify(cs).setInt(2, 2025)
+        verify(cs).setInt(3, 1)
+        verify(cs).setString(4, amendmentFlag)
+        verify(cs).registerOutParameter(5, OracleTypes.CURSOR)
+        verify(cs).registerOutParameter(6, OracleTypes.CURSOR)
+        verify(cs).registerOutParameter(7, OracleTypes.CURSOR)
+        verify(cs).registerOutParameter(8, OracleTypes.CURSOR)
+        verify(cs).registerOutParameter(9, OracleTypes.CURSOR)
+        verify(cs).execute()
+      }
     }
   }
 
