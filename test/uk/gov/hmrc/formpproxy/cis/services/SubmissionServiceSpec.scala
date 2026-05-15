@@ -16,9 +16,12 @@
 
 package uk.gov.hmrc.formpproxy.cis.services
 
+import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.{any, eq as eqTo}
 import org.mockito.Mockito.*
 import uk.gov.hmrc.formpproxy.base.SpecBase
+import uk.gov.hmrc.formpproxy.cis.models.GovTalkErrorStatus
+import uk.gov.hmrc.formpproxy.cis.models.GovTalkErrorStatus.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateSubmissionRequest, UpdateSubmissionRequest}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
@@ -100,6 +103,123 @@ class SubmissionServiceSpec extends SpecBase {
       whenReady(fut.failed) { ex =>
         ex.getMessage mustBe "boom"
       }
+
+      verify(repo).updateMonthlyReturnSubmission(eqTo(req))
+    }
+
+    "applies the F20b GovTalk error mapping when govTalkResponse is provided" - {
+
+      def baseReq(status: GovTalkErrorStatus): UpdateSubmissionRequest =
+        UpdateSubmissionRequest(
+          instanceId = "123",
+          taxYear = 2024,
+          taxMonth = 4,
+          hmrcMarkGenerated = "mark",
+          submittableStatus = "FATAL_ERROR",
+          govTalkResponse = Some(status)
+        )
+
+      def captureRequest(s: Setup): UpdateSubmissionRequest = {
+        val captor = ArgumentCaptor.forClass(classOf[UpdateSubmissionRequest])
+        verify(s.repo).updateMonthlyReturnSubmission(captor.capture())
+        captor.getValue
+      }
+
+      "RecoverableError → systemError with ChRIS code and text" in {
+        val s = setup; import s.*
+        when(repo.updateMonthlyReturnSubmission(any[UpdateSubmissionRequest])).thenReturn(Future.successful(()))
+
+        service.updateSubmission(baseReq(RecoverableError("3000", "rec-text"))).futureValue
+
+        val sent = captureRequest(s)
+        sent.govtalkErrorCode mustBe Some("3000")
+        sent.govtalkErrorType mustBe Some("systemError")
+        sent.govtalkErrorMessage mustBe Some("rec-text")
+      }
+
+      "FatalError → systemError with ChRIS code and text" in {
+        val s = setup; import s.*
+        when(repo.updateMonthlyReturnSubmission(any[UpdateSubmissionRequest])).thenReturn(Future.successful(()))
+
+        service.updateSubmission(baseReq(FatalError("9999", "fatal-text"))).futureValue
+
+        val sent = captureRequest(s)
+        sent.govtalkErrorCode mustBe Some("9999")
+        sent.govtalkErrorType mustBe Some("systemError")
+        sent.govtalkErrorMessage mustBe Some("fatal-text")
+      }
+
+      "DepartmentalError → 3001 / departmentalError / ChRIS text" in {
+        val s = setup; import s.*
+        when(repo.updateMonthlyReturnSubmission(any[UpdateSubmissionRequest])).thenReturn(Future.successful(()))
+
+        service.updateSubmission(baseReq(DepartmentalError("dept-text"))).futureValue
+
+        val sent = captureRequest(s)
+        sent.govtalkErrorCode mustBe Some("3001")
+        sent.govtalkErrorType mustBe Some("departmentalError")
+        sent.govtalkErrorMessage mustBe Some("dept-text")
+      }
+
+      "ServerError(500..505) → http code / timeOut / timeOut" in {
+        val s = setup; import s.*
+        when(repo.updateMonthlyReturnSubmission(any[UpdateSubmissionRequest])).thenReturn(Future.successful(()))
+
+        service.updateSubmission(baseReq(ServerError(503))).futureValue
+
+        val sent = captureRequest(s)
+        sent.govtalkErrorCode mustBe Some("503")
+        sent.govtalkErrorType mustBe Some("timeOut")
+        sent.govtalkErrorMessage mustBe Some("timeOut")
+      }
+
+      "NoResponse → 'xxxx' / timeOut / 'timed out'" in {
+        val s = setup; import s.*
+        when(repo.updateMonthlyReturnSubmission(any[UpdateSubmissionRequest])).thenReturn(Future.successful(()))
+
+        service.updateSubmission(baseReq(NoResponse)).futureValue
+
+        val sent = captureRequest(s)
+        sent.govtalkErrorCode mustBe Some("xxxx")
+        sent.govtalkErrorType mustBe Some("timeOut")
+        sent.govtalkErrorMessage mustBe Some("timed out")
+      }
+
+      "OtherStatus → all three columns NULL even if caller supplied raw values" in {
+        val s = setup; import s.*
+        when(repo.updateMonthlyReturnSubmission(any[UpdateSubmissionRequest])).thenReturn(Future.successful(()))
+
+        val req = baseReq(OtherStatus).copy(
+          govtalkErrorCode = Some("ignored"),
+          govtalkErrorType = Some("ignored"),
+          govtalkErrorMessage = Some("ignored")
+        )
+
+        service.updateSubmission(req).futureValue
+
+        val sent = captureRequest(s)
+        sent.govtalkErrorCode mustBe None
+        sent.govtalkErrorType mustBe None
+        sent.govtalkErrorMessage mustBe None
+      }
+    }
+
+    "preserves directly-supplied gov talk error fields when govTalkResponse is absent" in {
+      val s = setup; import s.*
+      when(repo.updateMonthlyReturnSubmission(any[UpdateSubmissionRequest])).thenReturn(Future.successful(()))
+
+      val req = UpdateSubmissionRequest(
+        instanceId = "123",
+        taxYear = 2024,
+        taxMonth = 4,
+        hmrcMarkGenerated = "mark",
+        submittableStatus = "FATAL_ERROR",
+        govtalkErrorCode = Some("raw-code"),
+        govtalkErrorType = Some("raw-type"),
+        govtalkErrorMessage = Some("raw-msg")
+      )
+
+      service.updateSubmission(req).futureValue
 
       verify(repo).updateMonthlyReturnSubmission(eqTo(req))
     }
