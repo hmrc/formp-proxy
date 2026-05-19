@@ -29,6 +29,7 @@ import uk.gov.hmrc.formpproxy.sdlt.models.land.*
 import uk.gov.hmrc.formpproxy.sdlt.models.residency.*
 import uk.gov.hmrc.formpproxy.sdlt.models.transaction.*
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
+import uk.gov.hmrc.formpproxy.sdlt.models.lease.*
 
 import java.lang.Long
 import java.sql.{CallableStatement, Connection, ResultSet, Types}
@@ -66,6 +67,9 @@ trait SdltSource {
   def sdltUpdateResidency(request: UpdateResidencyRequest): Future[UpdateResidencyReturn]
   def sdltDeleteResidency(request: DeleteResidencyRequest): Future[DeleteResidencyReturn]
   def sdltUpdateTransaction(request: UpdateTransactionRequest): Future[UpdateTransactionReturn]
+  def sdltCreateLease(request: CreateLeaseRequest): Future[CreateLeaseReturn]
+  def sdltUpdateLease(request: UpdateLeaseRequest): Future[UpdateLeaseReturn]
+  def sdltDeleteLease(request: DeleteLeaseRequest): Future[DeleteLeaseReturn]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -2133,6 +2137,230 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       cs.execute()
 
       UpdateTransactionReturn(updated = true)
+    } finally cs.close()
+  }
+
+  override def sdltCreateLease(request: CreateLeaseRequest): Future[CreateLeaseReturn] = Future {
+    db.withTransaction { conn =>
+      callCreateLease(
+        conn = conn,
+        p_storn = request.stornId,
+        p_return_resource_ref = request.returnResourceRef.toLong,
+        p_is_annual_rent_over_1000 = request.lease.isAnnualRentOver1000,
+        p_contract_end_date = request.lease.contractEndDate,
+        p_contract_start_date = request.lease.contractStartDate,
+        p_lease_type = request.lease.leaseType,
+        p_net_present_value = request.lease.netPresentValue,
+        p_total_premium_payable = request.lease.totalPremiumPayable,
+        p_rent_free_period = request.lease.rentFreePeriod,
+        p_starting_rent = request.lease.startingRent,
+        p_starting_rent_end_date = request.lease.startingRentEndDate,
+        p_later_rent_known = request.lease.laterRentKnown,
+        p_vat_amount = request.lease.vatAmount
+      )
+    }
+  }
+
+  private def callCreateLease(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_is_annual_rent_over_1000: Option[String],
+    p_contract_end_date: Option[String],
+    p_contract_start_date: Option[String],
+    p_lease_type: Option[String],
+    p_net_present_value: Option[String],
+    p_total_premium_payable: Option[String],
+    p_rent_free_period: Option[String],
+    p_starting_rent: Option[String],
+    p_starting_rent_end_date: Option[String],
+    p_later_rent_known: Option[String],
+    p_vat_amount: Option[String]
+  ): CreateLeaseReturn = {
+
+    val cs = conn.prepareCall(
+      "{ call LEASE_PROCS.CREATE_LEASE(" +
+        "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
+        "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
+        "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
+        "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
+        "?, ?, ?, ?, ?) }"
+    )
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.setOptionalString(3, p_is_annual_rent_over_1000)
+      cs.setNull(4, Types.VARCHAR)
+      cs.setNull(5, Types.VARCHAR)
+      cs.setNull(6, Types.VARCHAR)
+      cs.setOptionalString(7, p_contract_end_date)
+      cs.setOptionalString(8, p_contract_start_date)
+      cs.setNull(9, Types.VARCHAR)
+      cs.setOptionalString(10, p_lease_type)
+      cs.setNull(11, Types.VARCHAR)
+      cs.setOptionalString(12, p_net_present_value)
+      cs.setNull(13, Types.VARCHAR)
+      cs.setOptionalString(14, p_total_premium_payable)
+      cs.setNull(15, Types.VARCHAR)
+      cs.setOptionalString(16, p_rent_free_period)
+      cs.setNull(17, Types.VARCHAR)
+      cs.setNull(18, Types.VARCHAR)
+      cs.setNull(19, Types.VARCHAR)
+      cs.setNull(20, Types.VARCHAR)
+      cs.setOptionalString(21, p_starting_rent)
+      cs.setOptionalString(22, p_starting_rent_end_date)
+      cs.setOptionalString(23, p_later_rent_known)
+      cs.setNull(24, Types.VARCHAR)
+      cs.setNull(25, Types.VARCHAR)
+      cs.setNull(26, Types.VARCHAR)
+      cs.setNull(27, Types.VARCHAR)
+      cs.setNull(28, Types.VARCHAR)
+      cs.setNull(29, Types.VARCHAR)
+      cs.setNull(30, Types.VARCHAR)
+      cs.setNull(31, Types.VARCHAR)
+      cs.setNull(32, Types.VARCHAR)
+      cs.setNull(33, Types.VARCHAR)
+      cs.setNull(34, Types.VARCHAR)
+      cs.setNull(35, Types.VARCHAR)
+      cs.setNull(36, Types.VARCHAR)
+      cs.setNull(37, Types.VARCHAR)
+      cs.setNull(38, Types.VARCHAR)
+      cs.setNull(39, Types.VARCHAR)
+      cs.setNull(40, Types.VARCHAR)
+      cs.setNull(41, Types.VARCHAR)
+      cs.setNull(42, Types.VARCHAR)
+      cs.setNull(43, Types.VARCHAR)
+      cs.setOptionalString(44, p_vat_amount)
+      cs.registerOutParameter(45, Types.NUMERIC)
+
+      cs.execute()
+
+      CreateLeaseReturn(created = true)
+    } finally cs.close()
+  }
+
+  override def sdltUpdateLease(request: UpdateLeaseRequest): Future[UpdateLeaseReturn] = Future {
+    db.withTransaction { conn =>
+      callUpdateLease(
+        conn = conn,
+        p_storn = request.stornId,
+        p_return_resource_ref = request.returnResourceRef.toLong,
+        p_is_annual_rent_over_1000 = request.lease.isAnnualRentOver1000,
+        p_contract_end_date = request.lease.contractEndDate,
+        p_contract_start_date = request.lease.contractStartDate,
+        p_lease_type = request.lease.leaseType,
+        p_net_present_value = request.lease.netPresentValue,
+        p_total_premium_payable = request.lease.totalPremiumPayable,
+        p_rent_free_period = request.lease.rentFreePeriod,
+        p_starting_rent = request.lease.startingRent,
+        p_starting_rent_end_date = request.lease.startingRentEndDate,
+        p_later_rent_known = request.lease.laterRentKnown,
+        p_vat_amount = request.lease.vatAmount
+      )
+    }
+  }
+
+  private def callUpdateLease(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_is_annual_rent_over_1000: Option[String],
+    p_contract_end_date: Option[String],
+    p_contract_start_date: Option[String],
+    p_lease_type: Option[String],
+    p_net_present_value: Option[String],
+    p_total_premium_payable: Option[String],
+    p_rent_free_period: Option[String],
+    p_starting_rent: Option[String],
+    p_starting_rent_end_date: Option[String],
+    p_later_rent_known: Option[String],
+    p_vat_amount: Option[String]
+  ): UpdateLeaseReturn = {
+
+    val cs = conn.prepareCall(
+      "{ call LEASE_PROCS.UPDATE_LEASE(" +
+        "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
+        "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
+        "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
+        "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
+        "?, ?, ?, ?) }"
+    )
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.setOptionalString(3, p_is_annual_rent_over_1000)
+      cs.setNull(4, Types.VARCHAR)
+      cs.setNull(5, Types.VARCHAR)
+      cs.setNull(6, Types.VARCHAR)
+      cs.setOptionalString(7, p_contract_end_date)
+      cs.setOptionalString(8, p_contract_start_date)
+      cs.setNull(9, Types.VARCHAR)
+      cs.setOptionalString(10, p_lease_type)
+      cs.setNull(11, Types.VARCHAR)
+      cs.setOptionalString(12, p_net_present_value)
+      cs.setNull(13, Types.VARCHAR)
+      cs.setOptionalString(14, p_total_premium_payable)
+      cs.setNull(15, Types.VARCHAR)
+      cs.setOptionalString(16, p_rent_free_period)
+      cs.setNull(17, Types.VARCHAR)
+      cs.setNull(18, Types.VARCHAR)
+      cs.setNull(19, Types.VARCHAR)
+      cs.setNull(20, Types.VARCHAR)
+      cs.setOptionalString(21, p_starting_rent)
+      cs.setOptionalString(22, p_starting_rent_end_date)
+      cs.setOptionalString(23, p_later_rent_known)
+      cs.setNull(24, Types.VARCHAR)
+      cs.setNull(25, Types.VARCHAR)
+      cs.setNull(26, Types.VARCHAR)
+      cs.setNull(27, Types.VARCHAR)
+      cs.setNull(28, Types.VARCHAR)
+      cs.setNull(29, Types.VARCHAR)
+      cs.setNull(30, Types.VARCHAR)
+      cs.setNull(31, Types.VARCHAR)
+      cs.setNull(32, Types.VARCHAR)
+      cs.setNull(33, Types.VARCHAR)
+      cs.setNull(34, Types.VARCHAR)
+      cs.setNull(35, Types.VARCHAR)
+      cs.setNull(36, Types.VARCHAR)
+      cs.setNull(37, Types.VARCHAR)
+      cs.setNull(38, Types.VARCHAR)
+      cs.setNull(39, Types.VARCHAR)
+      cs.setNull(40, Types.VARCHAR)
+      cs.setNull(41, Types.VARCHAR)
+      cs.setNull(42, Types.VARCHAR)
+      cs.setNull(43, Types.VARCHAR)
+      cs.setOptionalString(44, p_vat_amount)
+
+      cs.execute()
+
+      UpdateLeaseReturn(updated = true)
+    } finally cs.close()
+  }
+
+  override def sdltDeleteLease(request: DeleteLeaseRequest): Future[DeleteLeaseReturn] = Future {
+    db.withTransaction { conn =>
+      callDeleteLease(
+        conn = conn,
+        p_storn = request.storn,
+        p_return_resource_ref = request.returnResourceRef.toLong
+      )
+    }
+  }
+
+  private def callDeleteLease(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long
+  ): DeleteLeaseReturn = {
+
+    val cs = conn.prepareCall("{ call LEASE_PROCS.DELETE_LEASE(?, ?) }")
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+
+      cs.execute()
+
+      DeleteLeaseReturn(deleted = true)
     } finally cs.close()
   }
 
