@@ -28,6 +28,7 @@ import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
 import uk.gov.hmrc.formpproxy.sdlt.models.land.*
 import uk.gov.hmrc.formpproxy.sdlt.models.transaction.*
 import uk.gov.hmrc.formpproxy.sdlt.models.residency.*
+import uk.gov.hmrc.formpproxy.sdlt.models.lease.*
 
 import java.sql.*
 
@@ -4084,6 +4085,482 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).setLong(2, 100005L)
       verify(cs).setString(50, "Y")
       verify(cs).setString(51, "500000")
+      verify(cs).execute()
+    }
+  }
+
+  "sdltCreateLease" - {
+
+    "call CREATE_LEASE stored procedure with correct parameters and return created=true" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      val expectedSql =
+        "{ call LEASE_PROCS.CREATE_LEASE(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
+          "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
+          "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
+          "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
+          "?, ?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(expectedSql))).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = CreateLeaseRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        lease = LeasePayload(
+          isAnnualRentOver1000 = Some("YES"),
+          contractEndDate = Some("2030-12-31"),
+          contractStartDate = Some("2025-01-01"),
+          leaseType = Some("COMMERCIAL"),
+          netPresentValue = Some("50000"),
+          totalPremiumPayable = Some("10000"),
+          rentFreePeriod = Some("NO"),
+          startingRent = Some("12000"),
+          startingRentEndDate = Some("2026-01-01"),
+          laterRentKnown = Some("YES"),
+          vatAmount = Some("2400")
+        )
+      )
+
+      val result = repo.sdltCreateLease(request).futureValue
+
+      result.created mustBe true
+
+      verify(conn).prepareCall(expectedSql)
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setString(3, "YES")
+      verify(cs).setNull(4, Types.VARCHAR)
+      verify(cs).setNull(5, Types.VARCHAR)
+      verify(cs).setNull(6, Types.VARCHAR)
+      verify(cs).setString(7, "2030-12-31")
+      verify(cs).setString(8, "2025-01-01")
+      verify(cs).setNull(9, Types.VARCHAR)
+      verify(cs).setString(10, "COMMERCIAL")
+      verify(cs).setNull(11, Types.VARCHAR)
+      verify(cs).setString(12, "50000")
+      verify(cs).setNull(13, Types.VARCHAR)
+      verify(cs).setString(14, "10000")
+      verify(cs).setNull(15, Types.VARCHAR)
+      verify(cs).setString(16, "NO")
+      verify(cs).setNull(17, Types.VARCHAR)
+      verify(cs).setNull(18, Types.VARCHAR)
+      verify(cs).setNull(19, Types.VARCHAR)
+      verify(cs).setNull(20, Types.VARCHAR)
+      verify(cs).setString(21, "12000")
+      verify(cs).setString(22, "2026-01-01")
+      verify(cs).setString(23, "YES")
+      verify(cs).setNull(24, Types.VARCHAR)
+      verify(cs).setNull(25, Types.VARCHAR)
+      verify(cs).setNull(26, Types.VARCHAR)
+      verify(cs).setNull(27, Types.VARCHAR)
+      verify(cs).setNull(28, Types.VARCHAR)
+      verify(cs).setNull(29, Types.VARCHAR)
+      verify(cs).setNull(30, Types.VARCHAR)
+      verify(cs).setNull(31, Types.VARCHAR)
+      verify(cs).setNull(32, Types.VARCHAR)
+      verify(cs).setNull(33, Types.VARCHAR)
+      verify(cs).setNull(34, Types.VARCHAR)
+      verify(cs).setNull(35, Types.VARCHAR)
+      verify(cs).setNull(36, Types.VARCHAR)
+      verify(cs).setNull(37, Types.VARCHAR)
+      verify(cs).setNull(38, Types.VARCHAR)
+      verify(cs).setNull(39, Types.VARCHAR)
+      verify(cs).setNull(40, Types.VARCHAR)
+      verify(cs).setNull(41, Types.VARCHAR)
+      verify(cs).setNull(42, Types.VARCHAR)
+      verify(cs).setNull(43, Types.VARCHAR)
+      verify(cs).setString(44, "2400")
+      verify(cs).registerOutParameter(45, Types.NUMERIC)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "handle all optional lease fields being None" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = CreateLeaseRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        lease = LeasePayload(
+          isAnnualRentOver1000 = None,
+          contractEndDate = None,
+          contractStartDate = None,
+          leaseType = None,
+          netPresentValue = None,
+          totalPremiumPayable = None,
+          rentFreePeriod = None,
+          startingRent = None,
+          startingRentEndDate = None,
+          laterRentKnown = None,
+          vatAmount = None
+        )
+      )
+
+      val result = repo.sdltCreateLease(request).futureValue
+
+      result.created mustBe true
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).setNull(3, Types.VARCHAR)
+      verify(cs).setNull(7, Types.VARCHAR)
+      verify(cs).setNull(8, Types.VARCHAR)
+      verify(cs).setNull(10, Types.VARCHAR)
+      verify(cs).setNull(12, Types.VARCHAR)
+      verify(cs).setNull(14, Types.VARCHAR)
+      verify(cs).setNull(16, Types.VARCHAR)
+      verify(cs).setNull(21, Types.VARCHAR)
+      verify(cs).setNull(22, Types.VARCHAR)
+      verify(cs).setNull(23, Types.VARCHAR)
+      verify(cs).setNull(44, Types.VARCHAR)
+      verify(cs).execute()
+    }
+
+    "handle residential lease with partial fields" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = CreateLeaseRequest(
+        stornId = "STORN88888",
+        returnResourceRef = "100003",
+        lease = LeasePayload(
+          isAnnualRentOver1000 = Some("NO"),
+          contractEndDate = Some("2028-06-30"),
+          contractStartDate = Some("2025-07-01"),
+          leaseType = Some("RESIDENTIAL"),
+          netPresentValue = None,
+          totalPremiumPayable = None,
+          rentFreePeriod = Some("YES"),
+          startingRent = Some("8000"),
+          startingRentEndDate = None,
+          laterRentKnown = None,
+          vatAmount = None
+        )
+      )
+
+      val result = repo.sdltCreateLease(request).futureValue
+
+      result.created mustBe true
+
+      verify(cs).setString(1, "STORN88888")
+      verify(cs).setLong(2, 100003L)
+      verify(cs).setString(3, "NO")
+      verify(cs).setString(7, "2028-06-30")
+      verify(cs).setString(8, "2025-07-01")
+      verify(cs).setString(10, "RESIDENTIAL")
+      verify(cs).setNull(12, Types.VARCHAR)
+      verify(cs).setNull(14, Types.VARCHAR)
+      verify(cs).setString(16, "YES")
+      verify(cs).setString(21, "8000")
+      verify(cs).setNull(22, Types.VARCHAR)
+      verify(cs).setNull(23, Types.VARCHAR)
+      verify(cs).setNull(44, Types.VARCHAR)
+      verify(cs).execute()
+    }
+  }
+
+  "sdltUpdateLease" - {
+
+    "call UPDATE_LEASE stored procedure with correct parameters and return updated=true" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      val expectedSql =
+        "{ call LEASE_PROCS.UPDATE_LEASE(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
+          "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
+          "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
+          "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
+          "?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(expectedSql))).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateLeaseRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        lease = LeasePayload(
+          isAnnualRentOver1000 = Some("YES"),
+          contractEndDate = Some("2030-12-31"),
+          contractStartDate = Some("2025-01-01"),
+          leaseType = Some("COMMERCIAL"),
+          netPresentValue = Some("60000"),
+          totalPremiumPayable = Some("15000"),
+          rentFreePeriod = Some("YES"),
+          startingRent = Some("13000"),
+          startingRentEndDate = Some("2026-01-01"),
+          laterRentKnown = Some("NO"),
+          vatAmount = Some("2600")
+        )
+      )
+
+      val result = repo.sdltUpdateLease(request).futureValue
+
+      result.updated mustBe true
+
+      verify(conn).prepareCall(expectedSql)
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setString(3, "YES")
+      verify(cs).setNull(4, Types.VARCHAR)
+      verify(cs).setNull(5, Types.VARCHAR)
+      verify(cs).setNull(6, Types.VARCHAR)
+      verify(cs).setString(7, "2030-12-31")
+      verify(cs).setString(8, "2025-01-01")
+      verify(cs).setNull(9, Types.VARCHAR)
+      verify(cs).setString(10, "COMMERCIAL")
+      verify(cs).setNull(11, Types.VARCHAR)
+      verify(cs).setString(12, "60000")
+      verify(cs).setNull(13, Types.VARCHAR)
+      verify(cs).setString(14, "15000")
+      verify(cs).setNull(15, Types.VARCHAR)
+      verify(cs).setString(16, "YES")
+      verify(cs).setNull(17, Types.VARCHAR)
+      verify(cs).setNull(18, Types.VARCHAR)
+      verify(cs).setNull(19, Types.VARCHAR)
+      verify(cs).setNull(20, Types.VARCHAR)
+      verify(cs).setString(21, "13000")
+      verify(cs).setString(22, "2026-01-01")
+      verify(cs).setString(23, "NO")
+      verify(cs).setNull(24, Types.VARCHAR)
+      verify(cs).setNull(25, Types.VARCHAR)
+      verify(cs).setNull(26, Types.VARCHAR)
+      verify(cs).setNull(27, Types.VARCHAR)
+      verify(cs).setNull(28, Types.VARCHAR)
+      verify(cs).setNull(29, Types.VARCHAR)
+      verify(cs).setNull(30, Types.VARCHAR)
+      verify(cs).setNull(31, Types.VARCHAR)
+      verify(cs).setNull(32, Types.VARCHAR)
+      verify(cs).setNull(33, Types.VARCHAR)
+      verify(cs).setNull(34, Types.VARCHAR)
+      verify(cs).setNull(35, Types.VARCHAR)
+      verify(cs).setNull(36, Types.VARCHAR)
+      verify(cs).setNull(37, Types.VARCHAR)
+      verify(cs).setNull(38, Types.VARCHAR)
+      verify(cs).setNull(39, Types.VARCHAR)
+      verify(cs).setNull(40, Types.VARCHAR)
+      verify(cs).setNull(41, Types.VARCHAR)
+      verify(cs).setNull(42, Types.VARCHAR)
+      verify(cs).setNull(43, Types.VARCHAR)
+      verify(cs).setString(44, "2600")
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "handle minimal update with all optional fields being None" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateLeaseRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        lease = LeasePayload(
+          isAnnualRentOver1000 = None,
+          contractEndDate = None,
+          contractStartDate = None,
+          leaseType = None,
+          netPresentValue = None,
+          totalPremiumPayable = None,
+          rentFreePeriod = None,
+          startingRent = None,
+          startingRentEndDate = None,
+          laterRentKnown = None,
+          vatAmount = None
+        )
+      )
+
+      val result = repo.sdltUpdateLease(request).futureValue
+
+      result.updated mustBe true
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).setNull(3, Types.VARCHAR)
+      verify(cs).setNull(7, Types.VARCHAR)
+      verify(cs).setNull(8, Types.VARCHAR)
+      verify(cs).setNull(10, Types.VARCHAR)
+      verify(cs).setNull(12, Types.VARCHAR)
+      verify(cs).setNull(14, Types.VARCHAR)
+      verify(cs).setNull(16, Types.VARCHAR)
+      verify(cs).setNull(21, Types.VARCHAR)
+      verify(cs).setNull(22, Types.VARCHAR)
+      verify(cs).setNull(23, Types.VARCHAR)
+      verify(cs).setNull(44, Types.VARCHAR)
+      verify(cs).execute()
+    }
+
+    "handle partial update with mixed fields" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateLeaseRequest(
+        stornId = "STORN77777",
+        returnResourceRef = "100003",
+        lease = LeasePayload(
+          isAnnualRentOver1000 = Some("YES"),
+          contractEndDate = None,
+          contractStartDate = None,
+          leaseType = Some("COMMERCIAL"),
+          netPresentValue = None,
+          totalPremiumPayable = None,
+          rentFreePeriod = None,
+          startingRent = Some("9500"),
+          startingRentEndDate = None,
+          laterRentKnown = None,
+          vatAmount = None
+        )
+      )
+
+      val result = repo.sdltUpdateLease(request).futureValue
+
+      result.updated mustBe true
+
+      verify(cs).setString(1, "STORN77777")
+      verify(cs).setLong(2, 100003L)
+      verify(cs).setString(3, "YES")
+      verify(cs).setNull(7, Types.VARCHAR)
+      verify(cs).setNull(8, Types.VARCHAR)
+      verify(cs).setString(10, "COMMERCIAL")
+      verify(cs).setNull(12, Types.VARCHAR)
+      verify(cs).setString(21, "9500")
+      verify(cs).setNull(44, Types.VARCHAR)
+      verify(cs).execute()
+    }
+  }
+
+  "sdltDeleteLease" - {
+
+    "call DELETE_LEASE stored procedure with correct parameters and return deleted=true" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call LEASE_PROCS.DELETE_LEASE(?, ?) }")))
+        .thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = DeleteLeaseRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001"
+      )
+
+      val result = repo.sdltDeleteLease(request).futureValue
+
+      result.deleted mustBe true
+
+      verify(conn).prepareCall("{ call LEASE_PROCS.DELETE_LEASE(?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "handle different return resource references" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = DeleteLeaseRequest(
+        storn = "STORN99999",
+        returnResourceRef = "100002"
+      )
+
+      val result = repo.sdltDeleteLease(request).futureValue
+
+      result.deleted mustBe true
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).execute()
+    }
+
+    "handle different storn formats" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = DeleteLeaseRequest(
+        storn = "STORN-ABC-123",
+        returnResourceRef = "100003"
+      )
+
+      val result = repo.sdltDeleteLease(request).futureValue
+
+      result.deleted mustBe true
+
+      verify(cs).setString(1, "STORN-ABC-123")
+      verify(cs).setLong(2, 100003L)
       verify(cs).execute()
     }
   }
