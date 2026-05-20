@@ -37,7 +37,7 @@ class SubmissionServiceSpec extends SpecBase {
     "delegates to repo and returns submissionId" in {
       val s = setup; import s.*
 
-      val req = CreateSubmissionRequest("123", 2024, 4)
+      val req = CreateSubmissionRequest("123", 2024, 4, "N")
       when(repo.createSubmission(any[CreateSubmissionRequest]))
         .thenReturn(Future.successful("sub-123"))
 
@@ -50,7 +50,7 @@ class SubmissionServiceSpec extends SpecBase {
     "propagates failure from repo" in {
       val s = setup; import s.*
 
-      val req = CreateSubmissionRequest("123", 2024, 4)
+      val req = CreateSubmissionRequest("123", 2024, 4, "N")
       when(repo.createSubmission(any[CreateSubmissionRequest]))
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
@@ -72,6 +72,7 @@ class SubmissionServiceSpec extends SpecBase {
         instanceId = "123",
         taxYear = 2024,
         taxMonth = 4,
+        amendment = "N",
         hmrcMarkGenerated = "Dj5TVJDyRYCn9zta5EdySeY4fyA=",
         submittableStatus = "ACCEPTED"
       )
@@ -90,6 +91,7 @@ class SubmissionServiceSpec extends SpecBase {
         instanceId = "123",
         taxYear = 2024,
         taxMonth = 4,
+        amendment = "N",
         hmrcMarkGenerated = "Dj5TVJDyRYCn9zta5EdySeY4fyA=",
         submittableStatus = "ACCEPTED"
       )
