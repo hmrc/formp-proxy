@@ -18,6 +18,7 @@ package uk.gov.hmrc.formpproxy.cis.services
 
 import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateSubmissionRequest, UpdateSubmissionRequest}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
+import uk.gov.hmrc.formpproxy.cis.utils.GovTalkErrorMapper
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
@@ -29,5 +30,18 @@ class SubmissionService @Inject() (repo: CisMonthlyReturnSource) {
     repo.createSubmission(req)
 
   def updateSubmission(req: UpdateSubmissionRequest): Future[Unit] =
-    repo.updateMonthlyReturnSubmission(req)
+    repo.updateMonthlyReturnSubmission(applyGovTalkErrorMapping(req))
+
+  private def applyGovTalkErrorMapping(req: UpdateSubmissionRequest): UpdateSubmissionRequest =
+    req.govTalkResponse match {
+      case Some(status) =>
+        val values = GovTalkErrorMapper(status)
+        req.copy(
+          govtalkErrorCode = values.errorCode,
+          govtalkErrorType = values.errorType,
+          govtalkErrorMessage = values.errorMessage
+        )
+      case None         =>
+        req
+    }
 }
