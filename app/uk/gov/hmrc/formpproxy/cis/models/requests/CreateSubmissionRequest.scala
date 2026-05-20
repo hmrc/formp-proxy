@@ -22,6 +22,7 @@ case class CreateSubmissionRequest(
   instanceId: String,
   taxYear: Int,
   taxMonth: Int,
+  amendment: String,
   hmrcMarkGenerated: Option[String] = None,
   emailRecipient: Option[String] = None,
   agentId: Option[String] = None,

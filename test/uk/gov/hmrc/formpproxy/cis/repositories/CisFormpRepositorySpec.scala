@@ -219,6 +219,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsMonthly.getInt("tax_year")).thenReturn(2024)
       when(rsMonthly.getInt("tax_month")).thenReturn(4)
       when(rsMonthly.getLong("monthly_return_id")).thenReturn(7777L)
+      when(rsMonthly.getString("amendment")).thenReturn("N")
 
       when(conn.prepareCall("{ call SUBMISSION_PROCS.Create_Submission(?, ?, ?, ?, ?, ?, ?, ?, ?) }"))
         .thenReturn(csCreate)
@@ -230,6 +231,7 @@ final class CisFormpRepositorySpec extends SpecBase {
         instanceId = "123",
         taxYear = 2024,
         taxMonth = 4,
+        amendment = "N",
         hmrcMarkGenerated = Some("Dj5TVJDyRYCn9zta5EdySeY4fyA="),
         emailRecipient = Some("test@test.com"),
         agentId = None,
@@ -285,6 +287,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsMonthly.getInt("tax_year")).thenReturn(2024)
       when(rsMonthly.getInt("tax_month")).thenReturn(4)
       when(rsMonthly.getLong("monthly_return_id")).thenReturn(7777L)
+      when(rsMonthly.getString("amendment")).thenReturn("N")
 
       when(
         conn.prepareCall(
@@ -308,7 +311,7 @@ final class CisFormpRepositorySpec extends SpecBase {
         govtalkErrorCode = None,
         govtalkErrorType = None,
         govtalkErrorMessage = None,
-        amendment = None
+        amendment = "N"
       )
 
       repo.updateMonthlyReturnSubmission(req).futureValue
@@ -398,12 +401,13 @@ final class CisFormpRepositorySpec extends SpecBase {
         classOf[Connection],
         classOf[String],
         classOf[Int],
-        classOf[Int]
+        classOf[Int],
+        classOf[String]
       )
       method.setAccessible(true)
 
       val thrown = intercept[java.lang.reflect.InvocationTargetException] {
-        method.invoke(repo, connection, "abc-123", Int.box(2025), Int.box(2))
+        method.invoke(repo, connection, "abc-123", Int.box(2025), Int.box(2), "N")
       }
 
       val cause = thrown.getCause.asInstanceOf[RuntimeException]
@@ -440,12 +444,13 @@ final class CisFormpRepositorySpec extends SpecBase {
         classOf[Connection],
         classOf[String],
         classOf[Int],
-        classOf[Int]
+        classOf[Int],
+        classOf[String]
       )
       method.setAccessible(true)
 
       val thrown = intercept[java.lang.reflect.InvocationTargetException] {
-        method.invoke(repo, connection, "abc-123", Int.box(2025), Int.box(2))
+        method.invoke(repo, connection, "abc-123", Int.box(2025), Int.box(2), "N")
       }
 
       val cause = thrown.getCause.asInstanceOf[RuntimeException]

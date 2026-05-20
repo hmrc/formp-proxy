@@ -51,6 +51,7 @@ class SubmissionControllerSpec extends SpecBase {
           instanceId = "123",
           taxYear = 2024,
           taxMonth = 4,
+          amendment = "N",
           hmrcMarkGenerated = Some("Dj5TVJDyRYCn9zta5EdySeY4fyA="),
           emailRecipient = Some("test@test.com")
         )
@@ -88,7 +89,7 @@ class SubmissionControllerSpec extends SpecBase {
       when(service.createSubmission(any[CreateSubmissionRequest]))
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
-      val json = Json.toJson(CreateSubmissionRequest("123", 2024, 4))
+      val json = Json.toJson(CreateSubmissionRequest("123", 2024, 4, "N"))
 
       val result = controller
         .createSubmission()
@@ -114,6 +115,7 @@ class SubmissionControllerSpec extends SpecBase {
           instanceId = "123",
           taxYear = 2024,
           taxMonth = 4,
+          amendment = "N",
           hmrcMarkGenerated = "Dj5TVJDyRYCn9zta5EdySeY4fyA=",
           submittableStatus = "ACCEPTED"
         )
@@ -156,6 +158,7 @@ class SubmissionControllerSpec extends SpecBase {
           instanceId = "123",
           taxYear = 2024,
           taxMonth = 4,
+          amendment = "N",
           hmrcMarkGenerated = "Dj5TVJDyRYCn9zta5EdySeY4fyA=",
           submittableStatus = "ACCEPTED"
         )
