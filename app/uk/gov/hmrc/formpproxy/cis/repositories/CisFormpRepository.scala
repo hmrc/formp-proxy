@@ -261,7 +261,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   override def syncMonthlyReturnItems(request: SyncMonthlyReturnItemsRequest): Future[Unit] =
     Future {
       logger.info(
-        s"[CIS] syncMonthlyReturnItems(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth}, creates=${request.createResourceReferences.size}, deletes=${request.deleteResourceReferences.size})"
+        s"[CIS] syncMonthlyReturnItems(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth}, amendment=${request.amendment}, creates=${request.createResourceReferences.size}, deletes=${request.deleteResourceReferences.size})"
       )
 
       db.withTransaction { conn =>
