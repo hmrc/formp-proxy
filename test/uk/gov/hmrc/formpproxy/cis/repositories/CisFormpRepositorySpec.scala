@@ -2642,19 +2642,36 @@ final class CisFormpRepositorySpec extends SpecBase {
 
   "deleteUnsubmittedMonthlyReturn" - {
 
-    "call MONTHLY_RETURN_PROCS_2016.DELETE_MONTHLY_RETURN with correct parameters and execute" in {
-      val db   = mock[Database]
-      val conn = mock[Connection]
-      val cs   = mock[CallableStatement]
+    "call DELETE_MONTHLY_RETURN with correct parameters" in {
+      val db          = mock[Database]
+      val conn        = mock[Connection]
+      val csGetScheme = mock[CallableStatement]
+      val rsScheme    = mock[ResultSet]
+      val csDelete    = mock[CallableStatement]
+      val csVersion   = mock[CallableStatement]
 
       when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
-        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+        inv.getArgument(0, classOf[Connection => Any])(conn)
       }
 
-      val call =
-        "{ call MONTHLY_RETURN_PROCS_2016.DELETE_MONTHLY_RETURN(?, ?, ?, ?) }"
+      when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"))
+        .thenReturn(csGetScheme)
+      when(csGetScheme.getObject(eqTo(2), eqTo(classOf[ResultSet])))
+        .thenReturn(rsScheme)
+      when(rsScheme.next()).thenReturn(true)
+      when(rsScheme.getInt("version")).thenReturn(1)
 
-      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+      val deleteCall = "{ call MONTHLY_RETURN_PROCS_2016.DELETE_MONTHLY_RETURN(?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(deleteCall))).thenReturn(csDelete)
+
+      val versionCall =
+        "{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"
+
+      when(conn.prepareCall(eqTo(versionCall)))
+        .thenReturn(csVersion)
+
+      when(csVersion.getInt(2)).thenReturn(2)
 
       val repo = new CisFormpRepository(db)
 
@@ -2667,15 +2684,11 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       repo.deleteUnsubmittedMonthlyReturn(request).futureValue
 
-      verify(conn).prepareCall(eqTo(call))
-
-      verify(cs).setString(1, request.instanceId)
-      verify(cs).setInt(2, request.taxYear)
-      verify(cs).setInt(3, request.taxMonth)
-      verify(cs).setString(4, "Y")
-
-      verify(cs).execute()
-      verify(cs).close()
+      verify(csDelete).setString(1, request.instanceId)
+      verify(csDelete).setInt(2, request.taxYear)
+      verify(csDelete).setInt(3, request.taxMonth)
+      verify(csDelete).setString(4, request.amendment)
+      verify(csDelete).execute()
     }
   }
 

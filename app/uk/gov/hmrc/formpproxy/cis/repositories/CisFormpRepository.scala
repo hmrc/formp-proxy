@@ -662,6 +662,8 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     )
     Future {
       db.withConnection { conn =>
+        val schemeVersionBefore = getSchemeVersion(conn, request.instanceId)
+
         withCall(conn, CallUnsubmittedMonthlyReturn) { cs =>
           cs.setString(1, request.instanceId)
           cs.setInt(2, request.taxYear)
@@ -669,6 +671,8 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           cs.setString(4, request.amendment)
           cs.execute()
         }
+
+        callUpdateSchemeVersion(conn, request.instanceId, schemeVersionBefore)
       }
     }
 
