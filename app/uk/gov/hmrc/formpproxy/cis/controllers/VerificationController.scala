@@ -24,7 +24,6 @@ import uk.gov.hmrc.formpproxy.cis.services.VerificationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.formpproxy.cis.models.requests._
 
-
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
