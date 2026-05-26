@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.formpproxy.cis.models.requests
 
-
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.{JsSuccess, Json}
