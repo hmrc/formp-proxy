@@ -29,19 +29,18 @@ class SubmissionService @Inject() (repo: CisMonthlyReturnSource) {
   def createSubmission(req: CreateSubmissionRequest): Future[String] =
     repo.createSubmission(req)
 
-  def updateSubmission(req: UpdateSubmissionRequest): Future[Unit] =
-    repo.updateMonthlyReturnSubmission(applyGovTalkErrorMapping(req))
-
-  private def applyGovTalkErrorMapping(req: UpdateSubmissionRequest): UpdateSubmissionRequest =
-    req.govTalkResponse match {
+  def updateSubmission(req: UpdateSubmissionRequest): Future[Unit] = {
+    val mappedReq = req.govTalkResponse match {
       case Some(status) =>
-        val values = GovTalkErrorMapper(status)
+        val mapped = GovTalkErrorMapper(status)
         req.copy(
-          govtalkErrorCode = values.errorCode,
-          govtalkErrorType = values.errorType,
-          govtalkErrorMessage = values.errorMessage
+          govtalkErrorCode = mapped.errorCode,
+          govtalkErrorType = mapped.errorType,
+          govtalkErrorMessage = mapped.errorMessage
         )
       case None         =>
         req
     }
+    repo.updateMonthlyReturnSubmission(mappedReq)
+  }
 }
