@@ -95,6 +95,8 @@ POST       /filing/create/lease                                     uk.gov.hmrc.
 POST       /filing/update/lease                                     uk.gov.hmrc.formpproxy.sdlt.controllers.returns.LeaseReturnsController.updateLease()
 POST       /filing/delete/lease                                     uk.gov.hmrc.formpproxy.sdlt.controllers.returns.LeaseReturnsController.deleteLease()
 
+POST       /filing/update/tax-calculation                           uk.gov.hmrc.formpproxy.sdlt.controllers.returns.TaxCalculationReturnsController.updateTaxCalculation()
+
 # CHARITIES routes
 
 GET        /charities/:charityReference/unregulated-donations       uk.gov.hmrc.formpproxy.charities.controllers.UnregulatedDonationsController.getTotalUnregulatedDonations(charityReference: String)

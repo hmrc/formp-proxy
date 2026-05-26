@@ -26,6 +26,7 @@ import uk.gov.hmrc.formpproxy.sdlt.models.residency.*
 import uk.gov.hmrc.formpproxy.sdlt.models.transaction.{UpdateTransactionRequest, UpdateTransactionReturn}
 import uk.gov.hmrc.formpproxy.sdlt.repositories.SdltFormpRepository
 import uk.gov.hmrc.formpproxy.sdlt.models.lease.*
+import uk.gov.hmrc.formpproxy.sdlt.models.taxCalculation.*
 
 import javax.inject.Inject
 import scala.concurrent.Future
@@ -112,5 +113,8 @@ class ReturnService @Inject() (repo: SdltFormpRepository) {
 
   def deleteLease(req: DeleteLeaseRequest): Future[DeleteLeaseReturn] =
     repo.sdltDeleteLease(req)
+
+  def updateTaxCalculation(req: UpdateTaxCalculationRequest): Future[UpdateTaxCalculationReturn] =
+    repo.sdltUpdateTaxCalculation(req)
 
 }
