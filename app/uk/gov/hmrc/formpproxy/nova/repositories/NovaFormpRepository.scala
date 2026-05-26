@@ -222,7 +222,7 @@ class NovaFormpRepository @Inject() (@NamedDatabase("nova") db: Database)(implic
           cs.execute()
 
           val rs = cs.getObject(3).asInstanceOf[ResultSet]
-          readFormDataResponse(rs, formId)
+          readFormDataResponse(rs)
         }
       }
     }
@@ -267,7 +267,7 @@ class NovaFormpRepository @Inject() (@NamedDatabase("nova") db: Database)(implic
     formDataStatus: Option[String]
   )
 
-  private def readFormDataResponse(rs: ResultSet, formId: Long): Option[FormDataResponse] = {
+  private def readFormDataResponse(rs: ResultSet): Option[FormDataResponse] = {
     if (rs == null) return None
 
     val rows = Iterator

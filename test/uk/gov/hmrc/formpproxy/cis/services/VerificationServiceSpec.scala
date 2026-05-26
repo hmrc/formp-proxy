@@ -17,8 +17,10 @@
 package uk.gov.hmrc.formpproxy.cis.services
 
 import org.mockito.ArgumentMatchers.eq as eqTo
+import org.mockito.ArgumentMatchers.*
 import org.mockito.Mockito.*
 import uk.gov.hmrc.formpproxy.base.SpecBase
+import uk.gov.hmrc.formpproxy.cis.models.{CreateVerifications, DeleteVerifications}
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
@@ -138,6 +140,171 @@ class VerificationServiceSpec extends SpecBase {
     }
   }
 
+  "MonthlyReturnService deleteMonthlyReturnItem" - {
+
+    "delegates to repo (happy path) when all properties are present in JSON" in new Ctx {
+      val request = ModifyVerificationsRequest(
+        instanceId = "abc-123",
+        deleteVerifications = Some(
+          DeleteVerifications(
+            verificationResourceReferences = Seq(111L, 222L)
+          )
+        ),
+        createVerifications = Some(
+          CreateVerifications(
+            verificationBatchResourceRef = 10L,
+            verificationResourceReferences = Seq(333L, 444L),
+            actionIndicator = None
+          )
+        )
+      )
+
+      when(repo.modifyVerifications(eqTo(request)))
+        .thenReturn(Future.successful(()))
+
+      service.modifyVerifications(request).futureValue mustBe ()
+
+      verify(repo).modifyVerifications(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failures from repo" in new Ctx {
+      val request = ModifyVerificationsRequest(
+        instanceId = "abc-123",
+        deleteVerifications = Some(
+          DeleteVerifications(
+            verificationResourceReferences = Seq(111L, 222L)
+          )
+        ),
+        createVerifications = Some(
+          CreateVerifications(
+            verificationBatchResourceRef = 10L,
+            verificationResourceReferences = Seq(333L, 444L),
+            actionIndicator = None
+          )
+        )
+      )
+
+      val boom = new RuntimeException("db failed")
+      when(repo.modifyVerifications(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      service.modifyVerifications(request).failed.futureValue mustBe boom
+
+      verify(repo).modifyVerifications(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "delegates to repo (happy path) when instanceId and deleteVerifications are present" in new Ctx {
+      val request = ModifyVerificationsRequest(
+        instanceId = "abc-123",
+        deleteVerifications = Some(
+          DeleteVerifications(
+            verificationResourceReferences = Seq(111L, 222L)
+          )
+        ),
+        createVerifications = None
+      )
+
+      when(repo.modifyVerifications(eqTo(request)))
+        .thenReturn(Future.successful(()))
+
+      service.modifyVerifications(request).futureValue mustBe ()
+
+      verify(repo).modifyVerifications(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "delegates to repo (happy path) when instanceId and createVerifications are present" in new Ctx {
+      val request = ModifyVerificationsRequest(
+        instanceId = "abc-123",
+        deleteVerifications = None,
+        createVerifications = Some(
+          CreateVerifications(
+            verificationBatchResourceRef = 10L,
+            verificationResourceReferences = Seq(333L, 444L),
+            actionIndicator = None
+          )
+        )
+      )
+
+      when(repo.modifyVerifications(eqTo(request)))
+        .thenReturn(Future.successful(()))
+
+      service.modifyVerifications(request).futureValue mustBe ()
+
+      verify(repo).modifyVerifications(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "fail when deleteVerifications is provided but verificationResourceReferences is empty" in new Ctx {
+      val request = ModifyVerificationsRequest(
+        instanceId = "abc-123",
+        deleteVerifications = Some(
+          DeleteVerifications(
+            verificationResourceReferences = Seq.empty
+          )
+        ),
+        createVerifications = Some(
+          CreateVerifications(
+            verificationBatchResourceRef = 10L,
+            verificationResourceReferences = Seq(333L, 444L),
+            actionIndicator = None
+          )
+        )
+      )
+
+      val exception: Throwable = service.modifyVerifications(request).failed.futureValue
+
+      exception mustBe a[IllegalArgumentException]
+      exception.getMessage mustBe "verificationResourceReferences must not be empty when deleteVerifications is provided"
+
+      verify(repo, times(0))
+        .modifyVerifications(any[ModifyVerificationsRequest])
+    }
+
+    "fail when createVerifications is provided but verificationResourceReferences is empty" in new Ctx {
+      val request = ModifyVerificationsRequest(
+        instanceId = "abc-123",
+        deleteVerifications = Some(
+          DeleteVerifications(
+            verificationResourceReferences = Seq(111L, 222L)
+          )
+        ),
+        createVerifications = Some(
+          CreateVerifications(
+            verificationBatchResourceRef = 10L,
+            verificationResourceReferences = Seq.empty,
+            actionIndicator = None
+          )
+        )
+      )
+
+      val exception: Throwable = service.modifyVerifications(request).failed.futureValue
+
+      exception mustBe a[IllegalArgumentException]
+      exception.getMessage mustBe "verificationResourceReferences must not be empty when createVerifications is provided"
+
+      verify(repo, times(0))
+        .modifyVerifications(any[ModifyVerificationsRequest])
+    }
+
+    "fail when deleteVerifications and createVerifications are both None" in new Ctx {
+      val request = ModifyVerificationsRequest(
+        instanceId = "abc-123",
+        deleteVerifications = None,
+        createVerifications = None
+      )
+
+      val exception: Throwable = service.modifyVerifications(request).failed.futureValue
+
+      exception mustBe a[RuntimeException]
+      exception.getMessage mustBe "deleteVerifications or createVerifications is required when instanceId is provided"
+
+      verify(repo, times(0))
+        .modifyVerifications(any[ModifyVerificationsRequest])
+    }
+  }
   "VerificationService#createSubmissionForVerification" - {
 
     "delegates to repository" in {

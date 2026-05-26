@@ -16,14 +16,24 @@
 
 package uk.gov.hmrc.formpproxy.cis.models.requests
 
-import play.api.libs.json.{Json, OFormat}
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import play.api.libs.json.Json
 
-case class GetMonthlyReturnForEditRequest(
-  instanceId: String,
-  taxYear: Int,
-  taxMonth: Int,
-  isAmendment: Option[Boolean] = None
-)
+class GetMonthlyReturnCompleteRequestSpec extends AnyWordSpec with Matchers {
 
-object GetMonthlyReturnForEditRequest:
-  given format: OFormat[GetMonthlyReturnForEditRequest] = Json.format[GetMonthlyReturnForEditRequest]
+  "GetMonthlyReturnCompleteRequest JSON format" should {
+
+    "serialize and deserialize correctly" in {
+      val model = GetMonthlyReturnCompleteRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 1,
+        amendment = "N"
+      )
+
+      val json = Json.toJson(model)
+      json.as[GetMonthlyReturnCompleteRequest] mustBe model
+    }
+  }
+}

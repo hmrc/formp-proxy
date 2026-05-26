@@ -23,9 +23,9 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
 import uk.gov.hmrc.formpproxy.base.SpecBase
-import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, Subcontractor, Submission, Verification, VerificationBatch}
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateVerifications, DeleteVerifications, MonthlyReturn, Subcontractor, Submission, Verification, VerificationBatch}
 import uk.gov.hmrc.formpproxy.cis.models.response.{GetCurrentVerificationBatchResponse, GetNewestVerificationBatchResponse}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateSubmissionForVerificationRequest, CreateVerificationBatchAndVerificationsRequest, VerificationToUpdate}
+import uk.gov.hmrc.formpproxy.cis.models.requests._
 import uk.gov.hmrc.formpproxy.cis.models.response.CreateVerificationBatchAndVerificationsResponse
 import uk.gov.hmrc.formpproxy.cis.models.response.CreateSubmissionForVerificationResponse
 import uk.gov.hmrc.formpproxy.cis.services.VerificationService
@@ -94,7 +94,7 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 200 OK with JSON body when service succeeds (all fields has values)" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val instId = "abc-123"
@@ -459,7 +459,7 @@ class VerificationControllerSpec extends SpecBase {
     val url = "/cis/verification-batch/create"
 
     "returns 200 OK with JSON body when service succeeds" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val requestModel = CreateVerificationBatchAndVerificationsRequest(
@@ -492,7 +492,7 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 400 BadRequest with error payload when JSON is invalid" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val badJson = Json.obj(
@@ -517,7 +517,7 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 500 InternalServerError with error body when service fails" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val requestModel = CreateVerificationBatchAndVerificationsRequest(
@@ -542,6 +542,110 @@ class VerificationControllerSpec extends SpecBase {
       contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
 
       verify(mockService).createVerificationBatchAndVerifications(eqTo(requestModel))
+      verifyNoMoreInteractions(mockService)
+    }
+  }
+
+  "POST /cis/verification-batch/modify (modifyVerifications)" - {
+
+    val url = "/cis/verification-batch/modify"
+
+    "returns 204 OK with JSON body when service succeeds" in {
+      val s = setup;
+      import s.*
+
+      val requestModel = ModifyVerificationsRequest(
+        instanceId = "abc-123",
+        deleteVerifications = Some(
+          DeleteVerifications(
+            verificationResourceReferences = Seq(1L, 2L, 3L)
+          )
+        ),
+        createVerifications = Some(
+          CreateVerifications(
+            verificationBatchResourceRef = 10L,
+            verificationResourceReferences = Seq(4L, 5L, 6L),
+            actionIndicator = Some("A")
+          )
+        )
+      )
+
+      val requestJson = Json.toJson(requestModel)
+
+      when(mockService.modifyVerifications(eqTo(requestModel)))
+        .thenReturn(Future.successful(()))
+
+      val req = FakeRequest(POST, url)
+        .withHeaders(CONTENT_TYPE -> JSON)
+        .withBody(requestJson)
+
+      val result = controller.modifyVerifications().apply(req)
+
+      status(result) mustBe NO_CONTENT
+      contentAsString(result) mustBe ""
+
+      verify(mockService).modifyVerifications(eqTo(requestModel))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 400 BadRequest with error payload when JSON is invalid" in {
+      val s = setup;
+      import s.*
+
+      val badJson = Json.obj()
+
+      val req = FakeRequest(POST, url)
+        .withHeaders(CONTENT_TYPE -> JSON)
+        .withBody(badJson)
+
+      val result = controller.modifyVerifications().apply(req)
+
+      status(result) mustBe BAD_REQUEST
+      contentType(result) mustBe Some(JSON)
+
+      val body = contentAsJson(result)
+      (body \ "message").as[String] mustBe "Invalid payload"
+      (body \ "errors").isDefined mustBe true
+
+      verifyNoInteractions(mockService)
+    }
+
+    "returns 500 InternalServerError with error body when service fails" in {
+      val s = setup;
+      import s.*
+
+      val requestModel = ModifyVerificationsRequest(
+        instanceId = "abc-123",
+        deleteVerifications = Some(
+          DeleteVerifications(
+            verificationResourceReferences = Seq(1L, 2L, 3L)
+          )
+        ),
+        createVerifications = Some(
+          CreateVerifications(
+            verificationBatchResourceRef = 10L,
+            verificationResourceReferences = Seq(4L, 5L, 6L),
+            actionIndicator = Some("A")
+          )
+        )
+      )
+
+      val requestJson = Json.toJson(requestModel)
+
+      when(mockService.modifyVerifications(eqTo(requestModel)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val req = FakeRequest(POST, url)
+        .withHeaders(CONTENT_TYPE -> JSON)
+        .withBody(requestJson)
+
+      val result = controller.modifyVerifications().apply(req)
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
+
+      verify(mockService).modifyVerifications(eqTo(requestModel))
       verifyNoMoreInteractions(mockService)
     }
   }

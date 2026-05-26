@@ -14,16 +14,17 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.cis.models.requests
+package uk.gov.hmrc.formpproxy.cis.models
 
 import play.api.libs.json.{Json, OFormat}
 
-case class GetMonthlyReturnForEditRequest(
-  instanceId: String,
-  taxYear: Int,
-  taxMonth: Int,
-  isAmendment: Option[Boolean] = None
+final case class CreateVerifications(
+  verificationBatchResourceRef: Long,
+  verificationResourceReferences: Seq[Long],
+  actionIndicator: Option[String]
 )
 
-object GetMonthlyReturnForEditRequest:
-  given format: OFormat[GetMonthlyReturnForEditRequest] = Json.format[GetMonthlyReturnForEditRequest]
+object CreateVerifications {
+  given OFormat[CreateVerifications] =
+    Json.format[CreateVerifications]
+}

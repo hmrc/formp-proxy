@@ -14,16 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.cis.models.requests
+package uk.gov.hmrc.formpproxy.cis.models.response
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, MonthlyReturnItem, Submission}
 
-case class GetMonthlyReturnForEditRequest(
-  instanceId: String,
-  taxYear: Int,
-  taxMonth: Int,
-  isAmendment: Option[Boolean] = None
+case class GetSubmittedMonthlyReturnsDataResponse(
+  scheme: ContractorScheme,
+  monthlyReturn: Seq[MonthlyReturn],
+  monthlyReturnItems: Seq[MonthlyReturnItem],
+  submission: Seq[Submission]
 )
 
-object GetMonthlyReturnForEditRequest:
-  given format: OFormat[GetMonthlyReturnForEditRequest] = Json.format[GetMonthlyReturnForEditRequest]
+object GetSubmittedMonthlyReturnsDataResponse {
+  given OFormat[GetSubmittedMonthlyReturnsDataResponse] = Json.format[GetSubmittedMonthlyReturnsDataResponse]
+}

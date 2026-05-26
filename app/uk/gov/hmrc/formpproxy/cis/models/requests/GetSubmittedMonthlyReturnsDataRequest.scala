@@ -18,12 +18,12 @@ package uk.gov.hmrc.formpproxy.cis.models.requests
 
 import play.api.libs.json.{Json, OFormat}
 
-case class GetMonthlyReturnForEditRequest(
+case class GetSubmittedMonthlyReturnsDataRequest(
   instanceId: String,
   taxYear: Int,
   taxMonth: Int,
-  isAmendment: Option[Boolean] = None
+  amendment: String
 )
 
-object GetMonthlyReturnForEditRequest:
-  given format: OFormat[GetMonthlyReturnForEditRequest] = Json.format[GetMonthlyReturnForEditRequest]
+object GetSubmittedMonthlyReturnsDataRequest:
+  given format: OFormat[GetSubmittedMonthlyReturnsDataRequest] = Json.format[GetSubmittedMonthlyReturnsDataRequest]

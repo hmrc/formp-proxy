@@ -32,6 +32,10 @@ object CisStoredProcedures {
   val CallGetSubmittedMonthlyReturns          = "{ call MONTHLY_RETURN_PROCS_2016.GET_SUBMITTED_RETURNS(?, ?, ?, ?) }"
   val CallGetMonthlyReturnForEdit             =
     "{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_For_Edit(?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+  val CallGetMonthlyReturnComplete            =
+    "{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_Complete(?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+  val CallGetSubmittedMonthlyReturnsData      =
+    "{ call MONTHLY_RETURN_PROCS_2016.GET_SUB_MONTHLY_RETURN_DATA(?, ?, ?, ?, ?, ?, ? ,?) }"
   val CallUpdateSubcontractor                 =
     "{ call SUBCONTRACTOR_PROCS.Update_Subcontractor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
   val CallCreateSubmission                    = "{ call SUBMISSION_PROCS.Create_Submission(?, ?, ?, ?, ?, ?, ?, ?, ?) }"
@@ -60,6 +64,9 @@ object CisStoredProcedures {
     "{ call VERIFICATION_PROCS.Create_Verification_Batch(?, ?) }"
   val CallCreateVerification                  =
     "{ call VERIFICATION_PROCS.Create_Verification(?, ?, ?, ?) }"
+  val CallCreateAmendedMonthlyReturn          = "{ call MONTHLY_RETURN_PROCS_2016.Amend_Monthly_Return(?, ?, ?, ?) }"
+  val CallDeleteVerification                  =
+    "{ call VERIFICATION_PROCS.DELETE_VERIFICATION_2(?, ?) }"
   val CallUpdateVerificationBatch             =
     "{ call VERIFICATION_PROCS.Update_Verification_Batch(?, ?, ?, ?, ?, ?, ?, ?) }"
   val CallUpdateVerification                  =

@@ -8,9 +8,11 @@ POST       /cis/monthly-returns/unsubmitted/delete                  uk.gov.hmrc.
 POST       /cis/monthly-return/nil/create                           uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.createNilMonthlyReturn
 POST       /cis/monthly-return/update                               uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.updateMonthlyReturn
 POST       /cis/monthly-return-edit                                 uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.getMonthlyReturnForEdit
+POST       /cis/monthly-return-complete                             uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.getMonthlyReturnComplete
 POST       /cis/monthly-return/standard/create                      uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.createMonthlyReturn
 POST       /cis/monthly-return-item/sync                            uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.syncMonthlyReturnItems
 POST       /cis/monthly-return-item/delete                          uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.deleteMonthlyReturnItem
+POST       /cis/retrieve-submitted-monthly-returns-data             uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.retrieveSubmittedMonthlyReturnsData
 POST       /scheme/email                                            uk.gov.hmrc.formpproxy.cis.controllers.MonthlyReturnController.getSchemeEmail
 GET        /scheme/:instanceId                                      uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.getScheme(instanceId: String)
 POST       /scheme                                                  uk.gov.hmrc.formpproxy.cis.controllers.ContractorSchemeController.createScheme
@@ -38,6 +40,9 @@ POST       /cis/govtalkstatus/create                                uk.gov.hmrc.
 GET        /cis/verification-batch/newest/:instanceId               uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.getNewestVerificationBatch(instanceId: String)
 GET        /cis/verification-batch/current/:instanceId              uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.getCurrentVerificationBatch(instanceId: String)
 POST       /cis/verification-batch/create                           uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.createVerificationBatchAndVerifications()
+POST       /cis/verification-batch/modify                           uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.modifyVerifications()
+
+POST       /cis/amend-monthly-return/create                         uk.gov.hmrc.formpproxy.cis.controllers.AmendMonthlyReturnController.createAmendedMonthlyReturn()
 
 POST       /cis/verification/submission/create                      uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.createSubmissionForVerification()
 
@@ -87,6 +92,12 @@ POST       /filing/delete/residency                                 uk.gov.hmrc.
 
 POST       /filing/update/transaction                               uk.gov.hmrc.formpproxy.sdlt.controllers.returns.TransactionReturnsController.updateTransaction()
 
+
+POST       /filing/create/lease                                     uk.gov.hmrc.formpproxy.sdlt.controllers.returns.LeaseReturnsController.createLease()
+POST       /filing/update/lease                                     uk.gov.hmrc.formpproxy.sdlt.controllers.returns.LeaseReturnsController.updateLease()
+POST       /filing/delete/lease                                     uk.gov.hmrc.formpproxy.sdlt.controllers.returns.LeaseReturnsController.deleteLease()
+
+POST       /filing/update/tax-calculation                           uk.gov.hmrc.formpproxy.sdlt.controllers.returns.TaxCalculationReturnsController.updateTaxCalculation()
 
 # CHARITIES routes
 

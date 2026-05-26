@@ -74,7 +74,16 @@ class MonthlyReturnService @Inject() (repo: CisMonthlyReturnSource)(implicit ec:
     repo.getMonthlyReturnForEdit(
       instanceId = request.instanceId,
       taxYear = request.taxYear,
-      taxMonth = request.taxMonth
+      taxMonth = request.taxMonth,
+      isAmendment = request.isAmendment.getOrElse(false)
+    )
+
+  def getMonthlyReturnComplete(request: GetMonthlyReturnCompleteRequest): Future[GetMonthlyReturnCompleteResponse] =
+    repo.getMonthlyReturnComplete(
+      instanceId = request.instanceId,
+      taxYear = request.taxYear,
+      taxMonth = request.taxMonth,
+      amendment = request.amendment
     )
 
   def syncMonthlyReturnItems(request: SyncMonthlyReturnItemsRequest): Future[Unit] =
@@ -85,4 +94,9 @@ class MonthlyReturnService @Inject() (repo: CisMonthlyReturnSource)(implicit ec:
 
   def deleteUnsubmittedMonthlyReturn(request: DeleteUnsubmittedMonthlyReturnRequest): Future[Unit] =
     repo.deleteUnsubmittedMonthlyReturn(request)
+
+  def getSubmittedMonthlyReturnsData(
+    request: GetSubmittedMonthlyReturnsDataRequest
+  ): Future[GetSubmittedMonthlyReturnsDataResponse] =
+    repo.getSubmittedMonthlyReturnsData(request)
 }

@@ -27,6 +27,8 @@ import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
 import uk.gov.hmrc.formpproxy.sdlt.models.land.*
 import uk.gov.hmrc.formpproxy.sdlt.models.residency.*
 import uk.gov.hmrc.formpproxy.sdlt.models.transaction.*
+import uk.gov.hmrc.formpproxy.sdlt.models.lease.*
+import uk.gov.hmrc.formpproxy.sdlt.models.taxCalculation.*
 import uk.gov.hmrc.formpproxy.sdlt.models.returns.SdltReturnRecordResponse
 import uk.gov.hmrc.formpproxy.sdlt.repositories.{SdltFormpRepoDataHelper, SdltFormpRepository}
 
@@ -2585,6 +2587,445 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
       ex mustBe boom
 
       verify(repo).sdltUpdateTransaction(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "ReturnService createLease" - {
+
+    "must delegate to repository" in {
+      val repo                                = mock[SdltFormpRepository]
+      val service                             = new ReturnService(repo)
+      val request: CreateLeaseRequest         = CreateLeaseRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        lease = LeasePayload(
+          isAnnualRentOver1000 = Some("YES"),
+          contractEndDate = Some("2030-12-31"),
+          contractStartDate = Some("2025-01-01"),
+          leaseType = Some("COMMERCIAL"),
+          netPresentValue = Some("50000"),
+          totalPremiumPayable = Some("10000"),
+          rentFreePeriod = Some("NO"),
+          startingRent = Some("12000"),
+          startingRentEndDate = Some("2026-01-01"),
+          laterRentKnown = Some("YES"),
+          vatAmount = Some("2400")
+        )
+      )
+      val expectedResponse: CreateLeaseReturn = CreateLeaseReturn(created = true)
+
+      when(repo.sdltCreateLease(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: CreateLeaseReturn = service.createLease(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltCreateLease(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must handle minimal lease request (all None)" in {
+      val repo                                = mock[SdltFormpRepository]
+      val service                             = new ReturnService(repo)
+      val request: CreateLeaseRequest         = CreateLeaseRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        lease = LeasePayload(
+          isAnnualRentOver1000 = None,
+          contractEndDate = None,
+          contractStartDate = None,
+          leaseType = None,
+          netPresentValue = None,
+          totalPremiumPayable = None,
+          rentFreePeriod = None,
+          startingRent = None,
+          startingRentEndDate = None,
+          laterRentKnown = None,
+          vatAmount = None
+        )
+      )
+      val expectedResponse: CreateLeaseReturn = CreateLeaseReturn(created = true)
+
+      when(repo.sdltCreateLease(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: CreateLeaseReturn = service.createLease(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltCreateLease(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must handle different lease types" in {
+      val repo                                   = mock[SdltFormpRepository]
+      val service                                = new ReturnService(repo)
+      val commercialRequest: CreateLeaseRequest  = CreateLeaseRequest(
+        stornId = "STORN11111",
+        returnResourceRef = "100003",
+        lease = LeasePayload(
+          isAnnualRentOver1000 = Some("YES"),
+          contractEndDate = Some("2030-12-31"),
+          contractStartDate = Some("2025-01-01"),
+          leaseType = Some("COMMERCIAL"),
+          netPresentValue = None,
+          totalPremiumPayable = None,
+          rentFreePeriod = None,
+          startingRent = Some("15000"),
+          startingRentEndDate = None,
+          laterRentKnown = None,
+          vatAmount = None
+        )
+      )
+      val residentialRequest: CreateLeaseRequest = CreateLeaseRequest(
+        stornId = "STORN22222",
+        returnResourceRef = "100004",
+        lease = LeasePayload(
+          isAnnualRentOver1000 = Some("NO"),
+          contractEndDate = Some("2028-06-30"),
+          contractStartDate = Some("2025-07-01"),
+          leaseType = Some("RESIDENTIAL"),
+          netPresentValue = None,
+          totalPremiumPayable = None,
+          rentFreePeriod = Some("YES"),
+          startingRent = Some("8000"),
+          startingRentEndDate = None,
+          laterRentKnown = None,
+          vatAmount = None
+        )
+      )
+
+      when(repo.sdltCreateLease(eqTo(commercialRequest)))
+        .thenReturn(Future.successful(CreateLeaseReturn(created = true)))
+      when(repo.sdltCreateLease(eqTo(residentialRequest)))
+        .thenReturn(Future.successful(CreateLeaseReturn(created = true)))
+
+      service.createLease(commercialRequest).futureValue.created mustBe true
+      service.createLease(residentialRequest).futureValue.created mustBe true
+
+      verify(repo).sdltCreateLease(eqTo(commercialRequest))
+      verify(repo).sdltCreateLease(eqTo(residentialRequest))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must propagate failures from repository" in {
+      val repo                        = mock[SdltFormpRepository]
+      val service                     = new ReturnService(repo)
+      val request: CreateLeaseRequest = CreateLeaseRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        lease = LeasePayload(
+          isAnnualRentOver1000 = None,
+          contractEndDate = None,
+          contractStartDate = None,
+          leaseType = None,
+          netPresentValue = None,
+          totalPremiumPayable = None,
+          rentFreePeriod = None,
+          startingRent = None,
+          startingRentEndDate = None,
+          laterRentKnown = None,
+          vatAmount = None
+        )
+      )
+      val boom                        = new RuntimeException("database connection failed")
+
+      when(repo.sdltCreateLease(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      val ex: Throwable = service.createLease(request).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).sdltCreateLease(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "ReturnService updateLease" - {
+
+    "must delegate to repository" in {
+      val repo                                = mock[SdltFormpRepository]
+      val service                             = new ReturnService(repo)
+      val request: UpdateLeaseRequest         = UpdateLeaseRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        lease = LeasePayload(
+          isAnnualRentOver1000 = Some("YES"),
+          contractEndDate = Some("2030-12-31"),
+          contractStartDate = Some("2025-01-01"),
+          leaseType = Some("COMMERCIAL"),
+          netPresentValue = Some("60000"),
+          totalPremiumPayable = Some("15000"),
+          rentFreePeriod = Some("YES"),
+          startingRent = Some("13000"),
+          startingRentEndDate = Some("2026-01-01"),
+          laterRentKnown = Some("NO"),
+          vatAmount = Some("2600")
+        )
+      )
+      val expectedResponse: UpdateLeaseReturn = UpdateLeaseReturn(updated = true)
+
+      when(repo.sdltUpdateLease(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: UpdateLeaseReturn = service.updateLease(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltUpdateLease(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must return false when update result is false" in {
+      val repo                                = mock[SdltFormpRepository]
+      val service                             = new ReturnService(repo)
+      val request: UpdateLeaseRequest         = UpdateLeaseRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002",
+        lease = LeasePayload(
+          isAnnualRentOver1000 = None,
+          contractEndDate = None,
+          contractStartDate = None,
+          leaseType = None,
+          netPresentValue = None,
+          totalPremiumPayable = None,
+          rentFreePeriod = None,
+          startingRent = None,
+          startingRentEndDate = None,
+          laterRentKnown = None,
+          vatAmount = None
+        )
+      )
+      val expectedResponse: UpdateLeaseReturn = UpdateLeaseReturn(updated = false)
+
+      when(repo.sdltUpdateLease(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: UpdateLeaseReturn = service.updateLease(request).futureValue
+      result.updated mustBe false
+
+      verify(repo).sdltUpdateLease(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must handle partial lease payload" in {
+      val repo                                = mock[SdltFormpRepository]
+      val service                             = new ReturnService(repo)
+      val request: UpdateLeaseRequest         = UpdateLeaseRequest(
+        stornId = "STORN88888",
+        returnResourceRef = "100003",
+        lease = LeasePayload(
+          isAnnualRentOver1000 = Some("YES"),
+          contractEndDate = None,
+          contractStartDate = None,
+          leaseType = Some("COMMERCIAL"),
+          netPresentValue = None,
+          totalPremiumPayable = None,
+          rentFreePeriod = None,
+          startingRent = Some("9500"),
+          startingRentEndDate = None,
+          laterRentKnown = None,
+          vatAmount = None
+        )
+      )
+      val expectedResponse: UpdateLeaseReturn = UpdateLeaseReturn(updated = true)
+
+      when(repo.sdltUpdateLease(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: UpdateLeaseReturn = service.updateLease(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltUpdateLease(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must propagate failures from repository" in {
+      val repo                        = mock[SdltFormpRepository]
+      val service                     = new ReturnService(repo)
+      val request: UpdateLeaseRequest = UpdateLeaseRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        lease = LeasePayload(
+          isAnnualRentOver1000 = None,
+          contractEndDate = None,
+          contractStartDate = None,
+          leaseType = None,
+          netPresentValue = None,
+          totalPremiumPayable = None,
+          rentFreePeriod = None,
+          startingRent = None,
+          startingRentEndDate = None,
+          laterRentKnown = None,
+          vatAmount = None
+        )
+      )
+      val boom                        = new RuntimeException("database timeout")
+
+      when(repo.sdltUpdateLease(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      val ex: Throwable = service.updateLease(request).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).sdltUpdateLease(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "ReturnService deleteLease" - {
+
+    "must delegate to repository" in {
+      val repo                                = mock[SdltFormpRepository]
+      val service                             = new ReturnService(repo)
+      val request: DeleteLeaseRequest         = DeleteLeaseRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001"
+      )
+      val expectedResponse: DeleteLeaseReturn = DeleteLeaseReturn(deleted = true)
+
+      when(repo.sdltDeleteLease(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: DeleteLeaseReturn = service.deleteLease(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltDeleteLease(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must return false when delete result is false" in {
+      val repo                                = mock[SdltFormpRepository]
+      val service                             = new ReturnService(repo)
+      val request: DeleteLeaseRequest         = DeleteLeaseRequest(
+        storn = "STORN99999",
+        returnResourceRef = "100002"
+      )
+      val expectedResponse: DeleteLeaseReturn = DeleteLeaseReturn(deleted = false)
+
+      when(repo.sdltDeleteLease(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: DeleteLeaseReturn = service.deleteLease(request).futureValue
+      result.deleted mustBe false
+
+      verify(repo).sdltDeleteLease(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must handle different storn formats" in {
+      val repo                         = mock[SdltFormpRepository]
+      val service                      = new ReturnService(repo)
+      val request1: DeleteLeaseRequest = DeleteLeaseRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001"
+      )
+      val request2: DeleteLeaseRequest = DeleteLeaseRequest(
+        storn = "STORN-ABC-123",
+        returnResourceRef = "100002"
+      )
+
+      when(repo.sdltDeleteLease(eqTo(request1)))
+        .thenReturn(Future.successful(DeleteLeaseReturn(deleted = true)))
+      when(repo.sdltDeleteLease(eqTo(request2)))
+        .thenReturn(Future.successful(DeleteLeaseReturn(deleted = true)))
+
+      service.deleteLease(request1).futureValue.deleted mustBe true
+      service.deleteLease(request2).futureValue.deleted mustBe true
+
+      verify(repo).sdltDeleteLease(eqTo(request1))
+      verify(repo).sdltDeleteLease(eqTo(request2))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must propagate failures from repository" in {
+      val repo                        = mock[SdltFormpRepository]
+      val service                     = new ReturnService(repo)
+      val request: DeleteLeaseRequest = DeleteLeaseRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001"
+      )
+      val boom                        = new RuntimeException("database error")
+
+      when(repo.sdltDeleteLease(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      val ex: Throwable = service.deleteLease(request).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).sdltDeleteLease(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "ReturnService updateTaxCalculation" - {
+
+    "must delegate to repository " in {
+      val repo                                         = mock[SdltFormpRepository]
+      val service                                      = new ReturnService(repo)
+      val request: UpdateTaxCalculationRequest         = UpdateTaxCalculationRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        amountPaid = Some("2000"),
+        includesPenalty = Some("YES"),
+        taxDue = Some("8000"),
+        calcPenaltyDue = Some("500"),
+        calcTaxDue = Some("8000"),
+        calcTaxRate1 = Some("3"),
+        calcTaxRate2 = Some("7"),
+        calcTotalTaxPenaltyDue = Some("8500"),
+        calcTotalNpvTax = Some("1000"),
+        calcTotalPremiumTax = Some("7500"),
+        taxDuePremium = Some("7500"),
+        taxDueNpv = Some("1000"),
+        honestyDeclaration = Some("YES")
+      )
+      val expectedResponse: UpdateTaxCalculationReturn = UpdateTaxCalculationReturn(updated = true)
+
+      when(repo.sdltUpdateTaxCalculation(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: UpdateTaxCalculationReturn = service.updateTaxCalculation(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltUpdateTaxCalculation(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must return false when update fails" in {
+      val repo                                         = mock[SdltFormpRepository]
+      val service                                      = new ReturnService(repo)
+      val request: UpdateTaxCalculationRequest         = UpdateTaxCalculationRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002"
+      )
+      val expectedResponse: UpdateTaxCalculationReturn = UpdateTaxCalculationReturn(updated = false)
+
+      when(repo.sdltUpdateTaxCalculation(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: UpdateTaxCalculationReturn = service.updateTaxCalculation(request).futureValue
+      result.updated mustBe false
+
+      verify(repo).sdltUpdateTaxCalculation(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must propagate failures from repository" in {
+      val repo                                 = mock[SdltFormpRepository]
+      val service                              = new ReturnService(repo)
+      val request: UpdateTaxCalculationRequest = UpdateTaxCalculationRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001"
+      )
+      val boom                                 = new RuntimeException("database timeout")
+
+      when(repo.sdltUpdateTaxCalculation(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      val ex: Throwable = service.updateTaxCalculation(request).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).sdltUpdateTaxCalculation(eqTo(request))
       verifyNoMoreInteractions(repo)
     }
   }

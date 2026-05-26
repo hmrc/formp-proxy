@@ -19,16 +19,17 @@ package uk.gov.hmrc.formpproxy.cis.repositories
 import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
+import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
-import uk.gov.hmrc.formpproxy.cis.models.*
+import uk.gov.hmrc.formpproxy.cis.repositories.CisRowMappers.*
+import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.*
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
-import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.*
-import uk.gov.hmrc.formpproxy.cis.repositories.CisRowMappers.*
+
 import java.lang.Long
-import java.sql.{CallableStatement, Connection, ResultSet, Timestamp, Types}
-import java.time.{Instant, LocalDateTime}
+import java.sql.*
+import java.time.LocalDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Using
@@ -51,7 +52,12 @@ trait CisMonthlyReturnSource {
   def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int]
   def createAndUpdateSubcontractor(record: CreateAndUpdateSubcontractorDatabaseRecord): Future[Unit]
   def getSubcontractorList(cisId: String): Future[GetSubcontractorListResponse]
-  def getMonthlyReturnForEdit(instanceId: String, taxYear: Int, taxMonth: Int): Future[GetMonthlyReturnForEditResponse]
+  def getMonthlyReturnForEdit(
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int,
+    isAmendment: Boolean
+  ): Future[GetMonthlyReturnForEditResponse]
   def createMonthlyReturnItem(request: CreateMonthlyReturnItemRequest): Future[Unit]
   def deleteMonthlyReturnItem(request: DeleteMonthlyReturnItemRequest): Future[Unit]
   def syncMonthlyReturnItems(request: SyncMonthlyReturnItemsRequest): Future[Unit]
@@ -64,12 +70,23 @@ trait CisMonthlyReturnSource {
   def getNewestVerificationBatch(instanceId: String): Future[GetNewestVerificationBatchResponse]
   def getCurrentVerificationBatch(instanceId: String): Future[GetCurrentVerificationBatchResponse]
   def deleteUnsubmittedMonthlyReturn(req: DeleteUnsubmittedMonthlyReturnRequest): Future[Unit]
+  def getMonthlyReturnComplete(
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int,
+    amendment: String
+  ): Future[GetMonthlyReturnCompleteResponse]
   def createSubmissionForVerification(
     req: CreateSubmissionForVerificationRequest
   ): Future[CreateSubmissionForVerificationResponse]
   def createVerificationBatchAndVerifications(
     req: CreateVerificationBatchAndVerificationsRequest
   ): Future[CreateVerificationBatchAndVerificationsResponse]
+  def getSubmittedMonthlyReturnsData(
+    request: GetSubmittedMonthlyReturnsDataRequest
+  ): Future[GetSubmittedMonthlyReturnsDataResponse]
+  def createAmendedMonthlyReturn(request: CreateAmendedMonthlyReturnRequest): Future[Unit]
+  def modifyVerifications(req: ModifyVerificationsRequest): Future[Unit]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -157,7 +174,8 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   override def getMonthlyReturnForEdit(
     instanceId: String,
     taxYear: Int,
-    taxMonth: Int
+    taxMonth: Int,
+    isAmendment: Boolean
   ): Future[GetMonthlyReturnForEditResponse] = {
     logger.info(s"[CIS] getMonthlyReturnForEdit(instanceId=$instanceId, taxYear=$taxYear, taxMonth=$taxMonth)")
     Future {
@@ -166,7 +184,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           cs.setString(1, instanceId)
           cs.setInt(2, taxYear)
           cs.setInt(3, taxMonth)
-          cs.setString(4, "N")
+          cs.setString(4, if (isAmendment) "Y" else "N")
           cs.registerOutParameter(5, OracleTypes.CURSOR)
           cs.registerOutParameter(6, OracleTypes.CURSOR)
           cs.registerOutParameter(7, OracleTypes.CURSOR)
@@ -246,12 +264,18 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   override def syncMonthlyReturnItems(request: SyncMonthlyReturnItemsRequest): Future[Unit] =
     Future {
       logger.info(
-        s"[CIS] syncMonthlyReturnItems(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth}, creates=${request.createResourceReferences.size}, deletes=${request.deleteResourceReferences.size})"
+        s"[CIS] syncMonthlyReturnItems(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth}, amendment=${request.amendment}, creates=${request.createResourceReferences.size}, deletes=${request.deleteResourceReferences.size})"
       )
 
       db.withTransaction { conn =>
         val monthlyReturnsForEdit =
-          getMonthlyReturnForEditInTransaction(conn, request.instanceId, request.taxYear, request.taxMonth)
+          getMonthlyReturnForEditInTransaction(
+            conn,
+            request.instanceId,
+            request.taxYear,
+            request.taxMonth,
+            request.amendment
+          )
         val status                = monthlyReturnsForEdit.monthlyReturn.headOption.flatMap(_.status).getOrElse("")
 
         if (status != "STARTED" && status != "VALIDATED") {
@@ -285,6 +309,36 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         callUpdateSchemeVersion(conn, request.instanceId, schemeVersionBefore)
       }
     }
+
+  override def getSubmittedMonthlyReturnsData(
+    request: GetSubmittedMonthlyReturnsDataRequest
+  ): Future[GetSubmittedMonthlyReturnsDataResponse] = {
+    logger.info(
+      s"[CIS] getSubmittedMonthlyReturns(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
+    )
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallGetSubmittedMonthlyReturnsData) { cs =>
+          cs.setString(1, request.instanceId)
+          cs.setInt(2, request.taxYear)
+          cs.setInt(3, request.taxMonth)
+          cs.setString(4, request.amendment)
+          cs.registerOutParameter(5, OracleTypes.CURSOR)
+          cs.registerOutParameter(6, OracleTypes.CURSOR)
+          cs.registerOutParameter(7, OracleTypes.CURSOR)
+          cs.registerOutParameter(8, OracleTypes.CURSOR)
+          cs.execute()
+
+          val monthlyReturn      = withCursor(cs, 5)(collectMonthlyReturns)
+          val monthlyReturnItems = withCursor(cs, 6)(collectMonthlyReturnItems)
+          val scheme             = withCursor(cs, 7)(rs => readSingleSchemeRow(rs, request.instanceId))
+          val submission         = withCursor(cs, 8)(collectSubmissions)
+
+          GetSubmittedMonthlyReturnsDataResponse(scheme, monthlyReturn, monthlyReturnItems, submission)
+        }
+      }
+    }
+  }
 
   // Scheme
 
@@ -383,7 +437,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           hmrcMarkGenerated = request.hmrcMarkGenerated,
           hmrcMarkGgis = request.hmrcMarkGgis.orNull,
           emailRecipient = request.emailRecipient.orNull,
-          submissionRequestDate = request.submissionRequestDate.map(Timestamp.from).orNull,
+          submissionRequestDate = request.submissionRequestDate.map(Timestamp.valueOf).orNull,
           acceptedTime = request.acceptedTime.orNull,
           agentId = request.agentId.orNull,
           submittableStatus = request.submittableStatus,
@@ -626,6 +680,25 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
 
+  // Amend monthly return
+
+  override def createAmendedMonthlyReturn(request: CreateAmendedMonthlyReturnRequest): Future[Unit] = {
+    logger.info(
+      s"[CIS] createAmendedMonthlyReturn(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
+    )
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallCreateAmendedMonthlyReturn) { cs =>
+          cs.setString(1, request.instanceId)
+          cs.setInt(2, request.taxYear)
+          cs.setInt(3, request.taxMonth)
+          cs.setInt(4, request.version)
+          cs.execute()
+        }
+      }
+    }
+  }
+
   // private helpers
   private def callCreateMonthlyReturn(conn: Connection, req: CreateNilMonthlyReturnRequest): Unit =
     withCall(conn, CallCreateMonthlyReturn) { cs =>
@@ -822,13 +895,14 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     connection: Connection,
     instanceId: String,
     taxYear: Int,
-    taxMonth: Int
+    taxMonth: Int,
+    amendment: String
   ): GetMonthlyReturnForEditResponse =
     withCall(connection, CallGetMonthlyReturnForEdit) { cs =>
       cs.setString(1, instanceId)
       cs.setInt(2, taxYear)
       cs.setInt(3, taxMonth)
-      cs.setString(4, "N")
+      cs.setString(4, amendment)
       cs.registerOutParameter(5, OracleTypes.CURSOR)
       cs.registerOutParameter(6, OracleTypes.CURSOR)
       cs.registerOutParameter(7, OracleTypes.CURSOR)
@@ -986,6 +1060,47 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           finally if (rsSubs != null) rsSubs.close()
 
         GetSubcontractorListResponse(subcontractors = subs.toList)
+      }
+    }
+  }
+
+  override def getMonthlyReturnComplete(
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int,
+    amendment: String
+  ): Future[GetMonthlyReturnCompleteResponse] = {
+    logger.info(
+      s"[CIS] getMonthlyReturnComplete(instanceId=$instanceId, taxYear=$taxYear, taxMonth=$taxMonth, amendment=$amendment)"
+    )
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallGetMonthlyReturnComplete) { cs =>
+          cs.setString(1, instanceId)
+          cs.setInt(2, taxYear)
+          cs.setInt(3, taxMonth)
+          cs.setString(4, amendment)
+          cs.registerOutParameter(5, OracleTypes.CURSOR)
+          cs.registerOutParameter(6, OracleTypes.CURSOR)
+          cs.registerOutParameter(7, OracleTypes.CURSOR)
+          cs.registerOutParameter(8, OracleTypes.CURSOR)
+          cs.registerOutParameter(9, OracleTypes.CURSOR)
+          cs.execute()
+
+          val scheme             = withCursor(cs, 5)(collectSchemes)
+          val monthlyReturn      = withCursor(cs, 6)(collectMonthlyReturns)
+          val monthlyReturnItems = withCursor(cs, 7)(collectMonthlyReturnItems)
+          val subcontractors     = withCursor(cs, 8)(collectSubcontractors)
+          val submission         = withCursor(cs, 9)(collectSubmissions)
+
+          GetMonthlyReturnCompleteResponse(
+            scheme = scheme,
+            monthlyReturn = monthlyReturn,
+            monthlyReturnItems = monthlyReturnItems,
+            subcontractors = subcontractors,
+            submission = submission
+          )
+        }
       }
     }
   }
@@ -1225,5 +1340,51 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
       cs.execute()
     }
+
+  private def callDeleteVerifications(
+    conn: Connection,
+    instanceId: String,
+    verificationResourceRef: Long
+  ): Unit =
+    withCall(conn, CallDeleteVerification) { cs =>
+      cs.setString(1, instanceId)
+      cs.setLong(2, verificationResourceRef)
+      cs.execute()
+    }
+
+  override def modifyVerifications(req: ModifyVerificationsRequest): Future[Unit] = {
+    logger.info(
+      s"[CIS] modifyVerifications(instanceId=${req.instanceId}, " +
+        s"noOfDeleteVerifications=${req.deleteVerifications.map(_.verificationResourceReferences.size).getOrElse(0)}, " +
+        s"noOfCreateVerifications=${req.createVerifications.map(_.verificationResourceReferences.size).getOrElse(0)})"
+    )
+
+    Future {
+      db.withTransaction { conn =>
+
+        req.deleteVerifications.foreach { deleteVerifications =>
+          deleteVerifications.verificationResourceReferences.distinct.foreach { verificationResourceRef =>
+            callDeleteVerifications(
+              conn = conn,
+              instanceId = req.instanceId,
+              verificationResourceRef = verificationResourceRef
+            )
+          }
+        }
+
+        req.createVerifications.foreach { createVerifications =>
+          createVerifications.verificationResourceReferences.distinct.foreach { verificationResourceReference =>
+            callCreateVerification(
+              conn = conn,
+              instanceId = req.instanceId,
+              verifBatchResourceRef = createVerifications.verificationBatchResourceRef,
+              verificationResourceRef = verificationResourceReference,
+              actionIndicator = createVerifications.actionIndicator.orNull
+            )
+          }
+        }
+      }
+    }
+  }
 
 }

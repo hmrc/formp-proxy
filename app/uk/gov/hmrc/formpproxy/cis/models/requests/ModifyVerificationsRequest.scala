@@ -17,13 +17,15 @@
 package uk.gov.hmrc.formpproxy.cis.models.requests
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.formpproxy.cis.models.{CreateVerifications, DeleteVerifications}
 
-case class GetMonthlyReturnForEditRequest(
+final case class ModifyVerificationsRequest(
   instanceId: String,
-  taxYear: Int,
-  taxMonth: Int,
-  isAmendment: Option[Boolean] = None
+  deleteVerifications: Option[DeleteVerifications],
+  createVerifications: Option[CreateVerifications]
 )
 
-object GetMonthlyReturnForEditRequest:
-  given format: OFormat[GetMonthlyReturnForEditRequest] = Json.format[GetMonthlyReturnForEditRequest]
+object ModifyVerificationsRequest {
+  given OFormat[ModifyVerificationsRequest] =
+    Json.format[ModifyVerificationsRequest]
+}

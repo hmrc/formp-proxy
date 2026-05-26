@@ -18,7 +18,7 @@ package uk.gov.hmrc.formpproxy.cis.models.requests
 
 import play.api.libs.json.{Json, OFormat}
 
-import java.time.Instant
+import java.time.LocalDateTime
 
 case class UpdateSubmissionRequest(
   instanceId: String,
@@ -28,7 +28,7 @@ case class UpdateSubmissionRequest(
   submittableStatus: String,
   amendment: Option[String] = None,
   hmrcMarkGgis: Option[String] = None,
-  submissionRequestDate: Option[Instant] = None,
+  submissionRequestDate: Option[LocalDateTime] = None,
   acceptedTime: Option[String] = None,
   emailRecipient: Option[String] = None,
   agentId: Option[String] = None,

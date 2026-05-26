@@ -1118,6 +1118,69 @@ final class CisFormpRepositorySpec extends SpecBase {
   }
 
   "getMonthlyReturnForEdit" - {
+    Seq(true -> "Y", false -> "N").foreach { case isAmendment -> amendmentFlag =>
+      s"calls SP and returns empty response when all cursors are empty and isAmendment = $isAmendment" in {
+        val db   = mock[Database]
+        val conn = mock[Connection]
+        val cs   = mock[CallableStatement]
+
+        val rsScheme         = mock[ResultSet]
+        val rsMonthlyReturn  = mock[ResultSet]
+        val rsItems          = mock[ResultSet]
+        val rsSubcontractors = mock[ResultSet]
+        val rsSubmission     = mock[ResultSet]
+
+        when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+          val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+        }
+
+        when(
+          conn.prepareCall(
+            eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_For_Edit(?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+          )
+        )
+          .thenReturn(cs)
+
+        when(cs.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+        when(cs.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsMonthlyReturn)
+        when(cs.getObject(eqTo(7), eqTo(classOf[ResultSet]))).thenReturn(rsItems)
+        when(cs.getObject(eqTo(8), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
+        when(cs.getObject(eqTo(9), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+
+        when(rsScheme.next()).thenReturn(false)
+        when(rsMonthlyReturn.next()).thenReturn(false)
+        when(rsItems.next()).thenReturn(false)
+        when(rsSubcontractors.next()).thenReturn(false)
+        when(rsSubmission.next()).thenReturn(false)
+
+        val repo = new CisFormpRepository(db)
+
+        val out = repo.getMonthlyReturnForEdit("abc-123", 2025, 1, isAmendment).futureValue
+
+        out.scheme mustBe empty
+        out.monthlyReturn mustBe empty
+        out.monthlyReturnItems mustBe empty
+        out.subcontractors mustBe empty
+        out.submission mustBe empty
+
+        verify(conn).prepareCall(
+          eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_For_Edit(?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+        )
+        verify(cs).setString(1, "abc-123")
+        verify(cs).setInt(2, 2025)
+        verify(cs).setInt(3, 1)
+        verify(cs).setString(4, amendmentFlag)
+        verify(cs).registerOutParameter(5, OracleTypes.CURSOR)
+        verify(cs).registerOutParameter(6, OracleTypes.CURSOR)
+        verify(cs).registerOutParameter(7, OracleTypes.CURSOR)
+        verify(cs).registerOutParameter(8, OracleTypes.CURSOR)
+        verify(cs).registerOutParameter(9, OracleTypes.CURSOR)
+        verify(cs).execute()
+      }
+    }
+  }
+
+  "getMonthlyReturnComplete" - {
 
     "calls SP and returns empty response when all cursors are empty" in {
       val db   = mock[Database]
@@ -1136,7 +1199,7 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       when(
         conn.prepareCall(
-          eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_For_Edit(?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+          eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_Complete(?, ?, ?, ?, ?, ?, ?, ?, ?) }")
         )
       )
         .thenReturn(cs)
@@ -1155,7 +1218,7 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       val repo = new CisFormpRepository(db)
 
-      val out = repo.getMonthlyReturnForEdit("abc-123", 2025, 1).futureValue
+      val out = repo.getMonthlyReturnComplete("abc-123", 2025, 1, "N").futureValue
 
       out.scheme mustBe empty
       out.monthlyReturn mustBe empty
@@ -1164,7 +1227,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       out.submission mustBe empty
 
       verify(conn).prepareCall(
-        eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_For_Edit(?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+        eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_Complete(?, ?, ?, ?, ?, ?, ?, ?, ?) }")
       )
       verify(cs).setString(1, "abc-123")
       verify(cs).setInt(2, 2025)
@@ -1449,7 +1512,7 @@ final class CisFormpRepositorySpec extends SpecBase {
 
   "syncMonthlyReturnItems" - {
 
-    "deletes + creates (distinct) in one transaction, validates status, and updates scheme version once" in {
+    "deletes + creates (distinct) in one transaction, validates status, and updates scheme version once when amendment = N" in {
 
       val db   = mock[Database]
       val conn = mock[Connection]
@@ -1520,6 +1583,95 @@ final class CisFormpRepositorySpec extends SpecBase {
         taxYear = 2025,
         taxMonth = 1,
         amendment = "N",
+        createResourceReferences = Seq(10L, 10L, 20L),
+        deleteResourceReferences = Seq(1L, 2L, 2L)
+      )
+
+      repo.syncMonthlyReturnItems(req).futureValue mustBe ()
+
+      verify(csGetEdit).execute()
+      verify(csDelete1).execute()
+      verify(csDelete2).execute()
+      verify(csCreate1).execute()
+      verify(csCreate2).execute()
+      verify(csUpdateVer).execute()
+
+      verify(conn, times(2)).prepareCall(eqTo(callDelete))
+      verify(conn, times(2)).prepareCall(eqTo(callCreate))
+      verify(conn, times(1)).prepareCall(eqTo(callUpdateVer))
+    }
+
+    "deletes + creates (distinct) in one transaction, validates status, and updates scheme version once when amendment = Y" in {
+
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csGetEdit   = mock[CallableStatement]
+      val csGetScheme = mock[CallableStatement]
+      val csUpdateVer = mock[CallableStatement]
+
+      val csDelete1 = mock[CallableStatement]
+      val csDelete2 = mock[CallableStatement]
+      val csCreate1 = mock[CallableStatement]
+      val csCreate2 = mock[CallableStatement]
+
+      val rsEditScheme     = mock[ResultSet]
+      val rsMonthlyReturn  = mock[ResultSet]
+      val rsItems          = mock[ResultSet]
+      val rsSubcontractors = mock[ResultSet]
+      val rsSubmission     = mock[ResultSet]
+      val rsSchemeProc     = mock[ResultSet]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      val callGetEdit   = "{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_For_Edit(?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+      val callGetScheme = "{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"
+      val callDelete    = "{ call MONTHLY_RETURN_PROCS_2016.Delete_Monthly_Return_Item(?, ?, ?, ?, ?) }"
+      val callCreate    = "{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return_Item(?, ?, ?, ?, ?) }"
+      val callUpdateVer = "{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"
+
+      when(conn.prepareCall(eqTo(callGetEdit))).thenReturn(csGetEdit)
+      when(conn.prepareCall(eqTo(callGetScheme))).thenReturn(csGetScheme)
+      when(conn.prepareCall(eqTo(callDelete))).thenReturn(csDelete1, csDelete2)
+      when(conn.prepareCall(eqTo(callCreate))).thenReturn(csCreate1, csCreate2)
+      when(conn.prepareCall(eqTo(callUpdateVer))).thenReturn(csUpdateVer)
+
+      when(csGetEdit.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsEditScheme)
+      when(csGetEdit.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsMonthlyReturn)
+      when(csGetEdit.getObject(eqTo(7), eqTo(classOf[ResultSet]))).thenReturn(rsItems)
+      when(csGetEdit.getObject(eqTo(8), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
+      when(csGetEdit.getObject(eqTo(9), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+
+      when(rsEditScheme.next()).thenReturn(false)
+
+      when(rsMonthlyReturn.next()).thenReturn(true, false)
+      when(rsMonthlyReturn.getLong("monthly_return_id")).thenReturn(1L)
+      when(rsMonthlyReturn.getInt("tax_year")).thenReturn(2025)
+      when(rsMonthlyReturn.getInt("tax_month")).thenReturn(1)
+      when(rsMonthlyReturn.getString("status")).thenReturn("STARTED")
+      when(rsMonthlyReturn.getLong("superseded_by")).thenReturn(0L)
+      when(rsMonthlyReturn.wasNull()).thenReturn(true)
+
+      when(rsItems.next()).thenReturn(false)
+      when(rsSubcontractors.next()).thenReturn(false)
+      when(rsSubmission.next()).thenReturn(false)
+
+      when(csGetScheme.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsSchemeProc)
+      when(rsSchemeProc.next()).thenReturn(true, false)
+      when(rsSchemeProc.getInt("version")).thenReturn(5)
+      when(rsSchemeProc.wasNull()).thenReturn(false)
+
+      when(csUpdateVer.getInt(2)).thenReturn(6)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = SyncMonthlyReturnItemsRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 1,
+        amendment = "Y",
         createResourceReferences = Seq(10L, 10L, 20L),
         deleteResourceReferences = Seq(1L, 2L, 2L)
       )
@@ -2100,25 +2252,25 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsScheme.getString("name")).thenReturn(null)
       when(rsScheme.getString("email_address")).thenReturn(null)
       when(rsScheme.getString("display_welcome_page")).thenReturn(null)
-      when(rsScheme.getInt("pre_pop_count")).thenReturn(0);
+      when(rsScheme.getInt("pre_pop_count")).thenReturn(0)
       when(rsScheme.wasNull()).thenReturn(true)
       when(rsScheme.getString("pre_pop_successful")).thenReturn(null)
-      when(rsScheme.getInt("subcontractor_counter")).thenReturn(0);
+      when(rsScheme.getInt("subcontractor_counter")).thenReturn(0)
       when(rsScheme.wasNull()).thenReturn(true)
-      when(rsScheme.getInt("verif_batch_counter")).thenReturn(0);
+      when(rsScheme.getInt("verif_batch_counter")).thenReturn(0)
       when(rsScheme.wasNull()).thenReturn(true)
       when(rsScheme.getTimestamp("create_date")).thenReturn(null)
       when(rsScheme.getTimestamp("last_update")).thenReturn(null)
-      when(rsScheme.getInt("version")).thenReturn(0);
+      when(rsScheme.getInt("version")).thenReturn(0)
       when(rsScheme.wasNull()).thenReturn(true)
 
       when(rsSubcontractors.next()).thenReturn(true, false)
       when(rsSubcontractors.getLong("subcontractor_id")).thenReturn(1L)
-      when(rsSubcontractors.getLong("subbie_resource_ref")).thenReturn(10L);
+      when(rsSubcontractors.getLong("subbie_resource_ref")).thenReturn(10L)
       when(rsSubcontractors.wasNull()).thenReturn(false)
       when(rsSubcontractors.getString("type")).thenReturn("soletrader")
       when(rsSubcontractors.getString("utr")).thenReturn("1111111111")
-      when(rsSubcontractors.getInt("page_visited")).thenReturn(2);
+      when(rsSubcontractors.getInt("page_visited")).thenReturn(2)
       when(rsSubcontractors.wasNull()).thenReturn(false)
       when(rsSubcontractors.getString("partner_utr")).thenReturn(null)
       when(rsSubcontractors.getString("crn")).thenReturn(null)
@@ -2138,7 +2290,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsSubcontractors.getString("phone_number")).thenReturn(null)
       when(rsSubcontractors.getString("mobile_phone_number")).thenReturn(null)
       when(rsSubcontractors.getString("works_reference_number")).thenReturn(null)
-      when(rsSubcontractors.getInt("version")).thenReturn(1);
+      when(rsSubcontractors.getInt("version")).thenReturn(1)
       when(rsSubcontractors.wasNull()).thenReturn(false)
       when(rsSubcontractors.getString("tax_treatment")).thenReturn(null)
       when(rsSubcontractors.getString("updated_tax_treatment")).thenReturn(null)
@@ -2150,15 +2302,15 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsSubcontractors.getString("auto_verified")).thenReturn(null)
       when(rsSubcontractors.getTimestamp("verification_date")).thenReturn(null)
       when(rsSubcontractors.getTimestamp("last_monthly_return_date")).thenReturn(null)
-      when(rsSubcontractors.getInt("pending_verifications")).thenReturn(0);
+      when(rsSubcontractors.getInt("pending_verifications")).thenReturn(0)
       when(rsSubcontractors.wasNull()).thenReturn(false)
 
       when(rsVerificationBatch.next()).thenReturn(true, false)
       when(rsVerificationBatch.getLong("verification_batch_id")).thenReturn(55L)
       when(rsVerificationBatch.getLong("scheme_id")).thenReturn(999L)
-      when(rsVerificationBatch.getLong("verifications_counter")).thenReturn(1L);
+      when(rsVerificationBatch.getLong("verifications_counter")).thenReturn(1L)
       when(rsVerificationBatch.wasNull()).thenReturn(false)
-      when(rsVerificationBatch.getLong("verif_batch_resource_ref")).thenReturn(101L);
+      when(rsVerificationBatch.getLong("verif_batch_resource_ref")).thenReturn(101L)
       when(rsVerificationBatch.wasNull()).thenReturn(false)
       when(rsVerificationBatch.getString("proceed_session")).thenReturn("Y")
       when(rsVerificationBatch.getString("confirm_arrangement")).thenReturn("Y")
@@ -2167,7 +2319,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsVerificationBatch.getString("verification_number")).thenReturn("VB123")
       when(rsVerificationBatch.getTimestamp("create_date")).thenReturn(Timestamp.valueOf("2026-04-01 10:00:00"))
       when(rsVerificationBatch.getTimestamp("last_update")).thenReturn(Timestamp.valueOf("2026-04-02 11:00:00"))
-      when(rsVerificationBatch.getInt("version")).thenReturn(1);
+      when(rsVerificationBatch.getInt("version")).thenReturn(1)
       when(rsVerificationBatch.wasNull()).thenReturn(false)
 
       when(rsVerifications.next()).thenReturn(true, false)
@@ -2176,25 +2328,25 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsVerifications.getString("verification_number")).thenReturn("V0001")
       when(rsVerifications.getString("tax_treatment")).thenReturn("NET")
       when(rsVerifications.getString("action_indicator")).thenReturn("A")
-      when(rsVerifications.getLong("verification_batch_id")).thenReturn(55L);
+      when(rsVerifications.getLong("verification_batch_id")).thenReturn(55L)
       when(rsVerifications.wasNull()).thenReturn(false)
-      when(rsVerifications.getLong("scheme_id")).thenReturn(999L);
+      when(rsVerifications.getLong("scheme_id")).thenReturn(999L)
       when(rsVerifications.wasNull()).thenReturn(false)
-      when(rsVerifications.getLong("subcontractor_id")).thenReturn(1L);
+      when(rsVerifications.getLong("subcontractor_id")).thenReturn(1L)
       when(rsVerifications.wasNull()).thenReturn(false)
       when(rsVerifications.getString("subcontractor_name")).thenReturn("ACME")
-      when(rsVerifications.getLong("verification_resource_ref")).thenReturn(777L);
+      when(rsVerifications.getLong("verification_resource_ref")).thenReturn(777L)
       when(rsVerifications.wasNull()).thenReturn(false)
       when(rsVerifications.getString("proceed")).thenReturn("Y")
       when(rsVerifications.getTimestamp("create_date")).thenReturn(Timestamp.valueOf("2026-04-01 10:00:00"))
       when(rsVerifications.getTimestamp("last_update")).thenReturn(Timestamp.valueOf("2026-04-02 11:00:00"))
-      when(rsVerifications.getInt("version")).thenReturn(1);
+      when(rsVerifications.getInt("version")).thenReturn(1)
       when(rsVerifications.wasNull()).thenReturn(false)
 
       when(rsSubmission.next()).thenReturn(true, false)
       when(rsSubmission.getLong("submission_id")).thenReturn(500L)
       when(rsSubmission.getString("submission_type")).thenReturn("VERIFICATIONS")
-      when(rsSubmission.getLong("active_object_id")).thenReturn(55L);
+      when(rsSubmission.getLong("active_object_id")).thenReturn(55L)
       when(rsSubmission.wasNull()).thenReturn(false)
       when(rsSubmission.getString("status")).thenReturn("ACCEPTED")
       when(rsSubmission.getString("hmrc_mark_generated")).thenReturn(null)
@@ -2228,7 +2380,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsMrSubmission.next()).thenReturn(true, false)
       when(rsMrSubmission.getLong("submission_id")).thenReturn(600L)
       when(rsMrSubmission.getString("submission_type")).thenReturn("MONTHLY_RETURN")
-      when(rsMrSubmission.getLong("active_object_id")).thenReturn(66666L);
+      when(rsMrSubmission.getLong("active_object_id")).thenReturn(66666L)
       when(rsMrSubmission.wasNull()).thenReturn(false)
       when(rsMrSubmission.getString("status")).thenReturn("ACCEPTED")
       when(rsMrSubmission.getString("hmrc_mark_generated")).thenReturn(null)
@@ -2611,6 +2763,43 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
   }
 
+  "createAmendedMonthlyReturn" - {
+
+    "call amend monthly return with correct parameters and execute" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any])
+        f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new CisFormpRepository(db)
+
+      val request = CreateAmendedMonthlyReturnRequest(
+        instanceId = "1",
+        taxYear = 2026,
+        taxMonth = 4,
+        version = 0
+      )
+
+      repo.createAmendedMonthlyReturn(request).futureValue
+
+      verify(conn).prepareCall(anyArg[String])
+
+      verify(cs).setString(1, request.instanceId)
+      verify(cs).setInt(2, request.taxYear)
+      verify(cs).setInt(3, request.taxMonth)
+      verify(cs).setInt(4, request.version)
+
+      verify(cs).execute()
+      verify(cs).close()
+    }
+  }
+
   "createVerificationBatchAndVerifications" - {
 
     "creates a verification batch then creates verifications for each distinct subcontractor ref and returns batch ref" in {
@@ -2730,6 +2919,305 @@ final class CisFormpRepositorySpec extends SpecBase {
       ex.getMessage must include("verif boom")
 
       verify(csCreateBatch).close()
+      verify(csCreateV1).close()
+    }
+  }
+
+  "getSubmittedMonthlyReturnsData" - {
+
+    "calls MONTHLY_RETURN_PROCS_2016.GET_SUB_MONTHLY_RETURN_DATA and returns list of instance IDs" in {
+      val db   = mock[Database]
+      val conn = mock[java.sql.Connection]
+      val cs   = mock[CallableStatement]
+
+      val rsMonthlyReturn = mock[ResultSet]
+      val rsItems         = mock[ResultSet]
+      val rsScheme        = mock[ResultSet]
+      val rsSubmission    = mock[ResultSet]
+
+      val request = GetSubmittedMonthlyReturnsDataRequest("abc-123", 2025, 2, "Y")
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall("{ call MONTHLY_RETURN_PROCS_2016.GET_SUB_MONTHLY_RETURN_DATA(?, ?, ?, ?, ?, ?, ? ,?) }"))
+        .thenReturn(cs)
+      when(cs.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsMonthlyReturn)
+      when(cs.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsItems)
+      when(cs.getObject(eqTo(7), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+      when(cs.getObject(eqTo(8), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+
+      when(rsScheme.next()).thenReturn(true, false)
+      when(rsScheme.getString("instance_id")).thenReturn("abc-123")
+      when(rsScheme.getString("aoref")).thenReturn("123pa132456789")
+      when(rsScheme.getString("tax_office_number")).thenReturn("123")
+      when(rsScheme.getString("tax_office_reference")).thenReturn("AB456")
+
+      when(rsMonthlyReturn.next()).thenReturn(true, false)
+      when(rsMonthlyReturn.getString("tax_year")).thenReturn("2025")
+      when(rsMonthlyReturn.getString("tax_month")).thenReturn("2")
+      when(rsMonthlyReturn.getString("nil_return_indicator")).thenReturn("Y")
+      when(rsMonthlyReturn.getString("status")).thenReturn("PENDING")
+      when(rsMonthlyReturn.getTimestamp("last_update")).thenReturn(Timestamp.valueOf("2025-01-31 12:34:56"))
+
+      val repo   = new CisFormpRepository(db)
+      val result = repo.getSubmittedMonthlyReturnsData(request).futureValue
+
+      result.scheme.instanceId mustBe "abc-123"
+      result.monthlyReturn must have size 1
+      result.monthlyReturn.head.nilReturnIndicator mustBe Some("Y")
+      result.monthlyReturn.head.status mustBe Some("PENDING")
+    }
+  }
+
+  "modifyVerifications" - {
+
+    "creates / delete verifications for each distinct subcontractor ref and returns Unit" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csDeleteV1 = mock[CallableStatement]
+      val csDeleteV2 = mock[CallableStatement]
+      val csCreateV1 = mock[CallableStatement]
+      val csCreateV2 = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      val callDeleteVerification = "{ call VERIFICATION_PROCS.DELETE_VERIFICATION_2(?, ?) }"
+      val callCreateVerif        = "{ call VERIFICATION_PROCS.Create_Verification(?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(callDeleteVerification))).thenReturn(csDeleteV1, csDeleteV2)
+      when(conn.prepareCall(eqTo(callCreateVerif))).thenReturn(csCreateV1, csCreateV2)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = ModifyVerificationsRequest(
+        instanceId = "abc-123",
+        deleteVerifications = Some(
+          DeleteVerifications(
+            verificationResourceReferences = Seq(111L, 111L, 222L)
+          )
+        ),
+        createVerifications = Some(
+          CreateVerifications(
+            verificationBatchResourceRef = 10L,
+            verificationResourceReferences = Seq(333L, 333L, 444L),
+            actionIndicator = None
+          )
+        )
+      )
+
+      val result: Unit = repo.modifyVerifications(req).futureValue
+      result mustBe ()
+
+      verify(conn, times(2)).prepareCall(eqTo(callDeleteVerification))
+
+      verify(csDeleteV1).setString(1, "abc-123")
+      verify(csDeleteV1).setLong(2, 111L)
+      verify(csDeleteV1).execute()
+      verify(csDeleteV1).close()
+
+      verify(csDeleteV2).setString(1, "abc-123")
+      verify(csDeleteV2).setLong(2, 222L)
+      verify(csDeleteV2).execute()
+      verify(csDeleteV2).close()
+
+      verify(conn, times(2)).prepareCall(eqTo(callCreateVerif))
+
+      verify(csCreateV1).setString(1, "abc-123")
+      verify(csCreateV1).setLong(2, 10L)
+      verify(csCreateV1).setLong(3, 333L)
+      verify(csCreateV1).setString(4, null)
+      verify(csCreateV1).execute()
+      verify(csCreateV1).close()
+
+      verify(csCreateV2).setString(1, "abc-123")
+      verify(csCreateV2).setLong(2, 10L)
+      verify(csCreateV2).setLong(3, 444L)
+      verify(csCreateV2).setString(4, null)
+      verify(csCreateV2).execute()
+      verify(csCreateV2).close()
+    }
+
+    "delete verifications only for each distinct subcontractor ref and returns Unit" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csDeleteV1 = mock[CallableStatement]
+      val csDeleteV2 = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      val callDeleteVerification = "{ call VERIFICATION_PROCS.DELETE_VERIFICATION_2(?, ?) }"
+      val callCreateVerif        = "{ call VERIFICATION_PROCS.Create_Verification(?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(callDeleteVerification))).thenReturn(csDeleteV1, csDeleteV2)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = ModifyVerificationsRequest(
+        instanceId = "abc-123",
+        deleteVerifications = Some(
+          DeleteVerifications(
+            verificationResourceReferences = Seq(111L, 111L, 222L)
+          )
+        ),
+        createVerifications = None
+      )
+
+      val result: Unit = repo.modifyVerifications(req).futureValue
+      result mustBe ()
+
+      verify(conn, times(2)).prepareCall(eqTo(callDeleteVerification))
+      verify(conn, never()).prepareCall(eqTo(callCreateVerif))
+
+      verify(csDeleteV1).setString(1, "abc-123")
+      verify(csDeleteV1).setLong(2, 111L)
+      verify(csDeleteV1).execute()
+      verify(csDeleteV1).close()
+
+      verify(csDeleteV2).setString(1, "abc-123")
+      verify(csDeleteV2).setLong(2, 222L)
+      verify(csDeleteV2).execute()
+      verify(csDeleteV2).close()
+    }
+
+    "creates verifications only for each distinct subcontractor ref and returns Unit" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csCreateV1 = mock[CallableStatement]
+      val csCreateV2 = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      val callDeleteVerification = "{ call VERIFICATION_PROCS.DELETE_VERIFICATION_2(?, ?) }"
+      val callCreateVerif        = "{ call VERIFICATION_PROCS.Create_Verification(?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(callCreateVerif))).thenReturn(csCreateV1, csCreateV2)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = ModifyVerificationsRequest(
+        instanceId = "abc-123",
+        deleteVerifications = None,
+        createVerifications = Some(
+          CreateVerifications(
+            verificationBatchResourceRef = 10L,
+            verificationResourceReferences = Seq(333L, 333L, 444L),
+            actionIndicator = None
+          )
+        )
+      )
+
+      val result: Unit = repo.modifyVerifications(req).futureValue
+      result mustBe ()
+
+      verify(conn, never()).prepareCall(eqTo(callDeleteVerification))
+      verify(conn, times(2)).prepareCall(eqTo(callCreateVerif))
+
+      verify(csCreateV1).setString(1, "abc-123")
+      verify(csCreateV1).setLong(2, 10L)
+      verify(csCreateV1).setLong(3, 333L)
+      verify(csCreateV1).setString(4, null)
+      verify(csCreateV1).execute()
+      verify(csCreateV1).close()
+
+      verify(csCreateV2).setString(1, "abc-123")
+      verify(csCreateV2).setLong(2, 10L)
+      verify(csCreateV2).setLong(3, 444L)
+      verify(csCreateV2).setString(4, null)
+      verify(csCreateV2).execute()
+      verify(csCreateV2).close()
+    }
+
+    "propagates failure if Delete_Verification fails" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csDeleteV1 = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      val callDeleteVerification = "{ call VERIFICATION_PROCS.DELETE_VERIFICATION_2(?, ?) }"
+
+      when(conn.prepareCall(eqTo(callDeleteVerification))).thenReturn(csDeleteV1)
+
+      when(csDeleteV1.execute()).thenThrow(new RuntimeException("verification boom"))
+
+      val repo = new CisFormpRepository(db)
+
+      val req = ModifyVerificationsRequest(
+        instanceId = "abc-123",
+        deleteVerifications = Some(
+          DeleteVerifications(
+            verificationResourceReferences = Seq(111L)
+          )
+        ),
+        createVerifications = Some(
+          CreateVerifications(
+            verificationBatchResourceRef = 10L,
+            verificationResourceReferences = Seq(333L),
+            actionIndicator = None
+          )
+        )
+      )
+
+      val ex = repo.modifyVerifications(req).failed.futureValue
+      ex.getMessage must include("verification boom")
+
+      verify(csDeleteV1).close()
+    }
+
+    "propagates failure if Create_Verification fails" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csDeleteV1 = mock[CallableStatement]
+      val csCreateV1 = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      val callDeleteVerification = "{ call VERIFICATION_PROCS.DELETE_VERIFICATION_2(?, ?) }"
+      val callCreateVerification = "{ call VERIFICATION_PROCS.Create_Verification(?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(callDeleteVerification))).thenReturn(csDeleteV1)
+      when(conn.prepareCall(eqTo(callCreateVerification))).thenReturn(csCreateV1)
+
+      when(csCreateV1.execute()).thenThrow(new RuntimeException("verification boom"))
+
+      val repo = new CisFormpRepository(db)
+
+      val req = ModifyVerificationsRequest(
+        instanceId = "abc-123",
+        deleteVerifications = Some(
+          DeleteVerifications(
+            verificationResourceReferences = Seq(111L)
+          )
+        ),
+        createVerifications = Some(
+          CreateVerifications(
+            verificationBatchResourceRef = 10L,
+            verificationResourceReferences = Seq(333L),
+            actionIndicator = None
+          )
+        )
+      )
+
+      val ex = repo.modifyVerifications(req).failed.futureValue
+      ex.getMessage must include("verification boom")
+
+      verify(csDeleteV1).close()
       verify(csCreateV1).close()
     }
   }

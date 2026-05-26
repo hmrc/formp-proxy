@@ -16,14 +16,30 @@
 
 package uk.gov.hmrc.formpproxy.cis.models.requests
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.Json
+import uk.gov.hmrc.formpproxy.base.SpecBase
 
-case class GetMonthlyReturnForEditRequest(
-  instanceId: String,
-  taxYear: Int,
-  taxMonth: Int,
-  isAmendment: Option[Boolean] = None
-)
+class CreateAmendedMonthlyReturnRequestSpec extends SpecBase {
 
-object GetMonthlyReturnForEditRequest:
-  given format: OFormat[GetMonthlyReturnForEditRequest] = Json.format[GetMonthlyReturnForEditRequest]
+  "CreateAmendedMonthlyReturnRequest" - {
+
+    "must serialise and deserialise correctly" in {
+      val model = CreateAmendedMonthlyReturnRequest(
+        instanceId = "1",
+        taxYear = 2025,
+        taxMonth = 1,
+        version = 0
+      )
+
+      val json = Json.obj(
+        "instanceId" -> "1",
+        "taxYear"    -> 2025,
+        "taxMonth"   -> 1,
+        "version"    -> 0
+      )
+
+      Json.toJson(model) mustBe json
+      json.as[CreateAmendedMonthlyReturnRequest] mustBe model
+    }
+  }
+}

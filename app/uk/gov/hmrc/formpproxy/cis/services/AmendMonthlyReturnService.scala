@@ -14,16 +14,17 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.cis.models.requests
+package uk.gov.hmrc.formpproxy.cis.services
 
-import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.formpproxy.cis.models.requests.*
+import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
-case class GetMonthlyReturnForEditRequest(
-  instanceId: String,
-  taxYear: Int,
-  taxMonth: Int,
-  isAmendment: Option[Boolean] = None
-)
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.Future
 
-object GetMonthlyReturnForEditRequest:
-  given format: OFormat[GetMonthlyReturnForEditRequest] = Json.format[GetMonthlyReturnForEditRequest]
+@Singleton
+class AmendMonthlyReturnService @Inject() (repo: CisMonthlyReturnSource) {
+
+  def createAmendedMonthlyReturn(request: CreateAmendedMonthlyReturnRequest): Future[Unit] =
+    repo.createAmendedMonthlyReturn(request)
+}

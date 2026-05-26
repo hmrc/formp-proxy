@@ -14,16 +14,25 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.cis.models.requests
+package uk.gov.hmrc.formpproxy.cis.models
 
-import play.api.libs.json.{Json, OFormat}
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import play.api.libs.json.Json
 
-case class GetMonthlyReturnForEditRequest(
-  instanceId: String,
-  taxYear: Int,
-  taxMonth: Int,
-  isAmendment: Option[Boolean] = None
-)
+class CreateVerificationsSpec extends AnyWordSpec with Matchers {
 
-object GetMonthlyReturnForEditRequest:
-  given format: OFormat[GetMonthlyReturnForEditRequest] = Json.format[GetMonthlyReturnForEditRequest]
+  "CreateVerifications JSON format" should {
+
+    "serialize and deserialize correctly" in {
+      val model = CreateVerifications(
+        verificationBatchResourceRef = 10L,
+        verificationResourceReferences = Seq(333L, 444L),
+        actionIndicator = None
+      )
+
+      val json = Json.toJson(model)
+      json.as[CreateVerifications] mustBe model
+    }
+  }
+}
