@@ -2733,4 +2733,148 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csCreateV1).close()
     }
   }
+
+  "createSubmissionForVerification" - {
+
+    "creates submission, updates verification batch, updates each verification (all in one transaction)" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      // transaction wrapper
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      // --- loadScheme (CallGetScheme) ---
+      val csGetScheme = mock[CallableStatement]
+      val rsScheme    = mock[ResultSet]
+
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetScheme))).thenReturn(csGetScheme)
+      when(csGetScheme.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+
+      when(rsScheme.next()).thenReturn(true, false)
+      when(rsScheme.getLong("scheme_id")).thenReturn(123L)
+
+      // version is used only by loadScheme; stub to be safe
+      when(rsScheme.getInt("version")).thenReturn(1)
+      when(rsScheme.wasNull()).thenReturn(false)
+      when(rsScheme.getString("email_address")).thenReturn(null)
+
+      // --- Create_Submission ---
+      val csCreateSubmission = mock[CallableStatement]
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallCreateSubmission))).thenReturn(csCreateSubmission)
+      when(csCreateSubmission.getLong(9)).thenReturn(555L)
+
+      // --- Update_Verification_Batch ---
+      val csUpdateBatch = mock[CallableStatement]
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateVerificationBatch))).thenReturn(csUpdateBatch)
+
+      // --- Update_Verification (twice) ---
+      val csUpdateV1 = mock[CallableStatement]
+      val csUpdateV2 = mock[CallableStatement]
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateVerification))).thenReturn(csUpdateV1, csUpdateV2)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = CreateSubmissionForVerificationRequest(
+        instanceId = "abc-123",
+        verificationBatchId = 999L,
+        verificationBatchResourceRef = 77L,
+        emailRecipient = "ops@example.com",
+        irMarkGenerated = "IR_MARK",
+        verifications = Seq(
+          VerificationToUpdate(
+            subcontractorName = "ACME LTD",
+            verificationResourceRef = 10L,
+            proceedVerification = "Y"
+          ),
+          VerificationToUpdate(
+            subcontractorName = "BETA LTD",
+            verificationResourceRef = 20L,
+            proceedVerification = "N"
+          )
+        ),
+        agentId = None
+      )
+
+      val out = repo.createSubmissionForVerification(req).futureValue
+      out.submissionId mustBe 555L
+
+      // ---- Verify Create_Submission parameters ----
+      verify(conn).prepareCall(eqTo(CisStoredProcedures.CallCreateSubmission))
+      verify(csCreateSubmission).setString(1, "abc-123")
+      verify(csCreateSubmission).setString(2, "VERIFICATIONS")
+      verify(csCreateSubmission).setLong(3, 999L)
+      verify(csCreateSubmission).setString(4, "IR_MARK")
+      verify(csCreateSubmission).setString(5, null)
+      verify(csCreateSubmission).setString(6, "ops@example.com")
+      verify(csCreateSubmission).setString(7, null)
+      verify(csCreateSubmission).setString(8, "STARTED")
+      verify(csCreateSubmission).registerOutParameter(9, Types.NUMERIC)
+      verify(csCreateSubmission).execute()
+
+      // ---- Verify Update_Verification_Batch parameters ----
+      verify(conn).prepareCall(eqTo(CisStoredProcedures.CallUpdateVerificationBatch))
+      verify(csUpdateBatch).setLong(1, 77L) // verif_batch_resource_ref
+      verify(csUpdateBatch).setLong(2, 123L) // scheme_id from loadScheme
+
+      verify(csUpdateBatch).setNull(3, Types.VARCHAR) // proceed_session = null
+      verify(csUpdateBatch).setString(4, "Y") // confirm_arrangement
+      verify(csUpdateBatch).setString(5, "Y") // confirm_correct
+      verify(csUpdateBatch).setString(6, "STARTED") // status
+      verify(csUpdateBatch).setNull(7, Types.VARCHAR) // verification_number = null
+
+      verify(csUpdateBatch).setNull(8, Types.INTEGER)
+      verify(csUpdateBatch).registerOutParameter(8, Types.INTEGER)
+      verify(csUpdateBatch).execute()
+
+      // ---- Verify Update_Verification #1 (Y => VERIFY) ----
+      verify(conn, times(2)).prepareCall(eqTo(CisStoredProcedures.CallUpdateVerification))
+
+      verify(csUpdateV1).setString(1, "abc-123")
+      verify(csUpdateV1).setLong(2, 77L)
+      verify(csUpdateV1).setLong(3, 10L)
+
+      verify(csUpdateV1).setNull(4, Types.CHAR) // matched
+      verify(csUpdateV1).setNull(5, Types.VARCHAR) // verification_number
+      verify(csUpdateV1).setNull(6, Types.VARCHAR) // tax_treatment
+
+      verify(csUpdateV1).setString(7, "VERIFY") // action_indicator
+      verify(csUpdateV1).setString(8, "Y") // proceed
+      verify(csUpdateV1).setString(9, "ACME LTD") // subcontractor_name
+
+      verify(csUpdateV1).setNull(10, Types.INTEGER)
+      verify(csUpdateV1).registerOutParameter(10, Types.INTEGER)
+      verify(csUpdateV1).execute()
+
+      // ---- Verify Update_Verification #2 (N => MATCH) ----
+      verify(csUpdateV2).setString(1, "abc-123")
+      verify(csUpdateV2).setLong(2, 77L)
+      verify(csUpdateV2).setLong(3, 20L)
+
+      verify(csUpdateV2).setNull(4, Types.CHAR)
+      verify(csUpdateV2).setNull(5, Types.VARCHAR)
+      verify(csUpdateV2).setNull(6, Types.VARCHAR)
+
+      verify(csUpdateV2).setString(7, "MATCH")
+      verify(csUpdateV2).setString(8, "N")
+      verify(csUpdateV2).setString(9, "BETA LTD")
+
+      verify(csUpdateV2).setNull(10, Types.INTEGER)
+      verify(csUpdateV2).registerOutParameter(10, Types.INTEGER)
+      verify(csUpdateV2).execute()
+
+      // sanity: scheme was looked up once
+      verify(conn).prepareCall(eqTo(CisStoredProcedures.CallGetScheme))
+      verify(csGetScheme).execute()
+
+      // resource closures (Using.resource closes these)
+      verify(rsScheme).close()
+      verify(csGetScheme).close()
+      verify(csCreateSubmission).close()
+      verify(csUpdateBatch).close()
+      verify(csUpdateV1).close()
+      verify(csUpdateV2).close()
+    }
+  }
 }

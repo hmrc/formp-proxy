@@ -25,8 +25,9 @@ import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, Subcontractor, Submission, Verification, VerificationBatch}
 import uk.gov.hmrc.formpproxy.cis.models.response.{GetCurrentVerificationBatchResponse, GetNewestVerificationBatchResponse}
-import uk.gov.hmrc.formpproxy.cis.models.requests.CreateVerificationBatchAndVerificationsRequest
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateSubmissionForVerificationRequest, CreateVerificationBatchAndVerificationsRequest, VerificationToUpdate}
 import uk.gov.hmrc.formpproxy.cis.models.response.CreateVerificationBatchAndVerificationsResponse
+import uk.gov.hmrc.formpproxy.cis.models.response.CreateSubmissionForVerificationResponse
 import uk.gov.hmrc.formpproxy.cis.services.VerificationService
 
 import scala.concurrent.Future
@@ -541,6 +542,111 @@ class VerificationControllerSpec extends SpecBase {
       contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
 
       verify(mockService).createVerificationBatchAndVerifications(eqTo(requestModel))
+      verifyNoMoreInteractions(mockService)
+    }
+  }
+
+  "POST /cis/verification/submission/create (createSubmissionForVerification)" - {
+
+    val url = "/cis/verification/submission/create"
+
+    "returns 200 OK with JSON body when service succeeds" in {
+      val s = setup
+      import s.*
+
+      val requestModel = CreateSubmissionForVerificationRequest(
+        instanceId = "abc-123",
+        verificationBatchId = 999L,
+        verificationBatchResourceRef = 77L,
+        emailRecipient = "ops@example.com",
+        irMarkGenerated = "IR_MARK",
+        verifications = Seq(
+          VerificationToUpdate(
+            subcontractorName = "ACME LTD",
+            verificationResourceRef = 10L,
+            proceedVerification = "Y"
+          )
+        ),
+        agentId = None
+      )
+
+      val responseModel = CreateSubmissionForVerificationResponse(submissionId = 555L)
+
+      when(mockService.createSubmissionForVerification(eqTo(requestModel)))
+        .thenReturn(Future.successful(responseModel))
+
+      val req = FakeRequest(POST, url)
+        .withHeaders(CONTENT_TYPE -> JSON)
+        .withBody(Json.toJson(requestModel))
+
+      val result = controller.createSubmissionForVerification().apply(req)
+
+      status(result) mustBe OK
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.toJson(responseModel)
+
+      verify(mockService).createSubmissionForVerification(eqTo(requestModel))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 400 BadRequest with error payload when JSON is invalid" in {
+      val s = setup
+      import s.*
+
+      val badJson = Json.obj(
+        "instanceId" -> "abc-123"
+      )
+
+      val req = FakeRequest(POST, url)
+        .withHeaders(CONTENT_TYPE -> JSON)
+        .withBody(badJson)
+
+      val result = controller.createSubmissionForVerification().apply(req)
+
+      status(result) mustBe BAD_REQUEST
+      contentType(result) mustBe Some(JSON)
+
+      val body = contentAsJson(result)
+      (body \ "message").as[String] mustBe "Invalid payload"
+      (body \ "errors").isDefined mustBe true
+
+      verifyNoInteractions(mockService)
+    }
+
+    "returns 500 InternalServerError with error body when service fails" in {
+      val s = setup
+      import s.*
+
+      val requestModel = CreateSubmissionForVerificationRequest(
+        instanceId = "abc-123",
+        verificationBatchId = 999L,
+        verificationBatchResourceRef = 77L,
+        emailRecipient = "ops@example.com",
+        irMarkGenerated = "IR_MARK",
+        verifications = Seq(
+          VerificationToUpdate(
+            subcontractorName = "ACME LTD",
+            verificationResourceRef = 10L,
+            proceedVerification = "Y"
+          )
+        ),
+        agentId = None
+      )
+
+      when(mockService.createSubmissionForVerification(eqTo(requestModel)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val req = FakeRequest(POST, url)
+        .withHeaders(CONTENT_TYPE -> JSON)
+        .withBody(Json.toJson(requestModel))
+
+      val result = controller.createSubmissionForVerification().apply(req)
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
+
+      verify(mockService).createSubmissionForVerification(eqTo(requestModel))
       verifyNoMoreInteractions(mockService)
     }
   }

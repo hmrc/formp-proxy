@@ -60,4 +60,8 @@ object CisStoredProcedures {
     "{ call VERIFICATION_PROCS.Create_Verification_Batch(?, ?) }"
   val CallCreateVerification                  =
     "{ call VERIFICATION_PROCS.Create_Verification(?, ?, ?, ?) }"
+  val CallUpdateVerificationBatch             =
+    "{ call VERIFICATION_PROCS.Update_Verification_Batch(?, ?, ?, ?, ?, ?, ?, ?) }"
+  val CallUpdateVerification                  =
+    "{ call VERIFICATION_PROCS.Update_Verification(?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
 }
