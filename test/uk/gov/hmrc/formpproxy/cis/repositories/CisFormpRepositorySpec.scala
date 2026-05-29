@@ -2313,12 +2313,12 @@ final class CisFormpRepositorySpec extends SpecBase {
       val out = repo.getNewestVerificationBatch("abc-123").futureValue
 
       out.scheme.isDefined mustBe true
-      out.subcontractors          must have size 1
+      out.subcontractors must have size 1
       out.verificationBatch.isDefined mustBe true
-      out.verifications           must have size 1
+      out.verifications  must have size 1
       out.submission.isDefined mustBe true
       out.monthlyReturn.isDefined mustBe true
-      out.monthlyReturnSubmission must have size 1
+      out.monthlyReturnSubmission.isDefined mustBe true
 
       out.scheme.head.schemeId mustBe 999
       out.subcontractors.head.subcontractorId mustBe 1L
