@@ -30,6 +30,7 @@ import uk.gov.hmrc.formpproxy.sdlt.models.residency.*
 import uk.gov.hmrc.formpproxy.sdlt.models.transaction.*
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 import uk.gov.hmrc.formpproxy.sdlt.models.lease.*
+import uk.gov.hmrc.formpproxy.sdlt.models.taxCalculation.*
 
 import java.lang.Long
 import java.sql.{CallableStatement, Connection, ResultSet, Types}
@@ -70,6 +71,7 @@ trait SdltSource {
   def sdltCreateLease(request: CreateLeaseRequest): Future[CreateLeaseReturn]
   def sdltUpdateLease(request: UpdateLeaseRequest): Future[UpdateLeaseReturn]
   def sdltDeleteLease(request: DeleteLeaseRequest): Future[DeleteLeaseReturn]
+  def sdltUpdateTaxCalculation(request: UpdateTaxCalculationRequest): Future[UpdateTaxCalculationReturn]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -2361,6 +2363,75 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       cs.execute()
 
       DeleteLeaseReturn(deleted = true)
+    } finally cs.close()
+  }
+
+  override def sdltUpdateTaxCalculation(request: UpdateTaxCalculationRequest): Future[UpdateTaxCalculationReturn] =
+    Future {
+      db.withTransaction { conn =>
+        callUpdateTaxCalculation(
+          conn = conn,
+          p_storn = request.stornId,
+          p_return_resource_ref = request.returnResourceRef.toLong,
+          p_amount_paid = request.amountPaid,
+          p_includes_penalty = request.includesPenalty,
+          p_tax_due = request.taxDue,
+          p_calc_penalty_due = request.calcPenaltyDue,
+          p_calc_tax_due = request.calcTaxDue,
+          p_calc_tax_rate1 = request.calcTaxRate1,
+          p_calc_tax_rate2 = request.calcTaxRate2,
+          p_calc_total_tax_penalty_due = request.calcTotalTaxPenaltyDue,
+          p_calc_total_npv_tax = request.calcTotalNpvTax,
+          p_calc_total_premium_tax = request.calcTotalPremiumTax,
+          p_tax_due_premium = request.taxDuePremium,
+          p_tax_due_npv = request.taxDueNpv,
+          p_honesty_declaration = request.honestyDeclaration
+        )
+      }
+    }
+
+  private def callUpdateTaxCalculation(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_amount_paid: Option[String],
+    p_includes_penalty: Option[String],
+    p_tax_due: Option[String],
+    p_calc_penalty_due: Option[String],
+    p_calc_tax_due: Option[String],
+    p_calc_tax_rate1: Option[String],
+    p_calc_tax_rate2: Option[String],
+    p_calc_total_tax_penalty_due: Option[String],
+    p_calc_total_npv_tax: Option[String],
+    p_calc_total_premium_tax: Option[String],
+    p_tax_due_premium: Option[String],
+    p_tax_due_npv: Option[String],
+    p_honesty_declaration: Option[String]
+  ): UpdateTaxCalculationReturn = {
+
+    val cs = conn.prepareCall(
+      "{ call TAX_CALCULATION_PROC.Update_Tax(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+    )
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.setOptionalString(3, p_amount_paid)
+      cs.setOptionalString(4, p_includes_penalty)
+      cs.setOptionalString(5, p_tax_due)
+      cs.setOptionalString(6, p_calc_penalty_due)
+      cs.setOptionalString(7, p_calc_tax_due)
+      cs.setOptionalString(8, p_calc_tax_rate1)
+      cs.setOptionalString(9, p_calc_tax_rate2)
+      cs.setOptionalString(10, p_calc_total_tax_penalty_due)
+      cs.setOptionalString(11, p_calc_total_npv_tax)
+      cs.setOptionalString(12, p_calc_total_premium_tax)
+      cs.setOptionalString(13, p_tax_due_premium)
+      cs.setOptionalString(14, p_tax_due_npv)
+      cs.setOptionalString(15, p_honesty_declaration)
+
+      cs.execute()
+
+      UpdateTaxCalculationReturn(updated = true)
     } finally cs.close()
   }
 

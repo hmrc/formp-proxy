@@ -261,12 +261,18 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   override def syncMonthlyReturnItems(request: SyncMonthlyReturnItemsRequest): Future[Unit] =
     Future {
       logger.info(
-        s"[CIS] syncMonthlyReturnItems(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth}, creates=${request.createResourceReferences.size}, deletes=${request.deleteResourceReferences.size})"
+        s"[CIS] syncMonthlyReturnItems(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth}, amendment=${request.amendment}, creates=${request.createResourceReferences.size}, deletes=${request.deleteResourceReferences.size})"
       )
 
       db.withTransaction { conn =>
         val monthlyReturnsForEdit =
-          getMonthlyReturnForEditInTransaction(conn, request.instanceId, request.taxYear, request.taxMonth)
+          getMonthlyReturnForEditInTransaction(
+            conn,
+            request.instanceId,
+            request.taxYear,
+            request.taxMonth,
+            request.amendment
+          )
         val status                = monthlyReturnsForEdit.monthlyReturn.headOption.flatMap(_.status).getOrElse("")
 
         if (status != "STARTED" && status != "VALIDATED") {
@@ -886,13 +892,14 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     connection: Connection,
     instanceId: String,
     taxYear: Int,
-    taxMonth: Int
+    taxMonth: Int,
+    amendment: String
   ): GetMonthlyReturnForEditResponse =
     withCall(connection, CallGetMonthlyReturnForEdit) { cs =>
       cs.setString(1, instanceId)
       cs.setInt(2, taxYear)
       cs.setInt(3, taxMonth)
-      cs.setString(4, "N")
+      cs.setString(4, amendment)
       cs.registerOutParameter(5, OracleTypes.CURSOR)
       cs.registerOutParameter(6, OracleTypes.CURSOR)
       cs.registerOutParameter(7, OracleTypes.CURSOR)
