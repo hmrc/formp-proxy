@@ -483,7 +483,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
   override def updateMonthlyReturnItem(request: UpdateMonthlyReturnItemRequest): Future[Unit] = {
     logger.info(
-      s"[CIS] updateMonthlyReturnItem(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
+      s"[CIS] updateMonthlyReturnItem(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth}, amendment=$amendment)"
     )
     Future {
       db.withTransaction { conn =>
