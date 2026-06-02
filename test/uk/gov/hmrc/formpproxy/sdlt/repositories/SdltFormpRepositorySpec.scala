@@ -29,6 +29,7 @@ import uk.gov.hmrc.formpproxy.sdlt.models.land.*
 import uk.gov.hmrc.formpproxy.sdlt.models.transaction.*
 import uk.gov.hmrc.formpproxy.sdlt.models.residency.*
 import uk.gov.hmrc.formpproxy.sdlt.models.lease.*
+import uk.gov.hmrc.formpproxy.sdlt.models.taxCalculation.*
 
 import java.sql.*
 
@@ -4561,6 +4562,146 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       verify(cs).setString(1, "STORN-ABC-123")
       verify(cs).setLong(2, 100003L)
+      verify(cs).execute()
+    }
+  }
+
+  "sdltUpdateTaxCalculation" - {
+
+    "call Update_Tax stored procedure with correct parameters" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo("{ call TAX_CALCULATION_PROC.Update_Tax(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+        )
+      )
+        .thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateTaxCalculationRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        amountPaid = Some("2000"),
+        includesPenalty = Some("YES"),
+        taxDue = Some("8000"),
+        calcPenaltyDue = Some("500"),
+        calcTaxDue = Some("8000"),
+        calcTaxRate1 = Some("3"),
+        calcTaxRate2 = Some("7"),
+        calcTotalTaxPenaltyDue = Some("8500"),
+        calcTotalNpvTax = Some("1000"),
+        calcTotalPremiumTax = Some("7500"),
+        taxDuePremium = Some("7500"),
+        taxDueNpv = Some("1000"),
+        honestyDeclaration = Some("YES")
+      )
+
+      val result = repo.sdltUpdateTaxCalculation(request).futureValue
+
+      result.updated mustBe true
+
+      verify(conn).prepareCall(
+        "{ call TAX_CALCULATION_PROC.Update_Tax(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+      )
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setString(3, "2000")
+      verify(cs).setString(4, "YES")
+      verify(cs).setString(5, "8000")
+      verify(cs).setString(6, "500")
+      verify(cs).setString(7, "8000")
+      verify(cs).setString(8, "3")
+      verify(cs).setString(9, "7")
+      verify(cs).setString(10, "8500")
+      verify(cs).setString(11, "1000")
+      verify(cs).setString(12, "7500")
+      verify(cs).setString(13, "7500")
+      verify(cs).setString(14, "1000")
+      verify(cs).setString(15, "YES")
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "handle minimal update with no optional fields" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateTaxCalculationRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002"
+      )
+
+      val result = repo.sdltUpdateTaxCalculation(request).futureValue
+
+      result.updated mustBe true
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).setNull(3, Types.VARCHAR)
+      verify(cs).setNull(4, Types.VARCHAR)
+      verify(cs).setNull(5, Types.VARCHAR)
+      verify(cs).setNull(6, Types.VARCHAR)
+      verify(cs).setNull(7, Types.VARCHAR)
+      verify(cs).setNull(8, Types.VARCHAR)
+      verify(cs).setNull(9, Types.VARCHAR)
+      verify(cs).setNull(10, Types.VARCHAR)
+      verify(cs).setNull(11, Types.VARCHAR)
+      verify(cs).setNull(12, Types.VARCHAR)
+      verify(cs).setNull(13, Types.VARCHAR)
+      verify(cs).setNull(14, Types.VARCHAR)
+      verify(cs).setNull(15, Types.VARCHAR)
+      verify(cs).execute()
+    }
+
+    "handle update with only partial fields changed" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateTaxCalculationRequest(
+        stornId = "STORN77777",
+        returnResourceRef = "100003",
+        amountPaid = Some("3000"),
+        taxDue = Some("3000"),
+        calcTaxDue = Some("3000"),
+        honestyDeclaration = Some("YES")
+      )
+
+      val result = repo.sdltUpdateTaxCalculation(request).futureValue
+
+      result.updated mustBe true
+
+      verify(cs).setString(1, "STORN77777")
+      verify(cs).setLong(2, 100003L)
+      verify(cs).setString(3, "3000")
+      verify(cs).setString(5, "3000")
+      verify(cs).setString(7, "3000")
+      verify(cs).setString(15, "YES")
       verify(cs).execute()
     }
   }

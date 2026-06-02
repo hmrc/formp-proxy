@@ -28,6 +28,7 @@ import uk.gov.hmrc.formpproxy.sdlt.models.land.*
 import uk.gov.hmrc.formpproxy.sdlt.models.residency.*
 import uk.gov.hmrc.formpproxy.sdlt.models.transaction.*
 import uk.gov.hmrc.formpproxy.sdlt.models.lease.*
+import uk.gov.hmrc.formpproxy.sdlt.models.taxCalculation.*
 import uk.gov.hmrc.formpproxy.sdlt.models.returns.SdltReturnRecordResponse
 import uk.gov.hmrc.formpproxy.sdlt.repositories.{SdltFormpRepoDataHelper, SdltFormpRepository}
 
@@ -2952,6 +2953,79 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
       ex mustBe boom
 
       verify(repo).sdltDeleteLease(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "ReturnService updateTaxCalculation" - {
+
+    "must delegate to repository " in {
+      val repo                                         = mock[SdltFormpRepository]
+      val service                                      = new ReturnService(repo)
+      val request: UpdateTaxCalculationRequest         = UpdateTaxCalculationRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001",
+        amountPaid = Some("2000"),
+        includesPenalty = Some("YES"),
+        taxDue = Some("8000"),
+        calcPenaltyDue = Some("500"),
+        calcTaxDue = Some("8000"),
+        calcTaxRate1 = Some("3"),
+        calcTaxRate2 = Some("7"),
+        calcTotalTaxPenaltyDue = Some("8500"),
+        calcTotalNpvTax = Some("1000"),
+        calcTotalPremiumTax = Some("7500"),
+        taxDuePremium = Some("7500"),
+        taxDueNpv = Some("1000"),
+        honestyDeclaration = Some("YES")
+      )
+      val expectedResponse: UpdateTaxCalculationReturn = UpdateTaxCalculationReturn(updated = true)
+
+      when(repo.sdltUpdateTaxCalculation(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: UpdateTaxCalculationReturn = service.updateTaxCalculation(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltUpdateTaxCalculation(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must return false when update fails" in {
+      val repo                                         = mock[SdltFormpRepository]
+      val service                                      = new ReturnService(repo)
+      val request: UpdateTaxCalculationRequest         = UpdateTaxCalculationRequest(
+        stornId = "STORN99999",
+        returnResourceRef = "100002"
+      )
+      val expectedResponse: UpdateTaxCalculationReturn = UpdateTaxCalculationReturn(updated = false)
+
+      when(repo.sdltUpdateTaxCalculation(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: UpdateTaxCalculationReturn = service.updateTaxCalculation(request).futureValue
+      result.updated mustBe false
+
+      verify(repo).sdltUpdateTaxCalculation(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "must propagate failures from repository" in {
+      val repo                                 = mock[SdltFormpRepository]
+      val service                              = new ReturnService(repo)
+      val request: UpdateTaxCalculationRequest = UpdateTaxCalculationRequest(
+        stornId = "STORN12345",
+        returnResourceRef = "100001"
+      )
+      val boom                                 = new RuntimeException("database timeout")
+
+      when(repo.sdltUpdateTaxCalculation(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      val ex: Throwable = service.updateTaxCalculation(request).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).sdltUpdateTaxCalculation(eqTo(request))
       verifyNoMoreInteractions(repo)
     }
   }
