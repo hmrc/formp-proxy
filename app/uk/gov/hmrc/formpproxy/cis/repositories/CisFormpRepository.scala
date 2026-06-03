@@ -403,7 +403,8 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   override def createSubmission(request: CreateSubmissionRequest): Future[String] =
     Future {
       db.withTransaction { conn =>
-        val monthlyReturnId = getMonthlyReturnId(conn, request.instanceId, request.taxYear, request.taxMonth)
+        val monthlyReturnId =
+          getMonthlyReturnId(conn, request.instanceId, request.taxYear, request.taxMonth, request.amendment)
 
         val submissionId = callCreateSubmission(
           conn,
@@ -424,8 +425,8 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   override def updateMonthlyReturnSubmission(request: UpdateSubmissionRequest): Future[Unit] =
     Future {
       db.withConnection { conn =>
-        val monthlyReturnId = getMonthlyReturnId(conn, request.instanceId, request.taxYear, request.taxMonth)
-        val amendValue      = request.amendment.getOrElse("N")
+        val monthlyReturnId =
+          getMonthlyReturnId(conn, request.instanceId, request.taxYear, request.taxMonth, request.amendment)
 
         callUpdateMonthlyReturnSubmission(
           conn,
@@ -444,7 +445,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           instanceId = request.instanceId,
           taxYear = request.taxYear,
           taxMonth = request.taxMonth,
-          amendment = amendValue
+          amendment = request.amendment
         )
       }
     }
@@ -482,7 +483,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
   override def updateMonthlyReturnItem(request: UpdateMonthlyReturnItemRequest): Future[Unit] = {
     logger.info(
-      s"[CIS] updateMonthlyReturnItem(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
+      s"[CIS] updateMonthlyReturnItem(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth}, amendment=${request.amendment})"
     )
     Future {
       db.withTransaction { conn =>
@@ -667,6 +668,8 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     )
     Future {
       db.withConnection { conn =>
+        val schemeVersionBefore = getSchemeVersion(conn, request.instanceId)
+
         withCall(conn, CallUnsubmittedMonthlyReturn) { cs =>
           cs.setString(1, request.instanceId)
           cs.setInt(2, request.taxYear)
@@ -674,6 +677,8 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           cs.setString(4, request.amendment)
           cs.execute()
         }
+
+        callUpdateSchemeVersion(conn, request.instanceId, schemeVersionBefore)
       }
     }
 
@@ -944,7 +949,13 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   private def getSchemeVersion(conn: Connection, instanceId: String): Int =
     loadScheme(conn, instanceId).version.getOrElse(0)
 
-  private def getMonthlyReturnId(conn: Connection, instanceId: String, taxYear: Int, taxMonth: Int): Long =
+  private def getMonthlyReturnId(
+    conn: Connection,
+    instanceId: String,
+    taxYear: Int,
+    taxMonth: Int,
+    amendment: String
+  ): Long =
     withCall(conn, CallGetAllMonthlyReturns) { cs =>
       cs.setString(1, instanceId)
       cs.registerOutParameter(2, OracleTypes.CURSOR)
@@ -956,9 +967,11 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       withCursor(cs, 3) { rs =>
         var found: Option[Long] = None
         while (found.isEmpty && rs.next()) {
-          val year  = rs.getInt("tax_year")
-          val month = rs.getInt("tax_month")
-          if (year == taxYear && month == taxMonth) found = Some(rs.getLong("monthly_return_id"))
+          val year         = rs.getInt("tax_year")
+          val month        = rs.getInt("tax_month")
+          val rowAmendment = rs.getString("amendment")
+          if (year == taxYear && month == taxMonth && rowAmendment == amendment)
+            found = Some(rs.getLong("monthly_return_id"))
         }
 
         found.getOrElse(

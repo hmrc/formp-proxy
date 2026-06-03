@@ -219,6 +219,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsMonthly.getInt("tax_year")).thenReturn(2024)
       when(rsMonthly.getInt("tax_month")).thenReturn(4)
       when(rsMonthly.getLong("monthly_return_id")).thenReturn(7777L)
+      when(rsMonthly.getString("amendment")).thenReturn("N")
 
       when(conn.prepareCall("{ call SUBMISSION_PROCS.Create_Submission(?, ?, ?, ?, ?, ?, ?, ?, ?) }"))
         .thenReturn(csCreate)
@@ -230,6 +231,7 @@ final class CisFormpRepositorySpec extends SpecBase {
         instanceId = "123",
         taxYear = 2024,
         taxMonth = 4,
+        amendment = "N",
         hmrcMarkGenerated = Some("Dj5TVJDyRYCn9zta5EdySeY4fyA="),
         emailRecipient = Some("test@test.com"),
         agentId = None,
@@ -285,6 +287,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsMonthly.getInt("tax_year")).thenReturn(2024)
       when(rsMonthly.getInt("tax_month")).thenReturn(4)
       when(rsMonthly.getLong("monthly_return_id")).thenReturn(7777L)
+      when(rsMonthly.getString("amendment")).thenReturn("N")
 
       when(
         conn.prepareCall(
@@ -308,7 +311,7 @@ final class CisFormpRepositorySpec extends SpecBase {
         govtalkErrorCode = None,
         govtalkErrorType = None,
         govtalkErrorMessage = None,
-        amendment = None
+        amendment = "N"
       )
 
       repo.updateMonthlyReturnSubmission(req).futureValue
@@ -398,12 +401,13 @@ final class CisFormpRepositorySpec extends SpecBase {
         classOf[Connection],
         classOf[String],
         classOf[Int],
-        classOf[Int]
+        classOf[Int],
+        classOf[String]
       )
       method.setAccessible(true)
 
       val thrown = intercept[java.lang.reflect.InvocationTargetException] {
-        method.invoke(repo, connection, "abc-123", Int.box(2025), Int.box(2))
+        method.invoke(repo, connection, "abc-123", Int.box(2025), Int.box(2), "N")
       }
 
       val cause = thrown.getCause.asInstanceOf[RuntimeException]
@@ -440,12 +444,13 @@ final class CisFormpRepositorySpec extends SpecBase {
         classOf[Connection],
         classOf[String],
         classOf[Int],
-        classOf[Int]
+        classOf[Int],
+        classOf[String]
       )
       method.setAccessible(true)
 
       val thrown = intercept[java.lang.reflect.InvocationTargetException] {
-        method.invoke(repo, connection, "abc-123", Int.box(2025), Int.box(2))
+        method.invoke(repo, connection, "abc-123", Int.box(2025), Int.box(2), "N")
       }
 
       val cause = thrown.getCause.asInstanceOf[RuntimeException]
@@ -2726,19 +2731,36 @@ final class CisFormpRepositorySpec extends SpecBase {
 
   "deleteUnsubmittedMonthlyReturn" - {
 
-    "call MONTHLY_RETURN_PROCS_2016.DELETE_MONTHLY_RETURN with correct parameters and execute" in {
-      val db   = mock[Database]
-      val conn = mock[Connection]
-      val cs   = mock[CallableStatement]
+    "call DELETE_MONTHLY_RETURN with correct parameters" in {
+      val db          = mock[Database]
+      val conn        = mock[Connection]
+      val csGetScheme = mock[CallableStatement]
+      val rsScheme    = mock[ResultSet]
+      val csDelete    = mock[CallableStatement]
+      val csVersion   = mock[CallableStatement]
 
       when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
-        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+        inv.getArgument(0, classOf[Connection => Any])(conn)
       }
 
-      val call =
-        "{ call MONTHLY_RETURN_PROCS_2016.DELETE_MONTHLY_RETURN(?, ?, ?, ?) }"
+      when(conn.prepareCall("{ call SCHEME_PROCS.int_Get_Scheme(?, ?) }"))
+        .thenReturn(csGetScheme)
+      when(csGetScheme.getObject(eqTo(2), eqTo(classOf[ResultSet])))
+        .thenReturn(rsScheme)
+      when(rsScheme.next()).thenReturn(true)
+      when(rsScheme.getInt("version")).thenReturn(1)
 
-      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+      val deleteCall = "{ call MONTHLY_RETURN_PROCS_2016.DELETE_MONTHLY_RETURN(?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(deleteCall))).thenReturn(csDelete)
+
+      val versionCall =
+        "{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"
+
+      when(conn.prepareCall(eqTo(versionCall)))
+        .thenReturn(csVersion)
+
+      when(csVersion.getInt(2)).thenReturn(2)
 
       val repo = new CisFormpRepository(db)
 
@@ -2751,15 +2773,11 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       repo.deleteUnsubmittedMonthlyReturn(request).futureValue
 
-      verify(conn).prepareCall(eqTo(call))
-
-      verify(cs).setString(1, request.instanceId)
-      verify(cs).setInt(2, request.taxYear)
-      verify(cs).setInt(3, request.taxMonth)
-      verify(cs).setString(4, "Y")
-
-      verify(cs).execute()
-      verify(cs).close()
+      verify(csDelete).setString(1, request.instanceId)
+      verify(csDelete).setInt(2, request.taxYear)
+      verify(csDelete).setInt(3, request.taxMonth)
+      verify(csDelete).setString(4, request.amendment)
+      verify(csDelete).execute()
     }
   }
 
