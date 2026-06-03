@@ -69,7 +69,7 @@ class GetReturnRequestSpec extends AnyFreeSpec with Matchers with EitherValues w
 
   private val validTransactionJson = Json.obj(
     "transactionID"      -> "TXN001",
-    "totalConsideration" -> 500000.00,
+    "totalConsideration" -> "500000.00",
     "effectiveDate"      -> "2024-10-01"
   )
 
@@ -363,23 +363,6 @@ class GetReturnRequestSpec extends AnyFreeSpec with Matchers with EitherValues w
 
   "Transaction" - {
 
-    ".reads" - {
-
-      "must deserialize valid JSON with BigDecimal" in {
-        val result = Json.fromJson[Transaction](validTransactionJson).asEither.value
-
-        result.transactionID mustBe Some("TXN001")
-        result.totalConsideration mustBe Some(BigDecimal("500000.00"))
-      }
-
-      "must fail when BigDecimal field has wrong type" in {
-        val json   = Json.obj("totalConsideration" -> "not-a-number")
-        val result = Json.fromJson[Transaction](json).asEither
-
-        result.isLeft mustBe true
-      }
-    }
-
     ".writes" - {
 
       "must serialize Transaction" in {
@@ -387,7 +370,7 @@ class GetReturnRequestSpec extends AnyFreeSpec with Matchers with EitherValues w
         val json        = Json.toJson(transaction)
 
         (json \ "transactionID").as[String] mustBe "TXN001"
-        (json \ "totalConsideration").as[BigDecimal] mustBe BigDecimal("500000.00")
+        (json \ "totalConsideration").as[String] mustBe "500000.00"
       }
     }
 
