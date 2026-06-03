@@ -1146,7 +1146,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           val verifications     = withCursor(cs, 5)(collectVerifications)
           val submission        = withCursor(cs, 6)(collectSubmissionsForGetVerificationBatch).headOption
           val monthlyReturn     = withCursor(cs, 7)(collectMonthlyReturnsForGetVerificationBatch).headOption
-          val mrSubmission      = withCursor(cs, 8)(collectSubmissionsForGetVerificationBatch)
+          val mrSubmission      = withCursor(cs, 8)(collectSubmissionsForGetVerificationBatch).headOption
 
           GetNewestVerificationBatchResponse(
             scheme = scheme,

@@ -56,7 +56,7 @@ class VerificationControllerSpec extends SpecBase {
         verifications = Seq.empty,
         submission = None,
         monthlyReturn = None,
-        monthlyReturnSubmission = Seq.empty
+        monthlyReturnSubmission = None
       )
 
       when(mockService.getNewestVerificationBatch(eqTo(instanceId)))
@@ -229,7 +229,7 @@ class VerificationControllerSpec extends SpecBase {
             supersededBy = None
           )
         ),
-        monthlyReturnSubmission = Seq(
+        monthlyReturnSubmission = Some(
           Submission(
             submissionId = 556L,
             submissionType = "MONTHLY_RETURN",

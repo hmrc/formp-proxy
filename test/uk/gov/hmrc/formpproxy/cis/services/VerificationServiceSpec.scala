@@ -47,7 +47,7 @@ class VerificationServiceSpec extends SpecBase {
         verifications = Seq.empty,
         submission = None,
         monthlyReturn = None,
-        monthlyReturnSubmission = Seq.empty
+        monthlyReturnSubmission = None
       )
 
       when(repo.getNewestVerificationBatch(eqTo(instanceId)))

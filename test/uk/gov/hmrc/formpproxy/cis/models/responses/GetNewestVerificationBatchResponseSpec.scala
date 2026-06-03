@@ -38,7 +38,7 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
           |  "verifications": [],
           |  "submission": null,
           |  "monthlyReturn": null,
-          |  "monthlyReturnSubmission": []
+          |  "monthlyReturnSubmission": null
           |}
           |""".stripMargin
       )
@@ -53,7 +53,7 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
       out.verifications mustBe empty
       out.submission mustBe None
       out.monthlyReturn mustBe None
-      out.monthlyReturnSubmission mustBe empty
+      out.monthlyReturnSubmission mustBe None
     }
 
     "write a response to JSON" in {
@@ -189,7 +189,7 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
             supersededBy = None
           )
         ),
-        monthlyReturnSubmission = Seq(
+        monthlyReturnSubmission = Some(
           Submission(
             submissionId = 556L,
             submissionType = "MONTHLY_RETURN",
@@ -339,7 +339,7 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
       (mr0 \ "amendment").as[String] mustBe "N"
       (mr0 \ "supersededBy").toOption mustBe None
 
-      val mrs0 = (json \ "monthlyReturnSubmission")(0)
+      val mrs0 = json \ "monthlyReturnSubmission"
 
       (mrs0 \ "submissionId").as[Long] mustBe 556L
       (mrs0 \ "submissionType").as[String] mustBe "MONTHLY_RETURN"
@@ -377,7 +377,7 @@ final class GetNewestVerificationBatchResponseSpec extends AnyWordSpec with Matc
         verifications = Seq.empty,
         submission = None,
         monthlyReturn = None,
-        monthlyReturnSubmission = Seq.empty
+        monthlyReturnSubmission = None
       )
 
       val json = Json.toJson(model)
