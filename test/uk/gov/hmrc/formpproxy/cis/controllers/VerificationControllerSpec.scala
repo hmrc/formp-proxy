@@ -27,7 +27,7 @@ import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateVerifications,
 import uk.gov.hmrc.formpproxy.cis.models.response.{GetCurrentVerificationBatchResponse, GetNewestVerificationBatchResponse}
 import uk.gov.hmrc.formpproxy.cis.models.requests._
 import uk.gov.hmrc.formpproxy.cis.models.response.CreateVerificationBatchAndVerificationsResponse
-import uk.gov.hmrc.formpproxy.cis.models.response.CreateSubmissionForVerificationResponse
+import uk.gov.hmrc.formpproxy.cis.models.response.CreateSubmissionAndUpdateVerificationsResponse
 import uk.gov.hmrc.formpproxy.cis.services.VerificationService
 
 import scala.concurrent.Future
@@ -658,7 +658,7 @@ class VerificationControllerSpec extends SpecBase {
       val s = setup
       import s.*
 
-      val requestModel = CreateSubmissionForVerificationRequest(
+      val requestModel = CreateSubmissionAndUpdateVerificationsRequest(
         instanceId = "abc-123",
         verificationBatchId = 999L,
         verificationBatchResourceRef = 77L,
@@ -674,22 +674,22 @@ class VerificationControllerSpec extends SpecBase {
         agentId = None
       )
 
-      val responseModel = CreateSubmissionForVerificationResponse(submissionId = 555L)
+      val responseModel = CreateSubmissionAndUpdateVerificationsResponse(submissionId = 555L)
 
-      when(mockService.createSubmissionForVerification(eqTo(requestModel)))
+      when(mockService.createSubmissionAndUpdateVerifications(eqTo(requestModel)))
         .thenReturn(Future.successful(responseModel))
 
       val req = FakeRequest(POST, url)
         .withHeaders(CONTENT_TYPE -> JSON)
         .withBody(Json.toJson(requestModel))
 
-      val result = controller.createSubmissionForVerification().apply(req)
+      val result = controller.createSubmissionAndUpdateVerifications().apply(req)
 
       status(result) mustBe OK
       contentType(result) mustBe Some(JSON)
       contentAsJson(result) mustBe Json.toJson(responseModel)
 
-      verify(mockService).createSubmissionForVerification(eqTo(requestModel))
+      verify(mockService).createSubmissionAndUpdateVerifications(eqTo(requestModel))
       verifyNoMoreInteractions(mockService)
     }
 
@@ -705,7 +705,7 @@ class VerificationControllerSpec extends SpecBase {
         .withHeaders(CONTENT_TYPE -> JSON)
         .withBody(badJson)
 
-      val result = controller.createSubmissionForVerification().apply(req)
+      val result = controller.createSubmissionAndUpdateVerifications().apply(req)
 
       status(result) mustBe BAD_REQUEST
       contentType(result) mustBe Some(JSON)
@@ -721,7 +721,7 @@ class VerificationControllerSpec extends SpecBase {
       val s = setup
       import s.*
 
-      val requestModel = CreateSubmissionForVerificationRequest(
+      val requestModel = CreateSubmissionAndUpdateVerificationsRequest(
         instanceId = "abc-123",
         verificationBatchId = 999L,
         verificationBatchResourceRef = 77L,
@@ -737,20 +737,20 @@ class VerificationControllerSpec extends SpecBase {
         agentId = None
       )
 
-      when(mockService.createSubmissionForVerification(eqTo(requestModel)))
+      when(mockService.createSubmissionAndUpdateVerifications(eqTo(requestModel)))
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req = FakeRequest(POST, url)
         .withHeaders(CONTENT_TYPE -> JSON)
         .withBody(Json.toJson(requestModel))
 
-      val result = controller.createSubmissionForVerification().apply(req)
+      val result = controller.createSubmissionAndUpdateVerifications().apply(req)
 
       status(result) mustBe INTERNAL_SERVER_ERROR
       contentType(result) mustBe Some(JSON)
       contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
 
-      verify(mockService).createSubmissionForVerification(eqTo(requestModel))
+      verify(mockService).createSubmissionAndUpdateVerifications(eqTo(requestModel))
       verifyNoMoreInteractions(mockService)
     }
   }

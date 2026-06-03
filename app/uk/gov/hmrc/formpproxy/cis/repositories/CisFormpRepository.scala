@@ -76,9 +76,9 @@ trait CisMonthlyReturnSource {
     taxMonth: Int,
     amendment: String
   ): Future[GetMonthlyReturnCompleteResponse]
-  def createSubmissionForVerification(
-    req: CreateSubmissionForVerificationRequest
-  ): Future[CreateSubmissionForVerificationResponse]
+  def createSubmissionAndUpdateVerifications(
+    req: CreateSubmissionAndUpdateVerificationsRequest
+  ): Future[CreateSubmissionAndUpdateVerificationsResponse]
   def createVerificationBatchAndVerifications(
     req: CreateVerificationBatchAndVerificationsRequest
   ): Future[CreateVerificationBatchAndVerificationsResponse]
@@ -1235,9 +1235,9 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.execute()
     }
 
-  override def createSubmissionForVerification(
-    req: CreateSubmissionForVerificationRequest
-  ): Future[CreateSubmissionForVerificationResponse] = {
+  override def createSubmissionAndUpdateVerifications(
+    req: CreateSubmissionAndUpdateVerificationsRequest
+  ): Future[CreateSubmissionAndUpdateVerificationsResponse] = {
     logger.info(
       s"[CIS] createSubmissionForVerification(instanceId=${req.instanceId}, verificationBatchId=${req.verificationBatchId}, verifs=${req.verifications.size})"
     )
@@ -1284,7 +1284,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           )
         }
 
-        CreateSubmissionForVerificationResponse(submissionId)
+        CreateSubmissionAndUpdateVerificationsResponse(submissionId)
       }
     }
   }

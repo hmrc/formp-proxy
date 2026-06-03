@@ -311,7 +311,7 @@ class VerificationServiceSpec extends SpecBase {
       val c = Ctx();
       import c.*
 
-      val req = CreateSubmissionForVerificationRequest(
+      val req = CreateSubmissionAndUpdateVerificationsRequest(
         instanceId = "abc-123",
         verificationBatchId = 99L,
         verificationBatchResourceRef = 10L,
@@ -332,14 +332,14 @@ class VerificationServiceSpec extends SpecBase {
         agentId = Some("agent-123")
       )
 
-      val response = CreateSubmissionForVerificationResponse(submissionId = 555L)
+      val response = CreateSubmissionAndUpdateVerificationsResponse(submissionId = 555L)
 
-      when(repo.createSubmissionForVerification(eqTo(req)))
+      when(repo.createSubmissionAndUpdateVerifications(eqTo(req)))
         .thenReturn(Future.successful(response))
 
-      service.createSubmissionForVerification(req).futureValue mustBe response
+      service.createSubmissionAndUpdateVerifications(req).futureValue mustBe response
 
-      verify(repo).createSubmissionForVerification(eqTo(req))
+      verify(repo).createSubmissionAndUpdateVerifications(eqTo(req))
       verifyNoMoreInteractions(repo)
     }
 
@@ -347,7 +347,7 @@ class VerificationServiceSpec extends SpecBase {
       val c = Ctx();
       import c.*
 
-      val req = CreateSubmissionForVerificationRequest(
+      val req = CreateSubmissionAndUpdateVerificationsRequest(
         instanceId = "abc-123",
         verificationBatchId = 99L,
         verificationBatchResourceRef = 10L,
@@ -365,12 +365,12 @@ class VerificationServiceSpec extends SpecBase {
 
       val boom = new RuntimeException("boom")
 
-      when(repo.createSubmissionForVerification(eqTo(req)))
+      when(repo.createSubmissionAndUpdateVerifications(eqTo(req)))
         .thenReturn(Future.failed(boom))
 
-      service.createSubmissionForVerification(req).failed.futureValue mustBe boom
+      service.createSubmissionAndUpdateVerifications(req).failed.futureValue mustBe boom
 
-      verify(repo).createSubmissionForVerification(eqTo(req))
+      verify(repo).createSubmissionAndUpdateVerifications(eqTo(req))
       verifyNoMoreInteractions(repo)
     }
   }

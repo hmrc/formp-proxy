@@ -93,16 +93,16 @@ class VerificationController @Inject() (
         )
     }
 
-  def createSubmissionForVerification(): Action[JsValue] =
+  def createSubmissionAndUpdateVerifications(): Action[JsValue] =
     authorise(parse.json).async { implicit request =>
       request.body
-        .validate[CreateSubmissionForVerificationRequest]
+        .validate[CreateSubmissionAndUpdateVerificationsRequest]
         .fold(
           errs =>
             Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
           req =>
             service
-              .createSubmissionForVerification(req)
+              .createSubmissionAndUpdateVerifications(req)
               .map(res => Ok(Json.toJson(res)))
               .recover { case t =>
                 logger.error("[createSubmissionForVerification] failed", t)

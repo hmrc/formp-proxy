@@ -3264,7 +3264,7 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       val repo = new CisFormpRepository(db)
 
-      val req = CreateSubmissionForVerificationRequest(
+      val req = CreateSubmissionAndUpdateVerificationsRequest(
         instanceId = "abc-123",
         verificationBatchId = 999L,
         verificationBatchResourceRef = 77L,
@@ -3285,7 +3285,7 @@ final class CisFormpRepositorySpec extends SpecBase {
         agentId = None
       )
 
-      val out = repo.createSubmissionForVerification(req).futureValue
+      val out = repo.createSubmissionAndUpdateVerifications(req).futureValue
       out.submissionId mustBe 555L
 
       // ---- Verify Create_Submission parameters ----
