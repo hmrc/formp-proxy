@@ -44,6 +44,8 @@ POST       /cis/verification-batch/modify                           uk.gov.hmrc.
 
 POST       /cis/amend-monthly-return/create                         uk.gov.hmrc.formpproxy.cis.controllers.AmendMonthlyReturnController.createAmendedMonthlyReturn()
 
+POST       /cis/verification/submission/create                      uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.createSubmissionAndUpdateVerifications()
+
 # SDLT routes
 
 POST       /create/return                                           uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.createSDLTReturn()

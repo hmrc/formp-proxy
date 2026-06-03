@@ -70,4 +70,9 @@ class VerificationService @Inject() (repo: CisMonthlyReturnSource) {
 
   private def hasNoSubcontractorToModify(request: ModifyVerificationsRequest): Boolean =
     request.deleteVerifications.isEmpty && request.createVerifications.isEmpty
+  def createSubmissionAndUpdateVerifications(
+    request: CreateSubmissionAndUpdateVerificationsRequest
+  ): Future[CreateSubmissionAndUpdateVerificationsResponse] =
+    repo.createSubmissionAndUpdateVerifications(request)
+
 }

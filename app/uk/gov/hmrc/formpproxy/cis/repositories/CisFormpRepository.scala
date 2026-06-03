@@ -76,6 +76,9 @@ trait CisMonthlyReturnSource {
     taxMonth: Int,
     amendment: String
   ): Future[GetMonthlyReturnCompleteResponse]
+  def createSubmissionAndUpdateVerifications(
+    req: CreateSubmissionAndUpdateVerificationsRequest
+  ): Future[CreateSubmissionAndUpdateVerificationsResponse]
   def createVerificationBatchAndVerifications(
     req: CreateVerificationBatchAndVerificationsRequest
   ): Future[CreateVerificationBatchAndVerificationsResponse]
@@ -1242,6 +1245,112 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setLong(2, verifBatchResourceRef)
       cs.setLong(3, verificationResourceRef)
       cs.setString(4, actionIndicator)
+      cs.execute()
+    }
+
+  override def createSubmissionAndUpdateVerifications(
+    req: CreateSubmissionAndUpdateVerificationsRequest
+  ): Future[CreateSubmissionAndUpdateVerificationsResponse] = {
+    logger.info(
+      s"[CIS] createSubmissionForVerification(instanceId=${req.instanceId}, verificationBatchId=${req.verificationBatchId}, verifs=${req.verifications.size})"
+    )
+
+    Future {
+      db.withTransaction { conn =>
+        val schemeRow = loadScheme(conn, req.instanceId)
+        val schemeId  = schemeRow.schemeId
+
+        val submissionId: Long =
+          callCreateSubmission(
+            conn,
+            instanceId = req.instanceId,
+            submissionType = "VERIFICATIONS",
+            activeObjectId = req.verificationBatchId,
+            hmrcMarkGenerated = req.irMarkGenerated,
+            hmrcMarkGgis = null,
+            emailRecipient = req.emailRecipient,
+            agentId = req.agentId.orNull,
+            submittableStatus = "STARTED"
+          )
+
+        callUpdateVerificationBatch(
+          conn = conn,
+          verificationBatchResourceRef = req.verificationBatchResourceRef,
+          schemeId = schemeId,
+          confirmArrangement = "Y",
+          confirmCorrect = "Y",
+          status = "STARTED"
+        )
+
+        req.verifications.foreach { v =>
+          val actionIndicator =
+            if (v.proceedVerification == "Y") "VERIFY" else "MATCH"
+
+          callUpdateVerification(
+            conn = conn,
+            instanceId = req.instanceId,
+            verificationBatchResourceRef = req.verificationBatchResourceRef,
+            verificationResourceRef = v.verificationResourceRef,
+            actionIndicator = actionIndicator,
+            proceed = v.proceedVerification,
+            subcontractorName = v.subcontractorName
+          )
+        }
+
+        CreateSubmissionAndUpdateVerificationsResponse(submissionId)
+      }
+    }
+  }
+
+  private def callUpdateVerificationBatch(
+    conn: Connection,
+    verificationBatchResourceRef: Long,
+    schemeId: Long,
+    confirmArrangement: String,
+    confirmCorrect: String,
+    status: String
+  ): Unit =
+    withCall(conn, CallUpdateVerificationBatch) { cs =>
+      cs.setLong(1, verificationBatchResourceRef)
+      cs.setLong(2, schemeId)
+
+      cs.setNull(3, Types.VARCHAR)
+      cs.setString(4, confirmArrangement)
+      cs.setString(5, confirmCorrect)
+      cs.setString(6, status)
+      cs.setNull(7, Types.VARCHAR)
+
+      cs.setNull(8, Types.INTEGER)
+      cs.registerOutParameter(8, Types.INTEGER)
+
+      cs.execute()
+    }
+
+  private def callUpdateVerification(
+    conn: Connection,
+    instanceId: String,
+    verificationBatchResourceRef: Long,
+    verificationResourceRef: Long,
+    actionIndicator: String,
+    proceed: String,
+    subcontractorName: String
+  ): Unit =
+    withCall(conn, CallUpdateVerification) { cs =>
+      cs.setString(1, instanceId)
+      cs.setLong(2, verificationBatchResourceRef)
+      cs.setLong(3, verificationResourceRef)
+
+      cs.setNull(4, Types.CHAR)
+      cs.setNull(5, Types.VARCHAR)
+      cs.setNull(6, Types.VARCHAR)
+
+      cs.setString(7, actionIndicator)
+      cs.setString(8, proceed)
+      cs.setString(9, subcontractorName)
+
+      cs.setNull(10, Types.INTEGER)
+      cs.registerOutParameter(10, Types.INTEGER)
+
       cs.execute()
     }
 

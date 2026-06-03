@@ -305,4 +305,74 @@ class VerificationServiceSpec extends SpecBase {
         .modifyVerifications(any[ModifyVerificationsRequest])
     }
   }
+  "VerificationService#createSubmissionForVerification" - {
+
+    "delegates to repository" in {
+      val c = Ctx();
+      import c.*
+
+      val req = CreateSubmissionAndUpdateVerificationsRequest(
+        instanceId = "abc-123",
+        verificationBatchId = 99L,
+        verificationBatchResourceRef = 10L,
+        emailRecipient = "ops@example.com",
+        irMarkGenerated = "IR_MARK",
+        verifications = Seq(
+          VerificationToUpdate(
+            subcontractorName = "ACME LTD",
+            verificationResourceRef = 111L,
+            proceedVerification = "Y"
+          ),
+          VerificationToUpdate(
+            subcontractorName = "BETA LTD",
+            verificationResourceRef = 222L,
+            proceedVerification = "N"
+          )
+        ),
+        agentId = Some("agent-123")
+      )
+
+      val response = CreateSubmissionAndUpdateVerificationsResponse(submissionId = 555L)
+
+      when(repo.createSubmissionAndUpdateVerifications(eqTo(req)))
+        .thenReturn(Future.successful(response))
+
+      service.createSubmissionAndUpdateVerifications(req).futureValue mustBe response
+
+      verify(repo).createSubmissionAndUpdateVerifications(eqTo(req))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failure from repository" in {
+      val c = Ctx();
+      import c.*
+
+      val req = CreateSubmissionAndUpdateVerificationsRequest(
+        instanceId = "abc-123",
+        verificationBatchId = 99L,
+        verificationBatchResourceRef = 10L,
+        emailRecipient = "ops@example.com",
+        irMarkGenerated = "IR_MARK",
+        verifications = Seq(
+          VerificationToUpdate(
+            subcontractorName = "ACME LTD",
+            verificationResourceRef = 111L,
+            proceedVerification = "Y"
+          )
+        ),
+        agentId = None
+      )
+
+      val boom = new RuntimeException("boom")
+
+      when(repo.createSubmissionAndUpdateVerifications(eqTo(req)))
+        .thenReturn(Future.failed(boom))
+
+      service.createSubmissionAndUpdateVerifications(req).failed.futureValue mustBe boom
+
+      verify(repo).createSubmissionAndUpdateVerifications(eqTo(req))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
 }
