@@ -354,7 +354,7 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
         transaction = Some(
           Transaction(
             transactionID = Some("1"),
-            totalConsideration = Some(BigDecimal("250000.00"))
+            totalConsideration = Some("250000.00")
           )
         ),
         taxCalculation = Some(
@@ -512,7 +512,7 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
         transaction = Some(
           Transaction(
             transactionID = Some("1"),
-            totalConsideration = Some(BigDecimal("250000.00"))
+            totalConsideration = Some("250000.00")
           )
         ),
         taxCalculation = None,
