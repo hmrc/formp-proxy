@@ -3383,4 +3383,82 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdateV2).close()
     }
   }
+
+  "updateVerificationSubmission" - {
+
+    "updates submission and verification batch in one transaction" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      // --- loadScheme (CallGetScheme) ---
+      val csGetScheme = mock[CallableStatement]
+      val rsScheme    = mock[ResultSet]
+
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetScheme))).thenReturn(csGetScheme)
+      when(csGetScheme.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+
+      when(rsScheme.next()).thenReturn(true, false)
+      when(rsScheme.getLong("scheme_id")).thenReturn(123L)
+      when(rsScheme.getInt("version")).thenReturn(1)
+      when(rsScheme.wasNull()).thenReturn(false)
+      when(rsScheme.getString("email_address")).thenReturn(null)
+
+      // --- Update_Submission ---
+      val csUpdateSubmission = mock[CallableStatement]
+      when(
+        conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateSubmission))
+      ).thenReturn(csUpdateSubmission)
+
+      // --- Update_Verification_Batch ---
+      val csUpdateBatch = mock[CallableStatement]
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateVerificationBatch))).thenReturn(csUpdateBatch)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = UpdateVerificationSubmissionRequest(
+        instanceId = "abc-123",
+        verificationBatchId = 99L,
+        verificationBatchResourceRef = 77L,
+        submittableStatus = "FATAL_ERROR",
+        govtalkErrorCode = Some("500"),
+        govtalkErrorType = Some("timeOut"),
+        govtalkErrorMessage = Some("timeOut")
+      )
+
+      repo.updateVerificationSubmission(req).futureValue
+
+      // ---- Verify Update_Submission parameters ----
+      verify(conn).prepareCall(eqTo(CisStoredProcedures.CallUpdateSubmission))
+      verify(csUpdateSubmission).setString(1, "abc-123") // instanceId
+      verify(csUpdateSubmission).setString(2, "VERIFICATIONS") // submissionType
+      verify(csUpdateSubmission).setLong(3, 99L) // activeObjectId
+      verify(csUpdateSubmission).setString(10, "FATAL_ERROR") // submittableStatus
+      verify(csUpdateSubmission).setString(11, "500") // govtalkErrorCode
+      verify(csUpdateSubmission).setString(12, "timeOut") // govtalkErrorType
+      verify(csUpdateSubmission).setString(13, "timeOut") // govtalkErrorMessage
+      verify(csUpdateSubmission).setLong(14, 77L) // resourceRef
+      verify(csUpdateSubmission).execute()
+
+      // ---- Verify Update_Verification_Batch parameters ----
+      verify(conn).prepareCall(eqTo(CisStoredProcedures.CallUpdateVerificationBatch))
+      verify(csUpdateBatch).setLong(1, 77L)
+      verify(csUpdateBatch).setLong(2, 123L)
+      verify(csUpdateBatch).setNull(3, Types.VARCHAR)
+      verify(csUpdateBatch).setString(4, "Y")
+      verify(csUpdateBatch).setString(5, "Y")
+      verify(csUpdateBatch).setString(6, "FATAL_ERROR")
+      verify(csUpdateBatch).setNull(7, Types.VARCHAR)
+      verify(csUpdateBatch).setNull(8, Types.INTEGER)
+      verify(csUpdateBatch).registerOutParameter(8, Types.INTEGER)
+      verify(csUpdateBatch).execute()
+
+      // scheme was looked up once
+      verify(conn).prepareCall(eqTo(CisStoredProcedures.CallGetScheme))
+      verify(csGetScheme).execute()
+    }
+  }
 }

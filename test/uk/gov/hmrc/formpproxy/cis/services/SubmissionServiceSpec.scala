@@ -118,6 +118,7 @@ class SubmissionServiceSpec extends SpecBase {
           taxMonth = 4,
           hmrcMarkGenerated = "mark",
           submittableStatus = "FATAL_ERROR",
+          amendment = "N",
           govTalkResponse = Some(status)
         )
 
@@ -216,6 +217,7 @@ class SubmissionServiceSpec extends SpecBase {
         taxMonth = 4,
         hmrcMarkGenerated = "mark",
         submittableStatus = "FATAL_ERROR",
+        amendment = "N",
         govtalkErrorCode = Some("raw-code"),
         govtalkErrorType = Some("raw-type"),
         govtalkErrorMessage = Some("raw-msg")

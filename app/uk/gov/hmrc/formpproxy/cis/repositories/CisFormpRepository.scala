@@ -87,6 +87,7 @@ trait CisMonthlyReturnSource {
   ): Future[GetSubmittedMonthlyReturnsDataResponse]
   def createAmendedMonthlyReturn(request: CreateAmendedMonthlyReturnRequest): Future[Unit]
   def modifyVerifications(req: ModifyVerificationsRequest): Future[Unit]
+  def updateVerificationSubmission(req: UpdateVerificationSubmissionRequest): Future[Unit]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -862,6 +863,42 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.execute()
     }
 
+  private def callUpdateSubmission(
+    conn: Connection,
+    instanceId: String,
+    submissionType: String,
+    activeObjectId: Long,
+    hmrcMarkGenerated: String,
+    hmrcMarkGgis: String,
+    emailRecipient: String,
+    submissionRequestDate: Timestamp,
+    acceptedTime: String,
+    agentId: String,
+    submittableStatus: String,
+    govtalkErrorCode: String,
+    govtalkErrorType: String,
+    govtalkErrorMessage: String,
+    resourceRef: Long
+  ): Unit =
+    withCall(conn, CallUpdateSubmission) { cs =>
+      cs.setString(1, instanceId)
+      cs.setString(2, submissionType)
+      cs.setLong(3, activeObjectId)
+      cs.setString(4, hmrcMarkGenerated)
+      cs.setString(5, hmrcMarkGgis)
+      cs.setString(6, emailRecipient)
+      cs.setTimestamp(7, submissionRequestDate)
+      cs.setString(8, acceptedTime)
+      cs.setString(9, agentId)
+      cs.setString(10, submittableStatus)
+      cs.setString(11, govtalkErrorCode)
+      cs.setString(12, govtalkErrorType)
+      cs.setString(13, govtalkErrorMessage)
+      cs.setLong(14, resourceRef)
+
+      cs.execute()
+    }
+
   private def callCreateMonthlyReturnItem(
     connection: Connection,
     instanceId: String,
@@ -1396,6 +1433,45 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
             )
           }
         }
+      }
+    }
+  }
+
+  override def updateVerificationSubmission(req: UpdateVerificationSubmissionRequest): Future[Unit] = {
+    logger.info(
+      s"[CIS] updateVerificationSubmission(instanceId=${req.instanceId}, verificationBatchId=${req.verificationBatchId}, status=${req.submittableStatus})"
+    )
+
+    Future {
+      db.withTransaction { conn =>
+        val schemeRow = loadScheme(conn, req.instanceId)
+
+        callUpdateSubmission(
+          conn,
+          instanceId = req.instanceId,
+          submissionType = "VERIFICATIONS",
+          activeObjectId = req.verificationBatchId,
+          hmrcMarkGenerated = null,
+          hmrcMarkGgis = null,
+          emailRecipient = null,
+          submissionRequestDate = null,
+          acceptedTime = null,
+          agentId = null,
+          submittableStatus = req.submittableStatus,
+          govtalkErrorCode = req.govtalkErrorCode.orNull,
+          govtalkErrorType = req.govtalkErrorType.orNull,
+          govtalkErrorMessage = req.govtalkErrorMessage.orNull,
+          resourceRef = req.verificationBatchResourceRef
+        )
+
+        callUpdateVerificationBatch(
+          conn = conn,
+          verificationBatchResourceRef = req.verificationBatchResourceRef,
+          schemeId = schemeRow.schemeId,
+          confirmArrangement = "Y",
+          confirmCorrect = "Y",
+          status = req.submittableStatus
+        )
       }
     }
   }
