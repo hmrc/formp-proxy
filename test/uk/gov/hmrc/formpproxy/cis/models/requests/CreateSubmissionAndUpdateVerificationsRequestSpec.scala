@@ -58,7 +58,7 @@ final class CreateSubmissionAndUpdateVerificationsRequestSpec extends AnyWordSpe
       out.verificationBatchId mustBe 99L
       out.verificationBatchResourceRef mustBe 10L
       out.emailRecipient mustBe "ops@example.com"
-      out.irMarkGenerated mustBe "IR_MARK"
+      out.irMarkGenerated mustBe Some("IR_MARK")
       out.agentId mustBe Some("agent-123")
 
       out.verifications must have size 2
@@ -101,7 +101,7 @@ final class CreateSubmissionAndUpdateVerificationsRequestSpec extends AnyWordSpe
         verificationBatchId = 99L,
         verificationBatchResourceRef = 10L,
         emailRecipient = "ops@example.com",
-        irMarkGenerated = "IR_MARK",
+        irMarkGenerated = Some("IR_MARK"),
         verifications = Seq(
           VerificationToUpdate(
             subcontractorName = "ACME LTD",
@@ -138,7 +138,7 @@ final class CreateSubmissionAndUpdateVerificationsRequestSpec extends AnyWordSpe
         verificationBatchId = 99L,
         verificationBatchResourceRef = 10L,
         emailRecipient = "ops@example.com",
-        irMarkGenerated = "IR_MARK",
+        irMarkGenerated = Some("IR_MARK"),
         verifications = Seq(
           VerificationToUpdate("ACME LTD", 111L, "Y"),
           VerificationToUpdate("BETA LTD", 222L, "N")
