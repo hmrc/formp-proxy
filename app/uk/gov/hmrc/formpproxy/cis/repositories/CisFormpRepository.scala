@@ -1303,7 +1303,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
             instanceId = req.instanceId,
             submissionType = "VERIFICATIONS",
             activeObjectId = req.verificationBatchId,
-            hmrcMarkGenerated = req.irMarkGenerated,
+            hmrcMarkGenerated = req.irMarkGenerated.orNull,
             hmrcMarkGgis = null,
             emailRecipient = req.emailRecipient,
             agentId = req.agentId.orNull,

@@ -663,7 +663,7 @@ class VerificationControllerSpec extends SpecBase {
         verificationBatchId = 999L,
         verificationBatchResourceRef = 77L,
         emailRecipient = "ops@example.com",
-        irMarkGenerated = "IR_MARK",
+        irMarkGenerated = Some("IR_MARK"),
         verifications = Seq(
           VerificationToUpdate(
             subcontractorName = "ACME LTD",
@@ -726,7 +726,7 @@ class VerificationControllerSpec extends SpecBase {
         verificationBatchId = 999L,
         verificationBatchResourceRef = 77L,
         emailRecipient = "ops@example.com",
-        irMarkGenerated = "IR_MARK",
+        irMarkGenerated = Some("IR_MARK"),
         verifications = Seq(
           VerificationToUpdate(
             subcontractorName = "ACME LTD",

@@ -316,7 +316,7 @@ class VerificationServiceSpec extends SpecBase {
         verificationBatchId = 99L,
         verificationBatchResourceRef = 10L,
         emailRecipient = "ops@example.com",
-        irMarkGenerated = "IR_MARK",
+        irMarkGenerated = Some("IR_MARK"),
         verifications = Seq(
           VerificationToUpdate(
             subcontractorName = "ACME LTD",
@@ -352,7 +352,7 @@ class VerificationServiceSpec extends SpecBase {
         verificationBatchId = 99L,
         verificationBatchResourceRef = 10L,
         emailRecipient = "ops@example.com",
-        irMarkGenerated = "IR_MARK",
+        irMarkGenerated = Some("IR_MARK"),
         verifications = Seq(
           VerificationToUpdate(
             subcontractorName = "ACME LTD",
