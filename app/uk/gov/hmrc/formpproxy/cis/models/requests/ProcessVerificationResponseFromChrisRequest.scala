@@ -21,29 +21,29 @@ import play.api.libs.json.{Json, OFormat}
 import java.time.LocalDateTime
 
 final case class ProcessVerificationResponseFromChrisRequest(
-                                                 instanceId: String,
-                                                 submissionType: String = "VERIFICATIONS",
-                                                 activeObjectId: Long,
-                                                 hmrcMarkGenerated: Option[String],
-                                                 hmrcMarkGgis: Option[String],
-                                                 emailRecipient: Option[String],
-                                                 submissionRequestDate: Option[LocalDateTime],
-                                                 acceptedTime: Option[String],
-                                                 agentId: Option[String],
-                                                 submittableStatus: String,
-                                                 govTalkErrorCode: Option[String],
-                                                 govTalkErrorType: Option[String],
-                                                 govTalkErrorMessage: Option[String],
-                                                 verifBatchResourceRef: Long,
-                                                 verificationResourceRef: Long,
-                                                 subbieResourceRef: Long,
-                                                 matched: Option[String],
-                                                 verificationNumber: Option[String],
-                                                 taxTreatment: Option[String],
-                                                 actionIndicator: Option[String],
-                                                 proceed: Option[String],
-                                                 subcontractorName: String
-                                               )
+  instanceId: String,
+  submissionType: String = "VERIFICATIONS",
+  activeObjectId: Long,
+  hmrcMarkGenerated: Option[String],
+  hmrcMarkGgis: Option[String],
+  emailRecipient: Option[String],
+  submissionRequestDate: Option[LocalDateTime],
+  acceptedTime: Option[String],
+  agentId: Option[String],
+  submittableStatus: String,
+  govTalkErrorCode: Option[String],
+  govTalkErrorType: Option[String],
+  govTalkErrorMessage: Option[String],
+  verifBatchResourceRef: Long,
+  verificationResourceRef: Long,
+  subbieResourceRef: Long,
+  matched: Option[String],
+  verificationNumber: Option[String],
+  taxTreatment: Option[String],
+  actionIndicator: Option[String],
+  proceed: Option[String],
+  subcontractorName: String
+)
 
 object ProcessVerificationResponseFromChrisRequest {
   implicit val format: OFormat[ProcessVerificationResponseFromChrisRequest] =
