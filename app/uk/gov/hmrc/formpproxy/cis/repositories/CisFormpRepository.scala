@@ -87,6 +87,8 @@ trait CisMonthlyReturnSource {
   ): Future[GetSubmittedMonthlyReturnsDataResponse]
   def createAmendedMonthlyReturn(request: CreateAmendedMonthlyReturnRequest): Future[Unit]
   def modifyVerifications(req: ModifyVerificationsRequest): Future[Unit]
+
+  def processVerificationResponseFromChris(req: ProcessVerificationResponseFromChrisRequest): Future[Unit]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -1399,5 +1401,168 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
   }
+
+  override def processVerificationResponseFromChris(req: ProcessVerificationResponseFromChrisRequest): Future[Unit] =
+    Future {
+      logger.info(
+        s"[CIS] processVerificationResponseFromChris(instanceId=${req.instanceId}, verifBatchResourceRef=${req.verifBatchResourceRef}, verificationResourceRef=${req.verificationResourceRef})"
+      )
+
+      db.withTransaction { conn =>
+        val schemeRow = loadScheme(conn, req.instanceId)
+        val schemeId  = schemeRow.schemeId
+
+        val subcontractor = callGetSubcontractor(
+          conn = conn,
+          instanceId = req.instanceId,
+          subbieResourceRef = req.subbieResourceRef
+        )
+
+        callUpdateSubcontractorFromChris(
+          conn = conn,
+          schemeId = schemeId,
+          subbieResourceRef = req.subbieResourceRef,
+          subcontractor = subcontractor,
+          req = req
+        )
+
+        callUpdateVerificationBatch(
+          conn = conn,
+          verificationBatchResourceRef = req.verifBatchResourceRef,
+          schemeId = schemeId,
+          confirmArrangement = "Y",
+          confirmCorrect = "Y",
+          status = req.submittableStatus
+        )
+
+        callUpdateVerificationFromChris(
+          conn = conn,
+          req = req
+        )
+
+        callUpdateSubmissionFromChris(
+          conn = conn,
+          req = req
+        )
+      }
+    }
+
+  private def callGetSubcontractor(
+    conn: Connection,
+    instanceId: String,
+    subbieResourceRef: Long
+  ): Subcontractor =
+    withCall(conn, CallGetSubcontractor) { cs =>
+      cs.setString(1, instanceId)
+      cs.setLong(2, subbieResourceRef)
+      cs.registerOutParameter(3, OracleTypes.CURSOR)
+      cs.execute()
+
+      withCursor(cs, 3) { rs =>
+        if (rs.next()) readSubcontractor(rs)
+        else
+          throw new RuntimeException(
+            s"No SUBCONTRACTOR row for instanceId=$instanceId and subbieResourceRef=$subbieResourceRef"
+          )
+      }
+    }
+
+  private def callUpdateSubcontractorFromChris(
+    conn: Connection,
+    schemeId: Long,
+    subbieResourceRef: Long,
+    subcontractor: Subcontractor,
+    req: ProcessVerificationResponseFromChrisRequest
+  ): Unit =
+    withCall(conn, CallUpdateSubcontractor) { cs =>
+      cs.setLong(1, schemeId)
+      cs.setLong(2, subbieResourceRef)
+
+      cs.setOptionalString(3, subcontractor.utr)
+      cs.setOptionalInt(4, subcontractor.pageVisited)
+      cs.setOptionalString(5, subcontractor.partnerUtr)
+      cs.setOptionalString(6, subcontractor.crn)
+
+      cs.setOptionalString(7, subcontractor.firstName)
+      cs.setOptionalString(8, subcontractor.nino)
+      cs.setOptionalString(9, subcontractor.secondName)
+      cs.setOptionalString(10, subcontractor.surname)
+
+      cs.setOptionalString(11, subcontractor.partnershipTradingName)
+      cs.setOptionalString(12, subcontractor.tradingName)
+
+      cs.setOptionalString(13, subcontractor.addressLine1)
+      cs.setOptionalString(14, subcontractor.addressLine2)
+      cs.setOptionalString(15, subcontractor.addressLine3)
+      cs.setOptionalString(16, subcontractor.addressLine4)
+      cs.setOptionalString(17, subcontractor.country)
+      cs.setOptionalString(18, subcontractor.postcode)
+
+      cs.setOptionalString(19, subcontractor.emailAddress)
+      cs.setOptionalString(20, subcontractor.phoneNumber)
+      cs.setOptionalString(21, subcontractor.mobilePhoneNumber)
+      cs.setOptionalString(22, subcontractor.worksReferenceNumber)
+
+      cs.setOptionalString(23, req.taxTreatment)
+      cs.setOptionalString(24, req.taxTreatment)
+      cs.setOptionalString(25, req.verificationNumber)
+      cs.setOptionalString(26, req.matched)
+      cs.setOptionalString(27, Some("Y"))
+      cs.setOptionalString(28, Some("N"))
+
+      cs.setOptionalTimestamp(29, Some(LocalDateTime.now()))
+      cs.setOptionalInt(30, subcontractor.version)
+      cs.registerOutParameter(30, Types.INTEGER)
+
+      cs.execute()
+    }
+
+  private def callUpdateVerificationFromChris(
+    conn: Connection,
+    req: ProcessVerificationResponseFromChrisRequest
+  ): Unit =
+    withCall(conn, CallUpdateVerification) { cs =>
+      cs.setString(1, req.instanceId)
+      cs.setLong(2, req.verifBatchResourceRef)
+      cs.setLong(3, req.verificationResourceRef)
+
+      cs.setOptionalString(4, req.matched)
+      cs.setOptionalString(5, req.verificationNumber)
+      cs.setOptionalString(6, req.taxTreatment)
+
+      cs.setOptionalString(7, req.actionIndicator)
+      cs.setOptionalString(8, req.proceed)
+      cs.setString(9, req.subcontractorName)
+
+      cs.setNull(10, Types.INTEGER)
+      cs.registerOutParameter(10, Types.INTEGER)
+
+      cs.execute()
+    }
+
+  private def callUpdateSubmissionFromChris(
+    conn: Connection,
+    req: ProcessVerificationResponseFromChrisRequest
+  ): Unit =
+    withCall(conn, CallUpdateSubmission) { cs =>
+      cs.setString(1, req.submissionType)
+      cs.setLong(2, req.activeObjectId)
+      cs.setOptionalString(3, req.hmrcMarkGenerated)
+      cs.setOptionalString(4, req.hmrcMarkGgis)
+      cs.setOptionalString(5, req.emailRecipient)
+      cs.setOptionalTimestamp(6, req.submissionRequestDate)
+      cs.setOptionalString(7, req.acceptedTime)
+      cs.setOptionalString(8, req.agentId)
+      cs.setString(9, req.submittableStatus)
+      cs.setOptionalString(10, req.govTalkErrorCode)
+      cs.setOptionalString(11, req.govTalkErrorType)
+      cs.setOptionalString(12, req.govTalkErrorMessage)
+      cs.setString(13, req.instanceId)
+      cs.setLong(14, req.verifBatchResourceRef)
+      cs.setNull(15, Types.INTEGER)
+      cs.registerOutParameter(15, Types.INTEGER)
+
+      cs.execute()
+    }
 
 }
