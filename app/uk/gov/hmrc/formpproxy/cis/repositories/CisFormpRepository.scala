@@ -87,6 +87,7 @@ trait CisMonthlyReturnSource {
   ): Future[GetSubmittedMonthlyReturnsDataResponse]
   def createAmendedMonthlyReturn(request: CreateAmendedMonthlyReturnRequest): Future[Unit]
   def modifyVerifications(req: ModifyVerificationsRequest): Future[Unit]
+  def getBatchPollSubmissions(): Future[GetBatchPollSubmissionsResponse]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -1400,4 +1401,29 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
+  override def getBatchPollSubmissions(): Future[GetBatchPollSubmissionsResponse] = {
+    logger.info("[CIS] getBatchPollSubmissions")
+
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallGetBatchPollSubmissions) { cs =>
+          cs.registerOutParameter(1, OracleTypes.CURSOR)
+          cs.registerOutParameter(2, OracleTypes.CURSOR)
+
+          cs.execute()
+
+          val verificationSubmissions =
+            withCursor(cs, 1)(collectSubmissions)
+
+          val monthlyReturnSubmissions =
+            withCursor(cs, 2)(collectSubmissions)
+
+          GetBatchPollSubmissionsResponse(
+            verificationSubmissions = verificationSubmissions,
+            monthlyReturnSubmissions = monthlyReturnSubmissions
+          )
+        }
+      }
+    }
+  }
 }
