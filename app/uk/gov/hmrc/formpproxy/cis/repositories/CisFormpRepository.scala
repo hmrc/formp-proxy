@@ -881,19 +881,19 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     resourceRef: Long
   ): Unit =
     withCall(conn, CallUpdateSubmission) { cs =>
-      cs.setString(1, instanceId)
-      cs.setString(2, submissionType)
-      cs.setLong(3, activeObjectId)
-      cs.setString(4, hmrcMarkGenerated)
-      cs.setString(5, hmrcMarkGgis)
-      cs.setString(6, emailRecipient)
-      cs.setTimestamp(7, submissionRequestDate)
-      cs.setString(8, acceptedTime)
-      cs.setString(9, agentId)
-      cs.setString(10, submittableStatus)
-      cs.setString(11, govtalkErrorCode)
-      cs.setString(12, govtalkErrorType)
-      cs.setString(13, govtalkErrorMessage)
+      cs.setString(1, submissionType)
+      cs.setLong(2, activeObjectId)
+      cs.setString(3, hmrcMarkGenerated)
+      cs.setString(4, hmrcMarkGgis)
+      cs.setString(5, emailRecipient)
+      cs.setTimestamp(6, submissionRequestDate)
+      cs.setString(7, acceptedTime)
+      cs.setString(8, agentId)
+      cs.setString(9, submittableStatus)
+      cs.setString(10, govtalkErrorCode)
+      cs.setString(11, govtalkErrorType)
+      cs.setString(12, govtalkErrorMessage)
+      cs.setString(13, instanceId)
       cs.setLong(14, resourceRef)
 
       cs.execute()
@@ -1437,6 +1437,22 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
+  private def callGetSubmission(conn: Connection, instanceId: String, verificationBatchResourceRef: Long): Submission =
+    withCall(conn, CallGetSubmission) { cs =>
+      cs.setString(1, instanceId)
+      cs.setLong(2, verificationBatchResourceRef)
+      cs.registerOutParameter(3, OracleTypes.CURSOR)
+      cs.execute()
+
+      withCursor(cs, 3) { rs =>
+        if (!rs.next())
+          throw new RuntimeException(
+            s"No submission found for instanceId=$instanceId, resourceRef=$verificationBatchResourceRef"
+          )
+        readSubmissionForGetVerificationBatch(rs)
+      }
+    }
+
   override def updateVerificationSubmission(req: UpdateVerificationSubmissionRequest): Future[Unit] = {
     logger.info(
       s"[CIS] updateVerificationSubmission(instanceId=${req.instanceId}, verificationBatchId=${req.verificationBatchId}, status=${req.submittableStatus})"
@@ -1444,33 +1460,24 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
     Future {
       db.withTransaction { conn =>
-        val schemeRow = loadScheme(conn, req.instanceId)
+        val existing = callGetSubmission(conn, req.instanceId, req.verificationBatchResourceRef)
 
         callUpdateSubmission(
           conn,
           instanceId = req.instanceId,
           submissionType = "VERIFICATIONS",
           activeObjectId = req.verificationBatchId,
-          hmrcMarkGenerated = null,
-          hmrcMarkGgis = null,
-          emailRecipient = null,
-          submissionRequestDate = null,
-          acceptedTime = null,
-          agentId = null,
+          hmrcMarkGenerated = existing.hmrcMarkGenerated.orNull,
+          hmrcMarkGgis = existing.hmrcMarkGgis.orNull,
+          emailRecipient = existing.emailRecipient.orNull,
+          submissionRequestDate = existing.submissionRequestDate.map(Timestamp.valueOf).orNull,
+          acceptedTime = existing.acceptedTime.orNull,
+          agentId = existing.agentId.orNull,
           submittableStatus = req.submittableStatus,
           govtalkErrorCode = req.govtalkErrorCode.orNull,
           govtalkErrorType = req.govtalkErrorType.orNull,
           govtalkErrorMessage = req.govtalkErrorMessage.orNull,
           resourceRef = req.verificationBatchResourceRef
-        )
-
-        callUpdateVerificationBatch(
-          conn = conn,
-          verificationBatchResourceRef = req.verificationBatchResourceRef,
-          schemeId = schemeRow.schemeId,
-          confirmArrangement = "Y",
-          confirmCorrect = "Y",
-          status = req.submittableStatus
         )
       }
     }

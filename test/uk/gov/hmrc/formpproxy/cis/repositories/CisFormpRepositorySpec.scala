@@ -3386,7 +3386,7 @@ final class CisFormpRepositorySpec extends SpecBase {
 
   "updateVerificationSubmission" - {
 
-    "updates submission and verification batch in one transaction" in {
+    "fetches existing submission then updates with merged values" in {
       val db   = mock[Database]
       val conn = mock[Connection]
 
@@ -3394,28 +3394,38 @@ final class CisFormpRepositorySpec extends SpecBase {
         inv.getArgument(0, classOf[Connection => Any]).apply(conn)
       }
 
-      // --- loadScheme (CallGetScheme) ---
-      val csGetScheme = mock[CallableStatement]
-      val rsScheme    = mock[ResultSet]
+      // --- Get_Submission ---
+      val csGetSubmission = mock[CallableStatement]
+      val rsSubmission    = mock[ResultSet]
 
-      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetScheme))).thenReturn(csGetScheme)
-      when(csGetScheme.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetSubmission))).thenReturn(csGetSubmission)
+      when(csGetSubmission.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
 
-      when(rsScheme.next()).thenReturn(true, false)
-      when(rsScheme.getLong("scheme_id")).thenReturn(123L)
-      when(rsScheme.getInt("version")).thenReturn(1)
-      when(rsScheme.wasNull()).thenReturn(false)
-      when(rsScheme.getString("email_address")).thenReturn(null)
+      when(rsSubmission.next()).thenReturn(true, false)
+      when(rsSubmission.getLong("submission_id")).thenReturn(42L)
+      when(rsSubmission.getString("submission_type")).thenReturn("VERIFICATIONS")
+      when(rsSubmission.getLong("active_object_id")).thenReturn(99L)
+      when(rsSubmission.getString("status")).thenReturn("ACCEPTED")
+      when(rsSubmission.getString("hmrc_mark_generated")).thenReturn("existing-mark")
+      when(rsSubmission.getString("hmrc_mark_ggis")).thenReturn("existing-ggis")
+      when(rsSubmission.getString("email_recipient")).thenReturn("test@example.com")
+      when(rsSubmission.getString("accepted_time")).thenReturn("2026-01-01T10:00:00")
+      when(rsSubmission.getTimestamp("create_date")).thenReturn(null)
+      when(rsSubmission.getTimestamp("last_update")).thenReturn(null)
+      when(rsSubmission.getLong("scheme_id")).thenReturn(123L)
+      when(rsSubmission.getString("agent_id")).thenReturn("AGENT-1")
+      when(rsSubmission.getTimestamp("submission_request_date"))
+        .thenReturn(java.sql.Timestamp.valueOf("2026-01-01 09:00:00"))
+      when(rsSubmission.getString("govtalk_error_code")).thenReturn(null)
+      when(rsSubmission.getString("govtalk_error_type")).thenReturn(null)
+      when(rsSubmission.getString("govtalk_error_message")).thenReturn(null)
+      when(rsSubmission.wasNull()).thenReturn(false)
 
       // --- Update_Submission ---
       val csUpdateSubmission = mock[CallableStatement]
       when(
         conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateSubmission))
       ).thenReturn(csUpdateSubmission)
-
-      // --- Update_Verification_Batch ---
-      val csUpdateBatch = mock[CallableStatement]
-      when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateVerificationBatch))).thenReturn(csUpdateBatch)
 
       val repo = new CisFormpRepository(db)
 
@@ -3431,34 +3441,35 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       repo.updateVerificationSubmission(req).futureValue
 
-      // ---- Verify Update_Submission parameters ----
+      // ---- Verify Get_Submission was called ----
+      verify(conn).prepareCall(eqTo(CisStoredProcedures.CallGetSubmission))
+      verify(csGetSubmission).setString(1, "abc-123")
+      verify(csGetSubmission).setLong(2, 77L)
+      verify(csGetSubmission).registerOutParameter(3, OracleTypes.CURSOR)
+      verify(csGetSubmission).execute()
+
+      // ---- Verify Update_Submission with merged parameters (matches Oracle SP parameter order) ----
       verify(conn).prepareCall(eqTo(CisStoredProcedures.CallUpdateSubmission))
-      verify(csUpdateSubmission).setString(1, "abc-123") // instanceId
-      verify(csUpdateSubmission).setString(2, "VERIFICATIONS") // submissionType
-      verify(csUpdateSubmission).setLong(3, 99L) // activeObjectId
-      verify(csUpdateSubmission).setString(10, "FATAL_ERROR") // submittableStatus
-      verify(csUpdateSubmission).setString(11, "500") // govtalkErrorCode
-      verify(csUpdateSubmission).setString(12, "timeOut") // govtalkErrorType
-      verify(csUpdateSubmission).setString(13, "timeOut") // govtalkErrorMessage
-      verify(csUpdateSubmission).setLong(14, 77L) // resourceRef
+      verify(csUpdateSubmission).setString(1, "VERIFICATIONS") // p_submission_type
+      verify(csUpdateSubmission).setLong(2, 99L) // p_active_object_id
+      verify(csUpdateSubmission).setString(3, "existing-mark") // p_hmrc_mark_generated (from existing)
+      verify(csUpdateSubmission).setString(4, "existing-ggis") // p_hmrc_mark_ggis (from existing)
+      verify(csUpdateSubmission).setString(5, "test@example.com") // p_email_recipient (from existing)
+      verify(csUpdateSubmission)
+        .setTimestamp(6, java.sql.Timestamp.valueOf("2026-01-01 09:00:00")) // p_submission_request_date (from existing)
+      verify(csUpdateSubmission).setString(7, "2026-01-01T10:00:00") // p_accepted_time (from existing)
+      verify(csUpdateSubmission).setString(8, "AGENT-1") // p_agent_id (from existing)
+      verify(csUpdateSubmission).setString(9, "FATAL_ERROR") // p_submittable_status (from request)
+      verify(csUpdateSubmission).setString(10, "500") // p_govtalk_error_code (from request)
+      verify(csUpdateSubmission).setString(11, "timeOut") // p_govtalk_error_type (from request)
+      verify(csUpdateSubmission).setString(12, "timeOut") // p_govtalk_error_message (from request)
+      verify(csUpdateSubmission).setString(13, "abc-123") // p_instance_id
+      verify(csUpdateSubmission).setLong(14, 77L) // p_verif_batch_resource_ref
       verify(csUpdateSubmission).execute()
 
-      // ---- Verify Update_Verification_Batch parameters ----
-      verify(conn).prepareCall(eqTo(CisStoredProcedures.CallUpdateVerificationBatch))
-      verify(csUpdateBatch).setLong(1, 77L)
-      verify(csUpdateBatch).setLong(2, 123L)
-      verify(csUpdateBatch).setNull(3, Types.VARCHAR)
-      verify(csUpdateBatch).setString(4, "Y")
-      verify(csUpdateBatch).setString(5, "Y")
-      verify(csUpdateBatch).setString(6, "FATAL_ERROR")
-      verify(csUpdateBatch).setNull(7, Types.VARCHAR)
-      verify(csUpdateBatch).setNull(8, Types.INTEGER)
-      verify(csUpdateBatch).registerOutParameter(8, Types.INTEGER)
-      verify(csUpdateBatch).execute()
-
-      // scheme was looked up once
-      verify(conn).prepareCall(eqTo(CisStoredProcedures.CallGetScheme))
-      verify(csGetScheme).execute()
+      // ---- Verify no callUpdateVerificationBatch or loadScheme ----
+      verify(conn, never()).prepareCall(eqTo(CisStoredProcedures.CallUpdateVerificationBatch))
+      verify(conn, never()).prepareCall(eqTo(CisStoredProcedures.CallGetScheme))
     }
   }
 }
