@@ -1402,7 +1402,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   }
 
   override def getBatchPollSubmissions(): Future[GetBatchPollSubmissionsResponse] = {
-    logger.info("[CIS] getBatchPollSubmissions")
+    logger.info("[CIS][getBatchPollSubmissions] Calling GET_SUBMISSIONS_FOR_POLLING")
 
     Future {
       db.withConnection { conn =>
@@ -1413,10 +1413,10 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           cs.execute()
 
           val verificationSubmissions =
-            withCursor(cs, 1)(collectSubmissions)
+            withCursor(cs, 1)(collectVerificationSubmissionsToPoll)
 
           val monthlyReturnSubmissions =
-            withCursor(cs, 2)(collectSubmissions)
+            withCursor(cs, 2)(collectMonthlyReturnSubmissionsToPoll)
 
           GetBatchPollSubmissionsResponse(
             verificationSubmissions = verificationSubmissions,

@@ -24,6 +24,7 @@ import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
+import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 
 import java.sql.*
@@ -3381,6 +3382,64 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdateBatch).close()
       verify(csUpdateV1).close()
       verify(csUpdateV2).close()
+    }
+  }
+
+  "CisRowMappers readVerificationSubmissionToPoll" - {
+
+    "maps a verification submission row" in {
+      val rs = mock[ResultSet]
+
+      when(rs.getLong("submission_id")).thenReturn(90001L)
+      when(rs.getString("submission_type")).thenReturn("CISVERIFY")
+      when(rs.getString("agent_id")).thenReturn("A123456")
+      when(rs.getString("tax_office_number")).thenReturn("123")
+      when(rs.getString("tax_office_reference")).thenReturn("ABC123")
+      when(rs.getString("instance_id")).thenReturn("instance-verification-001")
+      when(rs.getString("status")).thenReturn("SUBMITTED")
+      when(rs.getLong("verification_batch_resource_ref")).thenReturn(70001L)
+
+      CisRowMappers.readVerificationSubmissionToPoll(rs) mustBe
+        VerificationSubmissionToPoll(
+          submissionId = 90001L,
+          submissionType = "CISVERIFY",
+          agentId = Some("A123456"),
+          taxOfficeNumber = "123",
+          taxOfficeReference = "ABC123",
+          instanceId = "instance-verification-001",
+          status = "SUBMITTED",
+          verificationBatchResourceRef = 70001L
+        )
+    }
+  }
+
+  "CisRowMappers readMonthlyReturnSubmissionToPoll" - {
+
+    "maps a monthly return submission row" in {
+      val rs = mock[ResultSet]
+
+      when(rs.getLong("submission_id")).thenReturn(90002L)
+      when(rs.getString("submission_type")).thenReturn("CIS300MR")
+      when(rs.getString("status")).thenReturn("SUBMITTED")
+      when(rs.getString("tax_office_number")).thenReturn("123")
+      when(rs.getString("tax_office_reference")).thenReturn("456789")
+      when(rs.getString("tax_year")).thenReturn("2025-26")
+      when(rs.getString("tax_month")).thenReturn("06")
+      when(rs.getString("instance_id")).thenReturn("instance-monthly-return-001")
+      when(rs.getString("agent_id")).thenReturn("A123456")
+
+      CisRowMappers.readMonthlyReturnSubmissionToPoll(rs) mustBe
+        MonthlyReturnSubmissionToPoll(
+          submissionId = 90002L,
+          submissionType = "CIS300MR",
+          status = "SUBMITTED",
+          taxOfficeNumber = "123",
+          taxOfficeReference = "456789",
+          taxYear = "2025-26",
+          taxMonth = "06",
+          instanceId = "instance-monthly-return-001",
+          agentId = Some("A123456")
+        )
     }
   }
 }
