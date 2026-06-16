@@ -375,4 +375,85 @@ class VerificationServiceSpec extends SpecBase {
     }
   }
 
+  "VerificationService#processVerificationResponseFromChris" - {
+
+    "delegates to repository" in {
+      val c = Ctx()
+      import c.*
+
+      val request = ProcessVerificationResponseFromChrisRequest(
+        instanceId = "abc-123",
+        submissionType = "VERIFICATIONS",
+        activeObjectId = 10L,
+        hmrcMarkGenerated = Some("IR_MARK"),
+        hmrcMarkGgis = None,
+        emailRecipient = Some("ops@example.com"),
+        submissionRequestDate = None,
+        acceptedTime = Some("12:00:00"),
+        agentId = Some("agent-123"),
+        submittableStatus = "ACCEPTED",
+        govTalkErrorCode = None,
+        govTalkErrorType = None,
+        govTalkErrorMessage = None,
+        verifBatchResourceRef = 77L,
+        verificationResourceRef = 111L,
+        subbieResourceRef = 222L,
+        matched = Some("Y"),
+        verificationNumber = Some("V123456"),
+        taxTreatment = Some("NET"),
+        actionIndicator = Some("VERIFY"),
+        proceed = Some("Y"),
+        subcontractorName = "ACME LTD"
+      )
+
+      when(repo.processVerificationResponseFromChris(eqTo(request)))
+        .thenReturn(Future.successful(()))
+
+      service.processVerificationResponseFromChris(request).futureValue mustBe ()
+
+      verify(repo).processVerificationResponseFromChris(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failure from repository" in {
+      val c = Ctx()
+      import c.*
+
+      val request = ProcessVerificationResponseFromChrisRequest(
+        instanceId = "abc-123",
+        submissionType = "VERIFICATIONS",
+        activeObjectId = 10L,
+        hmrcMarkGenerated = None,
+        hmrcMarkGgis = None,
+        emailRecipient = None,
+        submissionRequestDate = None,
+        acceptedTime = None,
+        agentId = None,
+        submittableStatus = "FAILED",
+        govTalkErrorCode = Some("500"),
+        govTalkErrorType = Some("SERVER_ERROR"),
+        govTalkErrorMessage = Some("Unexpected error"),
+        verifBatchResourceRef = 77L,
+        verificationResourceRef = 111L,
+        subbieResourceRef = 222L,
+        matched = None,
+        verificationNumber = None,
+        taxTreatment = None,
+        actionIndicator = Some("VERIFY"),
+        proceed = Some("Y"),
+        subcontractorName = "ACME LTD"
+      )
+
+      val boom = new RuntimeException("boom")
+
+      when(repo.processVerificationResponseFromChris(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      service.processVerificationResponseFromChris(request).failed.futureValue mustBe boom
+
+      verify(repo).processVerificationResponseFromChris(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
 }

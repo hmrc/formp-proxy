@@ -754,4 +754,122 @@ class VerificationControllerSpec extends SpecBase {
       verifyNoMoreInteractions(mockService)
     }
   }
+
+  "POST /cis/verification/response/process (processVerificationResponseFromChris)" - {
+
+    val url = "/cis/verification/response/process"
+
+    "returns 204 NoContent when service succeeds" in {
+      val s = setup
+      import s.*
+
+      val requestModel = ProcessVerificationResponseFromChrisRequest(
+        instanceId = "abc-123",
+        submissionType = "VERIFICATIONS",
+        activeObjectId = 10L,
+        hmrcMarkGenerated = Some("IR_MARK"),
+        hmrcMarkGgis = None,
+        emailRecipient = Some("test@test.com"),
+        submissionRequestDate = None,
+        acceptedTime = Some("12:00:00"),
+        agentId = None,
+        submittableStatus = "ACCEPTED",
+        govTalkErrorCode = None,
+        govTalkErrorType = None,
+        govTalkErrorMessage = None,
+        verifBatchResourceRef = 222L,
+        verificationResourceRef = 333L,
+        subbieResourceRef = 456L,
+        matched = Some("Y"),
+        verificationNumber = Some("V123456"),
+        taxTreatment = Some("NET"),
+        actionIndicator = Some("VERIFY"),
+        proceed = Some("Y"),
+        subcontractorName = "John Smith"
+      )
+
+      when(mockService.processVerificationResponseFromChris(eqTo(requestModel)))
+        .thenReturn(Future.successful(()))
+
+      val req = FakeRequest(POST, url)
+        .withHeaders(CONTENT_TYPE -> JSON)
+        .withBody(Json.toJson(requestModel))
+
+      val result = controller.processVerificationResponseFromChris().apply(req)
+
+      status(result) mustBe NO_CONTENT
+      contentAsString(result) mustBe ""
+
+      verify(mockService).processVerificationResponseFromChris(eqTo(requestModel))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 400 BadRequest with error payload when JSON is invalid" in {
+      val s = setup
+      import s.*
+
+      val badJson = Json.obj("instanceId" -> "abc-123")
+
+      val req = FakeRequest(POST, url)
+        .withHeaders(CONTENT_TYPE -> JSON)
+        .withBody(badJson)
+
+      val result = controller.processVerificationResponseFromChris().apply(req)
+
+      status(result) mustBe BAD_REQUEST
+      contentType(result) mustBe Some(JSON)
+
+      val body = contentAsJson(result)
+      (body \ "message").as[String] mustBe "Invalid payload"
+      (body \ "errors").isDefined mustBe true
+
+      verifyNoInteractions(mockService)
+    }
+
+    "returns 500 InternalServerError with error body when service fails" in {
+      val s = setup
+      import s.*
+
+      val requestModel = ProcessVerificationResponseFromChrisRequest(
+        instanceId = "abc-123",
+        submissionType = "VERIFICATIONS",
+        activeObjectId = 10L,
+        hmrcMarkGenerated = None,
+        hmrcMarkGgis = None,
+        emailRecipient = None,
+        submissionRequestDate = None,
+        acceptedTime = None,
+        agentId = None,
+        submittableStatus = "FAILED",
+        govTalkErrorCode = Some("500"),
+        govTalkErrorType = Some("SERVER_ERROR"),
+        govTalkErrorMessage = Some("Unexpected error"),
+        verifBatchResourceRef = 222L,
+        verificationResourceRef = 333L,
+        subbieResourceRef = 456L,
+        matched = None,
+        verificationNumber = None,
+        taxTreatment = None,
+        actionIndicator = Some("VERIFY"),
+        proceed = Some("Y"),
+        subcontractorName = "John Smith"
+      )
+
+      when(mockService.processVerificationResponseFromChris(eqTo(requestModel)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val req = FakeRequest(POST, url)
+        .withHeaders(CONTENT_TYPE -> JSON)
+        .withBody(Json.toJson(requestModel))
+
+      val result = controller.processVerificationResponseFromChris().apply(req)
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
+
+      verify(mockService).processVerificationResponseFromChris(eqTo(requestModel))
+      verifyNoMoreInteractions(mockService)
+    }
+  }
 }
