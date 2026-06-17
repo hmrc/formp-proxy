@@ -363,7 +363,7 @@ object CisRowMappers {
       gatewayURL = rs.getString("gatewayurl")
     )
 
-  def readVerificationSubmissionToPoll(rs: ResultSet): VerificationSubmissionToPoll =
+  private def readVerificationSubmissionToPoll(rs: ResultSet): VerificationSubmissionToPoll =
     VerificationSubmissionToPoll(
       submissionId = rs.getLong("submission_id"),
       submissionType = rs.getString("submission_type"),
@@ -375,7 +375,7 @@ object CisRowMappers {
       verificationBatchResourceRef = rs.getLong("verification_batch_resource_ref")
     )
 
-  def readMonthlyReturnSubmissionToPoll(rs: ResultSet): MonthlyReturnSubmissionToPoll =
+  private def readMonthlyReturnSubmissionToPoll(rs: ResultSet): MonthlyReturnSubmissionToPoll =
     MonthlyReturnSubmissionToPoll(
       submissionId = rs.getLong("submission_id"),
       submissionType = rs.getString("submission_type"),

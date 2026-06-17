@@ -72,5 +72,5 @@ object CisStoredProcedures {
   val CallUpdateVerification                  =
     "{ call VERIFICATION_PROCS.Update_Verification(?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
   val CallGetBatchPollSubmissions             =
-    "{ call call SUBMISSION_PROCS.GET_SUBMISSIONS_FOR_POLLING(?, ?) }"
+    "{ call SUBMISSION_PROCS.GET_SUBMISSIONS_FOR_POLLING(?, ?) }"
 }

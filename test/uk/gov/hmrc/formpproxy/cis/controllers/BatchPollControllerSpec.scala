@@ -40,7 +40,7 @@ class BatchPollControllerSpec extends AnyFreeSpec with Matchers with MockitoSuga
 
       val result = controller
         .getBatchPollSubmissions()
-        .apply(FakeRequest(POST, "/cis/get-batchpoll-submissions"))
+        .apply(FakeRequest(GET, "/cis/batchpoll-submissions"))
 
       status(result) mustBe OK
       contentType(result) mustBe Some(JSON)
@@ -56,7 +56,7 @@ class BatchPollControllerSpec extends AnyFreeSpec with Matchers with MockitoSuga
 
       val result = controller
         .getBatchPollSubmissions()
-        .apply(FakeRequest(POST, "/cis/get-batchpoll-submissions"))
+        .apply(FakeRequest(GET, "/cis/batchpoll-submissions"))
 
       status(result) mustBe OK
       contentAsJson(result) mustBe Json.toJson(emptyResponse)
@@ -71,7 +71,7 @@ class BatchPollControllerSpec extends AnyFreeSpec with Matchers with MockitoSuga
 
       val result = controller
         .getBatchPollSubmissions()
-        .apply(FakeRequest(POST, "/cis/get-batchpoll-submissions"))
+        .apply(FakeRequest(GET, "/cis/batchpoll-submissions"))
 
       status(result) mustBe INTERNAL_SERVER_ERROR
       contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
@@ -117,7 +117,7 @@ class BatchPollControllerSpec extends AnyFreeSpec with Matchers with MockitoSuga
         status = "SUBMITTED",
         taxOfficeNumber = "123",
         taxOfficeReference = "456789",
-        taxYear = "2025-26",
+        taxYear = "2025",
         taxMonth = "06",
         instanceId = "instance-monthly-return-001",
         agentId = Some("A123456")

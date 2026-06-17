@@ -263,61 +263,32 @@ class CisRowMappersSpec extends AnyFreeSpec with Matchers with MockitoSugar {
     }
   }
 
-  "CisRowMappers readVerificationSubmissionToPoll" - {
+  "collectVerificationSubmissionsToPoll" - {
 
-    "must map verification submission to poll row" in {
+    "map a single row into a VerificationSubmissionToPoll" in {
       val rs = mock[ResultSet]
-
-      when(rs.getLong("submission_id")).thenReturn(90001L)
-      when(rs.getString("submission_type")).thenReturn("CISVERIFY")
-      when(rs.getString("agent_id")).thenReturn("A123456")
+      when(rs.next()).thenReturn(true, false)
+      when(rs.getLong("submission_id")).thenReturn(1L)
+      when(rs.getString("submission_type")).thenReturn("VERIFICATION")
+      when(rs.getString("agent_id")).thenReturn(null)
       when(rs.getString("tax_office_number")).thenReturn("123")
-      when(rs.getString("tax_office_reference")).thenReturn("ABC123")
-      when(rs.getString("instance_id")).thenReturn("instance-verification-001")
-      when(rs.getString("status")).thenReturn("SUBMITTED")
-      when(rs.getLong("verification_batch_resource_ref")).thenReturn(70001L)
+      when(rs.getString("tax_office_reference")).thenReturn("AB456")
+      when(rs.getString("instance_id")).thenReturn("INST1")
+      when(rs.getString("status")).thenReturn("PENDING")
+      when(rs.getLong("verification_batch_resource_ref")).thenReturn(99L)
 
-      CisRowMappers.readVerificationSubmissionToPoll(rs) mustBe
+      CisRowMappers.collectVerificationSubmissionsToPoll(rs) mustBe Seq(
         VerificationSubmissionToPoll(
-          submissionId = 90001L,
-          submissionType = "CISVERIFY",
-          agentId = Some("A123456"),
+          submissionId = 1L,
+          submissionType = "VERIFICATION",
+          agentId = None,
           taxOfficeNumber = "123",
-          taxOfficeReference = "ABC123",
-          instanceId = "instance-verification-001",
-          status = "SUBMITTED",
-          verificationBatchResourceRef = 70001L
+          taxOfficeReference = "AB456",
+          instanceId = "INST1",
+          status = "PENDING",
+          verificationBatchResourceRef = 99L
         )
-    }
-  }
-
-  "CisRowMappers readMonthlyReturnSubmissionToPoll" - {
-
-    "must map monthly return submission to poll row" in {
-      val rs = mock[ResultSet]
-
-      when(rs.getLong("submission_id")).thenReturn(90002L)
-      when(rs.getString("submission_type")).thenReturn("CIS300MR")
-      when(rs.getString("status")).thenReturn("SUBMITTED")
-      when(rs.getString("tax_office_number")).thenReturn("123")
-      when(rs.getString("tax_office_reference")).thenReturn("456789")
-      when(rs.getString("tax_year")).thenReturn("2025-26")
-      when(rs.getString("tax_month")).thenReturn("06")
-      when(rs.getString("instance_id")).thenReturn("instance-monthly-return-001")
-      when(rs.getString("agent_id")).thenReturn("A123456")
-
-      CisRowMappers.readMonthlyReturnSubmissionToPoll(rs) mustBe
-        MonthlyReturnSubmissionToPoll(
-          submissionId = 90002L,
-          submissionType = "CIS300MR",
-          status = "SUBMITTED",
-          taxOfficeNumber = "123",
-          taxOfficeReference = "456789",
-          taxYear = "2025-26",
-          taxMonth = "06",
-          instanceId = "instance-monthly-return-001",
-          agentId = Some("A123456")
-        )
+      )
     }
   }
 }
