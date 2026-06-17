@@ -24,8 +24,8 @@ case class MonthlyReturnSubmissionToPoll(
   status: String,
   taxOfficeNumber: String,
   taxOfficeReference: String,
-  taxYear: String,
-  taxMonth: String,
+  taxYear: Int,
+  taxMonth: Int,
   instanceId: String,
   agentId: Option[String]
 )

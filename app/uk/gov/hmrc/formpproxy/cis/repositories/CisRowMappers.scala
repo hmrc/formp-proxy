@@ -382,8 +382,8 @@ object CisRowMappers {
       status = rs.getString("status"),
       taxOfficeNumber = rs.getString("tax_office_number"),
       taxOfficeReference = rs.getString("tax_office_reference"),
-      taxYear = rs.getString("tax_year"),
-      taxMonth = rs.getString("tax_month"),
+      taxYear = rs.getInt("tax_year"),
+      taxMonth = rs.getInt("tax_month"),
       instanceId = rs.getString("instance_id"),
       agentId = Option(rs.getString("agent_id"))
     )
