@@ -3421,8 +3421,8 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(monthlyReturnRs.getString("status")).thenReturn("PENDING")
       when(monthlyReturnRs.getString("tax_office_number")).thenReturn("123")
       when(monthlyReturnRs.getString("tax_office_reference")).thenReturn("AB456")
-      when(monthlyReturnRs.getString("tax_year")).thenReturn("2025")
-      when(monthlyReturnRs.getString("tax_month")).thenReturn("3")
+      when(monthlyReturnRs.getInt("tax_year")).thenReturn(2025)
+      when(monthlyReturnRs.getInt("tax_month")).thenReturn(3)
       when(monthlyReturnRs.getString("instance_id")).thenReturn("INST2")
       when(monthlyReturnRs.getString("agent_id")).thenReturn("AGENT1")
 
