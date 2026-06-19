@@ -1545,12 +1545,12 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setOptionalString(21, subcontractor.mobilePhoneNumber)
       cs.setOptionalString(22, subcontractor.worksReferenceNumber)
 
-      cs.setString(23, result.taxTreatment)
-      cs.setString(24, result.taxTreatment)
-      cs.setString(25, result.verificationNumber)
-      cs.setOptionalString(26, result.matched)
-      cs.setOptionalString(27, result.verified)
-      cs.setString(28, "N")
+      cs.setOptionalString(23, result.matched)
+      cs.setOptionalString(24, subcontractor.autoVerified)
+      cs.setOptionalString(25, result.verified)
+      cs.setString(26, result.verificationNumber)
+      cs.setString(27, result.taxTreatment)
+      cs.setString(28, result.taxTreatment)
 
       cs.setTimestamp(29, Timestamp.valueOf(result.verifiedDate))
       cs.setOptionalInt(30, subcontractor.version)
