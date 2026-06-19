@@ -1624,7 +1624,6 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           throw new RuntimeException("Submission activeObjectId missing")
         )
       )
-
       cs.setString(3, req.irMarkReceived)
       cs.setString(4, submission.hmrcMarkGgis.orNull)
       cs.setString(5, submission.emailRecipient.orNull)
@@ -1632,16 +1631,11 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setString(7, req.acceptedTime)
       cs.setString(8, submission.agentId.orNull)
       cs.setString(9, req.submissionStatus)
-
       cs.setString(10, submission.govTalkErrorCode.orNull)
       cs.setString(11, submission.govTalkErrorType.orNull)
       cs.setString(12, submission.govTalkErrorMessage.orNull)
-
       cs.setString(13, req.instanceId)
       cs.setLong(14, req.verificationBatchResourceRef)
-
-      cs.setNull(15, Types.INTEGER)
-      cs.registerOutParameter(15, Types.INTEGER)
 
       cs.execute()
     }
