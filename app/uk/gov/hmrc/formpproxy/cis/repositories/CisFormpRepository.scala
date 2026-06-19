@@ -1405,66 +1405,108 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   override def processVerificationResponseFromChris(req: ProcessVerificationResponseFromChrisRequest): Future[Unit] =
     Future {
       logger.info(
-        s"[CIS] processVerificationResponseFromChris(instanceId=${req.instanceId}, verifBatchResourceRef=${req.verifBatchResourceRef}, verificationResourceRef=${req.verificationResourceRef})"
+        s"[CIS] processVerificationResponseFromChris(instanceId=${req.instanceId}, verificationBatchResourceRef=${req.verificationBatchResourceRef})"
       )
 
       db.withTransaction { conn =>
-        val schemeRow = loadScheme(conn, req.instanceId)
-        val schemeId  = schemeRow.schemeId
-
-        val subcontractor = callGetSubcontractor(
+        val existing = callGetSubmissionWithVerificationBatch(
           conn = conn,
           instanceId = req.instanceId,
-          subbieResourceRef = req.subbieResourceRef
+          verificationBatchResourceRef = req.verificationBatchResourceRef
         )
 
-        callUpdateSubcontractorFromChris(
-          conn = conn,
-          schemeId = schemeId,
-          subbieResourceRef = req.subbieResourceRef,
-          subcontractor = subcontractor,
-          req = req
+        val scheme = existing.scheme.getOrElse(
+          throw new RuntimeException(s"No scheme found for instanceId=${req.instanceId}")
         )
 
-        callUpdateVerificationBatch(
-          conn = conn,
-          verificationBatchResourceRef = req.verifBatchResourceRef,
-          schemeId = schemeId,
-          confirmArrangement = "Y",
-          confirmCorrect = "Y",
-          status = req.submittableStatus
+        val submission = existing.submission.getOrElse(
+          throw new RuntimeException(
+            s"No submission found for instanceId=${req.instanceId}, verificationBatchResourceRef=${req.verificationBatchResourceRef}"
+          )
         )
 
-        callUpdateVerificationFromChris(
+        val verificationBatch = existing.verificationBatch.getOrElse(
+          throw new RuntimeException(
+            s"No verification batch found for instanceId=${req.instanceId}, verificationBatchResourceRef=${req.verificationBatchResourceRef}"
+          )
+        )
+
+        req.verificationResults.foreach { result =>
+          val verification = existing.verifications
+            .find(_.verificationResourceRef.contains(result.resourceRef))
+            .getOrElse(
+              throw new RuntimeException(s"No verification found for resourceRef=${result.resourceRef}")
+            )
+
+          val subcontractor = existing.subcontractors
+            .find(s => verification.subcontractorId.contains(s.subcontractorId))
+            .getOrElse(
+              throw new RuntimeException(s"No subcontractor found for resourceRef=${result.resourceRef}")
+            )
+
+          callUpdateSubcontractorFromChris(
+            conn = conn,
+            schemeId = scheme.schemeId.toLong,
+            subbieResourceRef = subcontractor.subbieResourceRef.getOrElse(result.resourceRef),
+            subcontractor = subcontractor,
+            result = result
+          )
+
+          callUpdateVerificationFromChris(
+            conn = conn,
+            instanceId = req.instanceId,
+            verificationBatchResourceRef = req.verificationBatchResourceRef,
+            verification = verification,
+            result = result
+          )
+        }
+
+        callUpdateVerificationBatchFromChris(
           conn = conn,
-          req = req
+          verificationBatch = verificationBatch,
+          submissionStatus = req.submissionStatus
         )
 
         callUpdateSubmissionFromChris(
           conn = conn,
+          submission = submission,
           req = req
         )
       }
     }
 
-  private def callGetSubcontractor(
+  private final case class SubmissionWithVerificationBatchRecord(
+    scheme: Option[ContractorScheme],
+    submission: Option[Submission],
+    verificationBatch: Option[VerificationBatch],
+    verifications: Seq[Verification],
+    subcontractors: Seq[Subcontractor]
+  )
+
+  private def callGetSubmissionWithVerificationBatch(
     conn: Connection,
     instanceId: String,
-    subbieResourceRef: Long
-  ): Subcontractor =
-    withCall(conn, CallGetSubcontractor) { cs =>
+    verificationBatchResourceRef: Long
+  ): SubmissionWithVerificationBatchRecord =
+    withCall(conn, CallGetSubmissionWithVerificationBatch) { cs =>
       cs.setString(1, instanceId)
-      cs.setLong(2, subbieResourceRef)
+      cs.setLong(2, verificationBatchResourceRef)
+
       cs.registerOutParameter(3, OracleTypes.CURSOR)
+      cs.registerOutParameter(4, OracleTypes.CURSOR)
+      cs.registerOutParameter(5, OracleTypes.CURSOR)
+      cs.registerOutParameter(6, OracleTypes.CURSOR)
+      cs.registerOutParameter(7, OracleTypes.CURSOR)
+
       cs.execute()
 
-      withCursor(cs, 3) { rs =>
-        if (rs.next()) readSubcontractor(rs)
-        else
-          throw new RuntimeException(
-            s"No SUBCONTRACTOR row for instanceId=$instanceId and subbieResourceRef=$subbieResourceRef"
-          )
-      }
+      SubmissionWithVerificationBatchRecord(
+        submission = withCursor(cs, 3)(collectSubmissionsForGetVerificationBatch).headOption,
+        verificationBatch = withCursor(cs, 4)(collectVerificationBatches).headOption,
+        verifications = withCursor(cs, 5)(collectVerifications),
+        subcontractors = withCursor(cs, 6)(collectSubcontractors),
+        scheme = withCursor(cs, 7)(collectSchemes).headOption
+      )
     }
 
   private def callUpdateSubcontractorFromChris(
@@ -1472,7 +1514,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     schemeId: Long,
     subbieResourceRef: Long,
     subcontractor: Subcontractor,
-    req: ProcessVerificationResponseFromChrisRequest
+    result: VerificationResult
   ): Unit =
     withCall(conn, CallUpdateSubcontractor) { cs =>
       cs.setLong(1, schemeId)
@@ -1503,14 +1545,14 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setOptionalString(21, subcontractor.mobilePhoneNumber)
       cs.setOptionalString(22, subcontractor.worksReferenceNumber)
 
-      cs.setOptionalString(23, req.taxTreatment)
-      cs.setOptionalString(24, req.taxTreatment)
-      cs.setOptionalString(25, req.verificationNumber)
-      cs.setOptionalString(26, req.matched)
-      cs.setOptionalString(27, Some("Y"))
-      cs.setOptionalString(28, Some("N"))
+      cs.setString(23, result.taxTreatment)
+      cs.setString(24, result.taxTreatment)
+      cs.setString(25, result.verificationNumber)
+      cs.setOptionalString(26, result.matched)
+      cs.setOptionalString(27, result.verified)
+      cs.setString(28, "N")
 
-      cs.setOptionalTimestamp(29, Some(LocalDateTime.now()))
+      cs.setTimestamp(29, Timestamp.valueOf(result.verifiedDate))
       cs.setOptionalInt(30, subcontractor.version)
       cs.registerOutParameter(30, Types.INTEGER)
 
@@ -1519,46 +1561,85 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
   private def callUpdateVerificationFromChris(
     conn: Connection,
-    req: ProcessVerificationResponseFromChrisRequest
+    instanceId: String,
+    verificationBatchResourceRef: Long,
+    verification: Verification,
+    result: VerificationResult
   ): Unit =
     withCall(conn, CallUpdateVerification) { cs =>
-      cs.setString(1, req.instanceId)
-      cs.setLong(2, req.verifBatchResourceRef)
-      cs.setLong(3, req.verificationResourceRef)
+      cs.setString(1, instanceId)
+      cs.setLong(2, verificationBatchResourceRef)
+      cs.setLong(3, result.resourceRef)
 
-      cs.setOptionalString(4, req.matched)
-      cs.setOptionalString(5, req.verificationNumber)
-      cs.setOptionalString(6, req.taxTreatment)
+      cs.setOptionalString(4, result.matched)
+      cs.setString(5, result.verificationNumber)
+      cs.setString(6, result.taxTreatment)
 
-      cs.setOptionalString(7, req.actionIndicator)
-      cs.setOptionalString(8, req.proceed)
-      cs.setString(9, req.subcontractorName)
+      cs.setOptionalString(7, verification.actionIndicator)
+      cs.setOptionalString(8, verification.proceed)
+      cs.setString(9, verification.subcontractorName.orNull)
 
-      cs.setNull(10, Types.INTEGER)
+      cs.setOptionalInt(10, verification.version)
       cs.registerOutParameter(10, Types.INTEGER)
+
+      cs.execute()
+    }
+
+  private def callUpdateVerificationBatchFromChris(
+    conn: Connection,
+    verificationBatch: VerificationBatch,
+    submissionStatus: String
+  ): Unit =
+    withCall(conn, CallUpdateVerificationBatch) { cs =>
+      cs.setLong(
+        1,
+        verificationBatch.verifBatchResourceRef.getOrElse(
+          throw new RuntimeException("Verification batch resource reference missing")
+        )
+      )
+      cs.setLong(2, verificationBatch.schemeId)
+
+      cs.setOptionalString(3, verificationBatch.proceedSession)
+      cs.setOptionalString(4, verificationBatch.confirmArrangement)
+      cs.setOptionalString(5, verificationBatch.confirmCorrect)
+      cs.setString(6, submissionStatus)
+      cs.setOptionalString(7, verificationBatch.verificationNumber)
+
+      cs.setOptionalInt(8, verificationBatch.version)
+      cs.registerOutParameter(8, Types.INTEGER)
 
       cs.execute()
     }
 
   private def callUpdateSubmissionFromChris(
     conn: Connection,
+    submission: Submission,
     req: ProcessVerificationResponseFromChrisRequest
   ): Unit =
     withCall(conn, CallUpdateSubmission) { cs =>
-      cs.setString(1, req.submissionType)
-      cs.setLong(2, req.activeObjectId)
-      cs.setOptionalString(3, req.hmrcMarkGenerated)
-      cs.setOptionalString(4, req.hmrcMarkGgis)
-      cs.setOptionalString(5, req.emailRecipient)
-      cs.setOptionalTimestamp(6, req.submissionRequestDate)
-      cs.setOptionalString(7, req.acceptedTime)
-      cs.setOptionalString(8, req.agentId)
-      cs.setString(9, req.submittableStatus)
-      cs.setOptionalString(10, req.govTalkErrorCode)
-      cs.setOptionalString(11, req.govTalkErrorType)
-      cs.setOptionalString(12, req.govTalkErrorMessage)
+      cs.setString(1, submission.submissionType)
+      cs.setLong(
+        2,
+        submission.activeObjectId.getOrElse(
+          throw new RuntimeException("Submission activeObjectId missing")
+        )
+      )
+
+      cs.setString(3, req.irMarkReceived)
+      cs.setString(4, submission.hmrcMarkGgis.orNull)
+      cs.setString(5, submission.emailRecipient.orNull)
+      cs.setTimestamp(6, submission.submissionRequestDate.map(Timestamp.valueOf).orNull)
+      cs.setString(7, req.acceptedTime)
+      cs.setString(8, submission.agentId.orNull)
+      cs.setString(9, req.submissionStatus)
+
+      cs.setString(10, submission.govTalkErrorCode.orNull)
+      cs.setString(11, submission.govTalkErrorType.orNull)
+      cs.setString(12, submission.govTalkErrorMessage.orNull)
+
       cs.setString(13, req.instanceId)
-      cs.setLong(14, req.verifBatchResourceRef)
+      cs.setLong(14, req.verificationBatchResourceRef)
+
       cs.setNull(15, Types.INTEGER)
       cs.registerOutParameter(15, Types.INTEGER)
 

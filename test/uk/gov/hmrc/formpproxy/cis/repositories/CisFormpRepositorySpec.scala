@@ -3390,10 +3390,12 @@ final class CisFormpRepositorySpec extends SpecBase {
       val db   = mock[Database]
       val conn = mock[Connection]
 
-      val csGetScheme          = mock[CallableStatement]
+      val csGetExisting        = mock[CallableStatement]
+      val rsSubmission         = mock[ResultSet]
+      val rsVerificationBatch  = mock[ResultSet]
+      val rsVerifications      = mock[ResultSet]
+      val rsSubcontractors     = mock[ResultSet]
       val rsScheme             = mock[ResultSet]
-      val csGetSubcontractor   = mock[CallableStatement]
-      val rsSubcontractor      = mock[ResultSet]
       val csUpdateSub          = mock[CallableStatement]
       val csUpdateBatch        = mock[CallableStatement]
       val csUpdateVerification = mock[CallableStatement]
@@ -3403,78 +3405,123 @@ final class CisFormpRepositorySpec extends SpecBase {
         inv.getArgument(0, classOf[Connection => Any]).apply(conn)
       }
 
-      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetScheme))).thenReturn(csGetScheme)
-      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetSubcontractor))).thenReturn(csGetSubcontractor)
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetSubmissionWithVerificationBatch))).thenReturn(csGetExisting)
       when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateSubcontractor))).thenReturn(csUpdateSub)
       when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateVerificationBatch))).thenReturn(csUpdateBatch)
       when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateVerification))).thenReturn(csUpdateVerification)
       when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateSubmission))).thenReturn(csUpdateSubmission)
 
-      when(csGetScheme.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+      when(csGetExisting.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+      when(csGetExisting.getObject(eqTo(4), eqTo(classOf[ResultSet]))).thenReturn(rsVerificationBatch)
+      when(csGetExisting.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsVerifications)
+      when(csGetExisting.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
+      when(csGetExisting.getObject(eqTo(7), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+
+      when(rsSubmission.next()).thenReturn(true, false)
+      when(rsSubmission.getLong("submission_id")).thenReturn(555L)
+      when(rsSubmission.getString("submission_type")).thenReturn("VERIFICATIONS")
+      when(rsSubmission.getLong("active_object_id")).thenReturn(99L)
+      when(rsSubmission.getString("status")).thenReturn("STARTED")
+      when(rsSubmission.getString("hmrc_mark_generated")).thenReturn("old-irmark")
+      when(rsSubmission.getString("hmrc_mark_ggis")).thenReturn(null)
+      when(rsSubmission.getString("email_recipient")).thenReturn("test@test.com")
+      when(rsSubmission.getString("accepted_time")).thenReturn(null)
+      when(rsSubmission.getLong("scheme_id")).thenReturn(123L)
+      when(rsSubmission.getString("agent_id")).thenReturn("agent-123")
+      when(rsSubmission.getString("govtalk_error_code")).thenReturn(null)
+      when(rsSubmission.getString("govtalk_error_type")).thenReturn(null)
+      when(rsSubmission.getString("govtalk_error_message")).thenReturn(null)
+      when(rsSubmission.wasNull()).thenReturn(false)
+
+      when(rsVerificationBatch.next()).thenReturn(true, false)
+      when(rsVerificationBatch.getLong("verification_batch_id")).thenReturn(99L)
+      when(rsVerificationBatch.getLong("scheme_id")).thenReturn(123L)
+      when(rsVerificationBatch.getLong("verifications_counter")).thenReturn(1L)
+      when(rsVerificationBatch.getLong("verif_batch_resource_ref")).thenReturn(222L)
+      when(rsVerificationBatch.getString("proceed_session")).thenReturn("Y")
+      when(rsVerificationBatch.getString("confirm_arrangement")).thenReturn("Y")
+      when(rsVerificationBatch.getString("confirm_correct")).thenReturn("Y")
+      when(rsVerificationBatch.getString("status")).thenReturn("STARTED")
+      when(rsVerificationBatch.getString("verification_number")).thenReturn("VB123")
+      when(rsVerificationBatch.getInt("version")).thenReturn(1)
+      when(rsVerificationBatch.wasNull()).thenReturn(false)
+
+      when(rsVerifications.next()).thenReturn(true, false)
+      when(rsVerifications.getLong("verification_id")).thenReturn(1001L)
+      when(rsVerifications.getString("matched")).thenReturn(null)
+      when(rsVerifications.getString("verification_number")).thenReturn(null)
+      when(rsVerifications.getString("tax_treatment")).thenReturn(null)
+      when(rsVerifications.getString("action_indicator")).thenReturn("VERIFY")
+      when(rsVerifications.getLong("verification_batch_id")).thenReturn(99L)
+      when(rsVerifications.getLong("scheme_id")).thenReturn(123L)
+      when(rsVerifications.getLong("subcontractor_id")).thenReturn(999L)
+      when(rsVerifications.getString("subcontractor_name")).thenReturn("John Smith")
+      when(rsVerifications.getLong("verification_resource_ref")).thenReturn(456L)
+      when(rsVerifications.getString("proceed")).thenReturn("Y")
+      when(rsVerifications.getInt("version")).thenReturn(1)
+      when(rsVerifications.wasNull()).thenReturn(false)
+
+      when(rsSubcontractors.next()).thenReturn(true, false)
+      when(rsSubcontractors.getLong("subcontractor_id")).thenReturn(999L)
+      when(rsSubcontractors.getLong("subbie_resource_ref")).thenReturn(456L)
+      when(rsSubcontractors.getString("type")).thenReturn("soletrader")
+      when(rsSubcontractors.getString("utr")).thenReturn("1234567890")
+      when(rsSubcontractors.getString("firstname")).thenReturn("John")
+      when(rsSubcontractors.getString("nino")).thenReturn("AA123456A")
+      when(rsSubcontractors.getString("secondname")).thenReturn("Q")
+      when(rsSubcontractors.getString("surname")).thenReturn("Smith")
+      when(rsSubcontractors.getString("address_line_1")).thenReturn("1 Test Street")
+      when(rsSubcontractors.getString("address_line_2")).thenReturn("Flat 2")
+      when(rsSubcontractors.getString("address_line_3")).thenReturn("London")
+      when(rsSubcontractors.getString("address_line_4")).thenReturn("Greater London")
+      when(rsSubcontractors.getString("country")).thenReturn("United Kingdom")
+      when(rsSubcontractors.getString("postcode")).thenReturn("AA1 1AA")
+      when(rsSubcontractors.getString("email_address")).thenReturn("test@test.com")
+      when(rsSubcontractors.getString("phone_number")).thenReturn("01234567890")
+      when(rsSubcontractors.getString("mobile_phone_number")).thenReturn("07123456789")
+      when(rsSubcontractors.getString("works_reference_number")).thenReturn("WR-123")
+      when(rsSubcontractors.getInt("version")).thenReturn(1)
+      when(rsSubcontractors.wasNull()).thenReturn(false)
+
       when(rsScheme.next()).thenReturn(true, false)
-      when(rsScheme.getLong("scheme_id")).thenReturn(123L)
-      when(rsScheme.getInt("version")).thenReturn(1)
-      when(rsScheme.wasNull()).thenReturn(false)
+      when(rsScheme.getInt("scheme_id")).thenReturn(123)
+      when(rsScheme.getString("instance_id")).thenReturn("abc-123")
+      when(rsScheme.getString("aoref")).thenReturn("123PA00123456")
+      when(rsScheme.getString("tax_office_number")).thenReturn("123")
+      when(rsScheme.getString("tax_office_reference")).thenReturn("AB456")
       when(rsScheme.getString("email_address")).thenReturn(null)
-
-      when(csGetSubcontractor.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractor)
-      when(rsSubcontractor.next()).thenReturn(true, false)
-
-      when(rsSubcontractor.getLong("subcontractor_id")).thenReturn(999L)
-      when(rsSubcontractor.getLong("subbie_resource_ref")).thenReturn(456L)
-      when(rsSubcontractor.getString("type")).thenReturn("soletrader")
-      when(rsSubcontractor.getString("utr")).thenReturn("1234567890")
-      when(rsSubcontractor.getString("firstname")).thenReturn("John")
-      when(rsSubcontractor.getString("nino")).thenReturn("AA123456A")
-      when(rsSubcontractor.getString("secondname")).thenReturn("Q")
-      when(rsSubcontractor.getString("surname")).thenReturn("Smith")
-      when(rsSubcontractor.getString("address_line_1")).thenReturn("1 Test Street")
-      when(rsSubcontractor.getString("address_line_2")).thenReturn("Flat 2")
-      when(rsSubcontractor.getString("address_line_3")).thenReturn("London")
-      when(rsSubcontractor.getString("address_line_4")).thenReturn("Greater London")
-      when(rsSubcontractor.getString("country")).thenReturn("United Kingdom")
-      when(rsSubcontractor.getString("postcode")).thenReturn("AA1 1AA")
-      when(rsSubcontractor.getString("email_address")).thenReturn("test@test.com")
-      when(rsSubcontractor.getString("phone_number")).thenReturn("01234567890")
-      when(rsSubcontractor.getString("mobile_phone_number")).thenReturn("07123456789")
-      when(rsSubcontractor.getString("works_reference_number")).thenReturn("WR-123")
-      when(rsSubcontractor.getInt("version")).thenReturn(1)
-      when(rsSubcontractor.wasNull()).thenReturn(false)
+      when(rsScheme.wasNull()).thenReturn(false)
 
       val repo = new CisFormpRepository(db)
 
       val request = ProcessVerificationResponseFromChrisRequest(
         instanceId = "abc-123",
-        submissionType = "VERIFICATIONS",
-        activeObjectId = 10L,
-        hmrcMarkGenerated = Some("irmark"),
-        hmrcMarkGgis = None,
-        emailRecipient = Some("test@test.com"),
-        submissionRequestDate = Some(LocalDateTime.parse("2026-06-15T10:00:00")),
-        acceptedTime = Some("2026-06-15T10:05:00Z"),
-        agentId = Some("agent-123"),
-        submittableStatus = "ACCEPTED",
-        govTalkErrorCode = None,
-        govTalkErrorType = None,
-        govTalkErrorMessage = None,
-        verifBatchResourceRef = 222L,
-        verificationResourceRef = 333L,
-        subbieResourceRef = 456L,
-        matched = Some("Y"),
-        verificationNumber = Some("V123456"),
-        taxTreatment = Some("NET"),
-        actionIndicator = Some("VERIFY"),
-        proceed = Some("Y"),
-        subcontractorName = "John Smith"
+        verificationBatchResourceRef = 222L,
+        acceptedTime = "2026-06-15T10:05:00Z",
+        submissionStatus = "ACCEPTED",
+        irMarkReceived = "irmark",
+        verificationResults = Seq(
+          VerificationResult(
+            resourceRef = 456L,
+            matched = Some("Y"),
+            verified = Some("Y"),
+            verificationNumber = "V123456",
+            taxTreatment = "NET",
+            verifiedDate = LocalDateTime.parse("2026-06-15T10:05:00")
+          )
+        )
       )
 
       repo.processVerificationResponseFromChris(request).futureValue
 
-      verify(csGetScheme).execute()
-      verify(csGetSubcontractor).setString(1, "abc-123")
-      verify(csGetSubcontractor).setLong(2, 456L)
-      verify(csGetSubcontractor).registerOutParameter(3, OracleTypes.CURSOR)
-      verify(csGetSubcontractor).execute()
+      verify(csGetExisting).setString(1, "abc-123")
+      verify(csGetExisting).setLong(2, 222L)
+      verify(csGetExisting).registerOutParameter(3, OracleTypes.CURSOR)
+      verify(csGetExisting).registerOutParameter(4, OracleTypes.CURSOR)
+      verify(csGetExisting).registerOutParameter(5, OracleTypes.CURSOR)
+      verify(csGetExisting).registerOutParameter(6, OracleTypes.CURSOR)
+      verify(csGetExisting).registerOutParameter(7, OracleTypes.CURSOR)
+      verify(csGetExisting).execute()
 
       verify(csUpdateSub).setLong(1, 123L)
       verify(csUpdateSub).setLong(2, 456L)
@@ -3495,7 +3542,7 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       verify(csUpdateVerification).setString(1, "abc-123")
       verify(csUpdateVerification).setLong(2, 222L)
-      verify(csUpdateVerification).setLong(3, 333L)
+      verify(csUpdateVerification).setLong(3, 456L)
       verify(csUpdateVerification).setString(4, "Y")
       verify(csUpdateVerification).setString(5, "V123456")
       verify(csUpdateVerification).setString(6, "NET")
@@ -3505,7 +3552,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdateVerification).execute()
 
       verify(csUpdateSubmission).setString(1, "VERIFICATIONS")
-      verify(csUpdateSubmission).setLong(2, 10L)
+      verify(csUpdateSubmission).setLong(2, 99L)
       verify(csUpdateSubmission).setString(3, "irmark")
       verify(csUpdateSubmission).setString(5, "test@test.com")
       verify(csUpdateSubmission).setString(8, "agent-123")
@@ -3513,70 +3560,6 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdateSubmission).setString(13, "abc-123")
       verify(csUpdateSubmission).setLong(14, 222L)
       verify(csUpdateSubmission).execute()
-    }
-
-    "throws when subcontractor is not found" in {
-      val db   = mock[Database]
-      val conn = mock[Connection]
-
-      val csGetScheme        = mock[CallableStatement]
-      val rsScheme           = mock[ResultSet]
-      val csGetSubcontractor = mock[CallableStatement]
-      val rsSubcontractor    = mock[ResultSet]
-
-      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
-        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
-      }
-
-      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetScheme))).thenReturn(csGetScheme)
-      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetSubcontractor))).thenReturn(csGetSubcontractor)
-
-      when(csGetScheme.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
-      when(rsScheme.next()).thenReturn(true, false)
-      when(rsScheme.getLong("scheme_id")).thenReturn(123L)
-      when(rsScheme.getInt("version")).thenReturn(1)
-      when(rsScheme.wasNull()).thenReturn(false)
-      when(rsScheme.getString("email_address")).thenReturn(null)
-
-      when(csGetSubcontractor.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractor)
-      when(rsSubcontractor.next()).thenReturn(false)
-
-      val repo = new CisFormpRepository(db)
-
-      val request = ProcessVerificationResponseFromChrisRequest(
-        instanceId = "abc-123",
-        submissionType = "VERIFICATIONS",
-        activeObjectId = 10L,
-        hmrcMarkGenerated = None,
-        hmrcMarkGgis = None,
-        emailRecipient = None,
-        submissionRequestDate = None,
-        acceptedTime = None,
-        agentId = None,
-        submittableStatus = "ACCEPTED",
-        govTalkErrorCode = None,
-        govTalkErrorType = None,
-        govTalkErrorMessage = None,
-        verifBatchResourceRef = 222L,
-        verificationResourceRef = 333L,
-        subbieResourceRef = 456L,
-        matched = Some("Y"),
-        verificationNumber = Some("V123456"),
-        taxTreatment = Some("NET"),
-        actionIndicator = Some("VERIFY"),
-        proceed = Some("Y"),
-        subcontractorName = "John Smith"
-      )
-
-      val ex = repo.processVerificationResponseFromChris(request).failed.futureValue
-
-      ex mustBe a[RuntimeException]
-      ex.getMessage must include("No SUBCONTRACTOR row")
-
-      verify(conn, never).prepareCall(eqTo(CisStoredProcedures.CallUpdateSubcontractor))
-      verify(conn, never).prepareCall(eqTo(CisStoredProcedures.CallUpdateVerificationBatch))
-      verify(conn, never).prepareCall(eqTo(CisStoredProcedures.CallUpdateVerification))
-      verify(conn, never).prepareCall(eqTo(CisStoredProcedures.CallUpdateSubmission))
     }
   }
 }

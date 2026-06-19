@@ -29,6 +29,7 @@ import uk.gov.hmrc.formpproxy.cis.models.requests._
 import uk.gov.hmrc.formpproxy.cis.models.response.CreateVerificationBatchAndVerificationsResponse
 import uk.gov.hmrc.formpproxy.cis.models.response.CreateSubmissionAndUpdateVerificationsResponse
 import uk.gov.hmrc.formpproxy.cis.services.VerificationService
+import java.time.LocalDateTime
 
 import scala.concurrent.Future
 
@@ -765,27 +766,20 @@ class VerificationControllerSpec extends SpecBase {
 
       val requestModel = ProcessVerificationResponseFromChrisRequest(
         instanceId = "abc-123",
-        submissionType = "VERIFICATIONS",
-        activeObjectId = 10L,
-        hmrcMarkGenerated = Some("IR_MARK"),
-        hmrcMarkGgis = None,
-        emailRecipient = Some("test@test.com"),
-        submissionRequestDate = None,
-        acceptedTime = Some("12:00:00"),
-        agentId = None,
-        submittableStatus = "ACCEPTED",
-        govTalkErrorCode = None,
-        govTalkErrorType = None,
-        govTalkErrorMessage = None,
-        verifBatchResourceRef = 222L,
-        verificationResourceRef = 333L,
-        subbieResourceRef = 456L,
-        matched = Some("Y"),
-        verificationNumber = Some("V123456"),
-        taxTreatment = Some("NET"),
-        actionIndicator = Some("VERIFY"),
-        proceed = Some("Y"),
-        subcontractorName = "John Smith"
+        verificationBatchResourceRef = 222L,
+        acceptedTime = "2026-06-15T10:05:00Z",
+        submissionStatus = "ACCEPTED",
+        irMarkReceived = "IR_MARK",
+        verificationResults = Seq(
+          VerificationResult(
+            resourceRef = 456L,
+            matched = Some("Y"),
+            verified = Some("Y"),
+            verificationNumber = "V123456",
+            taxTreatment = "NET",
+            verifiedDate = LocalDateTime.parse("2026-06-15T10:05:00")
+          )
+        )
       )
 
       when(mockService.processVerificationResponseFromChris(eqTo(requestModel)))
@@ -832,27 +826,20 @@ class VerificationControllerSpec extends SpecBase {
 
       val requestModel = ProcessVerificationResponseFromChrisRequest(
         instanceId = "abc-123",
-        submissionType = "VERIFICATIONS",
-        activeObjectId = 10L,
-        hmrcMarkGenerated = None,
-        hmrcMarkGgis = None,
-        emailRecipient = None,
-        submissionRequestDate = None,
-        acceptedTime = None,
-        agentId = None,
-        submittableStatus = "FAILED",
-        govTalkErrorCode = Some("500"),
-        govTalkErrorType = Some("SERVER_ERROR"),
-        govTalkErrorMessage = Some("Unexpected error"),
-        verifBatchResourceRef = 222L,
-        verificationResourceRef = 333L,
-        subbieResourceRef = 456L,
-        matched = None,
-        verificationNumber = None,
-        taxTreatment = None,
-        actionIndicator = Some("VERIFY"),
-        proceed = Some("Y"),
-        subcontractorName = "John Smith"
+        verificationBatchResourceRef = 222L,
+        acceptedTime = "2026-06-15T10:05:00Z",
+        submissionStatus = "FAILED",
+        irMarkReceived = "IR_MARK",
+        verificationResults = Seq(
+          VerificationResult(
+            resourceRef = 456L,
+            matched = None,
+            verified = None,
+            verificationNumber = "V123456",
+            taxTreatment = "NET",
+            verifiedDate = LocalDateTime.parse("2026-06-15T10:05:00")
+          )
+        )
       )
 
       when(mockService.processVerificationResponseFromChris(eqTo(requestModel)))
