@@ -1555,7 +1555,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setOptionalString(23, result.matched)
       cs.setOptionalString(24, subcontractor.autoVerified)
       cs.setOptionalString(25, result.verified)
-      cs.setString(26, result.verificationNumber)
+      cs.setOptionalString(26, result.verificationNumber)
       cs.setString(27, result.taxTreatment)
       cs.setOptionalString(28, subcontractor.updatedTaxTreatment)
 
@@ -1579,7 +1579,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setLong(3, result.resourceRef)
 
       cs.setOptionalString(4, result.matched)
-      cs.setString(5, result.verificationNumber)
+      cs.setOptionalString(5, result.verificationNumber)
       cs.setString(6, result.taxTreatment)
 
       cs.setOptionalString(7, verification.actionIndicator)
@@ -1611,7 +1611,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setOptionalString(4, verificationBatch.confirmArrangement)
       cs.setOptionalString(5, verificationBatch.confirmCorrect)
       cs.setString(6, submissionStatus)
-      cs.setString(7, result.verificationNumber)
+      cs.setOptionalString(7, result.verificationNumber)
 
       cs.setOptionalInt(8, verificationBatch.version)
       cs.registerOutParameter(8, Types.INTEGER)

@@ -3386,7 +3386,7 @@ final class CisFormpRepositorySpec extends SpecBase {
             resourceRef = 456L,
             matched = Some("Y"),
             verified = Some("Y"),
-            verificationNumber = "V123456",
+            verificationNumber = Some("V123456"),
             taxTreatment = "NET",
             verifiedDate = LocalDateTime.parse("2026-06-15T10:05:00")
           )
@@ -3514,7 +3514,7 @@ final class CisFormpRepositorySpec extends SpecBase {
             resourceRef = 456L,
             matched = Some("Y"),
             verified = Some("Y"),
-            verificationNumber = "V123456",
+            verificationNumber = Some("V123456"),
             taxTreatment = "NET",
             verifiedDate = LocalDateTime.parse("2026-06-15T10:05:00")
           )
