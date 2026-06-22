@@ -1444,10 +1444,16 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
               throw new RuntimeException(s"No subcontractor found for resourceRef=${result.resourceRef}")
             )
 
+          val subbieResourceRef = subcontractor.subbieResourceRef.getOrElse(
+            throw new RuntimeException(
+              s"No subbieResourceRef found for subcontractorId=${subcontractor.subcontractorId}, resourceRef=${result.resourceRef}"
+            )
+          )
+
           callUpdateSubcontractorFromChris(
             conn = conn,
             schemeId = scheme.schemeId.toLong,
-            subbieResourceRef = subcontractor.subbieResourceRef.getOrElse(result.resourceRef),
+            subbieResourceRef = subbieResourceRef,
             subcontractor = subcontractor,
             result = result
           )
@@ -1504,7 +1510,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         submission = withCursor(cs, 3)(collectSubmissionsForGetVerificationBatch).headOption,
         verificationBatch = withCursor(cs, 4)(collectVerificationBatches).headOption,
         verifications = withCursor(cs, 5)(collectVerifications),
-        subcontractors = withCursor(cs, 6)(collectSubcontractors),
+        subcontractors = withCursor(cs, 6)(collectSubcontractorsForGetVerificationBatchSubmission),
         scheme = withCursor(cs, 7)(collectSchemes).headOption
       )
     }
@@ -1550,7 +1556,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setOptionalString(25, result.verified)
       cs.setString(26, result.verificationNumber)
       cs.setString(27, result.taxTreatment)
-      cs.setString(28, result.taxTreatment)
+      cs.setOptionalString(28, subcontractor.updatedTaxTreatment)
 
       cs.setTimestamp(29, Timestamp.valueOf(result.verifiedDate))
       cs.setOptionalInt(30, subcontractor.version)

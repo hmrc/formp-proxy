@@ -3246,12 +3246,10 @@ final class CisFormpRepositorySpec extends SpecBase {
       val db   = mock[Database]
       val conn = mock[Connection]
 
-      // transaction wrapper
       when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
         inv.getArgument(0, classOf[Connection => Any]).apply(conn)
       }
 
-      // --- loadScheme (CallGetScheme) ---
       val csGetScheme = mock[CallableStatement]
       val rsScheme    = mock[ResultSet]
 
@@ -3261,21 +3259,17 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsScheme.next()).thenReturn(true, false)
       when(rsScheme.getLong("scheme_id")).thenReturn(123L)
 
-      // version is used only by loadScheme; stub to be safe
       when(rsScheme.getInt("version")).thenReturn(1)
       when(rsScheme.wasNull()).thenReturn(false)
       when(rsScheme.getString("email_address")).thenReturn(null)
 
-      // --- Create_Submission ---
       val csCreateSubmission = mock[CallableStatement]
       when(conn.prepareCall(eqTo(CisStoredProcedures.CallCreateSubmission))).thenReturn(csCreateSubmission)
       when(csCreateSubmission.getLong(9)).thenReturn(555L)
 
-      // --- Update_Verification_Batch ---
       val csUpdateBatch = mock[CallableStatement]
       when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateVerificationBatch))).thenReturn(csUpdateBatch)
 
-      // --- Update_Verification (twice) ---
       val csUpdateV1 = mock[CallableStatement]
       val csUpdateV2 = mock[CallableStatement]
       when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateVerification))).thenReturn(csUpdateV1, csUpdateV2)
@@ -3306,7 +3300,6 @@ final class CisFormpRepositorySpec extends SpecBase {
       val out = repo.createSubmissionAndUpdateVerifications(req).futureValue
       out.submissionId mustBe 555L
 
-      // ---- Verify Create_Submission parameters ----
       verify(conn).prepareCall(eqTo(CisStoredProcedures.CallCreateSubmission))
       verify(csCreateSubmission).setString(1, "abc-123")
       verify(csCreateSubmission).setString(2, "VERIFICATIONS")
@@ -3319,22 +3312,20 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csCreateSubmission).registerOutParameter(9, Types.NUMERIC)
       verify(csCreateSubmission).execute()
 
-      // ---- Verify Update_Verification_Batch parameters ----
       verify(conn).prepareCall(eqTo(CisStoredProcedures.CallUpdateVerificationBatch))
-      verify(csUpdateBatch).setLong(1, 77L) // verif_batch_resource_ref
-      verify(csUpdateBatch).setLong(2, 123L) // scheme_id from loadScheme
+      verify(csUpdateBatch).setLong(1, 77L)
+      verify(csUpdateBatch).setLong(2, 123L)
 
-      verify(csUpdateBatch).setNull(3, Types.VARCHAR) // proceed_session = null
-      verify(csUpdateBatch).setString(4, "Y") // confirm_arrangement
-      verify(csUpdateBatch).setString(5, "Y") // confirm_correct
-      verify(csUpdateBatch).setString(6, "STARTED") // status
-      verify(csUpdateBatch).setNull(7, Types.VARCHAR) // verification_number = null
+      verify(csUpdateBatch).setNull(3, Types.VARCHAR)
+      verify(csUpdateBatch).setString(4, "Y")
+      verify(csUpdateBatch).setString(5, "Y")
+      verify(csUpdateBatch).setString(6, "STARTED")
+      verify(csUpdateBatch).setNull(7, Types.VARCHAR)
 
       verify(csUpdateBatch).setNull(8, Types.INTEGER)
       verify(csUpdateBatch).registerOutParameter(8, Types.INTEGER)
       verify(csUpdateBatch).execute()
 
-      // ---- Verify Update_Verification #1 (Y => VERIFY) ----
       verify(conn, times(2)).prepareCall(eqTo(CisStoredProcedures.CallUpdateVerification))
 
       verify(csUpdateV1).setString(1, "abc-123")
@@ -3353,7 +3344,6 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdateV1).registerOutParameter(10, Types.INTEGER)
       verify(csUpdateV1).execute()
 
-      // ---- Verify Update_Verification #2 (N => MATCH) ----
       verify(csUpdateV2).setString(1, "abc-123")
       verify(csUpdateV2).setLong(2, 77L)
       verify(csUpdateV2).setLong(3, 20L)
@@ -3370,11 +3360,9 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdateV2).registerOutParameter(10, Types.INTEGER)
       verify(csUpdateV2).execute()
 
-      // sanity: scheme was looked up once
       verify(conn).prepareCall(eqTo(CisStoredProcedures.CallGetScheme))
       verify(csGetScheme).execute()
 
-      // resource closures (Using.resource closes these)
       verify(rsScheme).close()
       verify(csGetScheme).close()
       verify(csCreateSubmission).close()
@@ -3385,6 +3373,25 @@ final class CisFormpRepositorySpec extends SpecBase {
   }
 
   "processVerificationResponseFromChris" - {
+
+    val validChrisResponseRequest =
+      ProcessVerificationResponseFromChrisRequest(
+        instanceId = "abc-123",
+        verificationBatchResourceRef = 222L,
+        acceptedTime = "2026-06-15T10:05:00Z",
+        submissionStatus = "ACCEPTED",
+        irMarkReceived = "irmark",
+        verificationResults = Seq(
+          VerificationResult(
+            resourceRef = 456L,
+            matched = Some("Y"),
+            verified = Some("Y"),
+            verificationNumber = "V123456",
+            taxTreatment = "NET",
+            verifiedDate = LocalDateTime.parse("2026-06-15T10:05:00")
+          )
+        )
+      )
 
     "updates subcontractor, verification batch, verification and submission in one transaction" in {
       val db   = mock[Database]
@@ -3475,6 +3482,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsSubcontractors.getString("address_line_2")).thenReturn("Flat 2")
       when(rsSubcontractors.getString("address_line_3")).thenReturn("London")
       when(rsSubcontractors.getString("address_line_4")).thenReturn("Greater London")
+      when(rsSubcontractors.getString("updated_tax_treatment")).thenReturn("NET")
       when(rsSubcontractors.getString("country")).thenReturn("United Kingdom")
       when(rsSubcontractors.getString("postcode")).thenReturn("AA1 1AA")
       when(rsSubcontractors.getString("email_address")).thenReturn("test@test.com")
@@ -3561,6 +3569,307 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdateSubmission).setString(13, "abc-123")
       verify(csUpdateSubmission).setLong(14, 222L)
       verify(csUpdateSubmission).execute()
+    }
+
+    "throws when scheme is missing" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csGetExisting       = mock[CallableStatement]
+      val rsSubmission        = mock[ResultSet]
+      val rsVerificationBatch = mock[ResultSet]
+      val rsVerifications     = mock[ResultSet]
+      val rsSubcontractors    = mock[ResultSet]
+      val rsScheme            = mock[ResultSet]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetSubmissionWithVerificationBatch))).thenReturn(csGetExisting)
+
+      when(csGetExisting.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+      when(csGetExisting.getObject(eqTo(4), eqTo(classOf[ResultSet]))).thenReturn(rsVerificationBatch)
+      when(csGetExisting.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsVerifications)
+      when(csGetExisting.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
+      when(csGetExisting.getObject(eqTo(7), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+
+      when(rsSubmission.next()).thenReturn(true, false)
+      when(rsVerificationBatch.next()).thenReturn(true, false)
+      when(rsVerifications.next()).thenReturn(false)
+      when(rsSubcontractors.next()).thenReturn(false)
+      when(rsScheme.next()).thenReturn(false)
+
+      val repo = new CisFormpRepository(db)
+
+      val ex = repo.processVerificationResponseFromChris(validChrisResponseRequest).failed.futureValue
+
+      ex mustBe a[RuntimeException]
+      ex.getMessage mustBe "No scheme found for instanceId=abc-123"
+
+      verify(conn, never).prepareCall(eqTo(CisStoredProcedures.CallUpdateSubcontractor))
+      verify(conn, never).prepareCall(eqTo(CisStoredProcedures.CallUpdateVerificationBatch))
+      verify(conn, never).prepareCall(eqTo(CisStoredProcedures.CallUpdateVerification))
+      verify(conn, never).prepareCall(eqTo(CisStoredProcedures.CallUpdateSubmission))
+    }
+
+    "throws when submission is missing" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csGetExisting       = mock[CallableStatement]
+      val rsSubmission        = mock[ResultSet]
+      val rsVerificationBatch = mock[ResultSet]
+      val rsVerifications     = mock[ResultSet]
+      val rsSubcontractors    = mock[ResultSet]
+      val rsScheme            = mock[ResultSet]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetSubmissionWithVerificationBatch))).thenReturn(csGetExisting)
+
+      when(csGetExisting.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+      when(csGetExisting.getObject(eqTo(4), eqTo(classOf[ResultSet]))).thenReturn(rsVerificationBatch)
+      when(csGetExisting.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsVerifications)
+      when(csGetExisting.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
+      when(csGetExisting.getObject(eqTo(7), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+
+      when(rsSubmission.next()).thenReturn(false)
+      when(rsVerificationBatch.next()).thenReturn(true, false)
+      when(rsVerifications.next()).thenReturn(false)
+      when(rsSubcontractors.next()).thenReturn(false)
+
+      when(rsScheme.next()).thenReturn(true, false)
+      when(rsScheme.getInt("scheme_id")).thenReturn(123)
+      when(rsScheme.getString("instance_id")).thenReturn("abc-123")
+      when(rsScheme.getString("aoref")).thenReturn("123PA00123456")
+      when(rsScheme.getString("tax_office_number")).thenReturn("123")
+      when(rsScheme.getString("tax_office_reference")).thenReturn("AB456")
+      when(rsScheme.wasNull()).thenReturn(false)
+
+      val repo = new CisFormpRepository(db)
+
+      val ex = repo.processVerificationResponseFromChris(validChrisResponseRequest).failed.futureValue
+
+      ex mustBe a[RuntimeException]
+      ex.getMessage must include("No submission found for instanceId=abc-123")
+    }
+
+    "throws when verification batch is missing" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csGetExisting       = mock[CallableStatement]
+      val rsSubmission        = mock[ResultSet]
+      val rsVerificationBatch = mock[ResultSet]
+      val rsVerifications     = mock[ResultSet]
+      val rsSubcontractors    = mock[ResultSet]
+      val rsScheme            = mock[ResultSet]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetSubmissionWithVerificationBatch))).thenReturn(csGetExisting)
+
+      when(csGetExisting.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+      when(csGetExisting.getObject(eqTo(4), eqTo(classOf[ResultSet]))).thenReturn(rsVerificationBatch)
+      when(csGetExisting.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsVerifications)
+      when(csGetExisting.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
+      when(csGetExisting.getObject(eqTo(7), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+
+      stubSubmissionRow(rsSubmission)
+      when(rsVerificationBatch.next()).thenReturn(false)
+      when(rsVerifications.next()).thenReturn(false)
+      when(rsSubcontractors.next()).thenReturn(false)
+      stubSchemeRow(rsScheme)
+
+      val repo = new CisFormpRepository(db)
+
+      val ex = repo.processVerificationResponseFromChris(validChrisResponseRequest).failed.futureValue
+
+      ex mustBe a[RuntimeException]
+      ex.getMessage must include("No verification batch found for instanceId=abc-123")
+    }
+
+    "throws when verification is missing" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csGetExisting       = mock[CallableStatement]
+      val rsSubmission        = mock[ResultSet]
+      val rsVerificationBatch = mock[ResultSet]
+      val rsVerifications     = mock[ResultSet]
+      val rsSubcontractors    = mock[ResultSet]
+      val rsScheme            = mock[ResultSet]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetSubmissionWithVerificationBatch))).thenReturn(csGetExisting)
+
+      when(csGetExisting.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+      when(csGetExisting.getObject(eqTo(4), eqTo(classOf[ResultSet]))).thenReturn(rsVerificationBatch)
+      when(csGetExisting.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsVerifications)
+      when(csGetExisting.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
+      when(csGetExisting.getObject(eqTo(7), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+
+      stubSubmissionRow(rsSubmission)
+      stubVerificationBatchRow(rsVerificationBatch)
+      when(rsVerifications.next()).thenReturn(false)
+      when(rsSubcontractors.next()).thenReturn(false)
+      stubSchemeRow(rsScheme)
+
+      val repo = new CisFormpRepository(db)
+
+      val ex = repo.processVerificationResponseFromChris(validChrisResponseRequest).failed.futureValue
+
+      ex mustBe a[RuntimeException]
+      ex.getMessage mustBe "No verification found for resourceRef=456"
+    }
+
+    "throws when subcontractor is missing" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csGetExisting       = mock[CallableStatement]
+      val rsSubmission        = mock[ResultSet]
+      val rsVerificationBatch = mock[ResultSet]
+      val rsVerifications     = mock[ResultSet]
+      val rsSubcontractors    = mock[ResultSet]
+      val rsScheme            = mock[ResultSet]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetSubmissionWithVerificationBatch))).thenReturn(csGetExisting)
+
+      when(csGetExisting.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+      when(csGetExisting.getObject(eqTo(4), eqTo(classOf[ResultSet]))).thenReturn(rsVerificationBatch)
+      when(csGetExisting.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsVerifications)
+      when(csGetExisting.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
+      when(csGetExisting.getObject(eqTo(7), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+
+      stubSubmissionRow(rsSubmission)
+      stubVerificationBatchRow(rsVerificationBatch)
+      stubVerificationRow(rsVerifications)
+      when(rsSubcontractors.next()).thenReturn(false)
+      stubSchemeRow(rsScheme)
+
+      val repo = new CisFormpRepository(db)
+
+      val ex = repo.processVerificationResponseFromChris(validChrisResponseRequest).failed.futureValue
+
+      ex mustBe a[RuntimeException]
+      ex.getMessage mustBe "No subcontractor found for resourceRef=456"
+    }
+
+    def stubSubmissionRow(rs: ResultSet): Unit = {
+      when(rs.next()).thenReturn(true, false)
+      when(rs.getLong("submission_id")).thenReturn(555L)
+      when(rs.getString("submission_type")).thenReturn("VERIFICATIONS")
+      when(rs.getLong("active_object_id")).thenReturn(99L)
+      when(rs.getString("status")).thenReturn("STARTED")
+      when(rs.getString("hmrc_mark_generated")).thenReturn("old-irmark")
+      when(rs.getString("hmrc_mark_ggis")).thenReturn(null)
+      when(rs.getString("email_recipient")).thenReturn("test@test.com")
+      when(rs.getString("accepted_time")).thenReturn(null)
+      when(rs.getLong("scheme_id")).thenReturn(123L)
+      when(rs.getString("agent_id")).thenReturn("agent-123")
+      when(rs.getString("govtalk_error_code")).thenReturn(null)
+      when(rs.getString("govtalk_error_type")).thenReturn(null)
+      when(rs.getString("govtalk_error_message")).thenReturn(null)
+      when(rs.wasNull()).thenReturn(false)
+    }
+
+    def stubVerificationBatchRow(rs: ResultSet): Unit = {
+      when(rs.next()).thenReturn(true, false)
+      when(rs.getLong("verification_batch_id")).thenReturn(99L)
+      when(rs.getLong("scheme_id")).thenReturn(123L)
+      when(rs.getLong("verifications_counter")).thenReturn(1L)
+      when(rs.getLong("verif_batch_resource_ref")).thenReturn(222L)
+      when(rs.getString("proceed_session")).thenReturn("Y")
+      when(rs.getString("confirm_arrangement")).thenReturn("Y")
+      when(rs.getString("confirm_correct")).thenReturn("Y")
+      when(rs.getString("status")).thenReturn("STARTED")
+      when(rs.getString("verification_number")).thenReturn("VB123")
+      when(rs.getInt("version")).thenReturn(1)
+      when(rs.wasNull()).thenReturn(false)
+    }
+
+    def stubVerificationRow(rs: ResultSet): Unit = {
+      when(rs.next()).thenReturn(true, false)
+      when(rs.getLong("verification_id")).thenReturn(1001L)
+      when(rs.getString("matched")).thenReturn(null)
+      when(rs.getString("verification_number")).thenReturn(null)
+      when(rs.getString("tax_treatment")).thenReturn(null)
+      when(rs.getString("action_indicator")).thenReturn("VERIFY")
+      when(rs.getLong("verification_batch_id")).thenReturn(99L)
+      when(rs.getLong("scheme_id")).thenReturn(123L)
+      when(rs.getLong("subcontractor_id")).thenReturn(999L)
+      when(rs.getString("subcontractor_name")).thenReturn("John Smith")
+      when(rs.getLong("verification_resource_ref")).thenReturn(456L)
+      when(rs.getString("proceed")).thenReturn("Y")
+      when(rs.getInt("version")).thenReturn(1)
+      when(rs.wasNull()).thenReturn(false)
+    }
+
+    def stubSchemeRow(rs: ResultSet): Unit = {
+      when(rs.next()).thenReturn(true, false)
+      when(rs.getInt("scheme_id")).thenReturn(123)
+      when(rs.getString("instance_id")).thenReturn("abc-123")
+      when(rs.getString("aoref")).thenReturn("123PA00123456")
+      when(rs.getString("tax_office_number")).thenReturn("123")
+      when(rs.getString("tax_office_reference")).thenReturn("AB456")
+      when(rs.getString("email_address")).thenReturn(null)
+      when(rs.wasNull()).thenReturn(false)
+    }
+
+    "throws when subcontractor is missing for matching verification" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csGetExisting       = mock[CallableStatement]
+      val rsSubmission        = mock[ResultSet]
+      val rsVerificationBatch = mock[ResultSet]
+      val rsVerifications     = mock[ResultSet]
+      val rsSubcontractors    = mock[ResultSet]
+      val rsScheme            = mock[ResultSet]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetSubmissionWithVerificationBatch))).thenReturn(csGetExisting)
+
+      when(csGetExisting.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+      when(csGetExisting.getObject(eqTo(4), eqTo(classOf[ResultSet]))).thenReturn(rsVerificationBatch)
+      when(csGetExisting.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsVerifications)
+      when(csGetExisting.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
+      when(csGetExisting.getObject(eqTo(7), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+
+      stubSubmissionRow(rsSubmission)
+      stubVerificationBatchRow(rsVerificationBatch)
+      stubVerificationRow(rsVerifications)
+      stubSchemeRow(rsScheme)
+
+      when(rsSubcontractors.next()).thenReturn(false)
+
+      val repo = new CisFormpRepository(db)
+
+      val ex = repo.processVerificationResponseFromChris(validChrisResponseRequest).failed.futureValue
+
+      ex mustBe a[RuntimeException]
+      ex.getMessage mustBe "No subcontractor found for resourceRef=456"
+
+      verify(conn, never).prepareCall(eqTo(CisStoredProcedures.CallUpdateSubcontractor))
+      verify(conn, never).prepareCall(eqTo(CisStoredProcedures.CallUpdateVerification))
+      verify(conn, never).prepareCall(eqTo(CisStoredProcedures.CallUpdateVerificationBatch))
+      verify(conn, never).prepareCall(eqTo(CisStoredProcedures.CallUpdateSubmission))
     }
   }
 }
