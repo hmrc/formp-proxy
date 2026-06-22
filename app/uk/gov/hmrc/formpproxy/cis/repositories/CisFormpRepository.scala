@@ -1465,13 +1465,14 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
             verification = verification,
             result = result
           )
-        }
 
-        callUpdateVerificationBatchFromChris(
-          conn = conn,
-          verificationBatch = verificationBatch,
-          submissionStatus = req.submissionStatus
-        )
+          callUpdateVerificationBatchFromChris(
+            conn = conn,
+            verificationBatch = verificationBatch,
+            submissionStatus = req.submissionStatus,
+            result = result
+          )
+        }
 
         callUpdateSubmissionFromChris(
           conn = conn,
@@ -1583,7 +1584,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
       cs.setOptionalString(7, verification.actionIndicator)
       cs.setOptionalString(8, verification.proceed)
-      cs.setString(9, verification.subcontractorName.orNull)
+      cs.setOptionalString(9, verification.subcontractorName)
 
       cs.setOptionalInt(10, verification.version)
       cs.registerOutParameter(10, Types.INTEGER)
@@ -1594,7 +1595,8 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   private def callUpdateVerificationBatchFromChris(
     conn: Connection,
     verificationBatch: VerificationBatch,
-    submissionStatus: String
+    submissionStatus: String,
+    result: VerificationResult
   ): Unit =
     withCall(conn, CallUpdateVerificationBatch) { cs =>
       cs.setLong(
@@ -1609,7 +1611,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setOptionalString(4, verificationBatch.confirmArrangement)
       cs.setOptionalString(5, verificationBatch.confirmCorrect)
       cs.setString(6, submissionStatus)
-      cs.setOptionalString(7, verificationBatch.verificationNumber)
+      cs.setString(7, result.verificationNumber)
 
       cs.setOptionalInt(8, verificationBatch.version)
       cs.registerOutParameter(8, Types.INTEGER)
@@ -1630,8 +1632,8 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           throw new RuntimeException("Submission activeObjectId missing")
         )
       )
-      cs.setString(3, req.irMarkReceived)
-      cs.setString(4, submission.hmrcMarkGgis.orNull)
+      cs.setOptionalString(3, submission.hmrcMarkGenerated)
+      cs.setOptionalString(4, req.irMarkReceived)
       cs.setString(5, submission.emailRecipient.orNull)
       cs.setTimestamp(6, submission.submissionRequestDate.map(Timestamp.valueOf).orNull)
       cs.setString(7, req.acceptedTime)

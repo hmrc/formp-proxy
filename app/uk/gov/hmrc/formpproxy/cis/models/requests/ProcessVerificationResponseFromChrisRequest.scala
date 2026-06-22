@@ -16,16 +16,17 @@
 
 package uk.gov.hmrc.formpproxy.cis.models.requests
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{JsError, JsSuccess, Json, OFormat, Reads}
 
-import java.time.LocalDateTime
+import java.time.{LocalDateTime, OffsetDateTime}
+import java.time.format.DateTimeParseException
 
 final case class ProcessVerificationResponseFromChrisRequest(
   instanceId: String,
   verificationBatchResourceRef: Long,
   acceptedTime: String,
   submissionStatus: String,
-  irMarkReceived: String,
+  irMarkReceived: Option[String],
   verificationResults: Seq[VerificationResult]
 )
 
@@ -44,6 +45,17 @@ final case class VerificationResult(
 )
 
 object VerificationResult {
-  implicit val format: OFormat[VerificationResult] =
-    Json.format[VerificationResult]
+  private implicit val localDateTimeReads: Reads[LocalDateTime] =
+    Reads[LocalDateTime] { json =>
+      json.validate[String].flatMap { s =>
+        try JsSuccess(LocalDateTime.parse(s))
+        catch {
+          case _: DateTimeParseException =>
+            try JsSuccess(OffsetDateTime.parse(s).toLocalDateTime)
+            catch { case _: Exception => JsError(s"Cannot parse '$s' as a LocalDateTime") }
+        }
+      }
+    }
+
+  implicit val format: OFormat[VerificationResult] = Json.format[VerificationResult]
 }

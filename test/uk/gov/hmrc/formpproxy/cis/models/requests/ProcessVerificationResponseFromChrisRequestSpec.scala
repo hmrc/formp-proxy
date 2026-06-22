@@ -31,7 +31,7 @@ class ProcessVerificationResponseFromChrisRequestSpec extends SpecBase {
         verificationBatchResourceRef = 222L,
         acceptedTime = "2026-06-15T10:05:00Z",
         submissionStatus = "SUBMITTED",
-        irMarkReceived = "IR_MARK_RECEIVED",
+        irMarkReceived = Some("IR_MARK_RECEIVED"),
         verificationResults = Seq(
           VerificationResult(
             resourceRef = 456L,
@@ -95,7 +95,7 @@ class ProcessVerificationResponseFromChrisRequestSpec extends SpecBase {
         verificationBatchResourceRef = 222L,
         acceptedTime = "2026-06-15T10:05:00Z",
         submissionStatus = "SUBMITTED",
-        irMarkReceived = "IR_MARK_RECEIVED",
+        irMarkReceived = Some("IR_MARK_RECEIVED"),
         verificationResults = Seq(
           VerificationResult(
             resourceRef = 456L,
@@ -137,7 +137,7 @@ class ProcessVerificationResponseFromChrisRequestSpec extends SpecBase {
         verificationBatchResourceRef = 222L,
         acceptedTime = "2026-06-15T10:05:00Z",
         submissionStatus = "SUBMITTED",
-        irMarkReceived = "IR_MARK_RECEIVED",
+        irMarkReceived = Some("IR_MARK_RECEIVED"),
         verificationResults = Seq(
           VerificationResult(
             resourceRef = 456L,
@@ -151,6 +151,32 @@ class ProcessVerificationResponseFromChrisRequestSpec extends SpecBase {
       )
 
       json.validate[ProcessVerificationResponseFromChrisRequest] mustBe JsSuccess(expected)
+    }
+
+    "deserialize verifiedDate with a UTC timezone suffix" in {
+      val json = Json.parse(
+        """
+          |{
+          |  "instanceId": "abc-123",
+          |  "verificationBatchResourceRef": 222,
+          |  "acceptedTime": "2026-06-15T10:05:00Z",
+          |  "submissionStatus": "SUBMITTED",
+          |  "irMarkReceived": "IR_MARK_RECEIVED",
+          |  "verificationResults": [
+          |    {
+          |      "resourceRef": 456,
+          |      "verificationNumber": "V123456",
+          |      "taxTreatment": "NET",
+          |      "verifiedDate": "2026-06-15T10:05:00Z"
+          |    }
+          |  ]
+          |}
+          |""".stripMargin
+      )
+
+      val result = json.validate[ProcessVerificationResponseFromChrisRequest]
+      result.isSuccess mustBe true
+      result.get.verificationResults.head.verifiedDate mustBe LocalDateTime.parse("2026-06-15T10:05:00")
     }
 
     "fail to deserialize when required fields are missing" in {

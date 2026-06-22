@@ -3380,7 +3380,7 @@ final class CisFormpRepositorySpec extends SpecBase {
         verificationBatchResourceRef = 222L,
         acceptedTime = "2026-06-15T10:05:00Z",
         submissionStatus = "ACCEPTED",
-        irMarkReceived = "irmark",
+        irMarkReceived = Some("irmark"),
         verificationResults = Seq(
           VerificationResult(
             resourceRef = 456L,
@@ -3508,7 +3508,7 @@ final class CisFormpRepositorySpec extends SpecBase {
         verificationBatchResourceRef = 222L,
         acceptedTime = "2026-06-15T10:05:00Z",
         submissionStatus = "ACCEPTED",
-        irMarkReceived = "irmark",
+        irMarkReceived = Some("irmark"),
         verificationResults = Seq(
           VerificationResult(
             resourceRef = 456L,
@@ -3562,7 +3562,8 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       verify(csUpdateSubmission).setString(1, "VERIFICATIONS")
       verify(csUpdateSubmission).setLong(2, 99L)
-      verify(csUpdateSubmission).setString(3, "irmark")
+      verify(csUpdateSubmission).setString(3, "old-irmark")
+      verify(csUpdateSubmission).setString(4, "irmark")
       verify(csUpdateSubmission).setString(5, "test@test.com")
       verify(csUpdateSubmission).setString(8, "agent-123")
       verify(csUpdateSubmission).setString(9, "ACCEPTED")

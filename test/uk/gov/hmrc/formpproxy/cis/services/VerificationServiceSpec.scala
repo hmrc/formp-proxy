@@ -387,7 +387,7 @@ class VerificationServiceSpec extends SpecBase {
         verificationBatchResourceRef = 77L,
         acceptedTime = "2026-06-15T10:05:00Z",
         submissionStatus = "ACCEPTED",
-        irMarkReceived = "IR_MARK",
+        irMarkReceived = Some("IR_MARK"),
         verificationResults = Seq(
           VerificationResult(
             resourceRef = 111L,
@@ -418,7 +418,7 @@ class VerificationServiceSpec extends SpecBase {
         verificationBatchResourceRef = 77L,
         acceptedTime = "2026-06-15T10:05:00Z",
         submissionStatus = "ACCEPTED",
-        irMarkReceived = "IR_MARK",
+        irMarkReceived = Some("IR_MARK"),
         verificationResults = Seq(
           VerificationResult(
             resourceRef = 111L,
