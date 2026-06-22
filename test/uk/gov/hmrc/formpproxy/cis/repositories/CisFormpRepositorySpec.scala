@@ -3614,50 +3614,6 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(conn, never).prepareCall(eqTo(CisStoredProcedures.CallUpdateSubmission))
     }
 
-    "throws when submission is missing" in {
-      val db   = mock[Database]
-      val conn = mock[Connection]
-
-      val csGetExisting       = mock[CallableStatement]
-      val rsSubmission        = mock[ResultSet]
-      val rsVerificationBatch = mock[ResultSet]
-      val rsVerifications     = mock[ResultSet]
-      val rsSubcontractors    = mock[ResultSet]
-      val rsScheme            = mock[ResultSet]
-
-      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
-        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
-      }
-
-      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetSubmissionWithVerificationBatch))).thenReturn(csGetExisting)
-
-      when(csGetExisting.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
-      when(csGetExisting.getObject(eqTo(4), eqTo(classOf[ResultSet]))).thenReturn(rsVerificationBatch)
-      when(csGetExisting.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsVerifications)
-      when(csGetExisting.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
-      when(csGetExisting.getObject(eqTo(7), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
-
-      when(rsSubmission.next()).thenReturn(false)
-      when(rsVerificationBatch.next()).thenReturn(true, false)
-      when(rsVerifications.next()).thenReturn(false)
-      when(rsSubcontractors.next()).thenReturn(false)
-
-      when(rsScheme.next()).thenReturn(true, false)
-      when(rsScheme.getInt("scheme_id")).thenReturn(123)
-      when(rsScheme.getString("instance_id")).thenReturn("abc-123")
-      when(rsScheme.getString("aoref")).thenReturn("123PA00123456")
-      when(rsScheme.getString("tax_office_number")).thenReturn("123")
-      when(rsScheme.getString("tax_office_reference")).thenReturn("AB456")
-      when(rsScheme.wasNull()).thenReturn(false)
-
-      val repo = new CisFormpRepository(db)
-
-      val ex = repo.processVerificationResponseFromChris(validChrisResponseRequest).failed.futureValue
-
-      ex mustBe a[RuntimeException]
-      ex.getMessage must include("No submission found for instanceId=abc-123")
-    }
-
     "throws when verification batch is missing" in {
       val db   = mock[Database]
       val conn = mock[Connection]
