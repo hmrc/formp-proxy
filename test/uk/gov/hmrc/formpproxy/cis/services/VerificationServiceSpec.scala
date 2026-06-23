@@ -24,6 +24,7 @@ import uk.gov.hmrc.formpproxy.cis.models.{CreateVerifications, DeleteVerificatio
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
+import java.time.LocalDateTime
 
 import scala.concurrent.Future
 
@@ -371,6 +372,73 @@ class VerificationServiceSpec extends SpecBase {
       service.createSubmissionAndUpdateVerifications(req).failed.futureValue mustBe boom
 
       verify(repo).createSubmissionAndUpdateVerifications(eqTo(req))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "VerificationService#processVerificationResponseFromChris" - {
+
+    "delegates to repository" in {
+      val c = Ctx()
+      import c.*
+
+      val request = ProcessVerificationResponseFromChrisRequest(
+        instanceId = "abc-123",
+        verificationBatchResourceRef = 77L,
+        acceptedTime = "2026-06-15T10:05:00Z",
+        submissionStatus = "ACCEPTED",
+        irMarkReceived = Some("IR_MARK"),
+        verificationResults = Seq(
+          VerificationResult(
+            resourceRef = 111L,
+            matched = Some("Y"),
+            verified = Some("Y"),
+            verificationNumber = Some("V123456"),
+            taxTreatment = "NET",
+            verifiedDate = LocalDateTime.parse("2026-06-15T10:05:00")
+          )
+        )
+      )
+
+      when(repo.processVerificationResponseFromChris(eqTo(request)))
+        .thenReturn(Future.successful(()))
+
+      service.processVerificationResponseFromChris(request).futureValue mustBe ()
+
+      verify(repo).processVerificationResponseFromChris(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failure from repository" in {
+      val c = Ctx()
+      import c.*
+
+      val request = ProcessVerificationResponseFromChrisRequest(
+        instanceId = "abc-123",
+        verificationBatchResourceRef = 77L,
+        acceptedTime = "2026-06-15T10:05:00Z",
+        submissionStatus = "ACCEPTED",
+        irMarkReceived = Some("IR_MARK"),
+        verificationResults = Seq(
+          VerificationResult(
+            resourceRef = 111L,
+            matched = Some("Y"),
+            verified = Some("Y"),
+            verificationNumber = Some("V123456"),
+            taxTreatment = "NET",
+            verifiedDate = LocalDateTime.parse("2026-06-15T10:05:00")
+          )
+        )
+      )
+
+      val boom = new RuntimeException("boom")
+
+      when(repo.processVerificationResponseFromChris(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      service.processVerificationResponseFromChris(request).failed.futureValue mustBe boom
+
+      verify(repo).processVerificationResponseFromChris(eqTo(request))
       verifyNoMoreInteractions(repo)
     }
   }
