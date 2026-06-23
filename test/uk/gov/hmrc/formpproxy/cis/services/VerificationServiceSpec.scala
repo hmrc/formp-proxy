@@ -451,9 +451,10 @@ class VerificationServiceSpec extends SpecBase {
 
       val req = UpdateVerificationSubmissionRequest(
         instanceId = "abc-123",
-        verificationBatchId = 99L,
         verificationBatchResourceRef = 77L,
         submittableStatus = "FATAL_ERROR",
+        hmrcMarkGenerated = None,
+        submissionRequestDate = None,
         govtalkErrorCode = Some("500"),
         govtalkErrorType = Some("timeOut"),
         govtalkErrorMessage = Some("timeOut")
@@ -474,8 +475,9 @@ class VerificationServiceSpec extends SpecBase {
 
       val req = UpdateVerificationSubmissionRequest(
         instanceId = "abc-123",
-        verificationBatchId = 99L,
         verificationBatchResourceRef = 77L,
+        hmrcMarkGenerated = None,
+        submissionRequestDate = None,
         submittableStatus = "DEPARTMENTAL_ERROR",
         govtalkErrorCode = Some("3001"),
         govtalkErrorType = Some("departmentalError"),

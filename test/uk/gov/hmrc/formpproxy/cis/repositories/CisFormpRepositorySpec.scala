@@ -3419,8 +3419,9 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       val req = UpdateVerificationSubmissionRequest(
         instanceId = "abc-123",
-        verificationBatchId = 99L,
         verificationBatchResourceRef = 77L,
+        hmrcMarkGenerated = Some("request-ir-mark"),
+        submissionRequestDate = Some(LocalDateTime.parse("2026-02-02T09:00:00")),
         submittableStatus = "FATAL_ERROR",
         govtalkErrorCode = Some("500"),
         govtalkErrorType = Some("timeOut"),
@@ -3440,11 +3441,11 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(conn).prepareCall(eqTo(CisStoredProcedures.CallUpdateSubmission))
       verify(csUpdateSubmission).setString(1, "VERIFICATIONS") // p_submission_type
       verify(csUpdateSubmission).setLong(2, 99L) // p_active_object_id
-      verify(csUpdateSubmission).setString(3, "existing-mark") // p_hmrc_mark_generated (from existing)
+      verify(csUpdateSubmission).setString(3, "request-ir-mark") // p_hmrc_mark_generated (from request)
       verify(csUpdateSubmission).setString(4, "existing-ggis") // p_hmrc_mark_ggis (from existing)
       verify(csUpdateSubmission).setString(5, "test@example.com") // p_email_recipient (from existing)
       verify(csUpdateSubmission)
-        .setTimestamp(6, java.sql.Timestamp.valueOf("2026-01-01 09:00:00")) // p_submission_request_date (from existing)
+        .setTimestamp(6, java.sql.Timestamp.valueOf("2026-02-02 09:00:00")) // p_submission_request_date (from request)
       verify(csUpdateSubmission).setString(7, "2026-01-01T10:00:00") // p_accepted_time (from existing)
       verify(csUpdateSubmission).setString(8, "AGENT-1") // p_agent_id (from existing)
       verify(csUpdateSubmission).setString(9, "FATAL_ERROR") // p_submittable_status (from request)

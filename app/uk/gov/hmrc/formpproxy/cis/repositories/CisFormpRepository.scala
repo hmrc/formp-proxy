@@ -1456,22 +1456,30 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
   override def updateVerificationSubmission(req: UpdateVerificationSubmissionRequest): Future[Unit] = {
     logger.info(
-      s"[CIS] updateVerificationSubmission(instanceId=${req.instanceId}, verificationBatchId=${req.verificationBatchId}, status=${req.submittableStatus})"
+      s"[CIS] updateVerificationSubmission(instanceId=${req.instanceId}, status=${req.submittableStatus})"
     )
 
     Future {
       db.withTransaction { conn =>
-        val existing = callGetSubmission(conn, req.instanceId, req.verificationBatchResourceRef)
+        val existing       = callGetSubmission(conn, req.instanceId, req.verificationBatchResourceRef)
+        val activeObjectId = existing.activeObjectId.getOrElse(
+          throw new RuntimeException(
+            s"Submission activeObjectId missing for instanceId=${req.instanceId}, resourceRef=${req.verificationBatchResourceRef}"
+          )
+        )
 
         callUpdateSubmission(
           conn,
           instanceId = req.instanceId,
           submissionType = "VERIFICATIONS",
-          activeObjectId = req.verificationBatchId,
-          hmrcMarkGenerated = existing.hmrcMarkGenerated.orNull,
+          activeObjectId = activeObjectId,
+          hmrcMarkGenerated = req.hmrcMarkGenerated.orElse(existing.hmrcMarkGenerated).orNull,
           hmrcMarkGgis = existing.hmrcMarkGgis.orNull,
           emailRecipient = existing.emailRecipient.orNull,
-          submissionRequestDate = existing.submissionRequestDate.map(Timestamp.valueOf).orNull,
+          submissionRequestDate = req.submissionRequestDate
+            .orElse(existing.submissionRequestDate)
+            .map(Timestamp.valueOf)
+            .orNull,
           acceptedTime = existing.acceptedTime.orNull,
           agentId = existing.agentId.orNull,
           submittableStatus = req.submittableStatus,

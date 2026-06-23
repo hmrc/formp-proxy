@@ -766,8 +766,9 @@ class VerificationControllerSpec extends SpecBase {
 
       val requestModel = UpdateVerificationSubmissionRequest(
         instanceId = "abc-123",
-        verificationBatchId = 99L,
         verificationBatchResourceRef = 77L,
+        hmrcMarkGenerated = None,
+        submissionRequestDate = None,
         submittableStatus = "FATAL_ERROR",
         govtalkErrorCode = Some("500"),
         govtalkErrorType = Some("timeOut"),
@@ -818,9 +819,10 @@ class VerificationControllerSpec extends SpecBase {
 
       val requestModel = UpdateVerificationSubmissionRequest(
         instanceId = "abc-123",
-        verificationBatchId = 99L,
         verificationBatchResourceRef = 77L,
         submittableStatus = "DEPARTMENTAL_ERROR",
+        hmrcMarkGenerated = None,
+        submissionRequestDate = None,
         govtalkErrorCode = Some("3001"),
         govtalkErrorType = Some("departmentalError"),
         govtalkErrorMessage = Some("some error text")

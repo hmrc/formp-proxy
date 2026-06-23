@@ -19,6 +19,8 @@ package uk.gov.hmrc.formpproxy.cis.models.requests
 import play.api.libs.json.*
 import uk.gov.hmrc.formpproxy.base.SpecBase
 
+import java.time.LocalDateTime
+
 class UpdateVerificationSubmissionRequestSpec extends SpecBase {
 
   "UpdateVerificationSubmissionRequest" - {
@@ -26,9 +28,10 @@ class UpdateVerificationSubmissionRequestSpec extends SpecBase {
     "round-trip through JSON with all fields" in {
       val request = UpdateVerificationSubmissionRequest(
         instanceId = "abc-123",
-        verificationBatchId = 99L,
         verificationBatchResourceRef = 77L,
         submittableStatus = "FATAL_ERROR",
+        submissionRequestDate = Some(LocalDateTime.parse("2026-06-19T10:00:00")),
+        hmrcMarkGenerated = Some("hmrc-mark"),
         govtalkErrorCode = Some("500"),
         govtalkErrorType = Some("timeOut"),
         govtalkErrorMessage = Some("timeOut")
@@ -40,9 +43,10 @@ class UpdateVerificationSubmissionRequestSpec extends SpecBase {
     "round-trip through JSON with optional fields absent" in {
       val request = UpdateVerificationSubmissionRequest(
         instanceId = "abc-123",
-        verificationBatchId = 99L,
         verificationBatchResourceRef = 77L,
-        submittableStatus = "ACCEPTED"
+        submittableStatus = "ACCEPTED",
+        submissionRequestDate = None,
+        hmrcMarkGenerated = None
       )
 
       Json.toJson(request).as[UpdateVerificationSubmissionRequest] mustBe request
@@ -51,8 +55,9 @@ class UpdateVerificationSubmissionRequestSpec extends SpecBase {
     "fail to deserialize when submittableStatus is missing" in {
       val json = Json.obj(
         "instanceId"                   -> "abc-123",
-        "verificationBatchId"          -> 99L,
-        "verificationBatchResourceRef" -> 77L
+        "verificationBatchResourceRef" -> 77L,
+        "submissionRequestDate"        -> "2026-06-19T10:00:00",
+        "hmrcMarkGenerated"            -> "hmrc-mark"
       )
 
       json.validate[UpdateVerificationSubmissionRequest].isError mustBe true
