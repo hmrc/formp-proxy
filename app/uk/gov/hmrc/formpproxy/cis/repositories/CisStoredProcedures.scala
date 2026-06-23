@@ -75,4 +75,10 @@ object CisStoredProcedures {
     "{ call VERIFICATION_PROCS.Update_Verification_Batch(?, ?, ?, ?, ?, ?, ?, ?) }"
   val CallUpdateVerification                  =
     "{ call VERIFICATION_PROCS.Update_Verification(?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+
+  val CallUpdateSubmission =
+    "{ call SUBMISSION_PROCS_2016.Update_Submission(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+
+  val CallGetSubmissionWithVerificationBatch =
+    "{ call SUBMISSION_PROCS.Get_Verif_Batch_Submission(?, ?, ?, ?, ?, ?, ?) }"
 }

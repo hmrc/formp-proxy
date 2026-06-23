@@ -88,6 +88,7 @@ trait CisMonthlyReturnSource {
   def createAmendedMonthlyReturn(request: CreateAmendedMonthlyReturnRequest): Future[Unit]
   def modifyVerifications(req: ModifyVerificationsRequest): Future[Unit]
   def updateVerificationSubmission(req: UpdateVerificationSubmissionRequest): Future[Unit]
+  def processVerificationResponseFromChris(req: ProcessVerificationResponseFromChrisRequest): Future[Unit]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -1482,5 +1483,251 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
   }
+
+  override def processVerificationResponseFromChris(req: ProcessVerificationResponseFromChrisRequest): Future[Unit] =
+    Future {
+      logger.info(
+        s"[CIS] processVerificationResponseFromChris(instanceId=${req.instanceId}, verificationBatchResourceRef=${req.verificationBatchResourceRef})"
+      )
+
+      db.withTransaction { conn =>
+        val existing = callGetSubmissionWithVerificationBatch(
+          conn = conn,
+          instanceId = req.instanceId,
+          verificationBatchResourceRef = req.verificationBatchResourceRef
+        )
+
+        val scheme = existing.scheme.getOrElse(
+          throw new RuntimeException(s"No scheme found for instanceId=${req.instanceId}")
+        )
+
+        val submission = existing.submission.getOrElse(
+          throw new RuntimeException(
+            s"No submission found for instanceId=${req.instanceId}, verificationBatchResourceRef=${req.verificationBatchResourceRef}"
+          )
+        )
+
+        val verificationBatch = existing.verificationBatch.getOrElse(
+          throw new RuntimeException(
+            s"No verification batch found for instanceId=${req.instanceId}, verificationBatchResourceRef=${req.verificationBatchResourceRef}"
+          )
+        )
+
+        req.verificationResults.foreach { result =>
+          val verification = existing.verifications
+            .find(_.verificationResourceRef.contains(result.resourceRef))
+            .getOrElse(
+              throw new RuntimeException(s"No verification found for resourceRef=${result.resourceRef}")
+            )
+
+          val subcontractor = existing.subcontractors
+            .find(s => verification.subcontractorId.contains(s.subcontractorId))
+            .getOrElse(
+              throw new RuntimeException(s"No subcontractor found for resourceRef=${result.resourceRef}")
+            )
+
+          val subbieResourceRef = subcontractor.subbieResourceRef.getOrElse(
+            throw new RuntimeException(
+              s"No subbieResourceRef found for subcontractorId=${subcontractor.subcontractorId}, resourceRef=${result.resourceRef}"
+            )
+          )
+
+          callUpdateSubcontractorFromChris(
+            conn = conn,
+            schemeId = scheme.schemeId.toLong,
+            subbieResourceRef = subbieResourceRef,
+            subcontractor = subcontractor,
+            result = result
+          )
+
+          callUpdateVerificationFromChris(
+            conn = conn,
+            instanceId = req.instanceId,
+            verificationBatchResourceRef = req.verificationBatchResourceRef,
+            verification = verification,
+            result = result
+          )
+
+          callUpdateVerificationBatchFromChris(
+            conn = conn,
+            verificationBatch = verificationBatch,
+            submissionStatus = req.submissionStatus,
+            result = result
+          )
+        }
+
+        callUpdateSubmissionFromChris(
+          conn = conn,
+          submission = submission,
+          req = req
+        )
+      }
+    }
+
+  private final case class SubmissionWithVerificationBatchRecord(
+    scheme: Option[ContractorScheme],
+    submission: Option[Submission],
+    verificationBatch: Option[VerificationBatch],
+    verifications: Seq[Verification],
+    subcontractors: Seq[Subcontractor]
+  )
+
+  private def callGetSubmissionWithVerificationBatch(
+    conn: Connection,
+    instanceId: String,
+    verificationBatchResourceRef: Long
+  ): SubmissionWithVerificationBatchRecord =
+    withCall(conn, CallGetSubmissionWithVerificationBatch) { cs =>
+      cs.setString(1, instanceId)
+      cs.setLong(2, verificationBatchResourceRef)
+
+      cs.registerOutParameter(3, OracleTypes.CURSOR)
+      cs.registerOutParameter(4, OracleTypes.CURSOR)
+      cs.registerOutParameter(5, OracleTypes.CURSOR)
+      cs.registerOutParameter(6, OracleTypes.CURSOR)
+      cs.registerOutParameter(7, OracleTypes.CURSOR)
+
+      cs.execute()
+
+      SubmissionWithVerificationBatchRecord(
+        submission = withCursor(cs, 3)(collectSubmissionsForGetVerificationBatch).headOption,
+        verificationBatch = withCursor(cs, 4)(collectVerificationBatches).headOption,
+        verifications = withCursor(cs, 5)(collectVerifications),
+        subcontractors = withCursor(cs, 6)(collectSubcontractorsForGetVerificationBatchSubmission),
+        scheme = withCursor(cs, 7)(collectSchemes).headOption
+      )
+    }
+
+  private def callUpdateSubcontractorFromChris(
+    conn: Connection,
+    schemeId: Long,
+    subbieResourceRef: Long,
+    subcontractor: Subcontractor,
+    result: VerificationResult
+  ): Unit =
+    withCall(conn, CallUpdateSubcontractor) { cs =>
+      cs.setLong(1, schemeId)
+      cs.setLong(2, subbieResourceRef)
+
+      cs.setOptionalString(3, subcontractor.utr)
+      cs.setOptionalInt(4, subcontractor.pageVisited)
+      cs.setOptionalString(5, subcontractor.partnerUtr)
+      cs.setOptionalString(6, subcontractor.crn)
+
+      cs.setOptionalString(7, subcontractor.firstName)
+      cs.setOptionalString(8, subcontractor.nino)
+      cs.setOptionalString(9, subcontractor.secondName)
+      cs.setOptionalString(10, subcontractor.surname)
+
+      cs.setOptionalString(11, subcontractor.partnershipTradingName)
+      cs.setOptionalString(12, subcontractor.tradingName)
+
+      cs.setOptionalString(13, subcontractor.addressLine1)
+      cs.setOptionalString(14, subcontractor.addressLine2)
+      cs.setOptionalString(15, subcontractor.addressLine3)
+      cs.setOptionalString(16, subcontractor.addressLine4)
+      cs.setOptionalString(17, subcontractor.country)
+      cs.setOptionalString(18, subcontractor.postcode)
+
+      cs.setOptionalString(19, subcontractor.emailAddress)
+      cs.setOptionalString(20, subcontractor.phoneNumber)
+      cs.setOptionalString(21, subcontractor.mobilePhoneNumber)
+      cs.setOptionalString(22, subcontractor.worksReferenceNumber)
+
+      cs.setOptionalString(23, result.matched)
+      cs.setOptionalString(24, subcontractor.autoVerified)
+      cs.setOptionalString(25, result.verified)
+      cs.setOptionalString(26, result.verificationNumber)
+      cs.setString(27, result.taxTreatment)
+      cs.setOptionalString(28, subcontractor.updatedTaxTreatment)
+
+      cs.setTimestamp(29, Timestamp.valueOf(result.verifiedDate))
+      cs.setOptionalInt(30, subcontractor.version)
+      cs.registerOutParameter(30, Types.INTEGER)
+
+      cs.execute()
+    }
+
+  private def callUpdateVerificationFromChris(
+    conn: Connection,
+    instanceId: String,
+    verificationBatchResourceRef: Long,
+    verification: Verification,
+    result: VerificationResult
+  ): Unit =
+    withCall(conn, CallUpdateVerification) { cs =>
+      cs.setString(1, instanceId)
+      cs.setLong(2, verificationBatchResourceRef)
+      cs.setLong(3, result.resourceRef)
+
+      cs.setOptionalString(4, result.matched)
+      cs.setOptionalString(5, result.verificationNumber)
+      cs.setString(6, result.taxTreatment)
+
+      cs.setOptionalString(7, verification.actionIndicator)
+      cs.setOptionalString(8, verification.proceed)
+      cs.setOptionalString(9, verification.subcontractorName)
+
+      cs.setOptionalInt(10, verification.version)
+      cs.registerOutParameter(10, Types.INTEGER)
+
+      cs.execute()
+    }
+
+  private def callUpdateVerificationBatchFromChris(
+    conn: Connection,
+    verificationBatch: VerificationBatch,
+    submissionStatus: String,
+    result: VerificationResult
+  ): Unit =
+    withCall(conn, CallUpdateVerificationBatch) { cs =>
+      cs.setLong(
+        1,
+        verificationBatch.verifBatchResourceRef.getOrElse(
+          throw new RuntimeException("Verification batch resource reference missing")
+        )
+      )
+      cs.setLong(2, verificationBatch.schemeId)
+
+      cs.setOptionalString(3, verificationBatch.proceedSession)
+      cs.setOptionalString(4, verificationBatch.confirmArrangement)
+      cs.setOptionalString(5, verificationBatch.confirmCorrect)
+      cs.setString(6, submissionStatus)
+      cs.setOptionalString(7, result.verificationNumber)
+
+      cs.setOptionalInt(8, verificationBatch.version)
+      cs.registerOutParameter(8, Types.INTEGER)
+
+      cs.execute()
+    }
+
+  private def callUpdateSubmissionFromChris(
+    conn: Connection,
+    submission: Submission,
+    req: ProcessVerificationResponseFromChrisRequest
+  ): Unit =
+    withCall(conn, CallUpdateSubmission) { cs =>
+      cs.setString(1, submission.submissionType)
+      cs.setLong(
+        2,
+        submission.activeObjectId.getOrElse(
+          throw new RuntimeException("Submission activeObjectId missing")
+        )
+      )
+      cs.setOptionalString(3, submission.hmrcMarkGenerated)
+      cs.setOptionalString(4, req.irMarkReceived)
+      cs.setString(5, submission.emailRecipient.orNull)
+      cs.setTimestamp(6, submission.submissionRequestDate.map(Timestamp.valueOf).orNull)
+      cs.setString(7, req.acceptedTime)
+      cs.setString(8, submission.agentId.orNull)
+      cs.setString(9, req.submissionStatus)
+      cs.setString(10, submission.govTalkErrorCode.orNull)
+      cs.setString(11, submission.govTalkErrorType.orNull)
+      cs.setString(12, submission.govTalkErrorMessage.orNull)
+      cs.setString(13, req.instanceId)
+      cs.setLong(14, req.verificationBatchResourceRef)
+
+      cs.execute()
+    }
 
 }
