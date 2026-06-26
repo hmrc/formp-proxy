@@ -20,12 +20,12 @@ import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.formpproxy.cis.models.*
 
 final case class GetSubmittedVerificationsResponse(
-                                                    scheme: Seq[ContractorScheme],
-                                                    subcontractors: Seq[Subcontractor],
-                                                    verificationBatches: Seq[VerificationBatch],
-                                                    verifications: Seq[Verification],
-                                                    submissions: Seq[Submission]
-                                                  )
+  scheme: Seq[ContractorScheme],
+  subcontractors: Seq[Subcontractor],
+  verificationBatches: Seq[VerificationBatch],
+  verifications: Seq[Verification],
+  submissions: Seq[Submission]
+)
 
 object GetSubmittedVerificationsResponse {
   given format: OFormat[GetSubmittedVerificationsResponse] =

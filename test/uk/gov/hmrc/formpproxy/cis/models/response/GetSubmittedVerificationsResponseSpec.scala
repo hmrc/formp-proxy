@@ -273,7 +273,8 @@ final class GetSubmittedVerificationsResponseSpec extends SpecBase {
     }
 
     "fail to deserialize when required fields are missing" in {
-      Json.obj("scheme" -> Json.arr())
+      Json
+        .obj("scheme" -> Json.arr())
         .validate[GetSubmittedVerificationsResponse]
         .isError mustBe true
     }

@@ -205,7 +205,7 @@ class SubmissionControllerSpec extends SpecBase {
       val s = setup; import s.*
 
       val result = controller.getSubmittedVerifications
-        .apply(postJson("/verification/submitted-verifications, Json.obj("bad" -> "json")))
+        .apply(postJson("/verification/submitted-verifications", Json.obj("bad" -> "json")))
 
       status(result) mustBe BAD_REQUEST
       (contentAsJson(result) \ "message").as[String] mustBe "Invalid payload"

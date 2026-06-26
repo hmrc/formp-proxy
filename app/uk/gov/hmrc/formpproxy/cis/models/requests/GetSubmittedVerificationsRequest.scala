@@ -19,7 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.models.requests
 import play.api.libs.json.{Json, OFormat}
 
 final case class GetSubmittedVerificationsRequest(
-    instanceId: String
+  instanceId: String
 )
 
 object GetSubmittedVerificationsRequest {
