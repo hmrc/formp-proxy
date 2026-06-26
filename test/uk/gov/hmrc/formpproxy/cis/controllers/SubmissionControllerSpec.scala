@@ -24,7 +24,8 @@ import play.api.libs.json.Json
 import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
 import uk.gov.hmrc.formpproxy.base.SpecBase
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateSubmissionRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests._
+import uk.gov.hmrc.formpproxy.cis.models.response.GetSubmittedVerificationsResponse
 import uk.gov.hmrc.formpproxy.cis.services.SubmissionService
 
 import scala.concurrent.Future
@@ -171,6 +172,60 @@ class SubmissionControllerSpec extends SpecBase {
         )
 
       status(result) mustBe INTERNAL_SERVER_ERROR
+    }
+  }
+
+  "POST /verification/submitted-verifications (getSubmittedVerifications)" - {
+
+    "returns 200 OK with response when service succeeds" in {
+      val s = setup; import s.*
+
+      val req      = GetSubmittedVerificationsRequest("abc-123")
+      val response = GetSubmittedVerificationsResponse(
+        scheme = Seq.empty,
+        subcontractors = Seq.empty,
+        verificationBatches = Seq.empty,
+        verifications = Seq.empty,
+        submissions = Seq.empty
+      )
+
+      when(service.getSubmittedVerifications(eqTo(req)))
+        .thenReturn(Future.successful(response))
+
+      val result = controller.getSubmittedVerifications
+        .apply(postJson("/verification/submitted-verifications", Json.toJson(req)))
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe Json.toJson(response)
+
+      verify(service).getSubmittedVerifications(eqTo(req))
+    }
+
+    "returns 400 BadRequest for invalid JSON" in {
+      val s = setup; import s.*
+
+      val result = controller.getSubmittedVerifications
+        .apply(postJson("/verification/submitted-verifications, Json.obj("bad" -> "json")))
+
+      status(result) mustBe BAD_REQUEST
+      (contentAsJson(result) \ "message").as[String] mustBe "Invalid payload"
+
+      verify(service, never()).getSubmittedVerifications(any[GetSubmittedVerificationsRequest])
+    }
+
+    "maps service failure to 500 with error body" in {
+      val s = setup; import s.*
+
+      val req = GetSubmittedVerificationsRequest("abc-123")
+
+      when(service.getSubmittedVerifications(eqTo(req)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val result = controller.getSubmittedVerifications
+        .apply(postJson("/verification/submitted-verifications", Json.toJson(req)))
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
     }
   }
 }

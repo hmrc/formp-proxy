@@ -22,8 +22,9 @@ import org.mockito.Mockito.*
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.GovTalkErrorStatus
 import uk.gov.hmrc.formpproxy.cis.models.GovTalkErrorStatus.*
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateSubmissionRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests._
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
+import uk.gov.hmrc.formpproxy.cis.models.response.GetSubmittedVerificationsResponse
 
 import scala.concurrent.Future
 
@@ -226,6 +227,44 @@ class SubmissionServiceSpec extends SpecBase {
       service.updateSubmission(req).futureValue
 
       verify(repo).updateMonthlyReturnSubmission(eqTo(req))
+    }
+  }
+
+  "SubmissionService#getSubmittedVerifications" - {
+
+    "delegates to repo and returns response" in {
+      val s = setup;
+      import s.*
+
+      val req      = GetSubmittedVerificationsRequest("abc-123")
+      val response = GetSubmittedVerificationsResponse(
+        scheme = Seq.empty,
+        subcontractors = Seq.empty,
+        verificationBatches = Seq.empty,
+        verifications = Seq.empty,
+        submissions = Seq.empty
+      )
+
+      when(repo.getSubmittedVerifications(eqTo(req)))
+        .thenReturn(Future.successful(response))
+
+      service.getSubmittedVerifications(req).futureValue mustBe response
+
+      verify(repo).getSubmittedVerifications(eqTo(req))
+    }
+
+    "propagates failure from repo" in {
+      val s = setup;
+      import s.*
+
+      val req = GetSubmittedVerificationsRequest("abc-123")
+
+      when(repo.getSubmittedVerifications(eqTo(req)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      service.getSubmittedVerifications(req).failed.futureValue.getMessage mustBe "boom"
+
+      verify(repo).getSubmittedVerifications(eqTo(req))
     }
   }
 }
