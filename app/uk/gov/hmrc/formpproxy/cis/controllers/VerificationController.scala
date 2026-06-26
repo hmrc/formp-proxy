@@ -128,4 +128,23 @@ class VerificationController @Inject() (
               }
         )
     }
+
+  def getSubmittedVerifications(): Action[JsValue] =
+    authorise(parse.json).async { implicit request =>
+      request.body
+        .validate[GetSubmittedVerificationsRequest]
+        .fold(
+          errs =>
+            Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
+          req =>
+            service
+              .getSubmittedVerifications(req)
+              .map(res => Ok(Json.toJson(res)))
+              .recover { case t =>
+                logger.error("[getSubmittedVerifications] failed", t)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
+              }
+        )
+    }
+
 }

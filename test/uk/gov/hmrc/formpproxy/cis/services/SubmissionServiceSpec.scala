@@ -229,42 +229,4 @@ class SubmissionServiceSpec extends SpecBase {
       verify(repo).updateMonthlyReturnSubmission(eqTo(req))
     }
   }
-
-  "SubmissionService#getSubmittedVerifications" - {
-
-    "delegates to repo and returns response" in {
-      val s = setup;
-      import s.*
-
-      val req      = GetSubmittedVerificationsRequest("abc-123")
-      val response = GetSubmittedVerificationsResponse(
-        scheme = Seq.empty,
-        subcontractors = Seq.empty,
-        verificationBatches = Seq.empty,
-        verifications = Seq.empty,
-        submissions = Seq.empty
-      )
-
-      when(repo.getSubmittedVerifications(eqTo(req)))
-        .thenReturn(Future.successful(response))
-
-      service.getSubmittedVerifications(req).futureValue mustBe response
-
-      verify(repo).getSubmittedVerifications(eqTo(req))
-    }
-
-    "propagates failure from repo" in {
-      val s = setup;
-      import s.*
-
-      val req = GetSubmittedVerificationsRequest("abc-123")
-
-      when(repo.getSubmittedVerifications(eqTo(req)))
-        .thenReturn(Future.failed(new RuntimeException("boom")))
-
-      service.getSubmittedVerifications(req).failed.futureValue.getMessage mustBe "boom"
-
-      verify(repo).getSubmittedVerifications(eqTo(req))
-    }
-  }
 }

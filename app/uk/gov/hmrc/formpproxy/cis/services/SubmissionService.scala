@@ -16,10 +16,9 @@
 
 package uk.gov.hmrc.formpproxy.cis.services
 
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateSubmissionRequest, GetSubmittedVerificationsRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateSubmissionRequest, UpdateSubmissionRequest}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 import uk.gov.hmrc.formpproxy.cis.utils.GovTalkErrorMapper
-import uk.gov.hmrc.formpproxy.cis.models.response.GetSubmittedVerificationsResponse
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
@@ -44,9 +43,4 @@ class SubmissionService @Inject() (repo: CisMonthlyReturnSource) {
     }
     repo.updateMonthlyReturnSubmission(mappedReq)
   }
-
-  def getSubmittedVerifications(
-    req: GetSubmittedVerificationsRequest
-  ): Future[GetSubmittedVerificationsResponse] =
-    repo.getSubmittedVerifications(req)
 }

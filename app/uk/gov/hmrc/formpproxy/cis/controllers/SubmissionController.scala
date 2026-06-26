@@ -20,8 +20,7 @@ import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateSubmissionRequest, GetSubmittedVerificationsRequest, UpdateSubmissionRequest}
-import uk.gov.hmrc.formpproxy.cis.models.response.GetSubmittedVerificationsResponse
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateSubmissionRequest, UpdateSubmissionRequest}
 import uk.gov.hmrc.formpproxy.cis.services.SubmissionService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -68,24 +67,6 @@ class SubmissionController @Inject() (
               .recover { case t =>
                 logger.error("[updateSubmission] failed", t)
                 InternalServerError
-              }
-        )
-    }
-
-  def getSubmittedVerifications: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
-      request.body
-        .validate[GetSubmittedVerificationsRequest]
-        .fold(
-          errs =>
-            Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
-          body =>
-            service
-              .getSubmittedVerifications(body)
-              .map(res => Ok(Json.toJson(res)))
-              .recover { case t =>
-                logger.error("[getSubmittedVerifications] failed", t)
-                InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )
     }
