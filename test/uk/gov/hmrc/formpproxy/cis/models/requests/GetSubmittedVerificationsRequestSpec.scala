@@ -50,7 +50,8 @@ class GetSubmittedVerificationsRequestSpec extends SpecBase {
     }
 
     "fail to deserialize when instanceId is missing" in {
-      Json.obj()
+      Json
+        .obj()
         .validate[GetSubmittedVerificationsRequest]
         .isError mustBe true
     }
