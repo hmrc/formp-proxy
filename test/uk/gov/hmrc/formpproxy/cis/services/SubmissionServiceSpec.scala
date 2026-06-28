@@ -22,7 +22,7 @@ import org.mockito.Mockito.*
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.GovTalkErrorStatus
 import uk.gov.hmrc.formpproxy.cis.models.GovTalkErrorStatus.*
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateSubmissionRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests._
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
 import scala.concurrent.Future
