@@ -25,7 +25,6 @@ import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.requests._
-import uk.gov.hmrc.formpproxy.cis.models.response.GetSubmittedVerificationsResponse
 import uk.gov.hmrc.formpproxy.cis.services.SubmissionService
 
 import scala.concurrent.Future

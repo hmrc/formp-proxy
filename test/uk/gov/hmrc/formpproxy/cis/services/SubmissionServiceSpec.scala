@@ -24,7 +24,6 @@ import uk.gov.hmrc.formpproxy.cis.models.GovTalkErrorStatus
 import uk.gov.hmrc.formpproxy.cis.models.GovTalkErrorStatus.*
 import uk.gov.hmrc.formpproxy.cis.models.requests._
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
-import uk.gov.hmrc.formpproxy.cis.models.response.GetSubmittedVerificationsResponse
 
 import scala.concurrent.Future
 
