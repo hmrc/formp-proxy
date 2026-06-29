@@ -87,7 +87,7 @@ trait CisMonthlyReturnSource {
   ): Future[GetSubmittedMonthlyReturnsDataResponse]
   def createAmendedMonthlyReturn(request: CreateAmendedMonthlyReturnRequest): Future[Unit]
   def modifyVerifications(req: ModifyVerificationsRequest): Future[Unit]
-
+  def updateVerificationSubmission(req: UpdateVerificationSubmissionRequest): Future[Unit]
   def processVerificationResponseFromChris(req: ProcessVerificationResponseFromChrisRequest): Future[Unit]
 }
 
@@ -864,6 +864,42 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.execute()
     }
 
+  private def callUpdateSubmission(
+    conn: Connection,
+    instanceId: String,
+    submissionType: String,
+    activeObjectId: Long,
+    hmrcMarkGenerated: String,
+    hmrcMarkGgis: String,
+    emailRecipient: String,
+    submissionRequestDate: Timestamp,
+    acceptedTime: String,
+    agentId: String,
+    submittableStatus: String,
+    govtalkErrorCode: String,
+    govtalkErrorType: String,
+    govtalkErrorMessage: String,
+    resourceRef: Long
+  ): Unit =
+    withCall(conn, CallUpdateSubmission) { cs =>
+      cs.setString(1, submissionType)
+      cs.setLong(2, activeObjectId)
+      cs.setString(3, hmrcMarkGenerated)
+      cs.setString(4, hmrcMarkGgis)
+      cs.setString(5, emailRecipient)
+      cs.setTimestamp(6, submissionRequestDate)
+      cs.setString(7, acceptedTime)
+      cs.setString(8, agentId)
+      cs.setString(9, submittableStatus)
+      cs.setString(10, govtalkErrorCode)
+      cs.setString(11, govtalkErrorType)
+      cs.setString(12, govtalkErrorMessage)
+      cs.setString(13, instanceId)
+      cs.setLong(14, resourceRef)
+
+      cs.execute()
+    }
+
   private def callCreateMonthlyReturnItem(
     connection: Connection,
     instanceId: String,
@@ -1398,6 +1434,60 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
             )
           }
         }
+      }
+    }
+  }
+
+  private def callGetSubmission(conn: Connection, instanceId: String, verificationBatchResourceRef: Long): Submission =
+    withCall(conn, CallGetSubmission) { cs =>
+      cs.setString(1, instanceId)
+      cs.setLong(2, verificationBatchResourceRef)
+      cs.registerOutParameter(3, OracleTypes.CURSOR)
+      cs.execute()
+
+      withCursor(cs, 3) { rs =>
+        if (!rs.next())
+          throw new RuntimeException(
+            s"No submission found for instanceId=$instanceId, resourceRef=$verificationBatchResourceRef"
+          )
+        readSubmissionForGetVerificationBatch(rs)
+      }
+    }
+
+  override def updateVerificationSubmission(req: UpdateVerificationSubmissionRequest): Future[Unit] = {
+    logger.info(
+      s"[CIS] updateVerificationSubmission(instanceId=${req.instanceId}, status=${req.submittableStatus})"
+    )
+
+    Future {
+      db.withTransaction { conn =>
+        val existing       = callGetSubmission(conn, req.instanceId, req.verificationBatchResourceRef)
+        val activeObjectId = existing.activeObjectId.getOrElse(
+          throw new RuntimeException(
+            s"Submission activeObjectId missing for instanceId=${req.instanceId}, resourceRef=${req.verificationBatchResourceRef}"
+          )
+        )
+
+        callUpdateSubmission(
+          conn,
+          instanceId = req.instanceId,
+          submissionType = "VERIFICATIONS",
+          activeObjectId = activeObjectId,
+          hmrcMarkGenerated = req.hmrcMarkGenerated.orElse(existing.hmrcMarkGenerated).orNull,
+          hmrcMarkGgis = existing.hmrcMarkGgis.orNull,
+          emailRecipient = existing.emailRecipient.orNull,
+          submissionRequestDate = req.submissionRequestDate
+            .orElse(existing.submissionRequestDate)
+            .map(Timestamp.valueOf)
+            .orNull,
+          acceptedTime = existing.acceptedTime.orNull,
+          agentId = existing.agentId.orNull,
+          submittableStatus = req.submittableStatus,
+          govtalkErrorCode = req.govtalkErrorCode.orNull,
+          govtalkErrorType = req.govtalkErrorType.orNull,
+          govtalkErrorMessage = req.govtalkErrorMessage.orNull,
+          resourceRef = req.verificationBatchResourceRef
+        )
       }
     }
   }
