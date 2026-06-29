@@ -77,4 +77,7 @@ object CisStoredProcedures {
 
   val CallGetSubmissionWithVerificationBatch =
     "{ call SUBMISSION_PROCS.Get_Verif_Batch_Submission(?, ?, ?, ?, ?, ?, ?) }"
+
+  val CallDeleteSubcontractor = "{ call  SUBCONTRACTOR_PROCS.Delete_Subcontractor(?, ?) }"
+
 }

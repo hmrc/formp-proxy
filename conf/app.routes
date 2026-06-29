@@ -26,6 +26,7 @@ POST       /cis/monthly-return-item/update                          uk.gov.hmrc.
 
 POST       /cis/subcontractor/create-and-update                     uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.createAndUpdateSubcontractor()
 GET        /cis/subcontractors/:cisId                               uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.getSubcontractorList(cisId: String)
+POST       /cis/subcontractor/delete                                uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.deleteSubcontractor
 
 POST       /submissions/create                                      uk.gov.hmrc.formpproxy.cis.controllers.SubmissionController.createSubmission()
 POST       /submissions/update                                      uk.gov.hmrc.formpproxy.cis.controllers.SubmissionController.updateSubmission()

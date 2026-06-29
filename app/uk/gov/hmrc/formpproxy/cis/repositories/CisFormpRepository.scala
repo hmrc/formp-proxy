@@ -89,6 +89,8 @@ trait CisMonthlyReturnSource {
   def modifyVerifications(req: ModifyVerificationsRequest): Future[Unit]
 
   def processVerificationResponseFromChris(req: ProcessVerificationResponseFromChrisRequest): Future[Unit]
+
+  def deleteSubcontractor(request: DeleteSubcontractorRequest): Future[Unit]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -1645,6 +1647,31 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setString(13, req.instanceId)
       cs.setLong(14, req.verificationBatchResourceRef)
 
+      cs.execute()
+    }
+
+  override def deleteSubcontractor(request: DeleteSubcontractorRequest): Future[Unit] =
+    Future {
+      logger.info(
+        s"[CIS] DeleteSubcontractorRequest(instanceId=${request.instanceId}, resourceReference=${request.subbieResourceRef})"
+      )
+      db.withConnection { conn =>
+        callDeleteSubcontractor(
+          conn,
+          request.instanceId,
+          request.subbieResourceRef
+        )
+      }
+    }
+
+  private def callDeleteSubcontractor(
+    connection: Connection,
+    instanceId: String,
+    subbieResourceRef: Long
+  ): Unit =
+    withCall(connection, CallDeleteSubcontractor) { cs =>
+      cs.setString(1, instanceId)
+      cs.setLong(2, subbieResourceRef)
       cs.execute()
     }
 
