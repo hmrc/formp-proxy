@@ -130,6 +130,54 @@ class ReturnsController @Inject() (
         )
     }
 
+  def getSDLTReturnsForPurge(): Action[JsValue] =
+    authorise.async(parse.json) { implicit request =>
+      request.body
+        .validate[GetReturnsForPurgeRequest]
+        .fold(
+          errs =>
+            Future.successful(
+              BadRequest(
+                Json.obj(
+                  "message" -> "Invalid JSON body",
+                  "errors"  -> JsError.toJson(errs)
+                )
+              )
+            ),
+          getReturnsForPurgeRequest =>
+            service
+              .getSDLTReturnsForPurge(getReturnsForPurgeRequest)
+              .map(rs => Ok(Json.toJson(rs)))
+              .recover {
+                case u: UpstreamErrorResponse =>
+                  Status(u.statusCode)(Json.obj("message" -> u.message))
+                case t: Throwable             =>
+                  logger.error("[getSDLTReturnsForPurge] failed", t)
+                  InternalServerError(Json.obj("message" -> "Unexpected error"))
+              }
+        )
+    }
+
+  def deleteSDLTReturn(): Action[JsValue] =
+    authorise.async(parse.json) { implicit request =>
+      request.body
+        .validate[DeleteReturnRequest]
+        .fold(
+          errs =>
+            Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
+          body =>
+            service
+              .deleteSDLTReturn(body)
+              .map { deleteReturnReturn =>
+                Ok(Json.toJson(deleteReturnReturn))
+              }
+              .recover { case t =>
+                logger.error("[deleteSDLTReturn] failed", t)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
+              }
+        )
+    }
+
   def updateReturnVersion(): Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
       request.body
