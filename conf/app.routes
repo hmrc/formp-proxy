@@ -28,6 +28,7 @@ POST       /cis/subcontractor/create-and-update                         uk.gov.h
 GET        /cis/subcontractors/:cisId                                   uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.getSubcontractorList(cisId: String)
 GET        /cis/subcontractor/:cisId/:subbieResourceRef/delete-status   uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.getSubcontractorForDelete(cisId: String, subbieResourceRef: Long)
 GET        /cis/subcontractor/:cisId/:subbieResourceRef                 uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.getSubcontractor(cisId: String, subbieResourceRef: Long)
+POST       /cis/subcontractor/delete                                uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.deleteSubcontractor
 
 POST       /submissions/create                                      uk.gov.hmrc.formpproxy.cis.controllers.SubmissionController.createSubmission()
 POST       /submissions/update                                      uk.gov.hmrc.formpproxy.cis.controllers.SubmissionController.updateSubmission()

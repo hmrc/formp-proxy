@@ -93,6 +93,8 @@ trait CisMonthlyReturnSource {
 
   def getSubcontractorForDelete(cisId: String, subbieResourceRef: Long): Future[GetSubcontractorForDeleteResponse]
 
+  def deleteSubcontractor(request: DeleteSubcontractorRequest): Future[Unit]
+
   def getSubmittedVerifications(req: GetSubmittedVerificationsRequest): Future[GetSubmittedVerificationsResponse]
 
   def getSubcontractor(cisId: String, subbieResourceRef: Long): Future[GetSubcontractorResponse]
@@ -1766,6 +1768,31 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setString(13, req.instanceId)
       cs.setLong(14, req.verificationBatchResourceRef)
 
+      cs.execute()
+    }
+
+  override def deleteSubcontractor(request: DeleteSubcontractorRequest): Future[Unit] =
+    Future {
+      logger.info(
+        s"[CIS] DeleteSubcontractorRequest(instanceId=${request.instanceId}, resourceReference=${request.subbieResourceRef})"
+      )
+      db.withConnection { conn =>
+        callDeleteSubcontractor(
+          conn,
+          request.instanceId,
+          request.subbieResourceRef
+        )
+      }
+    }
+
+  private def callDeleteSubcontractor(
+    connection: Connection,
+    instanceId: String,
+    subbieResourceRef: Long
+  ): Unit =
+    withCall(connection, CallDeleteSubcontractor) { cs =>
+      cs.setString(1, instanceId)
+      cs.setLong(2, subbieResourceRef)
       cs.execute()
     }
 

@@ -23,8 +23,8 @@ import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.{Company, Partnership, SoleTrader, Trust}
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
 import uk.gov.hmrc.formpproxy.cis.models.CreateAndUpdateSubcontractorDatabaseRecord
-import uk.gov.hmrc.formpproxy.cis.models.requests.CreateAndUpdateSubcontractorRequest
 import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorForDeleteResponse, GetSubcontractorListResponse, GetSubcontractorResponse}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
 import scala.concurrent.Future
@@ -440,4 +440,48 @@ class SubcontractorServiceSpec extends SpecBase {
         )
     }
   }
+
+  "SubcontractorService#deleteSubcontractor" - {
+
+    "delegates to repo with request and returns Unit" in {
+      val c = Ctx();
+      import c.*
+
+      val req = DeleteSubcontractorRequest(
+        instanceId = "abc-123",
+        subbieResourceRef = 98765L
+      )
+
+      when(repo.deleteSubcontractor(eqTo(req)))
+        .thenReturn(Future.successful(()))
+
+      val out: Unit = service.deleteSubcontractor(req).futureValue
+      out mustBe ((): Unit)
+
+      verify(repo).deleteSubcontractor(eqTo(req))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failure from repo" in {
+      val c = Ctx();
+      import c.*
+
+      val req = DeleteSubcontractorRequest(
+        instanceId = "abc-123",
+        subbieResourceRef = 98765L
+      )
+
+      val boom = new RuntimeException("boom")
+
+      when(repo.deleteSubcontractor(eqTo(req)))
+        .thenReturn(Future.failed(boom))
+
+      val ex = service.deleteSubcontractor(req).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).deleteSubcontractor(eqTo(req))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
 }
