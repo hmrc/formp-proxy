@@ -21,10 +21,9 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.Json
-import play.api.mvc.{ControllerComponents, PlayBodyParsers}
+import play.api.mvc.ControllerComponents
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.services.BatchPollService
 
@@ -86,14 +85,10 @@ class BatchPollControllerSpec extends AnyFreeSpec with Matchers with MockitoSuga
     implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.global
 
     private val cc: ControllerComponents = stubControllerComponents()
-    private val parsers: PlayBodyParsers = cc.parsers
-
-    private def fakeAuth: AuthAction = new FakeAuthAction(parsers)
 
     val mockService: BatchPollService = mock[BatchPollService]
 
     val controller = new BatchPollController(
-      authorise = fakeAuth,
       service = mockService,
       cc = cc
     )
