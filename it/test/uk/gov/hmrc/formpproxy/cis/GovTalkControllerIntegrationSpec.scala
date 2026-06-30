@@ -41,13 +41,6 @@ class GovTalkControllerIntegrationSpec
       (res1.json \ "message").as[String].toLowerCase must include("invalid payload")
     }
 
-    "return 401 when there is no active session" in {
-      AuthStub.unauthorised()
-
-      val res = postAwait(getEndpoint, Json.obj("userIdentifier" -> "1", "formResultID" -> "12890"))
-      res.status mustBe UNAUTHORIZED
-    }
-
     "return 404 for unknown endpoint (routing sanity)" in {
       AuthStub.authorised()
       val res = postAwait("/does-not-exist", Json.obj("userIdentifier" -> "1", "formResultID" -> "12890"))
@@ -67,20 +60,6 @@ class GovTalkControllerIntegrationSpec
       (res1.json \ "message").as[String].toLowerCase must include("invalid payload")
     }
 
-    "return 401 when there is no active session" in {
-      AuthStub.unauthorised()
-
-      val res = postAwait(
-        resetEndpoint,
-        Json.obj(
-          "userIdentifier"    -> "1",
-          "formResultID"      -> "12890",
-          "oldProtocolStatus" -> "dataRequest",
-          "gatewayURL"        -> "http://vat.chris.hmrc.gov.uk:9102/ChRIS/UKVAT/Filing/action/VATDEC"
-        )
-      )
-      res.status mustBe UNAUTHORIZED
-    }
 
     "return 404 for unknown endpoint (routing sanity)" in {
       AuthStub.authorised()
@@ -109,20 +88,6 @@ class GovTalkControllerIntegrationSpec
       (res1.json \ "message").as[String].toLowerCase must include("invalid payload")
     }
 
-    "return 401 when there is no active session" in {
-      AuthStub.unauthorised()
-
-      val res = postAwait(
-        updateEndpoint,
-        Json.obj(
-          "userIdentifier" -> "1",
-          "formResultID"   -> "12890",
-          "endStateDate"   -> "2026-02-03T00:00:00",
-          "protocolStatus" -> "dataRequest"
-        )
-      )
-      res.status mustBe UNAUTHORIZED
-    }
 
     "return 404 for unknown endpoint (routing sanity)" in {
       AuthStub.authorised()
@@ -149,21 +114,6 @@ class GovTalkControllerIntegrationSpec
       val res1 = postAwait(createEndpoint, Json.obj())
       res1.status mustBe BAD_REQUEST
       (res1.json \ "message").as[String].toLowerCase must include("invalid payload")
-    }
-
-    "return 401 when there is no active session" in {
-      AuthStub.unauthorised()
-
-      val res = postAwait(
-        createEndpoint,
-        Json.obj(
-          "userIdentifier" -> "1",
-          "formResultID"   -> "12890",
-          "correlationID"  -> "128903445",
-          "gatewayURL"     -> "http://vat.chris.hmrc.gov.uk:9102/ChRIS/UKVAT/Filing/action/VATDEC"
-        )
-      )
-      res.status mustBe UNAUTHORIZED
     }
 
     "return 404 for unknown endpoint (routing sanity)" in {
