@@ -386,5 +386,57 @@ object CisRowMappers {
       taxMonth = rs.getInt("tax_month"),
       instanceId = rs.getString("instance_id"),
       agentId = Option(rs.getString("agent_id"))
+  def collectSubcontractorsForGetVerificationBatchSubmission(rs: ResultSet): Seq[Subcontractor] =
+    collectSubcontractorsForGetVerificationBatchSubmission(rs, Nil)
+
+  @tailrec
+  private def collectSubcontractorsForGetVerificationBatchSubmission(
+    rs: ResultSet,
+    acc: Seq[Subcontractor]
+  ): Seq[Subcontractor] =
+    if (rs == null || !rs.next()) acc
+    else
+      collectSubcontractorsForGetVerificationBatchSubmission(
+        rs,
+        acc :+ readSubcontractorForGetVerificationBatchSubmission(rs)
+      )
+
+  def readSubcontractorForGetVerificationBatchSubmission(rs: ResultSet): Subcontractor =
+    Subcontractor(
+      subcontractorId = rs.getLong("subcontractor_id"),
+      subbieResourceRef = rs.getOptionalLong("subbie_resource_ref"),
+      subcontractorType = Option(rs.getString("type")),
+      utr = Option(rs.getString("utr")),
+      pageVisited = rs.getOptionalInt("page_visited"),
+      partnerUtr = Option(rs.getString("partner_utr")),
+      crn = Option(rs.getString("crn")),
+      firstName = Option(rs.getString("firstname")),
+      nino = Option(rs.getString("nino")),
+      secondName = Option(rs.getString("secondname")),
+      surname = Option(rs.getString("surname")),
+      partnershipTradingName = Option(rs.getString("partnership_tradingname")),
+      tradingName = Option(rs.getString("tradingname")),
+      addressLine1 = Option(rs.getString("address_line_1")),
+      addressLine2 = Option(rs.getString("address_line_2")),
+      addressLine3 = Option(rs.getString("address_line_3")),
+      addressLine4 = Option(rs.getString("address_line_4")),
+      country = Option(rs.getString("country")),
+      postcode = Option(rs.getString("postcode")),
+      emailAddress = Option(rs.getString("email_address")),
+      phoneNumber = Option(rs.getString("phone_number")),
+      mobilePhoneNumber = Option(rs.getString("mobile_phone_number")),
+      worksReferenceNumber = Option(rs.getString("works_reference_number")),
+      version = rs.getOptionalInt("version"),
+      taxTreatment = Option(rs.getString("tax_treatment")),
+      updatedTaxTreatment = Option(rs.getString("updated_tax_treatment")),
+      verificationNumber = Option(rs.getString("verification_number")),
+      createDate = rs.getOptionalLocalDateTime("create_date"),
+      lastUpdate = rs.getOptionalLocalDateTime("last_update"),
+      matched = Option(rs.getString("matched")),
+      verified = Option(rs.getString("verified")),
+      autoVerified = Option(rs.getString("auto_verified")),
+      verificationDate = None,
+      lastMonthlyReturnDate = rs.getOptionalLocalDateTime("last_monthly_return_date"),
+      pendingVerifications = None
     )
 }
