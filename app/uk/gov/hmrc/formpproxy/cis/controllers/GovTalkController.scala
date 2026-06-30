@@ -19,7 +19,6 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.formpproxy.actions.AuthAction
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.services.GovTalkService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController

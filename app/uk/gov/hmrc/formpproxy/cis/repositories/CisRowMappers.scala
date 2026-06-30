@@ -386,6 +386,8 @@ object CisRowMappers {
       taxMonth = rs.getInt("tax_month"),
       instanceId = rs.getString("instance_id"),
       agentId = Option(rs.getString("agent_id"))
+    )
+
   def collectSubcontractorsForGetVerificationBatchSubmission(rs: ResultSet): Seq[Subcontractor] =
     collectSubcontractorsForGetVerificationBatchSubmission(rs, Nil)
 

@@ -1439,7 +1439,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
-  override def getBatchPollSubmissions(): Future[GetBatchPollSubmissionsResponse] = {
+  override def getBatchPollSubmissions(): Future[GetBatchPollSubmissionsResponse]                                     = {
     logger.info("[CIS][getBatchPollSubmissions] Calling GET_SUBMISSIONS_FOR_POLLING")
 
     Future {

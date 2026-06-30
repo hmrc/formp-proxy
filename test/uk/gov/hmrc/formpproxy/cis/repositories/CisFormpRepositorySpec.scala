@@ -3425,6 +3425,8 @@ final class CisFormpRepositorySpec extends SpecBase {
       result.verificationSubmissions.head.submissionId mustBe 1L
       result.monthlyReturnSubmissions.size mustBe 1
       result.monthlyReturnSubmissions.head.submissionId mustBe 2L
+    }
+  }
   "updateVerificationSubmission" - {
 
     "fetches existing submission then updates with merged values" in {
