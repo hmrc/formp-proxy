@@ -29,7 +29,7 @@ import uk.gov.hmrc.formpproxy.sdlt.models.residency.*
 import uk.gov.hmrc.formpproxy.sdlt.models.transaction.*
 import uk.gov.hmrc.formpproxy.sdlt.models.lease.*
 import uk.gov.hmrc.formpproxy.sdlt.models.taxCalculation.*
-import uk.gov.hmrc.formpproxy.sdlt.models.returns.SdltReturnRecordResponse
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnsForPurgeResponse, SdltReturnRecordResponse}
 import uk.gov.hmrc.formpproxy.sdlt.repositories.{SdltFormpRepoDataHelper, SdltFormpRepository}
 
 import scala.concurrent.Future
@@ -545,6 +545,39 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
       result mustBe actualResponse
 
       verify(repo).sdltGetReturns(eqTo(requestReturns))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "ReturnService getSDLTReturnsForPurge" - {
+    "delegate to the repository" in new ReturnsFixture {
+
+      when(repo.sdltGetReturnsForPurge(eqTo(requestReturnsForPurge)))
+        .thenReturn(Future.successful(returnsForPurgeResponse))
+
+      val result: ReturnsForPurgeResponse = service.getSDLTReturnsForPurge(requestReturnsForPurge).futureValue
+      result mustBe returnsForPurgeResponse
+
+      verify(repo).sdltGetReturnsForPurge(eqTo(requestReturnsForPurge))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "ReturnService deleteSDLTReturn" - {
+    "delegate to the repository" in new ReturnsFixture {
+      val request: DeleteReturnRequest         = DeleteReturnRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001"
+      )
+      val expectedResponse: DeleteReturnReturn = DeleteReturnReturn(deleted = true)
+
+      when(repo.sdltDeleteReturn(eqTo(request)))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result: DeleteReturnReturn = service.deleteSDLTReturn(request).futureValue
+      result mustBe expectedResponse
+
+      verify(repo).sdltDeleteReturn(eqTo(request))
       verifyNoMoreInteractions(repo)
     }
   }

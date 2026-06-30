@@ -30,7 +30,7 @@ import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
 import uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.{UpdateReturnRequest, UpdateReturnReturn}
-import uk.gov.hmrc.formpproxy.sdlt.models.returns.ReturnSummary
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnForPurge, ReturnSummary}
 import uk.gov.hmrc.formpproxy.sdlt.repositories.SdltFormpRepoDataHelper
 import uk.gov.hmrc.formpproxy.sdlt.services.ReturnService
 import uk.gov.hmrc.http.UpstreamErrorResponse
@@ -408,6 +408,107 @@ class ReturnsControllerSpec
 
       status(res) mustBe INTERNAL_SERVER_ERROR
       (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error::getSDLTReturns"
+    }
+  }
+
+  "ReturnsController getSDLTReturnsForPurge" - {
+
+    "returns 200 with the returns due for purge when the service succeeds" in new Setup {
+      when(mockService.getSDLTReturnsForPurge(eqTo(requestReturnsForPurge)))
+        .thenReturn(Future.successful(returnsForPurgeResponse))
+      val req: FakeRequest[JsValue] = makeJsonReturnsForPurgeRequest(Json.toJson(requestReturnsForPurge))
+      val res: Future[Result]       = controller.getSDLTReturnsForPurge()(req)
+
+      status(res) mustBe OK
+      contentType(res) mustBe Some(JSON)
+
+      val json: JsValue = contentAsJson(res)
+      (json \ "returnsForPurge").as[List[ReturnForPurge]] mustBe expectedReturnsForPurge
+
+      verify(mockService).getSDLTReturnsForPurge(eqTo(requestReturnsForPurge))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 400 when the JSON body is invalid, without calling the service" in new Setup {
+      val req: FakeRequest[JsValue] = makeJsonReturnsForPurgeRequest(Json.toJson(requestReturnsInvalid))
+      val res: Future[Result]       = controller.getSDLTReturnsForPurge()(req)
+
+      status(res) mustBe BAD_REQUEST
+
+      verify(mockService, times(0)).getSDLTReturnsForPurge(eqTo(requestReturnsForPurge))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns the upstream status when FORMP responds with an error" in new Setup {
+      val req: FakeRequest[JsValue]  = makeJsonReturnsForPurgeRequest(Json.toJson(requestReturnsForPurge))
+      val err: UpstreamErrorResponse = UpstreamErrorResponse("FORMP service unavailable", BAD_GATEWAY, BAD_GATEWAY)
+
+      when(mockService.getSDLTReturnsForPurge(eqTo(requestReturnsForPurge)))
+        .thenReturn(Future.failed(err))
+
+      val res: Future[Result] = controller.getSDLTReturnsForPurge()(req)
+
+      status(res) mustBe BAD_GATEWAY
+      (contentAsJson(res) \ "message").as[String] must include("FORMP service unavailable")
+    }
+
+    "returns 500 with a generic message on an unexpected exception" in new Setup {
+      val req: FakeRequest[JsValue] = makeJsonReturnsForPurgeRequest(Json.toJson(requestReturnsForPurge))
+
+      when(mockService.getSDLTReturnsForPurge(eqTo(requestReturnsForPurge)))
+        .thenReturn(Future.failed(new RuntimeException("Database timeout")))
+
+      val res: Future[Result] = controller.getSDLTReturnsForPurge()(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
+    }
+  }
+
+  "ReturnsController deleteSDLTReturn" - {
+
+    "returns 200 with the deleted flag when the service succeeds" in new Setup {
+      val request: DeleteReturnRequest = DeleteReturnRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001"
+      )
+
+      when(mockService.deleteSDLTReturn(eqTo(request)))
+        .thenReturn(Future.successful(DeleteReturnReturn(deleted = true)))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(Json.toJson(request))
+      val res: Future[Result]       = controller.deleteSDLTReturn()(req)
+
+      status(res) mustBe OK
+      contentType(res) mustBe Some(JSON)
+      (contentAsJson(res) \ "deleted").as[Boolean] mustBe true
+
+      verify(mockService).deleteSDLTReturn(eqTo(request))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 400 when the JSON body is invalid, without calling the service" in new Setup {
+      val req: FakeRequest[JsValue] = makeJsonRequest(Json.obj("storn" -> "STORN12345"))
+      val res: Future[Result]       = controller.deleteSDLTReturn()(req)
+
+      status(res) mustBe BAD_REQUEST
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 500 with a generic message on an unexpected exception" in new Setup {
+      val request: DeleteReturnRequest = DeleteReturnRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001"
+      )
+
+      when(mockService.deleteSDLTReturn(eqTo(request)))
+        .thenReturn(Future.failed(new RuntimeException("database error")))
+
+      val req: FakeRequest[JsValue] = makeJsonRequest(Json.toJson(request))
+      val res: Future[Result]       = controller.deleteSDLTReturn()(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
     }
   }
 
@@ -890,6 +991,11 @@ class ReturnsControllerSpec
 
     def makeJsonReturnsRequest(body: JsValue): FakeRequest[JsValue] =
       FakeRequest(POST, "/formp-proxy/sdlt/returns")
+        .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
+        .withBody(body)
+
+    def makeJsonReturnsForPurgeRequest(body: JsValue): FakeRequest[JsValue] =
+      FakeRequest(POST, "/formp-proxy/sdlt/returns-for-purge")
         .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
         .withBody(body)
 

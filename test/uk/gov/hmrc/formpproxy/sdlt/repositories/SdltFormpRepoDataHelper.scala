@@ -17,8 +17,8 @@
 package uk.gov.hmrc.formpproxy.sdlt.repositories
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.formpproxy.sdlt.models.GetReturnRecordsRequest
-import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnSummary, SdltReturnRecordResponse}
+import uk.gov.hmrc.formpproxy.sdlt.models.{GetReturnRecordsRequest, GetReturnsForPurgeRequest}
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnForPurge, ReturnSummary, ReturnsForPurgeResponse, SdltReturnRecordResponse}
 
 import java.time.LocalDate
 
@@ -83,5 +83,18 @@ trait SdltFormpRepoDataHelper {
     deletionFlag = false,
     pageType = None,
     pageNumber = None
+  )
+
+  val expectedReturnsForPurge: List[ReturnForPurge]      = List(
+    ReturnForPurge(storn = "STORN12345", returnResourceRef = "REF01", status = "SUBMITTED"),
+    ReturnForPurge(storn = "STORN12345", returnResourceRef = "REF02", status = "STARTED")
+  )
+  val expectedReturnsForPurgeEmpty: List[ReturnForPurge] = List.empty
+  val returnsForPurgeResponse: ReturnsForPurgeResponse   = ReturnsForPurgeResponse(
+    returnsForPurge = expectedReturnsForPurge
+  )
+
+  val requestReturnsForPurge: GetReturnsForPurgeRequest = GetReturnsForPurgeRequest(
+    purgeDate = LocalDate.parse("2026-06-29")
   )
 }

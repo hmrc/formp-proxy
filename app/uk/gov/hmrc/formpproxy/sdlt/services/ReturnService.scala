@@ -18,7 +18,7 @@ package uk.gov.hmrc.formpproxy.sdlt.services
 
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
-import uk.gov.hmrc.formpproxy.sdlt.models.returns.SdltReturnRecordResponse
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnsForPurgeResponse, SdltReturnRecordResponse}
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.*
 import uk.gov.hmrc.formpproxy.sdlt.models.land.*
@@ -41,6 +41,12 @@ class ReturnService @Inject() (repo: SdltFormpRepository) {
 
   def getSDLTReturns(request: GetReturnRecordsRequest): Future[SdltReturnRecordResponse] =
     repo.sdltGetReturns(request)
+
+  def getSDLTReturnsForPurge(request: GetReturnsForPurgeRequest): Future[ReturnsForPurgeResponse] =
+    repo.sdltGetReturnsForPurge(request)
+
+  def deleteSDLTReturn(req: DeleteReturnRequest): Future[DeleteReturnReturn] =
+    repo.sdltDeleteReturn(req)
 
   def createVendor(req: CreateVendorRequest): Future[CreateVendorReturn] =
     repo.sdltCreateVendor(req)

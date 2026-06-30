@@ -21,7 +21,7 @@ import org.mockito.Mockito.*
 import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.sdlt.models.*
-import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnSummary, SdltReturnRecordResponse}
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnForPurge, ReturnSummary, ReturnsForPurgeResponse, SdltReturnRecordResponse}
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.*
 import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
@@ -871,6 +871,99 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       verify(cs).setString(8, "submitted_date")
       verify(cs).setString(9, "DESC")
+      verify(cs).execute()
+      verify(cs).close()
+    }
+  }
+
+  "sdltGetReturnsForPurge" - {
+    "call get_returns_for_purge and map each cursor row to a ReturnForPurge" in new ReturnsFixture {
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]);
+        f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo("{ call RETURN_PROCS.get_returns_for_purge(?, ?) }")
+        )
+      ).thenReturn(cs)
+
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(resRetSummary)
+
+      when(resRetSummary.next()).thenReturn(true, true, false)
+      when(resRetSummary.getString("storn")).thenReturn("STORN12345", "STORN12345")
+      when(resRetSummary.getString("return_resource_ref")).thenReturn("REF01", "REF02")
+      when(resRetSummary.getString("status")).thenReturn("SUBMITTED", "STARTED")
+
+      val repo = new SdltFormpRepository(db)
+
+      val result = repo.sdltGetReturnsForPurge(requestReturnsForPurge).futureValue
+
+      result.returnsForPurge.length mustBe 2
+      result.returnsForPurge mustBe expectedReturnsForPurge
+
+      verify(conn).prepareCall(
+        eqTo("{ call RETURN_PROCS.get_returns_for_purge(?, ?) }")
+      )
+      verify(cs).setDate(1, Date.valueOf(requestReturnsForPurge.purgeDate))
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "call get_returns_for_purge and return an empty list when no returns are due for purge" in new ReturnsFixture {
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]);
+        f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo("{ call RETURN_PROCS.get_returns_for_purge(?, ?) }")
+        )
+      ).thenReturn(cs)
+
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(resRetSummary)
+
+      when(resRetSummary.next()).thenReturn(false)
+
+      val repo = new SdltFormpRepository(db)
+
+      val result: ReturnsForPurgeResponse = repo.sdltGetReturnsForPurge(requestReturnsForPurge).futureValue
+      result.returnsForPurge.length mustBe 0
+      result.returnsForPurge mustBe expectedReturnsForPurgeEmpty
+    }
+  }
+
+  "sdltDeleteReturn" - {
+
+    "call delete_return stored procedure with correct parameters" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call RETURN_PROCS.delete_return(?, ?) }"))).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = DeleteReturnRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001"
+      )
+
+      val result = repo.sdltDeleteReturn(request).futureValue
+
+      result.deleted mustBe true
+
+      verify(conn).prepareCall("{ call RETURN_PROCS.delete_return(?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
       verify(cs).execute()
       verify(cs).close()
     }
