@@ -395,7 +395,7 @@ class VerificationServiceSpec extends SpecBase {
             verified = Some("Y"),
             verificationNumber = Some("V123456"),
             taxTreatment = "NET",
-            verifiedDate = LocalDateTime.parse("2026-06-15T10:05:00")
+            verifiedDate = Some(LocalDateTime.parse("2026-06-15T10:05:00"))
           )
         )
       )
@@ -426,7 +426,7 @@ class VerificationServiceSpec extends SpecBase {
             verified = Some("Y"),
             verificationNumber = Some("V123456"),
             taxTreatment = "NET",
-            verifiedDate = LocalDateTime.parse("2026-06-15T10:05:00")
+            verifiedDate = Some(LocalDateTime.parse("2026-06-15T10:05:00"))
           )
         )
       )
