@@ -1648,8 +1648,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setOptionalString(26, result.verificationNumber)
       cs.setString(27, result.taxTreatment)
       cs.setOptionalString(28, subcontractor.updatedTaxTreatment)
-
-      cs.setTimestamp(29, Timestamp.valueOf(result.verifiedDate))
+      cs.setOptionalTimestamp(29, result.verifiedDate)
       cs.setOptionalInt(30, subcontractor.version)
       cs.registerOutParameter(30, Types.INTEGER)
 

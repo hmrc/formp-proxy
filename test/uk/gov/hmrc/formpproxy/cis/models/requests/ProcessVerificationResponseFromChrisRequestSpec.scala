@@ -39,7 +39,7 @@ class ProcessVerificationResponseFromChrisRequestSpec extends SpecBase {
             verified = Some("Y"),
             verificationNumber = Some("V123456"),
             taxTreatment = "NET",
-            verifiedDate = LocalDateTime.parse("2026-06-15T10:05:00")
+            verifiedDate = Some(LocalDateTime.parse("2026-06-15T10:05:00"))
           )
         )
       )
@@ -103,7 +103,7 @@ class ProcessVerificationResponseFromChrisRequestSpec extends SpecBase {
             verified = Some("Y"),
             verificationNumber = Some("V123456"),
             taxTreatment = "NET",
-            verifiedDate = LocalDateTime.parse("2026-06-15T10:05:00")
+            verifiedDate = Some(LocalDateTime.parse("2026-06-15T10:05:00"))
           )
         )
       )
@@ -145,7 +145,7 @@ class ProcessVerificationResponseFromChrisRequestSpec extends SpecBase {
             verified = None,
             verificationNumber = Some("V123456"),
             taxTreatment = "NET",
-            verifiedDate = LocalDateTime.parse("2026-06-15T10:05:00")
+            verifiedDate = Some(LocalDateTime.parse("2026-06-15T10:05:00"))
           )
         )
       )
@@ -176,7 +176,7 @@ class ProcessVerificationResponseFromChrisRequestSpec extends SpecBase {
 
       val result = json.validate[ProcessVerificationResponseFromChrisRequest]
       result.isSuccess mustBe true
-      result.get.verificationResults.head.verifiedDate mustBe LocalDateTime.parse("2026-06-15T10:05:00")
+      result.get.verificationResults.head.verifiedDate mustBe Some(LocalDateTime.parse("2026-06-15T10:05:00"))
     }
 
     "fail to deserialize when required fields are missing" in {
