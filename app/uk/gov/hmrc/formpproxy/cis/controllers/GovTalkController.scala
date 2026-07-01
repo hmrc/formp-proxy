@@ -78,7 +78,7 @@ class GovTalkController @Inject() (
               .resetGovTalkStatus(body)
               .map(_ => NoContent)
               .recover { case t =>
-                logger.error("[getGovTalkStatus] failed", t)
+                logger.error("[resetGovTalkStatus] failed", t)
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )
