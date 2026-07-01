@@ -89,6 +89,8 @@ trait CisMonthlyReturnSource {
   def modifyVerifications(req: ModifyVerificationsRequest): Future[Unit]
   def updateVerificationSubmission(req: UpdateVerificationSubmissionRequest): Future[Unit]
   def processVerificationResponseFromChris(req: ProcessVerificationResponseFromChrisRequest): Future[Unit]
+
+  def getSubcontractorForDelete(cisId: String, subbieResourceRef: Long): Future[GetSubcontractorForDeleteResponse]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -1736,5 +1738,41 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
       cs.execute()
     }
+
+  override def getSubcontractorForDelete(
+    cisId: String,
+    subbieResourceRef: Long
+  ): Future[GetSubcontractorForDeleteResponse] = {
+    logger.info(
+      s"[CIS] getSubcontractorForDelete(cisId=$cisId, subbieResourceRef=$subbieResourceRef)"
+    )
+
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallGetSubcontractorForDelete) { cs =>
+          cs.setString(1, cisId)
+          cs.setLong(2, subbieResourceRef)
+
+          cs.registerOutParameter(3, OracleTypes.CURSOR)
+          cs.registerOutParameter(4, OracleTypes.CURSOR)
+          cs.registerOutParameter(5, OracleTypes.CURSOR)
+          cs.registerOutParameter(6, Types.VARCHAR)
+
+          cs.execute()
+
+          val subcontractorCanBeDeleted =
+            Option(cs.getString(6)).map(_.trim.toLowerCase) match {
+              case Some("true")  => true
+              case Some("false") => false
+              case _             => false
+            }
+
+          GetSubcontractorForDeleteResponse(
+            subcontractorCanBeDeleted
+          )
+        }
+      }
+    }
+  }
 
 }
