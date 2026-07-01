@@ -57,7 +57,7 @@ final class CreateSubmissionAndUpdateVerificationsRequestSpec extends AnyWordSpe
       out.instanceId mustBe "abc-123"
       out.verificationBatchId mustBe 99L
       out.verificationBatchResourceRef mustBe 10L
-      out.emailRecipient mustBe "ops@example.com"
+      out.emailRecipient mustBe Some("ops@example.com")
       out.irMarkGenerated mustBe Some("IR_MARK")
       out.agentId mustBe Some("agent-123")
 
@@ -100,7 +100,7 @@ final class CreateSubmissionAndUpdateVerificationsRequestSpec extends AnyWordSpe
         instanceId = "abc-123",
         verificationBatchId = 99L,
         verificationBatchResourceRef = 10L,
-        emailRecipient = "ops@example.com",
+        emailRecipient = Some("ops@example.com"),
         irMarkGenerated = Some("IR_MARK"),
         verifications = Seq(
           VerificationToUpdate(
@@ -137,7 +137,7 @@ final class CreateSubmissionAndUpdateVerificationsRequestSpec extends AnyWordSpe
         instanceId = "abc-123",
         verificationBatchId = 99L,
         verificationBatchResourceRef = 10L,
-        emailRecipient = "ops@example.com",
+        emailRecipient = Some("ops@example.com"),
         irMarkGenerated = Some("IR_MARK"),
         verifications = Seq(
           VerificationToUpdate("ACME LTD", 111L, "Y"),
