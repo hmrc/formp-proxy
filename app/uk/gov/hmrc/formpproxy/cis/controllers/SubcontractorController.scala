@@ -64,4 +64,21 @@ class SubcontractorController @Inject() (
           InternalServerError(Json.obj("message" -> "Unexpected error"))
         }
     }
+
+  def getSubcontractorForDelete(
+    cisId: String,
+    subbieResourceRef: Long
+  ): Action[AnyContent] =
+    authorise.async { implicit request =>
+      service
+        .getSubcontractorForDelete(cisId, subbieResourceRef)
+        .map(res => Ok(Json.toJson(res)))
+        .recover { case t =>
+          logger.error(
+            s"[getSubcontractorForDelete] failed (cisId=$cisId, subbieResourceRef=$subbieResourceRef)",
+            t
+          )
+          InternalServerError(Json.obj("message" -> "Unexpected error"))
+        }
+    }
 }

@@ -18,7 +18,7 @@ package uk.gov.hmrc.formpproxy.cis.services
 
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
-import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorListResponse
+import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorForDeleteResponse, GetSubcontractorListResponse}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 import uk.gov.hmrc.formpproxy.cis.models.CreateAndUpdateSubcontractorDatabaseRecord
 
@@ -33,6 +33,12 @@ class SubcontractorService @Inject() (repo: CisMonthlyReturnSource) {
 
   def getSubcontractorList(req: GetSubcontractorList): Future[GetSubcontractorListResponse] =
     repo.getSubcontractorList(req.cisId)
+
+  def getSubcontractorForDelete(
+    cisId: String,
+    subbieResourceRef: Long
+  ): Future[GetSubcontractorForDeleteResponse] =
+    repo.getSubcontractorForDelete(cisId, subbieResourceRef)
 
   private def toDbRecord(req: CreateAndUpdateSubcontractorRequest): CreateAndUpdateSubcontractorDatabaseRecord =
     req match {
