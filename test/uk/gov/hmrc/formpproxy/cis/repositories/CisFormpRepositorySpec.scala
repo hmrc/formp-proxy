@@ -3401,7 +3401,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(verificationRs.getString("tax_office_reference")).thenReturn("AB456")
       when(verificationRs.getString("instance_id")).thenReturn("INST1")
       when(verificationRs.getString("status")).thenReturn("PENDING")
-      when(verificationRs.getLong("verification_batch_resource_ref")).thenReturn(99L)
+      when(verificationRs.getLong("verif_batch_resource_ref")).thenReturn(99L)
 
       when(monthlyReturnRs.next()).thenReturn(true, false)
       when(monthlyReturnRs.getLong("submission_id")).thenReturn(2L)
