@@ -372,7 +372,7 @@ object CisRowMappers {
       taxOfficeReference = rs.getString("tax_office_reference"),
       instanceId = rs.getString("instance_id"),
       status = rs.getString("status"),
-      verificationBatchResourceRef = rs.getLong("verification_batch_resource_ref")
+      verificationBatchResourceRef = rs.getLong("verif_batch_resource_ref")
     )
 
   private def readMonthlyReturnSubmissionToPoll(rs: ResultSet): MonthlyReturnSubmissionToPoll =
