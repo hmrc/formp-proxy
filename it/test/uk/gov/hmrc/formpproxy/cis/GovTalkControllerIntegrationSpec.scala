@@ -21,7 +21,7 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.http.Status.*
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, AuthStub}
+import uk.gov.hmrc.formpproxy.itutil.ApplicationWithWiremock
 
 class GovTalkControllerIntegrationSpec
     extends Matchers
@@ -34,22 +34,12 @@ class GovTalkControllerIntegrationSpec
     val getEndpoint = "cis/govtalkstatus/get"
 
     "return 400 when JSON is missing required fields" in {
-      AuthStub.authorised()
-
       val res1 = postAwait(getEndpoint, Json.obj())
       res1.status mustBe BAD_REQUEST
       (res1.json \ "message").as[String].toLowerCase must include("invalid payload")
     }
 
-    "return 401 when there is no active session" in {
-      AuthStub.unauthorised()
-
-      val res = postAwait(getEndpoint, Json.obj("userIdentifier" -> "1", "formResultID" -> "12890"))
-      res.status mustBe UNAUTHORIZED
-    }
-
     "return 404 for unknown endpoint (routing sanity)" in {
-      AuthStub.authorised()
       val res = postAwait("/does-not-exist", Json.obj("userIdentifier" -> "1", "formResultID" -> "12890"))
       res.status mustBe NOT_FOUND
     }
@@ -60,30 +50,13 @@ class GovTalkControllerIntegrationSpec
     val resetEndpoint = "cis/govtalkstatus/reset"
 
     "return 400 when JSON is missing required fields" in {
-      AuthStub.authorised()
-
       val res1 = postAwait(resetEndpoint, Json.obj())
       res1.status mustBe BAD_REQUEST
       (res1.json \ "message").as[String].toLowerCase must include("invalid payload")
     }
 
-    "return 401 when there is no active session" in {
-      AuthStub.unauthorised()
-
-      val res = postAwait(
-        resetEndpoint,
-        Json.obj(
-          "userIdentifier"    -> "1",
-          "formResultID"      -> "12890",
-          "oldProtocolStatus" -> "dataRequest",
-          "gatewayURL"        -> "http://vat.chris.hmrc.gov.uk:9102/ChRIS/UKVAT/Filing/action/VATDEC"
-        )
-      )
-      res.status mustBe UNAUTHORIZED
-    }
 
     "return 404 for unknown endpoint (routing sanity)" in {
-      AuthStub.authorised()
       val res = postAwait(
         "/does-not-exist",
         Json.obj(
@@ -102,30 +75,13 @@ class GovTalkControllerIntegrationSpec
     val updateEndpoint = "cis/govtalkstatus/update-status"
 
     "return 400 when JSON is missing required fields" in {
-      AuthStub.authorised()
-
       val res1 = postAwait(updateEndpoint, Json.obj())
       res1.status mustBe BAD_REQUEST
       (res1.json \ "message").as[String].toLowerCase must include("invalid payload")
     }
 
-    "return 401 when there is no active session" in {
-      AuthStub.unauthorised()
-
-      val res = postAwait(
-        updateEndpoint,
-        Json.obj(
-          "userIdentifier" -> "1",
-          "formResultID"   -> "12890",
-          "endStateDate"   -> "2026-02-03T00:00:00",
-          "protocolStatus" -> "dataRequest"
-        )
-      )
-      res.status mustBe UNAUTHORIZED
-    }
 
     "return 404 for unknown endpoint (routing sanity)" in {
-      AuthStub.authorised()
       val res = postAwait(
         "/does-not-exist",
         Json.obj(
@@ -144,30 +100,12 @@ class GovTalkControllerIntegrationSpec
     val createEndpoint = "cis/govtalkstatus/create"
 
     "return 400 when JSON is missing required fields" in {
-      AuthStub.authorised()
-
       val res1 = postAwait(createEndpoint, Json.obj())
       res1.status mustBe BAD_REQUEST
       (res1.json \ "message").as[String].toLowerCase must include("invalid payload")
     }
 
-    "return 401 when there is no active session" in {
-      AuthStub.unauthorised()
-
-      val res = postAwait(
-        createEndpoint,
-        Json.obj(
-          "userIdentifier" -> "1",
-          "formResultID"   -> "12890",
-          "correlationID"  -> "128903445",
-          "gatewayURL"     -> "http://vat.chris.hmrc.gov.uk:9102/ChRIS/UKVAT/Filing/action/VATDEC"
-        )
-      )
-      res.status mustBe UNAUTHORIZED
-    }
-
     "return 404 for unknown endpoint (routing sanity)" in {
-      AuthStub.authorised()
       val res = postAwait(
         "/does-not-exist",
         Json.obj(

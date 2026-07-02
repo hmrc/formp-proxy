@@ -17,6 +17,7 @@
 package uk.gov.hmrc.formpproxy.cis.repositories
 
 import uk.gov.hmrc.formpproxy.cis.models.*
+import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
 
 import java.sql.ResultSet
@@ -48,6 +49,12 @@ object CisRowMappers {
 
   def collectGovtTalkStatusRecords(rs: ResultSet): Seq[GovTalkStatusRecord] =
     collectGovtTalkStatusRecords(rs, Nil)
+
+  def collectVerificationSubmissionsToPoll(rs: ResultSet): Seq[VerificationSubmissionToPoll] =
+    collectVerificationSubmissionsToPoll(rs, Nil)
+
+  def collectMonthlyReturnSubmissionsToPoll(rs: ResultSet): Seq[MonthlyReturnSubmissionToPoll] =
+    collectMonthlyReturnSubmissionsToPoll(rs, Nil)
 
 // private tail-recursive implementations
 
@@ -120,6 +127,22 @@ object CisRowMappers {
   private def collectVerifications(rs: ResultSet, acc: Seq[Verification]): Seq[Verification] =
     if (rs == null || !rs.next()) acc
     else collectVerifications(rs, acc :+ readVerification(rs))
+
+  @tailrec
+  private def collectVerificationSubmissionsToPoll(
+    rs: ResultSet,
+    acc: Seq[VerificationSubmissionToPoll]
+  ): Seq[VerificationSubmissionToPoll] =
+    if (rs == null || !rs.next()) acc
+    else collectVerificationSubmissionsToPoll(rs, acc :+ readVerificationSubmissionToPoll(rs))
+
+  @tailrec
+  private def collectMonthlyReturnSubmissionsToPoll(
+    rs: ResultSet,
+    acc: Seq[MonthlyReturnSubmissionToPoll]
+  ): Seq[MonthlyReturnSubmissionToPoll] =
+    if (rs == null || !rs.next()) acc
+    else collectMonthlyReturnSubmissionsToPoll(rs, acc :+ readMonthlyReturnSubmissionToPoll(rs))
 
   private def readVerificationBatch(rs: ResultSet): VerificationBatch =
     VerificationBatch(
@@ -338,6 +361,31 @@ object CisRowMappers {
       pollInterval = rs.getInt("poll_interval"),
       protocolStatus = rs.getString("protocol_status"),
       gatewayURL = rs.getString("gatewayurl")
+    )
+
+  private def readVerificationSubmissionToPoll(rs: ResultSet): VerificationSubmissionToPoll =
+    VerificationSubmissionToPoll(
+      submissionId = rs.getLong("submission_id"),
+      submissionType = rs.getString("submission_type"),
+      agentId = Option(rs.getString("agent_id")),
+      taxOfficeNumber = rs.getString("tax_office_number"),
+      taxOfficeReference = rs.getString("tax_office_reference"),
+      instanceId = rs.getString("instance_id"),
+      status = rs.getString("status"),
+      verificationBatchResourceRef = rs.getLong("verification_batch_resource_ref")
+    )
+
+  private def readMonthlyReturnSubmissionToPoll(rs: ResultSet): MonthlyReturnSubmissionToPoll =
+    MonthlyReturnSubmissionToPoll(
+      submissionId = rs.getLong("submission_id"),
+      submissionType = rs.getString("submission_type"),
+      status = rs.getString("status"),
+      taxOfficeNumber = rs.getString("tax_office_number"),
+      taxOfficeReference = rs.getString("tax_office_reference"),
+      taxYear = rs.getInt("tax_year"),
+      taxMonth = rs.getInt("tax_month"),
+      instanceId = rs.getString("instance_id"),
+      agentId = Option(rs.getString("agent_id"))
     )
 
   def collectSubcontractorsForGetVerificationBatchSubmission(rs: ResultSet): Seq[Subcontractor] =

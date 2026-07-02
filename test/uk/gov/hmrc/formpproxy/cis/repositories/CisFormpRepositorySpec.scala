@@ -20,6 +20,8 @@ import oracle.jdbc.OracleTypes
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.{any as anyArg, anyInt, eq as eqTo}
 import org.mockito.Mockito.*
+import org.mockito.ArgumentMatchers.any
+import org.mockito.invocation.InvocationOnMock
 import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.*
@@ -3372,6 +3374,59 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
   }
 
+  "getBatchPollSubmissions" - {
+    "register both cursors, execute the proc, and assemble the response" in {
+      val db                    = mock[Database]
+      val mockConnection        = mock[Connection]
+      val mockCallableStatement = mock[CallableStatement]
+      val verificationRs        = mock[ResultSet]
+      val monthlyReturnRs       = mock[ResultSet]
+
+      when(db.withConnection(any[Connection => Any]())).thenAnswer { (inv: InvocationOnMock) =>
+        val block = inv.getArgument[Connection => Any](0)
+        block(mockConnection)
+      }
+
+      when(mockConnection.prepareCall(CisStoredProcedures.CallGetBatchPollSubmissions))
+        .thenReturn(mockCallableStatement)
+
+      when(mockCallableStatement.getObject(1, classOf[ResultSet])).thenReturn(verificationRs)
+      when(mockCallableStatement.getObject(2, classOf[ResultSet])).thenReturn(monthlyReturnRs)
+
+      when(verificationRs.next()).thenReturn(true, false)
+      when(verificationRs.getLong("submission_id")).thenReturn(1L)
+      when(verificationRs.getString("submission_type")).thenReturn("VERIFICATION")
+      when(verificationRs.getString("agent_id")).thenReturn(null)
+      when(verificationRs.getString("tax_office_number")).thenReturn("123")
+      when(verificationRs.getString("tax_office_reference")).thenReturn("AB456")
+      when(verificationRs.getString("instance_id")).thenReturn("INST1")
+      when(verificationRs.getString("status")).thenReturn("PENDING")
+      when(verificationRs.getLong("verification_batch_resource_ref")).thenReturn(99L)
+
+      when(monthlyReturnRs.next()).thenReturn(true, false)
+      when(monthlyReturnRs.getLong("submission_id")).thenReturn(2L)
+      when(monthlyReturnRs.getString("submission_type")).thenReturn("MONTHLY_RETURN")
+      when(monthlyReturnRs.getString("status")).thenReturn("PENDING")
+      when(monthlyReturnRs.getString("tax_office_number")).thenReturn("123")
+      when(monthlyReturnRs.getString("tax_office_reference")).thenReturn("AB456")
+      when(monthlyReturnRs.getInt("tax_year")).thenReturn(2025)
+      when(monthlyReturnRs.getInt("tax_month")).thenReturn(3)
+      when(monthlyReturnRs.getString("instance_id")).thenReturn("INST2")
+      when(monthlyReturnRs.getString("agent_id")).thenReturn("AGENT1")
+
+      val repo   = new CisFormpRepository(db)
+      val result = repo.getBatchPollSubmissions().futureValue
+
+      verify(mockCallableStatement).registerOutParameter(1, OracleTypes.CURSOR)
+      verify(mockCallableStatement).registerOutParameter(2, OracleTypes.CURSOR)
+      verify(mockCallableStatement).execute()
+
+      result.verificationSubmissions.size mustBe 1
+      result.verificationSubmissions.head.submissionId mustBe 1L
+      result.monthlyReturnSubmissions.size mustBe 1
+      result.monthlyReturnSubmissions.head.submissionId mustBe 2L
+    }
+  }
   "updateVerificationSubmission" - {
 
     "fetches existing submission then updates with merged values" in {
