@@ -275,7 +275,7 @@ class CisRowMappersSpec extends AnyFreeSpec with Matchers with MockitoSugar {
       when(rs.getString("tax_office_reference")).thenReturn("AB456")
       when(rs.getString("instance_id")).thenReturn("INST1")
       when(rs.getString("status")).thenReturn("PENDING")
-      when(rs.getLong("verification_batch_resource_ref")).thenReturn(99L)
+      when(rs.getLong("verif_batch_resource_ref")).thenReturn(99L)
 
       CisRowMappers.collectVerificationSubmissionsToPoll(rs) mustBe Seq(
         VerificationSubmissionToPoll(
