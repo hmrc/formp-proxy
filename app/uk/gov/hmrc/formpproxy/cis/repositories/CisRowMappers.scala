@@ -100,7 +100,7 @@ object CisRowMappers {
     collectVerificationBatches(rs, Nil)
 
   def collectVerificationBatchesForGetSubmittedVerifications(rs: ResultSet): Seq[VerificationBatch] =
-    collectVerificationBatchesForGetSubmittedVerifications(rs, Nil)  
+    collectVerificationBatchesForGetSubmittedVerifications(rs, Nil)
 
   def collectVerifications(rs: ResultSet): Seq[Verification] =
     collectVerifications(rs, Nil)
@@ -127,9 +127,16 @@ object CisRowMappers {
     else collectVerificationBatches(rs, acc :+ readVerificationBatch(rs))
 
   @tailrec
-  private def collectVerificationBatchesForGetSubmittedVerifications(rs: ResultSet, acc: Seq[VerificationBatch]): Seq[VerificationBatch] =
+  private def collectVerificationBatchesForGetSubmittedVerifications(
+    rs: ResultSet,
+    acc: Seq[VerificationBatch]
+  ): Seq[VerificationBatch] =
     if (rs == null || !rs.next()) acc
-    else collectVerificationBatchesForGetSubmittedVerifications(rs, acc :+ readVerificationBatchForGetSubmittedVerifications(rs))  
+    else
+      collectVerificationBatchesForGetSubmittedVerifications(
+        rs,
+        acc :+ readVerificationBatchForGetSubmittedVerifications(rs)
+      )
 
   @tailrec
   private def collectVerifications(rs: ResultSet, acc: Seq[Verification]): Seq[Verification] =
@@ -182,7 +189,7 @@ object CisRowMappers {
       createDate = rs.getOptionalLocalDateTime("create_date"),
       lastUpdate = rs.getOptionalLocalDateTime("last_update"),
       version = rs.getOptionalInt("version")
-    )  
+    )
 
   private def readVerification(rs: ResultSet): Verification =
     Verification(
