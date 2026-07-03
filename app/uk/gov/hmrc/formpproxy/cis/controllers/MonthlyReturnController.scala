@@ -151,7 +151,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def getMonthlyReturnForEdit: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    Action.async(parse.json) { implicit request =>
       request.body
         .validate[GetMonthlyReturnForEditRequest]
         .foldErrorsIntoBadRequest { req =>
