@@ -1794,7 +1794,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       GetSubmittedVerificationsResponse(
         scheme = withCursor(cs, 2)(collectSchemes),
         subcontractors = withCursor(cs, 3)(collectSubcontractors),
-        verificationBatches = withCursor(cs, 4)(collectVerificationBatches),
+        verificationBatches = withCursor(cs, 4)(collectVerificationBatchesForGetSubmittedVerifications),
         verifications = withCursor(cs, 5)(collectVerifications),
         submissions = withCursor(cs, 6)(collectSubmissions)
       )
