@@ -117,8 +117,8 @@ class SubmissionServiceSpec extends SpecBase {
           taxYear = 2024,
           taxMonth = 4,
           hmrcMarkGenerated = "mark",
-          amendment = "N",
           submittableStatus = "FATAL_ERROR",
+          amendment = "N",
           govTalkResponse = Some(status)
         )
 

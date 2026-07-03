@@ -20,6 +20,7 @@ import org.mockito.Mockito.*
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
+import uk.gov.hmrc.formpproxy.cis.models.response.*
 
 import java.sql.{ResultSet, Timestamp}
 import java.time.LocalDateTime
@@ -259,6 +260,35 @@ class CisRowMappersSpec extends AnyFreeSpec with Matchers with MockitoSugar {
 
       verify(rs, times(3)).next()
       verify(rs, times(2)).getLong("verification_id")
+    }
+  }
+
+  "collectVerificationSubmissionsToPoll" - {
+
+    "map a single row into a VerificationSubmissionToPoll" in {
+      val rs = mock[ResultSet]
+      when(rs.next()).thenReturn(true, false)
+      when(rs.getLong("submission_id")).thenReturn(1L)
+      when(rs.getString("submission_type")).thenReturn("VERIFICATION")
+      when(rs.getString("agent_id")).thenReturn(null)
+      when(rs.getString("tax_office_number")).thenReturn("123")
+      when(rs.getString("tax_office_reference")).thenReturn("AB456")
+      when(rs.getString("instance_id")).thenReturn("INST1")
+      when(rs.getString("status")).thenReturn("PENDING")
+      when(rs.getLong("verif_batch_resource_ref")).thenReturn(99L)
+
+      CisRowMappers.collectVerificationSubmissionsToPoll(rs) mustBe Seq(
+        VerificationSubmissionToPoll(
+          submissionId = 1L,
+          submissionType = "VERIFICATION",
+          agentId = None,
+          taxOfficeNumber = "123",
+          taxOfficeReference = "AB456",
+          instanceId = "INST1",
+          status = "PENDING",
+          verificationBatchResourceRef = 99L
+        )
+      )
     }
   }
 }

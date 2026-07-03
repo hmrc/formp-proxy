@@ -19,7 +19,6 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.formpproxy.actions.AuthAction
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.services.GovTalkService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -29,7 +28,6 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 class GovTalkController @Inject() (
-  authorise: AuthAction,
   service: GovTalkService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
@@ -37,7 +35,7 @@ class GovTalkController @Inject() (
     with Logging {
 
   def getGovTalkStatus: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    Action.async(parse.json) { implicit request =>
       request.body
         .validate[GetGovTalkStatusRequest]
         .fold(
@@ -58,7 +56,7 @@ class GovTalkController @Inject() (
     }
 
   def updateGovTalkStatusCorrelationId: Action[UpdateGovTalkStatusCorrelationIdRequest] =
-    authorise.async(parse.json[UpdateGovTalkStatusCorrelationIdRequest]) { implicit request =>
+    Action.async(parse.json[UpdateGovTalkStatusCorrelationIdRequest]) { implicit request =>
       service
         .updateGovTalkStatusCorrelationId(request.body)
         .map(_ => NoContent)
@@ -69,7 +67,7 @@ class GovTalkController @Inject() (
     }
 
   def resetGovTalkStatus: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    Action.async(parse.json) { implicit request =>
       request.body
         .validate[ResetGovTalkStatusRequest]
         .fold(
@@ -80,14 +78,14 @@ class GovTalkController @Inject() (
               .resetGovTalkStatus(body)
               .map(_ => NoContent)
               .recover { case t =>
-                logger.error("[getGovTalkStatus] failed", t)
+                logger.error("[resetGovTalkStatus] failed", t)
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )
     }
 
   def updateGovTalkStatus: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    Action.async(parse.json) { implicit request =>
       request.body
         .validate[UpdateGovTalkStatusRequest]
         .fold(
@@ -105,7 +103,7 @@ class GovTalkController @Inject() (
     }
 
   def updateGovTalkStatusStatistics: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    Action.async(parse.json) { implicit request =>
       request.body
         .validate[UpdateGovTalkStatusStatisticsRequest]
         .fold(
@@ -123,7 +121,7 @@ class GovTalkController @Inject() (
     }
 
   def createGovTalkStatusRecord: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    Action.async(parse.json) { implicit request =>
       request.body
         .validate[CreateGovTalkStatusRecordRequest]
         .fold(

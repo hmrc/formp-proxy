@@ -22,7 +22,7 @@ import play.api.db.{Database, NamedDatabase}
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
 import uk.gov.hmrc.formpproxy.sdlt.models.organisation.*
-import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnSummary, SdltReturnRecordResponse}
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnForPurge, ReturnSummary, ReturnsForPurgeResponse, SdltReturnRecordResponse}
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.*
 import uk.gov.hmrc.formpproxy.sdlt.models.land.*
@@ -33,7 +33,7 @@ import uk.gov.hmrc.formpproxy.sdlt.models.lease.*
 import uk.gov.hmrc.formpproxy.sdlt.models.taxCalculation.*
 
 import java.lang.Long
-import java.sql.{CallableStatement, Connection, ResultSet, Types}
+import java.sql.{CallableStatement, Connection, Date, ResultSet, Types}
 import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -43,6 +43,8 @@ trait SdltSource {
   def sdltCreateReturn(request: CreateReturnRequest): Future[String]
   def sdltGetReturn(returnResourceRef: String, storn: String): Future[GetReturnRequest]
   def sdltGetReturns(request: GetReturnRecordsRequest): Future[SdltReturnRecordResponse]
+  def sdltGetReturnsForPurge(request: GetReturnsForPurgeRequest): Future[ReturnsForPurgeResponse]
+  def sdltDeleteReturn(request: DeleteReturnRequest): Future[DeleteReturnReturn]
   def sdltCreateVendor(request: CreateVendorRequest): Future[CreateVendorReturn]
   def sdltUpdateVendor(request: UpdateVendorRequest): Future[UpdateVendorReturn]
   def sdltDeleteVendor(request: DeleteVendorRequest): Future[DeleteVendorReturn]
@@ -269,6 +271,59 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
         } finally cs.close()
       }
     }
+  }
+
+  override def sdltGetReturnsForPurge(request: GetReturnsForPurgeRequest): Future[ReturnsForPurgeResponse] = {
+    logger.info(s"[SDLT] sdltGetReturnsForPurge($request)")
+    Future {
+      db.withConnection { conn =>
+        val cs = conn.prepareCall(
+          "{ call RETURN_PROCS.get_returns_for_purge(?, ?) }"
+        )
+        try {
+          cs.setDate(1, Date.valueOf(request.purgeDate))
+          cs.registerOutParameter(2, OracleTypes.CURSOR)
+          cs.execute()
+
+          val returnsForPurge: Seq[ReturnForPurge] = processResultSetSeq(cs, 2, processReturnForPurge)
+
+          ReturnsForPurgeResponse(returnsForPurge = returnsForPurge.toList)
+        } finally cs.close()
+      }
+    }
+  }
+
+  private def processReturnForPurge(rs: ResultSet): ReturnForPurge =
+    ReturnForPurge(
+      storn = rs.getString("storn"),
+      returnResourceRef = rs.getString("return_resource_ref"),
+      status = Option(rs.getString("status")).getOrElse("")
+    )
+
+  override def sdltDeleteReturn(request: DeleteReturnRequest): Future[DeleteReturnReturn] = Future {
+    db.withTransaction { conn =>
+      callDeleteReturn(
+        conn = conn,
+        p_storn = request.storn,
+        p_return_resource_ref = request.returnResourceRef.toLong
+      )
+    }
+  }
+
+  private def callDeleteReturn(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long
+  ): DeleteReturnReturn = {
+
+    val cs = conn.prepareCall("{ call RETURN_PROCS.delete_return(?, ?) }")
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.execute()
+
+      DeleteReturnReturn(deleted = true)
+    } finally cs.close()
   }
 
   private def processReturnSummary(rs: ResultSet): ReturnSummary =

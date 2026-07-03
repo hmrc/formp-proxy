@@ -41,6 +41,10 @@ object CisStoredProcedures {
   val CallCreateSubmission                    = "{ call SUBMISSION_PROCS.Create_Submission(?, ?, ?, ?, ?, ?, ?, ?, ?) }"
   val CallUpdateMonthlyReturnSubmission       =
     "{ call SUBMISSION_PROCS_2016.UPDATE_MR_SUBMISSION(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+  val CallGetSubmission                       =
+    "{ call SUBMISSION_PROCS.Get_Submission(?, ?, ?) }"
+  val CallUpdateSubmission                    =
+    "{ call SUBMISSION_PROCS_2016.Update_Submission(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
   val CallCreateMonthlyReturnItem             = "{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return_Item(?, ?, ?, ?, ?) }"
   val CallDeleteMonthlyReturnItem             = "{ call MONTHLY_RETURN_PROCS_2016.Delete_Monthly_Return_Item(?, ?, ?, ?, ?) }"
   val CallUnsubmittedMonthlyReturn            = "{ call MONTHLY_RETURN_PROCS_2016.DELETE_MONTHLY_RETURN(?, ?, ?, ?) }"
@@ -71,11 +75,9 @@ object CisStoredProcedures {
     "{ call VERIFICATION_PROCS.Update_Verification_Batch(?, ?, ?, ?, ?, ?, ?, ?) }"
   val CallUpdateVerification                  =
     "{ call VERIFICATION_PROCS.Update_Verification(?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
-
-  val CallUpdateSubmission =
-    "{ call SUBMISSION_PROCS_2016.Update_Submission(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
-
-  val CallGetSubmissionWithVerificationBatch =
+  val CallGetBatchPollSubmissions             =
+    "{ call SUBMISSION_PROCS.GET_SUBMISSIONS_FOR_POLLING(?, ?) }"
+  val CallGetSubmissionWithVerificationBatch  =
     "{ call SUBMISSION_PROCS.Get_Verif_Batch_Submission(?, ?, ?, ?, ?, ?, ?) }"
 
   val CallGetSubmittedVerifications =
