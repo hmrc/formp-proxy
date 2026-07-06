@@ -181,7 +181,7 @@ object CisRowMappers {
       schemeId = rs.getLong("scheme_id"),
       verificationsCounter = rs.getOptionalLong("verifications_counter"),
       verifBatchResourceRef = rs.getOptionalLong("verif_batch_resource_ref"),
-      proceedSession = rs.getOptionalString("proceed_session"),
+      proceedSession = None,
       confirmArrangement = rs.getOptionalString("confirm_arrangement"),
       confirmCorrect = rs.getOptionalString("confirm_correct"),
       status = rs.getOptionalString("status"),
