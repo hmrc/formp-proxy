@@ -48,6 +48,8 @@ POST       /cis/amend-monthly-return/create                         uk.gov.hmrc.
 POST       /cis/verification/submission/create                      uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.createSubmissionAndUpdateVerifications()
 POST       /cis/verification/submission/update                      uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.updateVerificationSubmission()
 
+GET        /cis/batchpoll-submissions                               uk.gov.hmrc.formpproxy.cis.controllers.BatchPollController.getBatchPollSubmissions()
+
 # SDLT routes
 
 POST       /create/return                                           uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.createSDLTReturn()
@@ -116,6 +118,6 @@ POST       /nova/forms                                              uk.gov.hmrc.
 PUT        /nova/forms/:formId                                      uk.gov.hmrc.formpproxy.nova.controllers.NovaFormsController.updateForm(formId: Long)
 PUT        /nova/forms/:formId/status                               uk.gov.hmrc.formpproxy.nova.controllers.NovaFormsController.updateFormStatus(formId: Long)
 DELETE     /nova/forms/:formId                                      uk.gov.hmrc.formpproxy.nova.controllers.NovaFormsController.deleteForm(formId: Long)
-POST       /nova/forms/:formId/notification-refs                     uk.gov.hmrc.formpproxy.nova.controllers.NovaFormDataController.getNovaNotificationRef(formId: Long)
-GET        /nova/forms/:formId/data                                  uk.gov.hmrc.formpproxy.nova.controllers.NovaFormDataController.getFormData(formId: Long, formDataIds: Seq[String])
-PUT        /nova/forms/:formId/data/:formDataId                      uk.gov.hmrc.formpproxy.nova.controllers.NovaFormDataController.storeFormData(formId: Long, formDataId: String)
+POST       /nova/forms/:formId/notification-refs                    uk.gov.hmrc.formpproxy.nova.controllers.NovaFormDataController.getNovaNotificationRef(formId: Long)
+GET        /nova/forms/:formId/data                                 uk.gov.hmrc.formpproxy.nova.controllers.NovaFormDataController.getFormData(formId: Long, formDataIds: Seq[String])
+PUT        /nova/forms/:formId/data/:formDataId                     uk.gov.hmrc.formpproxy.nova.controllers.NovaFormDataController.storeFormData(formId: Long, formDataId: String)

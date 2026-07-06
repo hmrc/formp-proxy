@@ -87,6 +87,7 @@ trait CisMonthlyReturnSource {
   ): Future[GetSubmittedMonthlyReturnsDataResponse]
   def createAmendedMonthlyReturn(request: CreateAmendedMonthlyReturnRequest): Future[Unit]
   def modifyVerifications(req: ModifyVerificationsRequest): Future[Unit]
+  def getBatchPollSubmissions(): Future[GetBatchPollSubmissionsResponse]
   def updateVerificationSubmission(req: UpdateVerificationSubmissionRequest): Future[Unit]
   def processVerificationResponseFromChris(req: ProcessVerificationResponseFromChrisRequest): Future[Unit]
 }
@@ -1438,6 +1439,31 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
+  override def getBatchPollSubmissions(): Future[GetBatchPollSubmissionsResponse]                                     = {
+    logger.info("[CIS][getBatchPollSubmissions] Calling GET_SUBMISSIONS_FOR_POLLING")
+
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallGetBatchPollSubmissions) { cs =>
+          cs.registerOutParameter(1, OracleTypes.CURSOR)
+          cs.registerOutParameter(2, OracleTypes.CURSOR)
+
+          cs.execute()
+
+          val verificationSubmissions =
+            withCursor(cs, 1)(collectVerificationSubmissionsToPoll)
+
+          val monthlyReturnSubmissions =
+            withCursor(cs, 2)(collectMonthlyReturnSubmissionsToPoll)
+
+          GetBatchPollSubmissionsResponse(
+            verificationSubmissions = verificationSubmissions,
+            monthlyReturnSubmissions = monthlyReturnSubmissions
+          )
+        }
+      }
+    }
+  }
   private def callGetSubmission(conn: Connection, instanceId: String, verificationBatchResourceRef: Long): Submission =
     withCall(conn, CallGetSubmission) { cs =>
       cs.setString(1, instanceId)

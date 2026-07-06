@@ -23,10 +23,9 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{ControllerComponents, PlayBodyParsers, Result}
+import play.api.mvc.{ControllerComponents, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
 import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.UpdateGovTalkStatusCorrelationIdRequest
 import uk.gov.hmrc.formpproxy.cis.models.response.*
@@ -633,11 +632,9 @@ class GovTalkControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
   private trait Setup {
     implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.global
     private val cc: ControllerComponents = stubControllerComponents()
-    private val parsers: PlayBodyParsers = cc.parsers
-    private def fakeAuth: AuthAction     = new FakeAuthAction(parsers)
 
     val mockService: GovTalkService = mock[GovTalkService]
-    val controller                  = new GovTalkController(fakeAuth, mockService, cc)
+    val controller                  = new GovTalkController(mockService, cc)
 
     def makeJsonRequest(body: JsValue): FakeRequest[JsValue] =
       FakeRequest(POST, "/formp-proxy/cis/govtalkstatus/get")
