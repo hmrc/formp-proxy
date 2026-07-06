@@ -418,7 +418,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           activeObjectId = monthlyReturnId,
           hmrcMarkGenerated = request.hmrcMarkGenerated.orNull,
           hmrcMarkGgis = null,
-          emailRecipient = request.emailRecipient.orNull,
+          emailRecipient = request.emailRecipient,
           agentId = request.agentId.orNull,
           submittableStatus = "STARTED"
         )
@@ -805,7 +805,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     activeObjectId: Long,
     hmrcMarkGenerated: String,
     hmrcMarkGgis: String,
-    emailRecipient: String,
+    emailRecipient: Option[String],
     agentId: String,
     submittableStatus: String
   ): Long =
@@ -815,7 +815,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setLong(3, activeObjectId)
       cs.setString(4, hmrcMarkGenerated)
       cs.setString(5, hmrcMarkGgis)
-      cs.setString(6, emailRecipient)
+      cs.setOptionalString(6, emailRecipient)
       cs.setString(7, agentId)
       cs.setString(8, submittableStatus)
       cs.registerOutParameter(9, Types.NUMERIC)
@@ -1306,7 +1306,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
             activeObjectId = req.verificationBatchId,
             hmrcMarkGenerated = req.irMarkGenerated.orNull,
             hmrcMarkGgis = null,
-            emailRecipient = req.emailRecipient.orNull,
+            emailRecipient = req.emailRecipient,
             agentId = req.agentId.orNull,
             submittableStatus = "STARTED"
           )
