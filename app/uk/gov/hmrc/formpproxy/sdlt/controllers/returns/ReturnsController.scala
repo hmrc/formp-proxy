@@ -35,7 +35,7 @@ package uk.gov.hmrc.formpproxy.sdlt.controllers.returns
 import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.formpproxy.actions.AuthAction
+import uk.gov.hmrc.formpproxy.actions.{ApiKeyAction, AuthAction}
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.UpdateReturnRequest
 import uk.gov.hmrc.formpproxy.sdlt.services.ReturnService
@@ -47,6 +47,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ReturnsController @Inject() (
   authorise: AuthAction,
+  apiKeyAction: ApiKeyAction,
   service: ReturnService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
@@ -131,7 +132,7 @@ class ReturnsController @Inject() (
     }
 
   def getSDLTReturnsForPurge(): Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    apiKeyAction.async(parse.json) { implicit request =>
       request.body
         .validate[GetReturnsForPurgeRequest]
         .fold(
@@ -159,7 +160,7 @@ class ReturnsController @Inject() (
     }
 
   def deleteSDLTReturn(): Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    apiKeyAction.async(parse.json) { implicit request =>
       request.body
         .validate[DeleteReturnRequest]
         .fold(
