@@ -105,6 +105,25 @@ POST       /filing/delete/lease                                     uk.gov.hmrc.
 
 POST       /filing/update/tax-calculation                           uk.gov.hmrc.formpproxy.sdlt.controllers.returns.TaxCalculationReturnsController.updateTaxCalculation()
 
+POST       /filing/return/lock                                      uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ChrisSubmissionController.lockReturn()
+
+POST       /filing/submission                                       uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ChrisSubmissionController.createSubmission()
+POST       /filing/update/submission                                uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ChrisSubmissionController.updateSubmission()
+
+POST       /filing/submission-error-detail                          uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ChrisSubmissionController.createSubmissionErrorDetail()
+POST       /filing/delete/submission-error-detail                   uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ChrisSubmissionController.deleteSubmissionErrorDetail()
+
+POST       /filing/govtalk-status                                   uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ChrisSubmissionController.insertInitialGovTalkStatus()
+POST       /filing/reset/govtalk-status/reset                       uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ChrisSubmissionController.resetGovTalkStatus()
+POST       /filing/update/govtalk-status                            uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ChrisSubmissionController.updateGovTalkStatus()
+POST       /filing/update/govtalk-status/correlation-Id             uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ChrisSubmissionController.updateGovTalkStatusCorrelationId()
+POST       /filing/update/govtalk-status/lock                       uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ChrisSubmissionController.updateGovTalkStatusLock()
+POST       /filing/update/govtalk-status/statistics                 uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ChrisSubmissionController.updateGovTalkStatistics()
+POST       /filing/delete/govtalk-status                            uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ChrisSubmissionController.deleteGovTalkStatus()
+
+GET        /filing/govtalk-status                                   uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ChrisSubmissionController.selectGovTalkStatus()
+GET        /filing/govtalk-status/form-result-Id                    uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ChrisSubmissionController.selectGovTalkFormResultId()
+
 # CHARITIES routes
 
 GET        /charities/:charityReference/unregulated-donations       uk.gov.hmrc.formpproxy.charities.controllers.UnregulatedDonationsController.getTotalUnregulatedDonations(charityReference: String)
