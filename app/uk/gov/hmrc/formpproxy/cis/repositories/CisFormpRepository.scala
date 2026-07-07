@@ -1768,9 +1768,13 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
               case Seq(subcontractor) =>
                 subcontractor
 
-              case Seq() =>
+              case Seq()    =>
                 throw new IllegalStateException(
                   s"No subcontractor found for cisId=$cisId and subbieResourceRef=$subbieResourceRef"
+                )
+              case multiple =>
+                throw new IllegalStateException(
+                  s"Expected exactly one subcontractor for cisId=$cisId and subbieResourceRef=$subbieResourceRef, got ${multiple.size}"
                 )
             }
           val subcontractorCanBeDeleted =

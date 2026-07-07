@@ -4090,6 +4090,49 @@ final class CisFormpRepositorySpec extends SpecBase {
         "No subcontractor found"
       )
     }
+
+    "throws IllegalStateException when multiple subcontractors are returned" in new Ctx {
+
+      when(rs4.next()).thenReturn(true, true, false)
+      when(rs4.getLong("subcontractor_id")).thenReturn(1L, 2L)
+      when(rs4.getLong("subbie_resource_ref")).thenReturn(10L, 11L)
+      when(rs4.getString("type")).thenReturn("company")
+      when(rs4.getString("tradingname")).thenReturn("Gamma Builders")
+      when(rs4.wasNull()).thenReturn(true)
+      Seq(
+        "utr",
+        "partner_utr",
+        "crn",
+        "firstname",
+        "nino",
+        "secondname",
+        "surname",
+        "partnership_tradingname",
+        "address_line_1",
+        "address_line_2",
+        "address_line_3",
+        "address_line_4",
+        "country",
+        "postcode",
+        "email_address",
+        "phone_number",
+        "mobile_phone_number",
+        "works_reference_number",
+        "tax_treatment",
+        "updated_tax_treatment",
+        "verification_number",
+        "matched",
+        "verified",
+        "auto_verified"
+      ).foreach(f => when(rs4.getString(f)).thenReturn(null))
+      when(cs.getString(6)).thenReturn("true")
+
+      val exception =
+        repo.getSubcontractorForDelete("cis-123", 10L).failed.futureValue
+
+      exception mustBe an[IllegalStateException]
+      exception.getMessage must include("Expected exactly one subcontractor")
+    }
   }
 
 }

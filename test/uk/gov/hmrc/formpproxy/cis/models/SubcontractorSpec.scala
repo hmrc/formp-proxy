@@ -178,5 +178,27 @@ class SubcontractorSpec extends AnyWordSpec with Matchers {
 
       subcontractor.displayName mustBe "No name provided"
     }
+
+    "return default text for a sole trader with no name fields and no trading name" in {
+      val subcontractor =
+        baseSubcontractor.copy(
+          subcontractorType = Some("soletrader"),
+          firstName = None,
+          surname = None,
+          tradingName = None
+        )
+      subcontractor.displayName mustBe "No name provided"
+    }
+
+    "return default text when subcontractor type is unrecognised" in {
+      val subcontractor =
+        baseSubcontractor.copy(
+          subcontractorType = Some("unknown"),
+          firstName = Some("Alan"),
+          surname = Some("Grant"),
+          tradingName = Some("Grant Builders")
+        )
+      subcontractor.displayName mustBe "No name provided"
+    }
   }
 }
