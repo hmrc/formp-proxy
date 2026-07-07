@@ -1760,15 +1760,33 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
           cs.execute()
 
+          discardCursor(cs, 3)
+          discardCursor(cs, 5)
+
+          val subcontractor             =
+            withCursor(cs, 4)(collectSubcontractors) match {
+              case Seq(subcontractor) =>
+                subcontractor
+
+              case Seq() =>
+                throw new IllegalStateException(
+                  s"No subcontractor found for cisId=$cisId and subbieResourceRef=$subbieResourceRef"
+                )
+            }
           val subcontractorCanBeDeleted =
             Option(cs.getString(6)).map(_.trim.toLowerCase) match {
               case Some("true")  => true
               case Some("false") => false
-              case _             => false
+              case other         =>
+                logger.warn(
+                  s"[getSubcontractorForDelete] unexpected flag value: '$other'"
+                )
+                false
             }
 
           GetSubcontractorForDeleteResponse(
-            subcontractorCanBeDeleted
+            subcontractorName = subcontractor.displayName,
+            subcontractorCanBeDeleted = subcontractorCanBeDeleted
           )
         }
       }

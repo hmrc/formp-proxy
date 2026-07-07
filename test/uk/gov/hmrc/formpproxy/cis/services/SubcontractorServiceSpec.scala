@@ -316,34 +316,62 @@ class SubcontractorServiceSpec extends SpecBase {
 
     "return response from repository when successful" in new Ctx {
 
-      val response = GetSubcontractorForDeleteResponse(
-        subcontractorCanBeDeleted = true
-      )
+      val response =
+        GetSubcontractorForDeleteResponse(
+          subcontractorName = "Gamma Builders",
+          subcontractorCanBeDeleted = true
+        )
 
       when(
-        repo.getSubcontractorForDelete(eqTo(cisId), eqTo(subbieResourceRef))
+        repo.getSubcontractorForDelete(
+          eqTo(cisId),
+          eqTo(subbieResourceRef)
+        )
       ).thenReturn(Future.successful(response))
 
-      val result: GetSubcontractorForDeleteResponse =
-        service.getSubcontractorForDelete(cisId, subbieResourceRef).futureValue
+      val result =
+        service
+          .getSubcontractorForDelete(
+            cisId,
+            subbieResourceRef
+          )
+          .futureValue
 
       result mustBe response
 
-      verify(repo).getSubcontractorForDelete(eqTo(cisId), eqTo(subbieResourceRef))
+      verify(repo)
+        .getSubcontractorForDelete(
+          eqTo(cisId),
+          eqTo(subbieResourceRef)
+        )
     }
 
     "propagate failure from repository" in new Ctx {
 
       when(
-        repo.getSubcontractorForDelete(eqTo(cisId), eqTo(subbieResourceRef))
-      ).thenReturn(Future.failed(new RuntimeException("boom")))
+        repo.getSubcontractorForDelete(
+          eqTo(cisId),
+          eqTo(subbieResourceRef)
+        )
+      ).thenReturn(
+        Future.failed(
+          new RuntimeException("boom")
+        )
+      )
 
-      val result: Future[GetSubcontractorForDeleteResponse] =
-        service.getSubcontractorForDelete(cisId, subbieResourceRef)
+      val result =
+        service.getSubcontractorForDelete(
+          cisId,
+          subbieResourceRef
+        )
 
       result.failed.futureValue.getMessage mustBe "boom"
 
-      verify(repo).getSubcontractorForDelete(eqTo(cisId), eqTo(subbieResourceRef))
+      verify(repo)
+        .getSubcontractorForDelete(
+          eqTo(cisId),
+          eqTo(subbieResourceRef)
+        )
     }
   }
 }

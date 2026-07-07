@@ -293,42 +293,65 @@ class SubcontractorControllerSpec extends SpecBase {
 
     "must return OK with JSON when service succeeds" in new Setup {
 
-      val response = GetSubcontractorForDeleteResponse(
-        subcontractorCanBeDeleted = true
-      )
+      val response =
+        GetSubcontractorForDeleteResponse(
+          subcontractorName = "Gamma Builders",
+          subcontractorCanBeDeleted = true
+        )
 
       when(
-        mockService.getSubcontractorForDelete(eqTo(cisId), eqTo(subbieResourceRef))
+        mockService.getSubcontractorForDelete(
+          eqTo(cisId),
+          eqTo(subbieResourceRef)
+        )
       ).thenReturn(Future.successful(response))
 
       val result =
         controller.getSubcontractorForDelete(cisId, subbieResourceRef)(
-          FakeRequest(GET, s"/cis/subcontractor/$cisId/$subbieResourceRef/delete-status")
+          FakeRequest(
+            GET,
+            s"/cis/subcontractor/$cisId/$subbieResourceRef/delete-status"
+          )
         )
 
       status(result) mustBe OK
       contentAsJson(result) mustBe Json.toJson(response)
 
       verify(mockService)
-        .getSubcontractorForDelete(eqTo(cisId), eqTo(subbieResourceRef))
+        .getSubcontractorForDelete(
+          eqTo(cisId),
+          eqTo(subbieResourceRef)
+        )
     }
 
     "must return InternalServerError when service fails" in new Setup {
 
       when(
-        mockService.getSubcontractorForDelete(eqTo(cisId), eqTo(subbieResourceRef))
+        mockService.getSubcontractorForDelete(
+          eqTo(cisId),
+          eqTo(subbieResourceRef)
+        )
       ).thenReturn(Future.failed(new RuntimeException("boom")))
 
       val result =
         controller.getSubcontractorForDelete(cisId, subbieResourceRef)(
-          FakeRequest(GET, s"/cis/subcontractor/$cisId/$subbieResourceRef/delete-status")
+          FakeRequest(
+            GET,
+            s"/cis/subcontractor/$cisId/$subbieResourceRef/delete-status"
+          )
         )
 
       status(result) mustBe INTERNAL_SERVER_ERROR
-      (contentAsJson(result) \ "message").as[String] mustBe "Unexpected error"
+
+      contentAsJson(result) mustBe Json.obj(
+        "message" -> "Unexpected error"
+      )
 
       verify(mockService)
-        .getSubcontractorForDelete(eqTo(cisId), eqTo(subbieResourceRef))
+        .getSubcontractorForDelete(
+          eqTo(cisId),
+          eqTo(subbieResourceRef)
+        )
     }
   }
 

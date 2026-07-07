@@ -24,6 +24,7 @@ import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
+import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorForDeleteResponse
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 
 import java.sql.*
@@ -3920,30 +3921,76 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
   }
 
-  "getSubcontractorForDelete" - {
+  private def mockSingleSubcontractor(rs: ResultSet): Unit = {
+    when(rs.next()).thenReturn(true, false)
 
-    "calls stored procedure and returns true when flag is 'true'" in {
-      val db   = mock[Database]
-      val conn = mock[Connection]
-      val cs   = mock[CallableStatement]
+    when(rs.getLong("subcontractor_id")).thenReturn(1L)
+    when(rs.getLong("subbie_resource_ref")).thenReturn(10L)
 
-      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
-        val f = inv.getArgument(0, classOf[Connection => Any])
-        f(conn)
-      }
+    when(rs.getString("type")).thenReturn("company")
+    when(rs.getString("tradingname")).thenReturn("Gamma Builders")
 
-      val call = "{ call SUBCONTRACTOR_PROCS.Get_Subcontractor_For_Delete(?, ?, ?, ?, ?, ?) }"
-      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+    when(rs.wasNull()).thenReturn(true)
 
-      when(cs.getString(6)).thenReturn("true")
+    Seq(
+      "utr",
+      "partner_utr",
+      "crn",
+      "firstname",
+      "nino",
+      "secondname",
+      "surname",
+      "partnership_tradingname",
+      "address_line_1",
+      "address_line_2",
+      "address_line_3",
+      "address_line_4",
+      "country",
+      "postcode",
+      "email_address",
+      "phone_number",
+      "mobile_phone_number",
+      "works_reference_number",
+      "tax_treatment",
+      "updated_tax_treatment",
+      "verification_number",
+      "matched",
+      "verified",
+      "auto_verified"
+    ).foreach { field =>
+      when(rs.getString(field)).thenReturn(null)
+    }
+  }
 
-      val repo = new CisFormpRepository(db)
+  private val callGetSubcontractorForDelete =
+    "{ call SUBCONTRACTOR_PROCS.Get_Subcontractor_For_Delete(?, ?, ?, ?, ?, ?) }"
 
-      val out = repo.getSubcontractorForDelete("cis-123", 10L).futureValue
+  private trait Ctx {
 
-      out.subcontractorCanBeDeleted mustBe true
+    val db: Database          = mock[Database]
+    val conn: Connection      = mock[Connection]
+    val cs: CallableStatement = mock[CallableStatement]
 
-      verify(conn).prepareCall(eqTo(call))
+    val rs3: ResultSet = mock[ResultSet]
+    val rs4: ResultSet = mock[ResultSet]
+    val rs5: ResultSet = mock[ResultSet]
+
+    val repo = new CisFormpRepository(db)
+
+    when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+      val f = inv.getArgument(0, classOf[Connection => Any])
+      f(conn)
+    }
+
+    when(conn.prepareCall(eqTo(callGetSubcontractorForDelete))).thenReturn(cs)
+
+    when(cs.getObject(3, classOf[ResultSet])).thenReturn(rs3)
+    when(cs.getObject(4, classOf[ResultSet])).thenReturn(rs4)
+    when(cs.getObject(5, classOf[ResultSet])).thenReturn(rs5)
+
+    def verifyStoredProcedureCalled(): Unit = {
+      verify(conn).prepareCall(eqTo(callGetSubcontractorForDelete))
+
       verify(cs).setString(1, "cis-123")
       verify(cs).setLong(2, 10L)
 
@@ -3953,80 +4000,95 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(cs).registerOutParameter(6, Types.VARCHAR)
 
       verify(cs).execute()
+      verify(cs).getObject(3, classOf[ResultSet])
+      verify(cs).getObject(4, classOf[ResultSet])
+      verify(cs).getObject(5, classOf[ResultSet])
       verify(cs).close()
     }
+  }
 
-    "returns false when flag is 'false'" in {
-      val db   = mock[Database]
-      val conn = mock[Connection]
-      val cs   = mock[CallableStatement]
+  "getSubcontractorForDelete" - {
 
-      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
-        val f = inv.getArgument(0, classOf[Connection => Any])
-        f(conn)
-      }
+    "calls stored procedure and returns name and true when flag is 'true'" in new Ctx {
 
-      val call = "{ call SUBCONTRACTOR_PROCS.Get_Subcontractor_For_Delete(?, ?, ?, ?, ?, ?) }"
-      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+      mockSingleSubcontractor(rs4)
+
+      when(cs.getString(6)).thenReturn("true")
+
+      val out =
+        repo.getSubcontractorForDelete("cis-123", 10L).futureValue
+
+      out mustBe GetSubcontractorForDeleteResponse(
+        subcontractorName = "Gamma Builders",
+        subcontractorCanBeDeleted = true
+      )
+
+      verifyStoredProcedureCalled()
+    }
+
+    "returns name and false when flag is 'false'" in new Ctx {
+
+      mockSingleSubcontractor(rs4)
 
       when(cs.getString(6)).thenReturn("false")
 
-      val repo = new CisFormpRepository(db)
+      val out =
+        repo.getSubcontractorForDelete("cis-123", 10L).futureValue
 
-      val out = repo.getSubcontractorForDelete("cis-123", 10L).futureValue
+      out mustBe GetSubcontractorForDeleteResponse(
+        subcontractorName = "Gamma Builders",
+        subcontractorCanBeDeleted = false
+      )
 
-      out.subcontractorCanBeDeleted mustBe false
-
-      verify(cs).execute()
-      verify(cs).close()
+      verifyStoredProcedureCalled()
     }
 
-    "maps trimmed 'true' as true" in {
-      val db   = mock[Database]
-      val conn = mock[Connection]
-      val cs   = mock[CallableStatement]
+    "maps trimmed 'true' as true" in new Ctx {
 
-      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
-        val f = inv.getArgument(0, classOf[Connection => Any])
-        f(conn)
-      }
-
-      val call = "{ call SUBCONTRACTOR_PROCS.Get_Subcontractor_For_Delete(?, ?, ?, ?, ?, ?) }"
-      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+      mockSingleSubcontractor(rs4)
 
       when(cs.getString(6)).thenReturn(" true ")
 
-      val repo = new CisFormpRepository(db)
+      val out =
+        repo.getSubcontractorForDelete("cis-123", 10L).futureValue
 
-      val out = repo.getSubcontractorForDelete("cis-123", 10L).futureValue
-
+      out.subcontractorName mustBe "Gamma Builders"
       out.subcontractorCanBeDeleted mustBe true
 
-      verify(cs).close()
+      verifyStoredProcedureCalled()
     }
 
-    "returns false when flag is null" in {
-      val db   = mock[Database]
-      val conn = mock[Connection]
-      val cs   = mock[CallableStatement]
+    "returns false when flag is null" in new Ctx {
 
-      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
-        val f = inv.getArgument(0, classOf[Connection => Any])
-        f(conn)
-      }
-
-      val call = "{ call SUBCONTRACTOR_PROCS.Get_Subcontractor_For_Delete(?, ?, ?, ?, ?, ?) }"
-      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+      mockSingleSubcontractor(rs4)
 
       when(cs.getString(6)).thenReturn(null)
 
-      val repo = new CisFormpRepository(db)
+      val out =
+        repo.getSubcontractorForDelete("cis-123", 10L).futureValue
 
-      val out = repo.getSubcontractorForDelete("cis-123", 10L).futureValue
-
+      out.subcontractorName mustBe "Gamma Builders"
       out.subcontractorCanBeDeleted mustBe false
 
-      verify(cs).close()
+      verifyStoredProcedureCalled()
+    }
+
+    "throws IllegalStateException when no subcontractor is returned" in new Ctx {
+
+      when(rs4.next()).thenReturn(false)
+      when(cs.getString(6)).thenReturn("true")
+
+      val exception =
+        repo
+          .getSubcontractorForDelete("cis-123", 10L)
+          .failed
+          .futureValue
+
+      exception mustBe an[IllegalStateException]
+
+      exception.getMessage must include(
+        "No subcontractor found"
+      )
     }
   }
 
