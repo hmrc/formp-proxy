@@ -90,6 +90,8 @@ trait CisMonthlyReturnSource {
   def getBatchPollSubmissions(): Future[GetBatchPollSubmissionsResponse]
   def updateVerificationSubmission(req: UpdateVerificationSubmissionRequest): Future[Unit]
   def processVerificationResponseFromChris(req: ProcessVerificationResponseFromChrisRequest): Future[Unit]
+
+  def getSubcontractorForDelete(cisId: String, subbieResourceRef: Long): Future[GetSubcontractorForDeleteResponse]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -1762,5 +1764,63 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
       cs.execute()
     }
+
+  override def getSubcontractorForDelete(
+    cisId: String,
+    subbieResourceRef: Long
+  ): Future[GetSubcontractorForDeleteResponse] = {
+    logger.info(
+      s"[CIS] getSubcontractorForDelete(cisId=$cisId, subbieResourceRef=$subbieResourceRef)"
+    )
+
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallGetSubcontractorForDelete) { cs =>
+          cs.setString(1, cisId)
+          cs.setLong(2, subbieResourceRef)
+
+          cs.registerOutParameter(3, OracleTypes.CURSOR)
+          cs.registerOutParameter(4, OracleTypes.CURSOR)
+          cs.registerOutParameter(5, OracleTypes.CURSOR)
+          cs.registerOutParameter(6, Types.VARCHAR)
+
+          cs.execute()
+
+          discardCursor(cs, 3)
+          discardCursor(cs, 5)
+
+          val subcontractor             =
+            withCursor(cs, 4)(collectSubcontractors) match {
+              case Seq(subcontractor) =>
+                subcontractor
+
+              case Seq()    =>
+                throw new IllegalStateException(
+                  s"No subcontractor found for cisId=$cisId and subbieResourceRef=$subbieResourceRef"
+                )
+              case multiple =>
+                throw new IllegalStateException(
+                  s"Expected exactly one subcontractor for cisId=$cisId and subbieResourceRef=$subbieResourceRef, got ${multiple.size}"
+                )
+            }
+          val subcontractorCanBeDeleted =
+            Option(cs.getString(6)).map(_.trim.toLowerCase) match {
+              case Some("true")  => true
+              case Some("false") => false
+              case other         =>
+                logger.warn(
+                  s"[getSubcontractorForDelete] unexpected flag value: '$other'"
+                )
+                false
+            }
+
+          GetSubcontractorForDeleteResponse(
+            subcontractorName = subcontractor.displayName,
+            subcontractorCanBeDeleted = subcontractorCanBeDeleted
+          )
+        }
+      }
+    }
+  }
 
 }

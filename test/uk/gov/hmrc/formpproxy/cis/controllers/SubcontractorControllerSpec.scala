@@ -25,7 +25,7 @@ import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
 import uk.gov.hmrc.formpproxy.cis.models.Subcontractor
-import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorListResponse
+import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorForDeleteResponse, GetSubcontractorListResponse}
 import uk.gov.hmrc.formpproxy.cis.models.requests.CreateAndUpdateSubcontractorRequest
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 
@@ -285,4 +285,74 @@ class SubcontractorControllerSpec extends SpecBase {
       verifyNoMoreInteractions(mockService)
     }
   }
+
+  "getSubcontractorForDelete" - {
+
+    val cisId             = "123"
+    val subbieResourceRef = 10L
+
+    "must return OK with JSON when service succeeds" in new Setup {
+
+      val response =
+        GetSubcontractorForDeleteResponse(
+          subcontractorName = "Gamma Builders",
+          subcontractorCanBeDeleted = true
+        )
+
+      when(
+        mockService.getSubcontractorForDelete(
+          eqTo(cisId),
+          eqTo(subbieResourceRef)
+        )
+      ).thenReturn(Future.successful(response))
+
+      val result =
+        controller.getSubcontractorForDelete(cisId, subbieResourceRef)(
+          FakeRequest(
+            GET,
+            s"/cis/subcontractor/$cisId/$subbieResourceRef/delete-status"
+          )
+        )
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe Json.toJson(response)
+
+      verify(mockService)
+        .getSubcontractorForDelete(
+          eqTo(cisId),
+          eqTo(subbieResourceRef)
+        )
+    }
+
+    "must return InternalServerError when service fails" in new Setup {
+
+      when(
+        mockService.getSubcontractorForDelete(
+          eqTo(cisId),
+          eqTo(subbieResourceRef)
+        )
+      ).thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val result =
+        controller.getSubcontractorForDelete(cisId, subbieResourceRef)(
+          FakeRequest(
+            GET,
+            s"/cis/subcontractor/$cisId/$subbieResourceRef/delete-status"
+          )
+        )
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+
+      contentAsJson(result) mustBe Json.obj(
+        "message" -> "Unexpected error"
+      )
+
+      verify(mockService)
+        .getSubcontractorForDelete(
+          eqTo(cisId),
+          eqTo(subbieResourceRef)
+        )
+    }
+  }
+
 }
