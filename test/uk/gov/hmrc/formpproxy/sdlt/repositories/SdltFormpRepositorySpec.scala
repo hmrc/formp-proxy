@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.formpproxy.sdlt.repositories
 
+import oracle.jdbc.OracleTypes
 import org.mockito.ArgumentMatchers.{any as anyArg, eq as eqTo}
 import org.mockito.Mockito.*
 import play.api.db.Database
@@ -30,6 +31,7 @@ import uk.gov.hmrc.formpproxy.sdlt.models.transaction.*
 import uk.gov.hmrc.formpproxy.sdlt.models.residency.*
 import uk.gov.hmrc.formpproxy.sdlt.models.lease.*
 import uk.gov.hmrc.formpproxy.sdlt.models.taxCalculation.*
+import uk.gov.hmrc.formpproxy.sdlt.models.submission.*
 
 import java.sql.*
 
@@ -4442,6 +4444,759 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).setString(5, "3000")
       verify(cs).setString(7, "3000")
       verify(cs).setString(15, "YES")
+      verify(cs).execute()
+    }
+  }
+
+  "sdltLockReturn" - {
+
+    "call return_procs.lock_return with correct parameters and return success" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call return_procs.lock_return(?, ?, ?) }"))).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = LockReturnRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001",
+        version = 1
+      )
+
+      val result = repo.sdltLockReturn(request).futureValue
+
+      result.success mustBe true
+
+      verify(conn).prepareCall("{ call return_procs.lock_return(?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setLong(3, 1L)
+      verify(cs).registerOutParameter(3, Types.NUMERIC)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+  }
+
+  "sdltCreateSubmission" - {
+
+    "call SUBMISSION_PROCS.CREATE_SUBMISSION with correct parameters and return success" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call SUBMISSION_PROCS.CREATE_SUBMISSION(?, ?, ?, ?) }"))).thenReturn(cs)
+      when(cs.getLong(4)).thenReturn(500001L)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = CreateSubmissionRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001",
+        email = "agent@example.com"
+      )
+
+      val result = repo.sdltCreateSubmission(request).futureValue
+
+      result.success mustBe true
+
+      verify(conn).prepareCall("{ call SUBMISSION_PROCS.CREATE_SUBMISSION(?, ?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setString(3, "agent@example.com")
+      verify(cs).registerOutParameter(4, Types.NUMERIC)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+  }
+
+  "sdltUpdateSubmission" - {
+
+    "call SUBMISSION_PROCS.UPDATE_SUBMISSION with all fields populated" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call SUBMISSION_PROCS.UPDATE_SUBMISSION(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")))
+        .thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateSubmissionRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001",
+        submission = SubmissionUpdate(
+          IRMarkRecieved = Some("IRMARK-RCV"),
+          utrn = Some("UTRN123"),
+          email = Some("agent@example.com"),
+          submissionRequestDate = Some("2025-01-15"),
+          acceptedDate = Some("2025-01-16"),
+          submittableStatus = Some("ACCEPTED"),
+          govTalkErrorCode = Some("0000"),
+          govTalkErrorType = Some("business"),
+          govTalkErrorMessage = Some("none"),
+          IRMarkSent = Some("IRMARK-SNT")
+        )
+      )
+
+      val result = repo.sdltUpdateSubmission(request).futureValue
+
+      result.success mustBe true
+
+      verify(conn).prepareCall("{ call SUBMISSION_PROCS.UPDATE_SUBMISSION(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setNull(3, Types.VARCHAR) // p_submission_receipt (no model field)
+      verify(cs).setString(4, "IRMARK-RCV")
+      verify(cs).setString(5, "UTRN123")
+      verify(cs).setString(6, "agent@example.com")
+      verify(cs).setDate(7, Date.valueOf("2025-01-15"))
+      verify(cs).setDate(8, Date.valueOf("2025-01-16"))
+      verify(cs).setString(9, "ACCEPTED")
+      verify(cs).setString(10, "0000")
+      verify(cs).setString(11, "business")
+      verify(cs).setString(12, "none")
+      verify(cs).setString(13, "IRMARK-SNT")
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "map None optional fields to NULL (VARCHAR and DATE)" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateSubmissionRequest(
+        storn = "STORN99999",
+        returnResourceRef = "100002",
+        submission = SubmissionUpdate(
+          IRMarkRecieved = None,
+          utrn = None,
+          email = None,
+          submissionRequestDate = None,
+          acceptedDate = None,
+          submittableStatus = None,
+          govTalkErrorCode = None,
+          govTalkErrorType = None,
+          govTalkErrorMessage = None,
+          IRMarkSent = None
+        )
+      )
+
+      val result = repo.sdltUpdateSubmission(request).futureValue
+
+      result.success mustBe true
+
+      verify(cs).setString(1, "STORN99999")
+      verify(cs).setLong(2, 100002L)
+      verify(cs).setNull(3, Types.VARCHAR)
+      verify(cs).setNull(4, Types.VARCHAR)
+      verify(cs).setNull(5, Types.VARCHAR)
+      verify(cs).setNull(6, Types.VARCHAR)
+      verify(cs).setNull(7, Types.DATE)
+      verify(cs).setNull(8, Types.DATE)
+      verify(cs).setNull(9, Types.VARCHAR)
+      verify(cs).setNull(10, Types.VARCHAR)
+      verify(cs).setNull(11, Types.VARCHAR)
+      verify(cs).setNull(12, Types.VARCHAR)
+      verify(cs).setNull(13, Types.VARCHAR)
+      verify(cs).execute()
+    }
+  }
+
+  "sdltCreateSubmissionErrorDetail" - {
+
+    "call SUBMISSION_PROCS.CREATE_SUBMISSION_ERROR_DETAIL with correct parameters and return success" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call SUBMISSION_PROCS.CREATE_SUBMISSION_ERROR_DETAIL(?, ?, ?, ?, ?) }")))
+        .thenReturn(cs)
+      when(cs.getLong(5)).thenReturn(700001L)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = CreateSubmissionErrorDetailRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001",
+        submissionErrorDetails = SubmissionErrorDetail(
+          position = "12",
+          errorMessage = "Invalid postcode format"
+        )
+      )
+
+      val result = repo.sdltCreateSubmissionErrorDetail(request).futureValue
+
+      result.success mustBe true
+
+      verify(conn).prepareCall("{ call SUBMISSION_PROCS.CREATE_SUBMISSION_ERROR_DETAIL(?, ?, ?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).setLong(3, 12L)
+      verify(cs).setString(4, "Invalid postcode format")
+      verify(cs).registerOutParameter(5, Types.NUMERIC)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+  }
+
+  "sdltDeleteSubmissionErrorDetail" - {
+
+    "call SUBMISSION_PROCS.DELETE_SUBMISSION_ERROR_DETAIL with correct parameters and return success" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call SUBMISSION_PROCS.DELETE_SUBMISSION_ERROR_DETAIL(?, ?) }"))).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = DeleteSubmissionErrorDetailRequest(
+        storn = "STORN12345",
+        returnResourceRef = "100001"
+      )
+
+      val result = repo.sdltDeleteSubmissionErrorDetail(request).futureValue
+
+      result.success mustBe true
+
+      verify(conn).prepareCall("{ call SUBMISSION_PROCS.DELETE_SUBMISSION_ERROR_DETAIL(?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setLong(2, 100001L)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+  }
+
+  "sdltDeleteGovTalkStatus" - {
+
+    "call SUBMISSION_PROCS.DELETE_GOVTALK_STATUS with the result id and return success" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call SUBMISSION_PROCS.DELETE_GOVTALK_STATUS(?) }"))).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = DeleteGovTalkStatusRequest(resultId = "SUB123")
+
+      val result = repo.sdltDeleteGovTalkStatus(request).futureValue
+
+      result.success mustBe true
+
+      verify(conn).prepareCall("{ call SUBMISSION_PROCS.DELETE_GOVTALK_STATUS(?) }")
+      verify(cs).setString(1, "SUB123")
+      verify(cs).execute()
+      verify(cs).close()
+    }
+  }
+
+  "sdltInsertInitialGovTalkStatus" - {
+
+    "call SUBMISSION_ADMIN.InsertInitialGovTalkStatus with all fields populated" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(
+        conn.prepareCall(eqTo("{ call SUBMISSION_ADMIN.InsertInitialGovTalkStatus(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"))
+      )
+        .thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = InsertInitialGovTalkStatusRequest(
+        userIdentifier = "STORN12345",
+        formResultId = "SUB123",
+        correlationId = "CORR-XYZ",
+        govTalkStatus = GovTalkStatusInitial(
+          formLock = "N",
+          createTimestamp = "2025-01-15 10:30:00",
+          endStateTimestamp = Some("2025-01-15 11:00:00"),
+          lastMessageTimestamp = "2025-01-15 10:45:00",
+          numberOfPolls = "3",
+          pollInterval = "60",
+          protocolStatus = "submission_acknowledgement",
+          gatewayUrl = "https://gateway.example.com/submit"
+        )
+      )
+
+      val result = repo.sdltInsertInitialGovTalkStatus(request).futureValue
+
+      result.success mustBe true
+
+      verify(conn).prepareCall("{ call SUBMISSION_ADMIN.InsertInitialGovTalkStatus(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setString(2, "SUB123")
+      verify(cs).setString(3, "CORR-XYZ")
+      verify(cs).setString(4, "N")
+      verify(cs).setTimestamp(5, Timestamp.valueOf("2025-01-15 10:30:00"))
+      verify(cs).setTimestamp(6, Timestamp.valueOf("2025-01-15 11:00:00"))
+      verify(cs).setTimestamp(7, Timestamp.valueOf("2025-01-15 10:45:00"))
+      verify(cs).setLong(8, 3L)
+      verify(cs).setLong(9, 60L)
+      verify(cs).setString(10, "submission_acknowledgement")
+      verify(cs).setString(11, "https://gateway.example.com/submit")
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "map a None endStateTimestamp to NULL TIMESTAMP" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = InsertInitialGovTalkStatusRequest(
+        userIdentifier = "STORN99999",
+        formResultId = "SUB999",
+        correlationId = "CORR-999",
+        govTalkStatus = GovTalkStatusInitial(
+          formLock = "N",
+          createTimestamp = "2025-02-01 09:00:00",
+          endStateTimestamp = None,
+          lastMessageTimestamp = "2025-02-01 09:00:00",
+          numberOfPolls = "0",
+          pollInterval = "30",
+          protocolStatus = "submitted",
+          gatewayUrl = "https://gateway.example.com/submit"
+        )
+      )
+
+      val result = repo.sdltInsertInitialGovTalkStatus(request).futureValue
+
+      result.success mustBe true
+
+      verify(cs).setNull(6, Types.TIMESTAMP)
+      verify(cs).setLong(8, 0L)
+      verify(cs).setLong(9, 30L)
+      verify(cs).execute()
+    }
+  }
+
+  "sdltResetGovTalkStatus" - {
+
+    "call SUBMISSION_ADMIN.ResetGovTalkStatus with old and new protocol statuses" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call SUBMISSION_ADMIN.ResetGovTalkStatus(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")))
+        .thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = ResetGovTalkStatusRequest(
+        userIdentifier = "STORN12345",
+        formResultId = "SUB123",
+        correlationId = "CORR-XYZ",
+        govTalkStatus = GovTalkStatusReset(
+          formLock = "N",
+          createTimestamp = "2025-01-15 10:30:00",
+          endStateTimestamp = Some("2025-01-15 11:00:00"),
+          lastMessageTimestamp = "2025-01-15 10:45:00",
+          numberOfPolls = "5",
+          pollInterval = "60",
+          protocolStatusOld = "error",
+          protocolStatusNew = "submitted",
+          gatewayUrl = "https://gateway.example.com/submit"
+        )
+      )
+
+      val result = repo.sdltResetGovTalkStatus(request).futureValue
+
+      result.success mustBe true
+
+      verify(conn).prepareCall("{ call SUBMISSION_ADMIN.ResetGovTalkStatus(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setString(2, "SUB123")
+      verify(cs).setString(3, "CORR-XYZ")
+      verify(cs).setString(4, "N")
+      verify(cs).setTimestamp(5, Timestamp.valueOf("2025-01-15 10:30:00"))
+      verify(cs).setTimestamp(6, Timestamp.valueOf("2025-01-15 11:00:00"))
+      verify(cs).setTimestamp(7, Timestamp.valueOf("2025-01-15 10:45:00"))
+      verify(cs).setLong(8, 5L)
+      verify(cs).setLong(9, 60L)
+      verify(cs).setString(10, "error")
+      verify(cs).setString(11, "submitted")
+      verify(cs).setString(12, "https://gateway.example.com/submit")
+      verify(cs).execute()
+      verify(cs).close()
+    }
+  }
+
+  "sdltUpdateGovTalkStatus" - {
+
+    "call SUBMISSION_ADMIN.UpdateGovTalkStatus with correct parameters" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call SUBMISSION_ADMIN.UpdateGovTalkStatus(?, ?, ?, ?) }"))).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateGovTalkStatusRequest(
+        userIdentifier = "STORN12345",
+        formResultId = "SUB123",
+        endStateTimestamp = "2025-01-15 12:00:00",
+        protocolStatus = "response"
+      )
+
+      val result = repo.sdltUpdateGovTalkStatus(request).futureValue
+
+      result.success mustBe true
+
+      verify(conn).prepareCall("{ call SUBMISSION_ADMIN.UpdateGovTalkStatus(?, ?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setString(2, "SUB123")
+      verify(cs).setTimestamp(3, Timestamp.valueOf("2025-01-15 12:00:00"))
+      verify(cs).setString(4, "response")
+      verify(cs).execute()
+      verify(cs).close()
+    }
+  }
+
+  "sdltUpdateGovTalkStatusCorrelationId" - {
+
+    "call SUBMISSION_ADMIN.UpdateGovTalkStatusCorr with correct parameters" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call SUBMISSION_ADMIN.UpdateGovTalkStatusCorr(?, ?, ?, ?, ?) }"))).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateGovTalkStatusCorrelationIdRequest(
+        userIdentifier = "STORN12345",
+        formResultId = "SUB123",
+        correlationId = "CORR-NEW",
+        endStateTimestamp = "2025-01-15 12:30:00",
+        protocolStatus = "acknowledgement"
+      )
+
+      val result = repo.sdltUpdateGovTalkStatusCorrelationId(request).futureValue
+
+      result.success mustBe true
+
+      verify(conn).prepareCall("{ call SUBMISSION_ADMIN.UpdateGovTalkStatusCorr(?, ?, ?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setString(2, "SUB123")
+      verify(cs).setString(3, "CORR-NEW")
+      verify(cs).setTimestamp(4, Timestamp.valueOf("2025-01-15 12:30:00"))
+      verify(cs).setString(5, "acknowledgement")
+      verify(cs).execute()
+      verify(cs).close()
+    }
+  }
+
+  "sdltUpdateGovTalkStatusLock" - {
+
+    "call SUBMISSION_ADMIN.UpdateGovTalkStatusLock with old/new lock ordering preserved" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call SUBMISSION_ADMIN.UpdateGovTalkStatusLock(?, ?, ?, ?, ?, ?) }"))).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateGovTalkStatusLockRequest(
+        userIdentifier = "STORN12345",
+        formResultId = "SUB123",
+        govTalkStatus = GovTalkStatusLock(
+          formLockOld = "N",
+          formLockNew = "Y",
+          pollInterval = "90",
+          gatewayUrl = "https://gateway.example.com/submit"
+        )
+      )
+
+      val result = repo.sdltUpdateGovTalkStatusLock(request).futureValue
+
+      result.success mustBe true
+
+      verify(conn).prepareCall("{ call SUBMISSION_ADMIN.UpdateGovTalkStatusLock(?, ?, ?, ?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setString(2, "SUB123")
+      verify(cs).setString(3, "N") // form_lock_old
+      verify(cs).setLong(4, 90L) // poll_interval
+      verify(cs).setString(5, "https://gateway.example.com/submit")
+      verify(cs).setString(6, "Y") // form_lock_new
+      verify(cs).execute()
+      verify(cs).close()
+    }
+  }
+
+  "sdltUpdateGovTalkStatistics" - {
+
+    "call SUBMISSION_ADMIN.UpdateGovTalkStatistics with correct parameters" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call SUBMISSION_ADMIN.UpdateGovTalkStatistics(?, ?, ?, ?, ?, ?) }"))).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateGovTalkStatisticsRequest(
+        userIdentifier = "STORN12345",
+        formResultId = "SUB123",
+        govTalkStatus = GovTalkStatusStatistics(
+          lastMessageTimestamp = "2025-01-15 13:00:00",
+          numberOfPolls = "7",
+          pollInterval = "120",
+          gatewayUrl = "https://gateway.example.com/submit"
+        )
+      )
+
+      val result = repo.sdltUpdateGovTalkStatistics(request).futureValue
+
+      result.success mustBe true
+
+      verify(conn).prepareCall("{ call SUBMISSION_ADMIN.UpdateGovTalkStatistics(?, ?, ?, ?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setString(2, "SUB123")
+      verify(cs).setTimestamp(3, Timestamp.valueOf("2025-01-15 13:00:00"))
+      verify(cs).setLong(4, 7L)
+      verify(cs).setLong(5, 120L)
+      verify(cs).setString(6, "https://gateway.example.com/submit")
+      verify(cs).execute()
+      verify(cs).close()
+    }
+  }
+
+  "sdltSelectGovTalkStatus" - {
+
+    "call SUBMISSION_ADMIN.SelectGovTalkStatus and map the cursor row" in {
+      val db       = mock[Database]
+      val conn     = mock[Connection]
+      val cs       = mock[CallableStatement]
+      val rsStatus = mock[ResultSet]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call SUBMISSION_ADMIN.SelectGovTalkStatus(?, ?, ?) }"))).thenReturn(cs)
+      when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsStatus)
+
+      when(rsStatus.next()).thenReturn(true, false)
+      when(rsStatus.getString("USER_IDENTIFIER")).thenReturn("STORN12345")
+      when(rsStatus.getString("FORM_RESULT_ID")).thenReturn("SUB123")
+      when(rsStatus.getString("CORRELATION_ID")).thenReturn("CORR-XYZ")
+      when(rsStatus.getString("FORM_LOCK")).thenReturn("N")
+      when(rsStatus.getString("CREATE_TIMESTAMP")).thenReturn("2025-01-15 10:30:00")
+      when(rsStatus.getString("ENDSTATE_TIMESTAMP")).thenReturn("2025-01-15 11:00:00")
+      when(rsStatus.getString("LAST_MESG_TIMESTAMP")).thenReturn("2025-01-15 10:45:00")
+      when(rsStatus.getString("NUM_POLLS")).thenReturn("3")
+      when(rsStatus.getString("POLL_INTERVAL")).thenReturn("60")
+      when(rsStatus.getString("PROTOCOL_STATUS")).thenReturn("submitted")
+      when(rsStatus.getString("GATEWAYURL")).thenReturn("https://gateway.example.com/submit")
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = SelectGovTalkStatusRequest(
+        userIdentifier = "STORN12345",
+        formResultId = "SUB123"
+      )
+
+      val result = repo.sdltSelectGovTalkStatus(request).futureValue
+
+      result.userIdentifier mustBe Some("STORN12345")
+      result.formResultId mustBe Some("SUB123")
+      result.correlationId mustBe Some("CORR-XYZ")
+      result.formLock mustBe Some("N")
+      result.createTimestamp mustBe Some("2025-01-15 10:30:00")
+      result.endStateTimestamp mustBe Some("2025-01-15 11:00:00")
+      result.lastMessageTimestamp mustBe Some("2025-01-15 10:45:00")
+      result.numberOfPolls mustBe Some("3")
+      result.pollInterval mustBe Some("60")
+      result.protocolStatus mustBe Some("submitted")
+      result.gatewayUrl mustBe Some("https://gateway.example.com/submit")
+
+      verify(conn).prepareCall("{ call SUBMISSION_ADMIN.SelectGovTalkStatus(?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setString(2, "SUB123")
+      verify(cs).registerOutParameter(3, OracleTypes.CURSOR)
+      verify(cs).execute()
+      verify(cs).close()
+      verify(rsStatus).close()
+    }
+
+    "return an all-None response when the cursor is empty" in {
+      val db       = mock[Database]
+      val conn     = mock[Connection]
+      val cs       = mock[CallableStatement]
+      val rsStatus = mock[ResultSet]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+      when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsStatus)
+      when(rsStatus.next()).thenReturn(false)
+
+      val repo = new SdltFormpRepository(db)
+
+      val result = repo
+        .sdltSelectGovTalkStatus(SelectGovTalkStatusRequest("STORN00000", "SUB000"))
+        .futureValue
+
+      result.userIdentifier mustBe None
+      result.formResultId mustBe None
+      result.correlationId mustBe None
+      result.formLock mustBe None
+      result.protocolStatus mustBe None
+      result.gatewayUrl mustBe None
+
+      verify(cs).execute()
+      verify(rsStatus).close()
+    }
+
+    "return an all-None response when the cursor is null" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+      when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(null)
+
+      val repo = new SdltFormpRepository(db)
+
+      val result = repo
+        .sdltSelectGovTalkStatus(SelectGovTalkStatusRequest("STORN00000", "SUB000"))
+        .futureValue
+
+      result.formResultId mustBe None
+      result.protocolStatus mustBe None
+
+      verify(cs).execute()
+    }
+  }
+
+  "sdltSelectGovTalkFormResultId" - {
+
+    "call SUBMISSION_ADMIN.SelectGovTalkFormResultId and return the out-param value" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call SUBMISSION_ADMIN.SelectGovTalkFormResultId(?, ?) }"))).thenReturn(cs)
+      when(cs.getString(2)).thenReturn("SUB123")
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = SelectGovTalkFormResultIdRequest(userIdentifier = "STORN12345")
+
+      val result = repo.sdltSelectGovTalkFormResultId(request).futureValue
+
+      result.formResultId mustBe Some("SUB123")
+
+      verify(conn).prepareCall("{ call SUBMISSION_ADMIN.SelectGovTalkFormResultId(?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).registerOutParameter(2, Types.VARCHAR)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "map a null out-param to None" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+      when(cs.getString(2)).thenReturn(null)
+
+      val repo = new SdltFormpRepository(db)
+
+      val result = repo
+        .sdltSelectGovTalkFormResultId(SelectGovTalkFormResultIdRequest("STORN00000"))
+        .futureValue
+
+      result.formResultId mustBe None
+
+      verify(cs).setString(1, "STORN00000")
       verify(cs).execute()
     }
   }

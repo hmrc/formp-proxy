@@ -35,5 +35,14 @@ object SubcontractorType {
       case _             => JsError("Invalid SubcontractorType value")
     }
 
+  def fromString(value: String): Option[SubcontractorType] =
+    value.toLowerCase match {
+      case "soletrader"  => Some(SoleTrader)
+      case "company"     => Some(Company)
+      case "partnership" => Some(Partnership)
+      case "trust"       => Some(Trust)
+      case _             => None
+    }
+
   given Writes[SubcontractorType] = subcontractorType => JsString(subcontractorType.toString)
 }

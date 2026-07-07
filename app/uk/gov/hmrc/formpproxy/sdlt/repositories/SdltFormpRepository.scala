@@ -31,9 +31,10 @@ import uk.gov.hmrc.formpproxy.sdlt.models.transaction.*
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 import uk.gov.hmrc.formpproxy.sdlt.models.lease.*
 import uk.gov.hmrc.formpproxy.sdlt.models.taxCalculation.*
+import uk.gov.hmrc.formpproxy.sdlt.models.submission.*
 
 import java.lang.Long
-import java.sql.{CallableStatement, Connection, Date, ResultSet, Types}
+import java.sql.{CallableStatement, Connection, Date, ResultSet, Timestamp, Types}
 import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -74,6 +75,28 @@ trait SdltSource {
   def sdltUpdateLease(request: UpdateLeaseRequest): Future[UpdateLeaseReturn]
   def sdltDeleteLease(request: DeleteLeaseRequest): Future[DeleteLeaseReturn]
   def sdltUpdateTaxCalculation(request: UpdateTaxCalculationRequest): Future[UpdateTaxCalculationReturn]
+  def sdltLockReturn(request: LockReturnRequest): Future[LockReturnResponse]
+  def sdltCreateSubmission(request: CreateSubmissionRequest): Future[CreateSubmissionReturn]
+  def sdltUpdateSubmission(request: UpdateSubmissionRequest): Future[UpdateSubmissionReturn]
+  def sdltCreateSubmissionErrorDetail(
+    request: CreateSubmissionErrorDetailRequest
+  ): Future[CreateSubmissionErrorDetailReturn]
+  def sdltDeleteSubmissionErrorDetail(
+    request: DeleteSubmissionErrorDetailRequest
+  ): Future[DeleteSubmissionErrorDetailReturn]
+  def sdltDeleteGovTalkStatus(request: DeleteGovTalkStatusRequest): Future[GovTalkStatusReturn]
+  def sdltInsertInitialGovTalkStatus(request: InsertInitialGovTalkStatusRequest): Future[GovTalkStatusReturn]
+  def sdltResetGovTalkStatus(request: ResetGovTalkStatusRequest): Future[GovTalkStatusReturn]
+  def sdltUpdateGovTalkStatus(request: UpdateGovTalkStatusRequest): Future[GovTalkStatusReturn]
+  def sdltUpdateGovTalkStatusCorrelationId(
+    request: UpdateGovTalkStatusCorrelationIdRequest
+  ): Future[GovTalkStatusReturn]
+  def sdltUpdateGovTalkStatusLock(request: UpdateGovTalkStatusLockRequest): Future[GovTalkStatusReturn]
+  def sdltUpdateGovTalkStatistics(request: UpdateGovTalkStatisticsRequest): Future[GovTalkStatusReturn]
+  def sdltSelectGovTalkStatus(request: SelectGovTalkStatusRequest): Future[SelectGovTalkStatusResponse]
+  def sdltSelectGovTalkFormResultId(
+    request: SelectGovTalkFormResultIdRequest
+  ): Future[SelectGovTalkFormResultIdResponse]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -2474,6 +2497,527 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
 
       UpdateTaxCalculationReturn(updated = true)
     } finally cs.close()
+  }
+
+  override def sdltLockReturn(request: LockReturnRequest): Future[LockReturnResponse] = Future {
+    db.withTransaction { conn =>
+      callLockReturn(
+        conn = conn,
+        p_storn = request.storn,
+        p_return = request.returnResourceRef.toLong,
+        p_version = request.version.toLong
+      )
+    }
+  }
+
+  private def callLockReturn(
+    conn: Connection,
+    p_storn: String,
+    p_return: Long,
+    p_version: Long
+  ): LockReturnResponse = {
+
+    val cs = conn.prepareCall("{ call return_procs.lock_return(?, ?, ?) }")
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return)
+      cs.setLong(3, p_version)
+      cs.registerOutParameter(3, Types.NUMERIC)
+
+      cs.execute()
+
+      LockReturnResponse(success = true)
+    } finally cs.close()
+  }
+
+  override def sdltCreateSubmission(request: CreateSubmissionRequest): Future[CreateSubmissionReturn] = Future {
+    db.withTransaction { conn =>
+      callCreateSubmission(
+        conn = conn,
+        p_storn = request.storn,
+        p_return_resource_ref = request.returnResourceRef.toLong,
+        p_email = request.email
+      )
+    }
+  }
+
+  private def callCreateSubmission(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_email: String
+  ): CreateSubmissionReturn = {
+
+    val cs = conn.prepareCall("{ call SUBMISSION_PROCS.CREATE_SUBMISSION(?, ?, ?, ?) }")
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.setString(3, p_email)
+
+      cs.registerOutParameter(4, Types.NUMERIC)
+
+      cs.execute()
+
+      val submissionId = cs.getLong(4)
+
+      CreateSubmissionReturn(success = true)
+    } finally cs.close()
+  }
+
+  override def sdltUpdateSubmission(request: UpdateSubmissionRequest): Future[UpdateSubmissionReturn] = Future {
+    db.withTransaction { conn =>
+      callUpdateSubmission(
+        conn = conn,
+        p_storn = request.storn,
+        p_return_resource_ref = request.returnResourceRef.toLong,
+        p_irmark_received = request.submission.IRMarkRecieved,
+        p_utrn = request.submission.utrn,
+        p_email = request.submission.email,
+        p_submission_request_date = request.submission.submissionRequestDate,
+        p_accepted_date = request.submission.acceptedDate,
+        p_submittable_status = request.submission.submittableStatus,
+        p_govtalk_error_code = request.submission.govTalkErrorCode,
+        p_govtalk_error_type = request.submission.govTalkErrorType,
+        p_govtalk_error_message = request.submission.govTalkErrorMessage,
+        p_irmark_sent = request.submission.IRMarkSent
+      )
+    }
+  }
+
+  private def setOptionalDate(cs: CallableStatement, index: Int, value: Option[String]): Unit =
+    value.filter(_.nonEmpty) match {
+      case Some(v) => cs.setDate(index, Date.valueOf(v))
+      case None    => cs.setNull(index, Types.DATE)
+    }
+
+  private def callUpdateSubmission(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_irmark_received: Option[String],
+    p_utrn: Option[String],
+    p_email: Option[String],
+    p_submission_request_date: Option[String],
+    p_accepted_date: Option[String],
+    p_submittable_status: Option[String],
+    p_govtalk_error_code: Option[String],
+    p_govtalk_error_type: Option[String],
+    p_govtalk_error_message: Option[String],
+    p_irmark_sent: Option[String]
+  ): UpdateSubmissionReturn = {
+
+    val cs = conn.prepareCall(
+      "{ call SUBMISSION_PROCS.UPDATE_SUBMISSION(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+    )
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.setNull(3, Types.VARCHAR)
+      cs.setOptionalString(4, p_irmark_received)
+      cs.setOptionalString(5, p_utrn)
+      cs.setOptionalString(6, p_email)
+      setOptionalDate(cs, 7, p_submission_request_date)
+      setOptionalDate(cs, 8, p_accepted_date)
+      cs.setOptionalString(9, p_submittable_status)
+      cs.setOptionalString(10, p_govtalk_error_code)
+      cs.setOptionalString(11, p_govtalk_error_type)
+      cs.setOptionalString(12, p_govtalk_error_message)
+      cs.setOptionalString(13, p_irmark_sent)
+
+      cs.execute()
+
+      UpdateSubmissionReturn(success = true)
+    } finally cs.close()
+  }
+
+  override def sdltCreateSubmissionErrorDetail(
+    request: CreateSubmissionErrorDetailRequest
+  ): Future[CreateSubmissionErrorDetailReturn] = Future {
+    db.withTransaction { conn =>
+      callCreateSubmissionErrorDetail(
+        conn = conn,
+        p_storn = request.storn,
+        p_return_resource_ref = request.returnResourceRef.toLong,
+        p_position = request.submissionErrorDetails.position.toLong,
+        p_error_message = request.submissionErrorDetails.errorMessage
+      )
+    }
+  }
+
+  private def callCreateSubmissionErrorDetail(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long,
+    p_position: Long,
+    p_error_message: String
+  ): CreateSubmissionErrorDetailReturn = {
+
+    val cs = conn.prepareCall("{ call SUBMISSION_PROCS.CREATE_SUBMISSION_ERROR_DETAIL(?, ?, ?, ?, ?) }")
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+      cs.setLong(3, p_position)
+      cs.setString(4, p_error_message)
+
+      cs.registerOutParameter(5, Types.NUMERIC)
+
+      cs.execute()
+
+      val errorDetailId = cs.getLong(5)
+      CreateSubmissionErrorDetailReturn(success = true)
+    } finally cs.close()
+  }
+
+  override def sdltDeleteSubmissionErrorDetail(
+    request: DeleteSubmissionErrorDetailRequest
+  ): Future[DeleteSubmissionErrorDetailReturn] = Future {
+    db.withTransaction { conn =>
+      callDeleteSubmissionErrorDetail(
+        conn = conn,
+        p_storn = request.storn,
+        p_return_resource_ref = request.returnResourceRef.toLong
+      )
+    }
+  }
+
+  private def callDeleteSubmissionErrorDetail(
+    conn: Connection,
+    p_storn: String,
+    p_return_resource_ref: Long
+  ): DeleteSubmissionErrorDetailReturn = {
+
+    val cs = conn.prepareCall("{ call SUBMISSION_PROCS.DELETE_SUBMISSION_ERROR_DETAIL(?, ?) }")
+    try {
+      cs.setString(1, p_storn)
+      cs.setLong(2, p_return_resource_ref)
+
+      cs.execute()
+
+      DeleteSubmissionErrorDetailReturn(success = true)
+    } finally cs.close()
+  }
+
+  private def setRequiredTimestamp(cs: CallableStatement, index: Int, value: String): Unit =
+    cs.setTimestamp(index, Timestamp.valueOf(value))
+
+  private def setOptionalTimestamp(cs: CallableStatement, index: Int, value: Option[String]): Unit =
+    value.filter(_.nonEmpty) match {
+      case Some(v) => cs.setTimestamp(index, Timestamp.valueOf(v))
+      case None    => cs.setNull(index, Types.TIMESTAMP)
+    }
+
+  override def sdltDeleteGovTalkStatus(request: DeleteGovTalkStatusRequest): Future[GovTalkStatusReturn] = Future {
+    db.withTransaction { conn =>
+      callDeleteGovTalkStatus(conn = conn, p_result_id = request.resultId)
+    }
+  }
+
+  private def callDeleteGovTalkStatus(conn: Connection, p_result_id: String): GovTalkStatusReturn = {
+    val cs = conn.prepareCall("{ call SUBMISSION_PROCS.DELETE_GOVTALK_STATUS(?) }")
+    try {
+      cs.setString(1, p_result_id)
+      cs.execute()
+      GovTalkStatusReturn(success = true)
+    } finally cs.close()
+  }
+
+  override def sdltInsertInitialGovTalkStatus(request: InsertInitialGovTalkStatusRequest): Future[GovTalkStatusReturn] =
+    Future {
+      db.withTransaction { conn =>
+        callInsertInitialGovTalkStatus(
+          conn = conn,
+          p_user_identifier = request.userIdentifier,
+          p_formResultId = request.formResultId,
+          p_correlation_id = request.correlationId,
+          p_form_lock = request.govTalkStatus.formLock,
+          p_create_timestamp = request.govTalkStatus.createTimestamp,
+          p_endstate_timestamp = request.govTalkStatus.endStateTimestamp,
+          p_last_mesg_timestamp = request.govTalkStatus.lastMessageTimestamp,
+          p_num_polls = request.govTalkStatus.numberOfPolls.toLong,
+          p_poll_interval = request.govTalkStatus.pollInterval.toLong,
+          p_protocol_status = request.govTalkStatus.protocolStatus,
+          p_gatewayurl = request.govTalkStatus.gatewayUrl
+        )
+      }
+    }
+
+  private def callInsertInitialGovTalkStatus(
+    conn: Connection,
+    p_user_identifier: String,
+    p_formResultId: String,
+    p_correlation_id: String,
+    p_form_lock: String,
+    p_create_timestamp: String,
+    p_endstate_timestamp: Option[String],
+    p_last_mesg_timestamp: String,
+    p_num_polls: Long,
+    p_poll_interval: Long,
+    p_protocol_status: String,
+    p_gatewayurl: String
+  ): GovTalkStatusReturn = {
+    val cs = conn.prepareCall("{ call SUBMISSION_ADMIN.InsertInitialGovTalkStatus(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+    try {
+      cs.setString(1, p_user_identifier)
+      cs.setString(2, p_formResultId)
+      cs.setString(3, p_correlation_id)
+      cs.setString(4, p_form_lock)
+      setRequiredTimestamp(cs, 5, p_create_timestamp)
+      setOptionalTimestamp(cs, 6, p_endstate_timestamp)
+      setRequiredTimestamp(cs, 7, p_last_mesg_timestamp)
+      cs.setLong(8, p_num_polls)
+      cs.setLong(9, p_poll_interval)
+      cs.setString(10, p_protocol_status)
+      cs.setString(11, p_gatewayurl)
+      cs.execute()
+      GovTalkStatusReturn(success = true)
+    } finally cs.close()
+  }
+
+  override def sdltResetGovTalkStatus(request: ResetGovTalkStatusRequest): Future[GovTalkStatusReturn] = Future {
+    db.withTransaction { conn =>
+      callResetGovTalkStatus(
+        conn = conn,
+        p_user_identifier = request.userIdentifier,
+        p_formResultId = request.formResultId,
+        p_correlation_id = request.correlationId,
+        p_form_lock = request.govTalkStatus.formLock,
+        p_create_timestamp = request.govTalkStatus.createTimestamp,
+        p_endstate_timestamp = request.govTalkStatus.endStateTimestamp,
+        p_last_mesg_timestamp = request.govTalkStatus.lastMessageTimestamp,
+        p_num_polls = request.govTalkStatus.numberOfPolls.toLong,
+        p_poll_interval = request.govTalkStatus.pollInterval.toLong,
+        p_protocol_status_old = request.govTalkStatus.protocolStatusOld,
+        p_protocol_status_new = request.govTalkStatus.protocolStatusNew,
+        p_gatewayurl = request.govTalkStatus.gatewayUrl
+      )
+    }
+  }
+
+  private def callResetGovTalkStatus(
+    conn: Connection,
+    p_user_identifier: String,
+    p_formResultId: String,
+    p_correlation_id: String,
+    p_form_lock: String,
+    p_create_timestamp: String,
+    p_endstate_timestamp: Option[String],
+    p_last_mesg_timestamp: String,
+    p_num_polls: Long,
+    p_poll_interval: Long,
+    p_protocol_status_old: String,
+    p_protocol_status_new: String,
+    p_gatewayurl: String
+  ): GovTalkStatusReturn = {
+    val cs = conn.prepareCall("{ call SUBMISSION_ADMIN.ResetGovTalkStatus(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+    try {
+      cs.setString(1, p_user_identifier)
+      cs.setString(2, p_formResultId)
+      cs.setString(3, p_correlation_id)
+      cs.setString(4, p_form_lock)
+      setRequiredTimestamp(cs, 5, p_create_timestamp)
+      setOptionalTimestamp(cs, 6, p_endstate_timestamp)
+      setRequiredTimestamp(cs, 7, p_last_mesg_timestamp)
+      cs.setLong(8, p_num_polls)
+      cs.setLong(9, p_poll_interval)
+      cs.setString(10, p_protocol_status_old)
+      cs.setString(11, p_protocol_status_new)
+      cs.setString(12, p_gatewayurl)
+      cs.execute()
+      GovTalkStatusReturn(success = true)
+    } finally cs.close()
+  }
+
+  override def sdltUpdateGovTalkStatus(request: UpdateGovTalkStatusRequest): Future[GovTalkStatusReturn] = Future {
+    db.withTransaction { conn =>
+      callUpdateGovTalkStatus(
+        conn = conn,
+        p_user_identifier = request.userIdentifier,
+        p_formResultId = request.formResultId,
+        p_endstate_timestamp = request.endStateTimestamp,
+        p_protocol_status = request.protocolStatus
+      )
+    }
+  }
+
+  private def callUpdateGovTalkStatus(
+    conn: Connection,
+    p_user_identifier: String,
+    p_formResultId: String,
+    p_endstate_timestamp: String,
+    p_protocol_status: String
+  ): GovTalkStatusReturn = {
+    val cs = conn.prepareCall("{ call SUBMISSION_ADMIN.UpdateGovTalkStatus(?, ?, ?, ?) }")
+    try {
+      cs.setString(1, p_user_identifier)
+      cs.setString(2, p_formResultId)
+      setRequiredTimestamp(cs, 3, p_endstate_timestamp)
+      cs.setString(4, p_protocol_status)
+      cs.execute()
+      GovTalkStatusReturn(success = true)
+    } finally cs.close()
+  }
+
+  override def sdltUpdateGovTalkStatusLock(request: UpdateGovTalkStatusLockRequest): Future[GovTalkStatusReturn] =
+    Future {
+      db.withTransaction { conn =>
+        callUpdateGovTalkStatusLock(
+          conn = conn,
+          p_user_identifier = request.userIdentifier,
+          p_formResultId = request.formResultId,
+          p_form_lock_old = request.govTalkStatus.formLockOld,
+          p_poll_interval = request.govTalkStatus.pollInterval.toLong,
+          p_gatewayurl = request.govTalkStatus.gatewayUrl,
+          p_form_lock_new = request.govTalkStatus.formLockNew
+        )
+      }
+    }
+
+  private def callUpdateGovTalkStatusLock(
+    conn: Connection,
+    p_user_identifier: String,
+    p_formResultId: String,
+    p_form_lock_old: String,
+    p_poll_interval: Long,
+    p_gatewayurl: String,
+    p_form_lock_new: String
+  ): GovTalkStatusReturn = {
+    val cs = conn.prepareCall("{ call SUBMISSION_ADMIN.UpdateGovTalkStatusLock(?, ?, ?, ?, ?, ?) }")
+    try {
+      cs.setString(1, p_user_identifier)
+      cs.setString(2, p_formResultId)
+      cs.setString(3, p_form_lock_old)
+      cs.setLong(4, p_poll_interval)
+      cs.setString(5, p_gatewayurl)
+      cs.setString(6, p_form_lock_new)
+      cs.execute()
+      GovTalkStatusReturn(success = true)
+    } finally cs.close()
+  }
+
+  override def sdltUpdateGovTalkStatistics(request: UpdateGovTalkStatisticsRequest): Future[GovTalkStatusReturn] =
+    Future {
+      db.withTransaction { conn =>
+        callUpdateGovTalkStatistics(
+          conn = conn,
+          p_user_identifier = request.userIdentifier,
+          p_formResultId = request.formResultId,
+          p_last_mesg_timestamp = request.govTalkStatus.lastMessageTimestamp,
+          p_num_polls = request.govTalkStatus.numberOfPolls.toLong,
+          p_poll_interval = request.govTalkStatus.pollInterval.toLong,
+          p_gatewayurl = request.govTalkStatus.gatewayUrl
+        )
+      }
+    }
+
+  override def sdltUpdateGovTalkStatusCorrelationId(
+    request: UpdateGovTalkStatusCorrelationIdRequest
+  ): Future[GovTalkStatusReturn] = Future {
+    db.withTransaction { conn =>
+      callUpdateGovTalkStatusCorrelationId(
+        conn = conn,
+        p_user_identifier = request.userIdentifier,
+        p_formResultId = request.formResultId,
+        p_correlation_id = request.correlationId,
+        p_endstate_timestamp = request.endStateTimestamp,
+        p_protocol_status = request.protocolStatus
+      )
+    }
+  }
+
+  private def callUpdateGovTalkStatusCorrelationId(
+    conn: Connection,
+    p_user_identifier: String,
+    p_formResultId: String,
+    p_correlation_id: String,
+    p_endstate_timestamp: String,
+    p_protocol_status: String
+  ): GovTalkStatusReturn = {
+    val cs = conn.prepareCall("{ call SUBMISSION_ADMIN.UpdateGovTalkStatusCorr(?, ?, ?, ?, ?) }")
+    try {
+      cs.setString(1, p_user_identifier)
+      cs.setString(2, p_formResultId)
+      cs.setString(3, p_correlation_id)
+      setRequiredTimestamp(cs, 4, p_endstate_timestamp)
+      cs.setString(5, p_protocol_status)
+      cs.execute()
+      GovTalkStatusReturn(success = true)
+    } finally cs.close()
+  }
+
+  private def callUpdateGovTalkStatistics(
+    conn: Connection,
+    p_user_identifier: String,
+    p_formResultId: String,
+    p_last_mesg_timestamp: String,
+    p_num_polls: Long,
+    p_poll_interval: Long,
+    p_gatewayurl: String
+  ): GovTalkStatusReturn = {
+    val cs = conn.prepareCall("{ call SUBMISSION_ADMIN.UpdateGovTalkStatistics(?, ?, ?, ?, ?, ?) }")
+    try {
+      cs.setString(1, p_user_identifier)
+      cs.setString(2, p_formResultId)
+      setRequiredTimestamp(cs, 3, p_last_mesg_timestamp)
+      cs.setLong(4, p_num_polls)
+      cs.setLong(5, p_poll_interval)
+      cs.setString(6, p_gatewayurl)
+      cs.execute()
+      GovTalkStatusReturn(success = true)
+    } finally cs.close()
+  }
+
+  override def sdltSelectGovTalkStatus(request: SelectGovTalkStatusRequest): Future[SelectGovTalkStatusResponse] = {
+    logger.info(
+      s"[SDLT] sdltSelectGovTalkStatus(userIdentifier=${request.userIdentifier}, formResultId=${request.formResultId})"
+    )
+    Future {
+      db.withConnection { conn =>
+        val cs = conn.prepareCall("{ call SUBMISSION_ADMIN.SelectGovTalkStatus(?, ?, ?) }")
+        try {
+          cs.setString(1, request.userIdentifier)
+          cs.setString(2, request.formResultId)
+          cs.registerOutParameter(3, OracleTypes.CURSOR)
+          cs.execute()
+
+          processResultSet(cs, 3, processGovTalkStatus)
+            .getOrElse(
+              SelectGovTalkStatusResponse(None, None, None, None, None, None, None, None, None, None, None)
+            )
+        } finally cs.close()
+      }
+    }
+  }
+
+  private def processGovTalkStatus(rs: ResultSet): SelectGovTalkStatusResponse =
+    SelectGovTalkStatusResponse(
+      userIdentifier = Option(rs.getString("USER_IDENTIFIER")),
+      formResultId = Option(rs.getString("FORM_RESULT_ID")),
+      correlationId = Option(rs.getString("CORRELATION_ID")),
+      formLock = Option(rs.getString("FORM_LOCK")),
+      createTimestamp = Option(rs.getString("CREATE_TIMESTAMP")),
+      endStateTimestamp = Option(rs.getString("ENDSTATE_TIMESTAMP")),
+      lastMessageTimestamp = Option(rs.getString("LAST_MESG_TIMESTAMP")),
+      numberOfPolls = Option(rs.getString("NUM_POLLS")),
+      pollInterval = Option(rs.getString("POLL_INTERVAL")),
+      protocolStatus = Option(rs.getString("PROTOCOL_STATUS")),
+      gatewayUrl = Option(rs.getString("GATEWAYURL"))
+    )
+
+  override def sdltSelectGovTalkFormResultId(
+    request: SelectGovTalkFormResultIdRequest
+  ): Future[SelectGovTalkFormResultIdResponse] = {
+    logger.info(s"[SDLT] sdltSelectGovTalkFormResultId(userIdentifier=${request.userIdentifier})")
+    Future {
+      db.withConnection { conn =>
+        val cs = conn.prepareCall("{ call SUBMISSION_ADMIN.SelectGovTalkFormResultId(?, ?) }")
+        try {
+          cs.setString(1, request.userIdentifier)
+          cs.registerOutParameter(2, Types.VARCHAR)
+          cs.execute()
+          SelectGovTalkFormResultIdResponse(formResultId = Option(cs.getString(2)))
+        } finally cs.close()
+      }
+    }
   }
 
 }

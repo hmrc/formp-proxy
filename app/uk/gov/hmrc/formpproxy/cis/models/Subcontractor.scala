@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.formpproxy.cis.models
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{JsString, Json, Reads, Writes}
+
 import java.time.LocalDateTime
 
 case class Subcontractor(
@@ -55,7 +56,41 @@ case class Subcontractor(
   updatedTaxTreatment: Option[String],
   lastMonthlyReturnDate: Option[LocalDateTime],
   pendingVerifications: Option[Int]
-)
+) {
+  def displayName: String = {
+
+    val first              = firstName.map(_.trim).filter(_.nonEmpty)
+    val sur                = surname.map(_.trim).filter(_.nonEmpty)
+    val trading            = tradingName.map(_.trim).filter(_.nonEmpty)
+    val partnershipTrading = partnershipTradingName.map(_.trim).filter(_.nonEmpty)
+
+    val individualName =
+      sur.map { surname =>
+        first match {
+          case Some(firstName) => s"$surname, $firstName"
+          case None            => surname
+        }
+      }
+
+    subcontractorType
+      .flatMap(SubcontractorType.fromString)
+      .flatMap {
+        case Partnership =>
+          partnershipTrading.orElse(trading)
+
+        case Company | Trust =>
+          trading
+
+        case SoleTrader =>
+          individualName.orElse(trading)
+      }
+      .getOrElse("No name provided")
+  }
+}
 
 object Subcontractor:
-  given format: OFormat[Subcontractor] = Json.format[Subcontractor]
+  given reads: Reads[Subcontractor]   = Json.reads[Subcontractor]
+  given writes: Writes[Subcontractor] = s =>
+    Json
+      .writes[Subcontractor]
+      .writes(s) + ("displayName", JsString(s.displayName))
