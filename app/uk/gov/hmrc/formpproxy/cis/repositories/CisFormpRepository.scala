@@ -91,6 +91,8 @@ trait CisMonthlyReturnSource {
   def updateVerificationSubmission(req: UpdateVerificationSubmissionRequest): Future[Unit]
   def processVerificationResponseFromChris(req: ProcessVerificationResponseFromChrisRequest): Future[Unit]
 
+  def getSubcontractorForDelete(cisId: String, subbieResourceRef: Long): Future[GetSubcontractorForDeleteResponse]
+
   def getSubmittedVerifications(req: GetSubmittedVerificationsRequest): Future[GetSubmittedVerificationsResponse]
 }
 
@@ -421,7 +423,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           activeObjectId = monthlyReturnId,
           hmrcMarkGenerated = request.hmrcMarkGenerated.orNull,
           hmrcMarkGgis = null,
-          emailRecipient = request.emailRecipient.orNull,
+          emailRecipient = request.emailRecipient,
           agentId = request.agentId.orNull,
           submittableStatus = "STARTED"
         )
@@ -808,7 +810,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     activeObjectId: Long,
     hmrcMarkGenerated: String,
     hmrcMarkGgis: String,
-    emailRecipient: String,
+    emailRecipient: Option[String],
     agentId: String,
     submittableStatus: String
   ): Long =
@@ -818,7 +820,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setLong(3, activeObjectId)
       cs.setString(4, hmrcMarkGenerated)
       cs.setString(5, hmrcMarkGgis)
-      cs.setString(6, emailRecipient)
+      cs.setOptionalString(6, emailRecipient)
       cs.setString(7, agentId)
       cs.setString(8, submittableStatus)
       cs.registerOutParameter(9, Types.NUMERIC)
@@ -1764,6 +1766,64 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
       cs.execute()
     }
+
+  override def getSubcontractorForDelete(
+    cisId: String,
+    subbieResourceRef: Long
+  ): Future[GetSubcontractorForDeleteResponse] = {
+    logger.info(
+      s"[CIS] getSubcontractorForDelete(cisId=$cisId, subbieResourceRef=$subbieResourceRef)"
+    )
+
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallGetSubcontractorForDelete) { cs =>
+          cs.setString(1, cisId)
+          cs.setLong(2, subbieResourceRef)
+
+          cs.registerOutParameter(3, OracleTypes.CURSOR)
+          cs.registerOutParameter(4, OracleTypes.CURSOR)
+          cs.registerOutParameter(5, OracleTypes.CURSOR)
+          cs.registerOutParameter(6, Types.VARCHAR)
+
+          cs.execute()
+
+          discardCursor(cs, 3)
+          discardCursor(cs, 5)
+
+          val subcontractor             =
+            withCursor(cs, 4)(collectSubcontractors) match {
+              case Seq(subcontractor) =>
+                subcontractor
+
+              case Seq()    =>
+                throw new IllegalStateException(
+                  s"No subcontractor found for cisId=$cisId and subbieResourceRef=$subbieResourceRef"
+                )
+              case multiple =>
+                throw new IllegalStateException(
+                  s"Expected exactly one subcontractor for cisId=$cisId and subbieResourceRef=$subbieResourceRef, got ${multiple.size}"
+                )
+            }
+          val subcontractorCanBeDeleted =
+            Option(cs.getString(6)).map(_.trim.toLowerCase) match {
+              case Some("true")  => true
+              case Some("false") => false
+              case other         =>
+                logger.warn(
+                  s"[getSubcontractorForDelete] unexpected flag value: '$other'"
+                )
+                false
+            }
+
+          GetSubcontractorForDeleteResponse(
+            subcontractorName = subcontractor.displayName,
+            subcontractorCanBeDeleted = subcontractorCanBeDeleted
+          )
+        }
+      }
+    }
+  }
 
   override def getSubmittedVerifications(
     req: GetSubmittedVerificationsRequest
