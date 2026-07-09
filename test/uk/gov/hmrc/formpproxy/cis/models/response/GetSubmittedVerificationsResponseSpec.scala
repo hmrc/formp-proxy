@@ -203,7 +203,8 @@ final class GetSubmittedVerificationsResponseSpec extends SpecBase {
           |      "version": 1,
           |      "updatedTaxTreatment": "NET",
           |      "lastMonthlyReturnDate": "2026-05-15T10:05:00",
-          |      "pendingVerifications": 0
+          |      "pendingVerifications": 0,
+          |      "displayName": "Smith, John"
           |    }
           |  ],
           |  "verificationBatches": [
