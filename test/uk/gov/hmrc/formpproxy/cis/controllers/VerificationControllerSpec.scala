@@ -24,7 +24,7 @@ import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateVerifications, DeleteVerifications, MonthlyReturn, Subcontractor, Submission, Verification, VerificationBatch}
-import uk.gov.hmrc.formpproxy.cis.models.response.{GetCurrentVerificationBatchResponse, GetNewestVerificationBatchResponse}
+import uk.gov.hmrc.formpproxy.cis.models.response.{GetCurrentVerificationBatchResponse, GetNewestVerificationBatchResponse, GetSubmissionWithVerificationBatchResponse}
 import uk.gov.hmrc.formpproxy.cis.models.requests._
 import uk.gov.hmrc.formpproxy.cis.models.response.CreateVerificationBatchAndVerificationsResponse
 import uk.gov.hmrc.formpproxy.cis.models.response.CreateSubmissionAndUpdateVerificationsResponse
@@ -946,6 +946,82 @@ class VerificationControllerSpec extends SpecBase {
       contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
 
       verify(mockService).processVerificationResponseFromChris(eqTo(requestModel))
+      verifyNoMoreInteractions(mockService)
+    }
+  }
+  "GET /verification/submission-batch (getSubmissionWithVerificationBatch)" - {
+
+    "returns 200 OK with JSON body when service succeeds" in {
+      val s = setup
+      import s.*
+
+      val requestModel = GetSubmissionWithVerificationBatchRequest(
+        instanceId = "abc-123",
+        verificationBatchResourceRef = 77L
+      )
+
+      val response = GetSubmissionWithVerificationBatchResponse(
+        scheme = None,
+        subcontractors = Seq.empty,
+        verifications = Seq.empty,
+        verificationBatch = None,
+        submission = None
+      )
+
+      when(mockService.getSubmissionWithVerificationBatch(eqTo(requestModel)))
+        .thenReturn(Future.successful(response))
+
+      val req = FakeRequest(
+        GET,
+        s"/verification/submission-batch?instanceId=${requestModel.instanceId}&verificationBatchResourceRef=${requestModel.verificationBatchResourceRef}"
+      )
+
+      val result =
+        controller
+          .getSubmissionWithVerificationBatch(
+            instanceId = requestModel.instanceId,
+            verificationBatchResourceRef = requestModel.verificationBatchResourceRef
+          )
+          .apply(req)
+
+      status(result) mustBe OK
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.toJson(response)
+
+      verify(mockService).getSubmissionWithVerificationBatch(eqTo(requestModel))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 500 InternalServerError with error body when service fails" in {
+      val s = setup
+      import s.*
+
+      val requestModel = GetSubmissionWithVerificationBatchRequest(
+        instanceId = "abc-123",
+        verificationBatchResourceRef = 77L
+      )
+
+      when(mockService.getSubmissionWithVerificationBatch(eqTo(requestModel)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val req = FakeRequest(
+        GET,
+        s"/verification/submission-batch?instanceId=${requestModel.instanceId}&verificationBatchResourceRef=${requestModel.verificationBatchResourceRef}"
+      )
+
+      val result =
+        controller
+          .getSubmissionWithVerificationBatch(
+            instanceId = requestModel.instanceId,
+            verificationBatchResourceRef = requestModel.verificationBatchResourceRef
+          )
+          .apply(req)
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
+
+      verify(mockService).getSubmissionWithVerificationBatch(eqTo(requestModel))
       verifyNoMoreInteractions(mockService)
     }
   }

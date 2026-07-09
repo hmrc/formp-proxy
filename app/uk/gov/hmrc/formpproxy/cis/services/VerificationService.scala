@@ -27,6 +27,11 @@ import scala.concurrent.Future
 @Singleton
 class VerificationService @Inject() (repo: CisMonthlyReturnSource) {
 
+  def getSubmissionWithVerificationBatch(
+    request: GetSubmissionWithVerificationBatchRequest
+  ): Future[GetSubmissionWithVerificationBatchResponse] =
+    repo.getSubmissionWithVerificationBatch(request)
+
   def getNewestVerificationBatch(instanceId: String): Future[GetNewestVerificationBatchResponse] =
     repo.getNewestVerificationBatch(instanceId)
 

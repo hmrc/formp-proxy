@@ -146,4 +146,27 @@ class VerificationController @Inject() (
               }
         )
     }
+  def getSubmissionWithVerificationBatch(
+    instanceId: String,
+    verificationBatchResourceRef: Long
+  ): Action[AnyContent] =
+    authorise.async { implicit request =>
+      val getSubmissionWithVerificationBatchRequest =
+        GetSubmissionWithVerificationBatchRequest(
+          instanceId = instanceId,
+          verificationBatchResourceRef = verificationBatchResourceRef
+        )
+
+      service
+        .getSubmissionWithVerificationBatch(getSubmissionWithVerificationBatchRequest)
+        .map(res => Ok(Json.toJson(res)))
+        .recover { case t =>
+          logger.error(
+            s"[getSubmissionWithVerificationBatch] failed for instanceId=$instanceId, verificationBatchResourceRef=$verificationBatchResourceRef",
+            t
+          )
+
+          InternalServerError(Json.obj("message" -> "Unexpected error"))
+        }
+    }
 }
