@@ -24,10 +24,8 @@ import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateVerifications, DeleteVerifications, MonthlyReturn, Subcontractor, Submission, Verification, VerificationBatch}
-import uk.gov.hmrc.formpproxy.cis.models.response.{GetCurrentVerificationBatchResponse, GetNewestVerificationBatchResponse, GetSubmissionWithVerificationBatchResponse}
 import uk.gov.hmrc.formpproxy.cis.models.requests._
-import uk.gov.hmrc.formpproxy.cis.models.response.CreateVerificationBatchAndVerificationsResponse
-import uk.gov.hmrc.formpproxy.cis.models.response.CreateSubmissionAndUpdateVerificationsResponse
+import uk.gov.hmrc.formpproxy.cis.models.response.{CreateSubmissionAndUpdateVerificationsResponse, CreateVerificationBatchAndVerificationsResponse, GetCurrentVerificationBatchResponse, GetNewestVerificationBatchResponse, GetSubmissionWithVerificationBatchResponse}
 import uk.gov.hmrc.formpproxy.cis.services.VerificationService
 import java.time.LocalDateTime
 
@@ -949,7 +947,7 @@ class VerificationControllerSpec extends SpecBase {
       verifyNoMoreInteractions(mockService)
     }
   }
-  "GET /verification/submission-batch (getSubmissionWithVerificationBatch)" - {
+  "GET /cis/verification/submission/:instanceId/verification-batch/:verificationBatchResourceRef (getSubmissionWithVerificationBatch)" - {
 
     "returns 200 OK with JSON body when service succeeds" in {
       val s = setup
@@ -973,7 +971,7 @@ class VerificationControllerSpec extends SpecBase {
 
       val req = FakeRequest(
         GET,
-        s"/verification/submission-batch?instanceId=${requestModel.instanceId}&verificationBatchResourceRef=${requestModel.verificationBatchResourceRef}"
+        s"/cis/verification/submission/${requestModel.instanceId}/verification-batch/${requestModel.verificationBatchResourceRef}"
       )
 
       val result =
@@ -1006,7 +1004,7 @@ class VerificationControllerSpec extends SpecBase {
 
       val req = FakeRequest(
         GET,
-        s"/verification/submission-batch?instanceId=${requestModel.instanceId}&verificationBatchResourceRef=${requestModel.verificationBatchResourceRef}"
+        s"/cis/verification/submission/${requestModel.instanceId}/verification-batch/${requestModel.verificationBatchResourceRef}"
       )
 
       val result =

@@ -502,7 +502,7 @@ class VerificationServiceSpec extends SpecBase {
       val c = Ctx()
       import c.*
 
-      val requestModel = GetSubmissionWithVerificationBatchRequest(
+      val request = GetSubmissionWithVerificationBatchRequest(
         instanceId = "abc-123",
         verificationBatchResourceRef = 77L
       )
@@ -515,12 +515,12 @@ class VerificationServiceSpec extends SpecBase {
         submission = None
       )
 
-      when(repo.getSubmissionWithVerificationBatch(eqTo(requestModel)))
+      when(repo.getSubmissionWithVerificationBatch(eqTo(request)))
         .thenReturn(Future.successful(response))
 
-      service.getSubmissionWithVerificationBatch(requestModel).futureValue mustBe response
+      service.getSubmissionWithVerificationBatch(request).futureValue mustBe response
 
-      verify(repo).getSubmissionWithVerificationBatch(eqTo(requestModel))
+      verify(repo).getSubmissionWithVerificationBatch(eqTo(request))
       verifyNoMoreInteractions(repo)
     }
 
@@ -528,21 +528,21 @@ class VerificationServiceSpec extends SpecBase {
       val c = Ctx()
       import c.*
 
-      val requestModel = GetSubmissionWithVerificationBatchRequest(
+      val request = GetSubmissionWithVerificationBatchRequest(
         instanceId = "abc-123",
         verificationBatchResourceRef = 77L
       )
 
       val boom = new RuntimeException("boom")
 
-      when(repo.getSubmissionWithVerificationBatch(eqTo(requestModel)))
+      when(repo.getSubmissionWithVerificationBatch(eqTo(request)))
         .thenReturn(Future.failed(boom))
 
-      val ex = service.getSubmissionWithVerificationBatch(requestModel).failed.futureValue
+      val ex = service.getSubmissionWithVerificationBatch(request).failed.futureValue
 
       ex mustBe boom
 
-      verify(repo).getSubmissionWithVerificationBatch(eqTo(requestModel))
+      verify(repo).getSubmissionWithVerificationBatch(eqTo(request))
       verifyNoMoreInteractions(repo)
     }
   }

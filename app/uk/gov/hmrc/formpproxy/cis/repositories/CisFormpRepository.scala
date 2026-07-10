@@ -1250,41 +1250,20 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
     Future {
       db.withConnection { conn =>
-        withCall(conn, CallGetSubmissionWithVerificationBatch) { cs =>
-          cs.setString(1, request.instanceId)
-          cs.setLong(2, request.verificationBatchResourceRef)
-
-          cs.registerOutParameter(3, OracleTypes.CURSOR)
-          cs.registerOutParameter(4, OracleTypes.CURSOR)
-          cs.registerOutParameter(5, OracleTypes.CURSOR)
-          cs.registerOutParameter(6, OracleTypes.CURSOR)
-          cs.registerOutParameter(7, OracleTypes.CURSOR)
-
-          cs.execute()
-
-          val scheme =
-            withCursor(cs, 3)(collectSchemes).headOption
-
-          val subcontractors =
-            withCursor(cs, 4)(collectSubcontractors)
-
-          val verifications =
-            withCursor(cs, 5)(collectVerifications)
-
-          val verificationBatch =
-            withCursor(cs, 6)(collectVerificationBatches).headOption
-
-          val submission =
-            withCursor(cs, 7)(collectSubmissionsForGetVerificationBatch).headOption
-
-          GetSubmissionWithVerificationBatchResponse(
-            scheme = scheme,
-            subcontractors = subcontractors,
-            verifications = verifications,
-            verificationBatch = verificationBatch,
-            submission = submission
+        val result =
+          callGetSubmissionWithVerificationBatch(
+            conn,
+            request.instanceId,
+            request.verificationBatchResourceRef
           )
-        }
+
+        GetSubmissionWithVerificationBatchResponse(
+          scheme = result.scheme,
+          subcontractors = result.subcontractors,
+          verifications = result.verifications,
+          verificationBatch = result.verificationBatch,
+          submission = result.submission
+        )
       }
     }
   }

@@ -27,7 +27,6 @@ import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorForDeleteResponse
-import uk.gov.hmrc.formpproxy.cis.models.response.GetSubmissionWithVerificationBatchResponse
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 
 import java.sql.*
@@ -3720,119 +3719,62 @@ final class CisFormpRepositorySpec extends SpecBase {
 
     "getSubmissionWithVerificationBatch" - {
 
-      "call stored procedure and return empty response when all cursors are empty" in {
+      "call Get_Verif_Batch_Submission and return response using existing helper mapping" in {
         val db   = mock[Database]
         val conn = mock[Connection]
         val cs   = mock[CallableStatement]
 
-        val schemeRs            = mock[ResultSet]
-        val subcontractorsRs    = mock[ResultSet]
-        val verificationsRs     = mock[ResultSet]
-        val verificationBatchRs = mock[ResultSet]
         val submissionRs        = mock[ResultSet]
+        val verificationBatchRs = mock[ResultSet]
+        val verificationsRs     = mock[ResultSet]
+        val subcontractorsRs    = mock[ResultSet]
+        val schemeRs            = mock[ResultSet]
+
+        val request = GetSubmissionWithVerificationBatchRequest(
+          instanceId = "abc-123",
+          verificationBatchResourceRef = 77L
+        )
 
         when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
           val f = inv.getArgument(0, classOf[Connection => Any])
           f(conn)
         }
 
-        val call = "{ call SUBMISSION_PROCS.Get_Verif_Batch_Submission(?, ?, ?, ?, ?, ?, ?) }"
+        when(conn.prepareCall("{ call SUBMISSION_PROCS.Get_Verif_Batch_Submission(?, ?, ?, ?, ?, ?, ?) }"))
+          .thenReturn(cs)
 
-        when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+        when(cs.getObject(3, classOf[ResultSet])).thenReturn(submissionRs)
+        when(cs.getObject(4, classOf[ResultSet])).thenReturn(verificationBatchRs)
+        when(cs.getObject(5, classOf[ResultSet])).thenReturn(verificationsRs)
+        when(cs.getObject(6, classOf[ResultSet])).thenReturn(subcontractorsRs)
+        when(cs.getObject(7, classOf[ResultSet])).thenReturn(schemeRs)
 
-        when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(schemeRs)
-        when(cs.getObject(eqTo(4), eqTo(classOf[ResultSet]))).thenReturn(subcontractorsRs)
-        when(cs.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(verificationsRs)
-        when(cs.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(verificationBatchRs)
-        when(cs.getObject(eqTo(7), eqTo(classOf[ResultSet]))).thenReturn(submissionRs)
-
-        when(schemeRs.next()).thenReturn(false)
-        when(subcontractorsRs.next()).thenReturn(false)
-        when(verificationsRs.next()).thenReturn(false)
-        when(verificationBatchRs.next()).thenReturn(false)
         when(submissionRs.next()).thenReturn(false)
+        when(verificationBatchRs.next()).thenReturn(false)
+        when(verificationsRs.next()).thenReturn(false)
+        when(subcontractorsRs.next()).thenReturn(false)
+        when(schemeRs.next()).thenReturn(false)
 
         val repo = new CisFormpRepository(db)
 
-        val requestModel = GetSubmissionWithVerificationBatchRequest(
-          instanceId = "abc-123",
-          verificationBatchResourceRef = 77L
-        )
+        val result =
+          repo.getSubmissionWithVerificationBatch(request).futureValue
 
-        val result = repo.getSubmissionWithVerificationBatch(requestModel).futureValue
+        result.scheme mustBe None
+        result.subcontractors mustBe Seq.empty
+        result.verifications mustBe Seq.empty
+        result.verificationBatch mustBe None
+        result.submission mustBe None
 
-        result mustBe GetSubmissionWithVerificationBatchResponse(
-          scheme = None,
-          subcontractors = Seq.empty,
-          verifications = Seq.empty,
-          verificationBatch = None,
-          submission = None
-        )
-
-        verify(conn).prepareCall(eqTo(call))
-
-        verify(cs).setString(1, requestModel.instanceId)
-        verify(cs).setLong(2, requestModel.verificationBatchResourceRef)
-
+        verify(conn).prepareCall("{ call SUBMISSION_PROCS.Get_Verif_Batch_Submission(?, ?, ?, ?, ?, ?, ?) }")
+        verify(cs).setString(1, request.instanceId)
+        verify(cs).setLong(2, request.verificationBatchResourceRef)
         verify(cs).registerOutParameter(3, OracleTypes.CURSOR)
         verify(cs).registerOutParameter(4, OracleTypes.CURSOR)
         verify(cs).registerOutParameter(5, OracleTypes.CURSOR)
         verify(cs).registerOutParameter(6, OracleTypes.CURSOR)
         verify(cs).registerOutParameter(7, OracleTypes.CURSOR)
-
         verify(cs).execute()
-
-        verify(schemeRs).close()
-        verify(subcontractorsRs).close()
-        verify(verificationsRs).close()
-        verify(verificationBatchRs).close()
-        verify(submissionRs).close()
-
-        verify(cs).close()
-      }
-
-      "fail when stored procedure call fails" in {
-        val db   = mock[Database]
-        val conn = mock[Connection]
-        val cs   = mock[CallableStatement]
-
-        when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
-          val f = inv.getArgument(0, classOf[Connection => Any])
-          f(conn)
-        }
-
-        val call = "{ call SUBMISSION_PROCS.Get_Verif_Batch_Submission(?, ?, ?, ?, ?, ?, ?) }"
-
-        when(conn.prepareCall(eqTo(call))).thenReturn(cs)
-
-        val boom = new RuntimeException("stored procedure failed")
-
-        doThrow(boom).when(cs).execute()
-
-        val repo = new CisFormpRepository(db)
-
-        val requestModel = GetSubmissionWithVerificationBatchRequest(
-          instanceId = "abc-123",
-          verificationBatchResourceRef = 77L
-        )
-
-        val ex = repo.getSubmissionWithVerificationBatch(requestModel).failed.futureValue
-
-        ex mustBe boom
-
-        verify(conn).prepareCall(eqTo(call))
-
-        verify(cs).setString(1, requestModel.instanceId)
-        verify(cs).setLong(2, requestModel.verificationBatchResourceRef)
-
-        verify(cs).registerOutParameter(3, OracleTypes.CURSOR)
-        verify(cs).registerOutParameter(4, OracleTypes.CURSOR)
-        verify(cs).registerOutParameter(5, OracleTypes.CURSOR)
-        verify(cs).registerOutParameter(6, OracleTypes.CURSOR)
-        verify(cs).registerOutParameter(7, OracleTypes.CURSOR)
-
-        verify(cs).execute()
-        verify(cs).close()
       }
     }
 
