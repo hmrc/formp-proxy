@@ -947,7 +947,8 @@ class VerificationControllerSpec extends SpecBase {
       verifyNoMoreInteractions(mockService)
     }
   }
-  "GET /cis/verification/submission/:instanceId/verification-batch/:verificationBatchResourceRef (getSubmissionWithVerificationBatch)" - {
+
+  "GET /cis/verification/submission-batch/:instanceId/:verificationBatchResourceRef (getSubmissionWithVerificationBatch)" - {
 
     "returns 200 OK with JSON body when service succeeds" in {
       val s = setup
@@ -971,7 +972,7 @@ class VerificationControllerSpec extends SpecBase {
 
       val req = FakeRequest(
         GET,
-        s"/cis/verification/submission/${requestModel.instanceId}/verification-batch/${requestModel.verificationBatchResourceRef}"
+        s"/cis/verification/submission-batch/${requestModel.instanceId}/${requestModel.verificationBatchResourceRef}"
       )
 
       val result =
@@ -1004,7 +1005,7 @@ class VerificationControllerSpec extends SpecBase {
 
       val req = FakeRequest(
         GET,
-        s"/cis/verification/submission/${requestModel.instanceId}/verification-batch/${requestModel.verificationBatchResourceRef}"
+        s"/cis/verification/submission-batch/${requestModel.instanceId}/${requestModel.verificationBatchResourceRef}"
       )
 
       val result =
