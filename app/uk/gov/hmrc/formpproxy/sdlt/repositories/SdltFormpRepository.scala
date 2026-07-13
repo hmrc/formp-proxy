@@ -657,15 +657,15 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       amountPaid = Option(rs.getString("AMOUNT_PAID")),
       includesPenalty = Option(rs.getString("INCLUDES_PENALTY")),
       taxDue = Option(rs.getString("TAX_DUE")),
-      taxDuePremium = None,
-      taxDueNPV = None,
+      taxDuePremium = Option(rs.getString("TAX_DUE_PREMIUM")),
+      taxDueNPV = Option(rs.getString("TAX_DUE_NPV")),
       calcPenaltyDue = Option(rs.getString("CALC_PENALTY_DUE")),
       calcTaxDue = Option(rs.getString("CALC_TAX_DUE")),
-      calcTaxRate1 = None,
-      calcTaxRate2 = None,
-      calcTotalTaxPenaltyDue = None,
-      calcTotalNPVTax = None,
-      calcTotalPremiumTax = None,
+      calcTaxRate1 = Option(rs.getString("CALC_TAX_RATE1")),
+      calcTaxRate2 = Option(rs.getString("CALC_TAX_RATE2")),
+      calcTotalTaxPenaltyDue = Option(rs.getString("CALC_TOTAL_TAX_PENALTY_DUE")),
+      calcTotalNPVTax = Option(rs.getString("CALC_TOTAL_NPV_TAX")),
+      calcTotalPremiumTax = Option(rs.getString("CALC_TOTAL_PREMIUM_TAX")),
       honestyDeclaration = None
     )
 

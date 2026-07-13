@@ -253,6 +253,13 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       when(rsTax.next()).thenReturn(true, false)
       when(rsTax.getString("TAX_CALCULATION_ID")).thenReturn("1")
       when(rsTax.getString("TAX_DUE")).thenReturn("2500.00")
+      when(rsTax.getString("TAX_DUE_PREMIUM")).thenReturn("7500.00")
+      when(rsTax.getString("TAX_DUE_NPV")).thenReturn("1000.00")
+      when(rsTax.getString("CALC_TAX_RATE1")).thenReturn("3%")
+      when(rsTax.getString("CALC_TAX_RATE2")).thenReturn("1%")
+      when(rsTax.getString("CALC_TOTAL_TAX_PENALTY_DUE")).thenReturn("8500.00")
+      when(rsTax.getString("CALC_TOTAL_NPV_TAX")).thenReturn("1000.00")
+      when(rsTax.getString("CALC_TOTAL_PREMIUM_TAX")).thenReturn("7500.00")
       when(rsSub.next()).thenReturn(true, false)
       when(rsSub.getString("SUBMISSION_ID")).thenReturn("1")
       when(rsSub.getString("SUBMISSION_STATUS")).thenReturn("STARTED")
@@ -277,6 +284,14 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       result.land             must not be None
       result.transaction      must not be None
       result.taxCalculation   must not be None
+      result.taxCalculation.get.taxDue mustBe Some("2500.00")
+      result.taxCalculation.get.taxDuePremium mustBe Some("7500.00")
+      result.taxCalculation.get.taxDueNPV mustBe Some("1000.00")
+      result.taxCalculation.get.calcTaxRate1 mustBe Some("3%")
+      result.taxCalculation.get.calcTaxRate2 mustBe Some("1%")
+      result.taxCalculation.get.calcTotalTaxPenaltyDue mustBe Some("8500.00")
+      result.taxCalculation.get.calcTotalNPVTax mustBe Some("1000.00")
+      result.taxCalculation.get.calcTotalPremiumTax mustBe Some("7500.00")
       result.submission       must not be None
       result.residency        must not be None
 
