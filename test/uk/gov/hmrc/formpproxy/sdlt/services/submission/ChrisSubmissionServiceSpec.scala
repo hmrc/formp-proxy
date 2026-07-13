@@ -34,7 +34,7 @@ class ChrisSubmissionServiceSpec extends AnyFreeSpec with Matchers with MockitoS
     LockReturnRequest(storn = "STORN12345", returnResourceRef = "100001", version = 1)
 
   private val createSubmissionRequest =
-    CreateSubmissionRequest(storn = "STORN12345", returnResourceRef = "100001", email = "agent@example.com")
+    CreateSubmissionRequest(storn = "STORN12345", returnResourceRef = "100001", email = Some("agent@example.com"))
 
   private val updateSubmissionRequest =
     UpdateSubmissionRequest(

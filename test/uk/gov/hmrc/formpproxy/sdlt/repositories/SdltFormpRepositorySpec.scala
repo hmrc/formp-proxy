@@ -4517,7 +4517,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       val request = CreateSubmissionRequest(
         storn = "STORN12345",
         returnResourceRef = "100001",
-        email = "agent@example.com"
+        email = Some("agent@example.com")
       )
 
       val result = repo.sdltCreateSubmission(request).futureValue
