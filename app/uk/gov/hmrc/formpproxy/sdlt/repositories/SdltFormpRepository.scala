@@ -2545,14 +2545,14 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     conn: Connection,
     p_storn: String,
     p_return_resource_ref: Long,
-    p_email: String
+    p_email: Option[String]
   ): CreateSubmissionReturn = {
 
     val cs = conn.prepareCall("{ call SUBMISSION_PROCS.CREATE_SUBMISSION(?, ?, ?, ?) }")
     try {
       cs.setString(1, p_storn)
       cs.setLong(2, p_return_resource_ref)
-      cs.setString(3, p_email)
+      cs.setOptionalString(3, p_email)
 
       cs.registerOutParameter(4, Types.NUMERIC)
 

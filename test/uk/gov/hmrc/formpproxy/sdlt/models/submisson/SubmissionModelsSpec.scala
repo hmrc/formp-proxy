@@ -29,7 +29,7 @@ class SubmissionModelsSpec extends AnyFreeSpec with Matchers {
       val request = CreateSubmissionRequest(
         storn = "STORN12345",
         returnResourceRef = "100001",
-        email = "filer@example.com"
+        email = Some("filer@example.com")
       )
 
       val json = Json.toJson(request)
@@ -53,7 +53,7 @@ class SubmissionModelsSpec extends AnyFreeSpec with Matchers {
 
       request.storn mustBe "STORN12345"
       request.returnResourceRef mustBe "100001"
-      request.email mustBe "filer@example.com"
+      request.email mustBe Some("filer@example.com")
     }
 
     "must fail to deserialize when required field storn is missing" in {
@@ -74,13 +74,13 @@ class SubmissionModelsSpec extends AnyFreeSpec with Matchers {
       json.validate[CreateSubmissionRequest].isError mustBe true
     }
 
-    "must fail to deserialize when required field email is missing" in {
+    "must deserialize when field email is missing" in {
       val json = Json.obj(
         "storn"             -> "STORN12345",
         "returnResourceRef" -> "100001"
       )
 
-      json.validate[CreateSubmissionRequest].isError mustBe true
+      json.validate[CreateSubmissionRequest].isError mustBe false
     }
   }
 

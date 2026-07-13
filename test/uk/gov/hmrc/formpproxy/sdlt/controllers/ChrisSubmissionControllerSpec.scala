@@ -183,7 +183,7 @@ class ChrisSubmissionControllerSpec extends AnyFreeSpec with Matchers with Scala
       val request: CreateSubmissionRequest = CreateSubmissionRequest(
         storn = "STORN12345",
         returnResourceRef = "100001",
-        email = "filer@example.test"
+        email = Some("filer@example.test")
       )
 
       when(mockService.createSubmission(eqTo(request)))
@@ -209,25 +209,11 @@ class ChrisSubmissionControllerSpec extends AnyFreeSpec with Matchers with Scala
       verifyNoInteractions(mockService)
     }
 
-    "returns 400 when email is missing" in new Setup {
-      val invalidJson: JsObject = Json.obj(
-        "storn"             -> "STORN12345",
-        "returnResourceRef" -> "100001"
-      )
-
-      val req: FakeRequest[JsValue] = makeJsonRequest(invalidJson)
-      val res: Future[Result]       = controller.createSubmission()(req)
-
-      status(res) mustBe BAD_REQUEST
-      (contentAsJson(res) \ "message").as[String] mustBe "Invalid payload"
-      verifyNoInteractions(mockService)
-    }
-
     "returns 500 with generic message on unexpected exception" in new Setup {
       val request: CreateSubmissionRequest = CreateSubmissionRequest(
         storn = "STORN12345",
         returnResourceRef = "100001",
-        email = "filer@example.test"
+        email = Some("filer@example.test")
       )
 
       when(mockService.createSubmission(eqTo(request)))
