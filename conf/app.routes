@@ -45,6 +45,7 @@ GET        /cis/verification-batch/current/:instanceId              uk.gov.hmrc.
 POST       /cis/verification-batch/create                           uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.createVerificationBatchAndVerifications()
 POST       /cis/verification-batch/modify                           uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.modifyVerifications()
 POST       /cis/verification/response/process                       uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.processVerificationResponseFromChris()
+POST       /cis/verification/submission-batch                       uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.getSubmissionWithVerificationBatch
 
 POST       /cis/amend-monthly-return/create                         uk.gov.hmrc.formpproxy.cis.controllers.AmendMonthlyReturnController.createAmendedMonthlyReturn()
 
