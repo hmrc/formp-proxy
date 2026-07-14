@@ -26,8 +26,8 @@ import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
-import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorForDeleteResponse
 import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.CallDeleteSubcontractor
+import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorOtherInfo, GetSubcontractorResponse}
 
@@ -4455,4 +4455,73 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
   }
 
+  "getSubmissionWithVerificationBatch" - {
+
+    "return empty response when all cursors contain no rows" in {
+      val db                  = mock[Database]
+      val conn                = mock[Connection]
+      val cs                  = mock[CallableStatement]
+      val submissionRs        = mock[ResultSet]
+      val verificationBatchRs = mock[ResultSet]
+      val verificationsRs     = mock[ResultSet]
+      val subcontractorsRs    = mock[ResultSet]
+      val schemeRs            = mock[ResultSet]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any]))
+        .thenAnswer { invocation =>
+          val operation =
+            invocation.getArgument(
+              0,
+              classOf[java.sql.Connection => Any]
+            )
+
+          operation(conn)
+        }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      when(cs.getObject(3, classOf[ResultSet])).thenReturn(submissionRs)
+      when(cs.getObject(4, classOf[ResultSet])).thenReturn(verificationBatchRs)
+      when(cs.getObject(5, classOf[ResultSet])).thenReturn(verificationsRs)
+      when(cs.getObject(6, classOf[ResultSet])).thenReturn(subcontractorsRs)
+      when(cs.getObject(7, classOf[ResultSet])).thenReturn(schemeRs)
+
+      when(submissionRs.next()).thenReturn(false)
+      when(verificationBatchRs.next()).thenReturn(false)
+      when(verificationsRs.next()).thenReturn(false)
+      when(subcontractorsRs.next()).thenReturn(false)
+      when(schemeRs.next()).thenReturn(false)
+
+      val request =
+        GetSubmissionWithVerificationBatchRequest(
+          instanceId = "abc-123",
+          verificationBatchResourceRef = 77L
+        )
+
+      val repository =
+        new CisFormpRepository(db)
+
+      val result =
+        repository
+          .getSubmissionWithVerificationBatch(request)
+          .futureValue
+
+      result mustBe GetSubmissionWithVerificationBatchResponse(
+        scheme = None,
+        submission = None,
+        verificationBatch = None,
+        verifications = Seq.empty,
+        subcontractors = Seq.empty
+      )
+
+      verify(cs).setString(1, "abc-123")
+      verify(cs).setLong(2, 77L)
+      verify(cs).registerOutParameter(3, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(4, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(5, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(6, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(7, OracleTypes.CURSOR)
+      verify(cs).execute()
+    }
+  }
 }

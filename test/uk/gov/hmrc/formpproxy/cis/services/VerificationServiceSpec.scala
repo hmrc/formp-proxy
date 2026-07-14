@@ -537,4 +537,36 @@ class VerificationServiceSpec extends SpecBase {
     }
   }
 
+  "VerificationService#getSubmissionWithVerificationBatch" - {
+
+    "delegates to repository" in {
+      val c = Ctx()
+      import c.*
+
+      val request =
+        GetSubmissionWithVerificationBatchRequest(
+          instanceId = "abc-123",
+          verificationBatchResourceRef = 77L
+        )
+
+      val response =
+        GetSubmissionWithVerificationBatchResponse(
+          scheme = None,
+          submission = None,
+          verificationBatch = None,
+          verifications = Seq.empty,
+          subcontractors = Seq.empty
+        )
+
+      when(repo.getSubmissionWithVerificationBatch(eqTo(request)))
+        .thenReturn(Future.successful(response))
+
+      service
+        .getSubmissionWithVerificationBatch(request)
+        .futureValue mustBe response
+
+      verify(repo).getSubmissionWithVerificationBatch(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
 }

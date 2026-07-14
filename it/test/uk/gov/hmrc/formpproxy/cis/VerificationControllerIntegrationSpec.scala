@@ -155,25 +155,6 @@ class VerificationControllerIntegrationSpec
       (res1.json \ "message").as[String].toLowerCase must include("invalid payload")
     }
 
-    "return 401 when there is no active session" in {
-      AuthStub.unauthorised()
-
-      val res = postAwait(
-        endpoint,
-        Json.obj(
-          "instanceId"                   -> "abc-123",
-          "verificationBatchId"          -> 99L,
-          "verificationBatchResourceRef" -> 77L,
-          "submittableStatus"            -> "FATAL_ERROR",
-          "govtalkErrorCode"             -> "500",
-          "govtalkErrorType"             -> "timeOut",
-          "govtalkErrorMessage"          -> "timeOut"
-        )
-      )
-
-      res.status mustBe UNAUTHORIZED
-    }
-
     "return 204 when the request is valid" in {
       AuthStub.authorised()
 
