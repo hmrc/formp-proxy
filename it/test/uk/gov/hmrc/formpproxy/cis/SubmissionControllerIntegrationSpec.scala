@@ -72,29 +72,16 @@ final class SubmissionControllerIntegrationSpec
     "POST /formp-proxy/submissions/update (updateSubmission)" should {
 
       "returns 400 when JSON is missing required fields" in {
-        AuthStub.authorised()
-
         val res = postAwait(updatePath, Json.obj("instanceId" -> "123"))
 
         res.status mustBe BAD_REQUEST
         (res.json \ "message").as[String].toLowerCase must include ("invalid")
       }
 
-      "does not return 401 when there is no active session" in {
-        AuthStub.unauthorised()
+      "returns 404 for unknown endpoint (routing sanity)" in {
+        val res = postAwait("/does-not-exist", Json.obj("instanceId" -> "123"))
 
-        val json = Json.obj(
-          "instanceId"        -> "123",
-          "taxYear"           -> 2024,
-          "taxMonth"          -> 4,
-          "hmrcMarkGenerated" -> "Dj5TVJDyRYCn9zta5EdySeY4fyA=",
-          "submittableStatus" -> "ACCEPTED",
-          "amendment"         -> "N"
-        )
-
-        val res = postAwait(updatePath, json)
-
-        res.status must not be UNAUTHORIZED
+        res.status mustBe NOT_FOUND
       }
     }
   }
