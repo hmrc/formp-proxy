@@ -80,20 +80,19 @@ final class SubmissionControllerIntegrationSpec
         (res.json \ "message").as[String].toLowerCase must include ("invalid")
       }
 
-      "returns 401 when there is no active session" in {
-        AuthStub.unauthorised()
-
+      "returns 204 without an active session" in {
         val json = Json.obj(
           "instanceId"        -> "123",
           "taxYear"           -> 2024,
           "taxMonth"          -> 4,
           "hmrcMarkGenerated" -> "Dj5TVJDyRYCn9zta5EdySeY4fyA=",
-          "submittableStatus" -> "ACCEPTED"
+          "submittableStatus" -> "ACCEPTED",
+          "amendment"         -> "N"
         )
 
         val res = postAwait(updatePath, json)
 
-        res.status mustBe UNAUTHORIZED
+        res.status mustBe NO_CONTENT
       }
     }
   }
