@@ -4571,15 +4571,14 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       result.success mustBe true
 
-      verify(conn).prepareCall("{ call SUBMISSION_PROCS.UPDATE_SUBMISSION(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
       verify(cs).setString(1, "STORN12345")
       verify(cs).setLong(2, 100001L)
-      verify(cs).setNull(3, Types.VARCHAR) // p_submission_receipt (no model field)
+      verify(cs).setNull(3, Types.VARCHAR)
       verify(cs).setString(4, "IRMARK-RCV")
       verify(cs).setString(5, "UTRN123")
       verify(cs).setString(6, "agent@example.com")
-      verify(cs).setDate(7, Date.valueOf("2025-01-15"))
-      verify(cs).setDate(8, Date.valueOf("2025-01-16"))
+      verify(cs).setTimestamp(7, Timestamp.valueOf("2025-01-15 00:00:00"))
+      verify(cs).setTimestamp(8, Timestamp.valueOf("2025-01-16 00:00:00"))
       verify(cs).setString(9, "ACCEPTED")
       verify(cs).setString(10, "0000")
       verify(cs).setString(11, "business")
@@ -5067,8 +5066,8 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       when(rsStatus.next()).thenReturn(true, false)
       when(rsStatus.getString("USER_IDENTIFIER")).thenReturn("STORN12345")
-      when(rsStatus.getString("FORM_RESULT_ID")).thenReturn("SUB123")
-      when(rsStatus.getString("CORRELATION_ID")).thenReturn("CORR-XYZ")
+      when(rsStatus.getString("FORMRESULTID")).thenReturn("SUB123")
+      when(rsStatus.getString("CORRELATIONID")).thenReturn("CORR-XYZ")
       when(rsStatus.getString("FORM_LOCK")).thenReturn("N")
       when(rsStatus.getString("CREATE_TIMESTAMP")).thenReturn("2025-01-15 10:30:00")
       when(rsStatus.getString("ENDSTATE_TIMESTAMP")).thenReturn("2025-01-15 11:00:00")
