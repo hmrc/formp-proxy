@@ -35,7 +35,7 @@ import uk.gov.hmrc.formpproxy.sdlt.models.submission.*
 
 import java.lang.Long
 import java.sql.{CallableStatement, Connection, Date, ResultSet, Timestamp, Types}
-import java.time.LocalDate
+import java.time.{Instant, LocalDate}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -356,7 +356,6 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       status = Option(rs.getString("status")).getOrElse(""),
       dateSubmitted = Try(LocalDate.parse(rs.getString("submitted_date"))).toOption,
       purchaserName = Option(rs.getString("name")).getOrElse(""),
-      // purchaserName => causing crash if attempt to treat as a String output???
       address = Option(rs.getString("address")).getOrElse(""),
       agentReference = Option(rs.getString("agent"))
     )
@@ -2586,7 +2585,12 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
 
   private def setOptionalDate(cs: CallableStatement, index: Int, value: Option[String]): Unit =
     value.filter(_.nonEmpty) match {
-      case Some(v) => cs.setDate(index, Date.valueOf(v))
+      case Some(v) =>
+        val ts = Try(Timestamp.valueOf(v))
+          .orElse(Try(Timestamp.from(Instant.parse(v))))
+          .orElse(Try(Timestamp.valueOf(v.take(10) + " 00:00:00")))
+          .getOrElse(throw new IllegalArgumentException(s"Unparseable date '$v' at bind index $index"))
+        cs.setTimestamp(index, ts)
       case None    => cs.setNull(index, Types.DATE)
     }
 
@@ -2728,7 +2732,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
           conn = conn,
           p_user_identifier = request.userIdentifier,
           p_formResultId = request.formResultId,
-          p_correlation_id = request.correlationId,
+          p_correlationId = request.correlationId,
           p_form_lock = request.govTalkStatus.formLock,
           p_create_timestamp = request.govTalkStatus.createTimestamp,
           p_endstate_timestamp = request.govTalkStatus.endStateTimestamp,
@@ -2745,7 +2749,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     conn: Connection,
     p_user_identifier: String,
     p_formResultId: String,
-    p_correlation_id: String,
+    p_correlationId: String,
     p_form_lock: String,
     p_create_timestamp: String,
     p_endstate_timestamp: Option[String],
@@ -2759,7 +2763,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     try {
       cs.setString(1, p_user_identifier)
       cs.setString(2, p_formResultId)
-      cs.setString(3, p_correlation_id)
+      cs.setString(3, p_correlationId)
       cs.setString(4, p_form_lock)
       setRequiredTimestamp(cs, 5, p_create_timestamp)
       setOptionalTimestamp(cs, 6, p_endstate_timestamp)
@@ -2779,7 +2783,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
         conn = conn,
         p_user_identifier = request.userIdentifier,
         p_formResultId = request.formResultId,
-        p_correlation_id = request.correlationId,
+        p_correlationId = request.correlationId,
         p_form_lock = request.govTalkStatus.formLock,
         p_create_timestamp = request.govTalkStatus.createTimestamp,
         p_endstate_timestamp = request.govTalkStatus.endStateTimestamp,
@@ -2797,7 +2801,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     conn: Connection,
     p_user_identifier: String,
     p_formResultId: String,
-    p_correlation_id: String,
+    p_correlationId: String,
     p_form_lock: String,
     p_create_timestamp: String,
     p_endstate_timestamp: Option[String],
@@ -2812,7 +2816,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     try {
       cs.setString(1, p_user_identifier)
       cs.setString(2, p_formResultId)
-      cs.setString(3, p_correlation_id)
+      cs.setString(3, p_correlationId)
       cs.setString(4, p_form_lock)
       setRequiredTimestamp(cs, 5, p_create_timestamp)
       setOptionalTimestamp(cs, 6, p_endstate_timestamp)
@@ -2991,8 +2995,8 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
   private def processGovTalkStatus(rs: ResultSet): SelectGovTalkStatusResponse =
     SelectGovTalkStatusResponse(
       userIdentifier = Option(rs.getString("USER_IDENTIFIER")),
-      formResultId = Option(rs.getString("FORM_RESULT_ID")),
-      correlationId = Option(rs.getString("CORRELATION_ID")),
+      formResultId = Option(rs.getString("FORMRESULTID")),
+      correlationId = Option(rs.getString("CORRELATIONID")),
       formLock = Option(rs.getString("FORM_LOCK")),
       createTimestamp = Option(rs.getString("CREATE_TIMESTAMP")),
       endStateTimestamp = Option(rs.getString("ENDSTATE_TIMESTAMP")),
