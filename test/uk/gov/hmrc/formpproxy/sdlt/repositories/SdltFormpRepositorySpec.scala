@@ -253,6 +253,13 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       when(rsTax.next()).thenReturn(true, false)
       when(rsTax.getString("TAX_CALCULATION_ID")).thenReturn("1")
       when(rsTax.getString("TAX_DUE")).thenReturn("2500.00")
+      when(rsTax.getString("TAX_DUE_PREMIUM")).thenReturn("7500.00")
+      when(rsTax.getString("TAX_DUE_NPV")).thenReturn("1000.00")
+      when(rsTax.getString("CALC_TAX_RATE1")).thenReturn("3%")
+      when(rsTax.getString("CALC_TAX_RATE2")).thenReturn("1%")
+      when(rsTax.getString("CALC_TOTAL_TAX_PENALTY_DUE")).thenReturn("8500.00")
+      when(rsTax.getString("CALC_TOTAL_NPV_TAX")).thenReturn("1000.00")
+      when(rsTax.getString("CALC_TOTAL_PREMIUM_TAX")).thenReturn("7500.00")
       when(rsSub.next()).thenReturn(true, false)
       when(rsSub.getString("SUBMISSION_ID")).thenReturn("1")
       when(rsSub.getString("SUBMISSION_STATUS")).thenReturn("STARTED")
@@ -277,6 +284,14 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       result.land             must not be None
       result.transaction      must not be None
       result.taxCalculation   must not be None
+      result.taxCalculation.get.taxDue mustBe Some("2500.00")
+      result.taxCalculation.get.taxDuePremium mustBe Some("7500.00")
+      result.taxCalculation.get.taxDueNPV mustBe Some("1000.00")
+      result.taxCalculation.get.calcTaxRate1 mustBe Some("3%")
+      result.taxCalculation.get.calcTaxRate2 mustBe Some("1%")
+      result.taxCalculation.get.calcTotalTaxPenaltyDue mustBe Some("8500.00")
+      result.taxCalculation.get.calcTotalNPVTax mustBe Some("1000.00")
+      result.taxCalculation.get.calcTotalPremiumTax mustBe Some("7500.00")
       result.submission       must not be None
       result.residency        must not be None
 
@@ -4502,7 +4517,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       val request = CreateSubmissionRequest(
         storn = "STORN12345",
         returnResourceRef = "100001",
-        email = "agent@example.com"
+        email = Some("agent@example.com")
       )
 
       val result = repo.sdltCreateSubmission(request).futureValue
@@ -4556,15 +4571,14 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       result.success mustBe true
 
-      verify(conn).prepareCall("{ call SUBMISSION_PROCS.UPDATE_SUBMISSION(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
       verify(cs).setString(1, "STORN12345")
       verify(cs).setLong(2, 100001L)
-      verify(cs).setNull(3, Types.VARCHAR) // p_submission_receipt (no model field)
+      verify(cs).setNull(3, Types.VARCHAR)
       verify(cs).setString(4, "IRMARK-RCV")
       verify(cs).setString(5, "UTRN123")
       verify(cs).setString(6, "agent@example.com")
-      verify(cs).setDate(7, Date.valueOf("2025-01-15"))
-      verify(cs).setDate(8, Date.valueOf("2025-01-16"))
+      verify(cs).setTimestamp(7, Timestamp.valueOf("2025-01-15 00:00:00"))
+      verify(cs).setTimestamp(8, Timestamp.valueOf("2025-01-16 00:00:00"))
       verify(cs).setString(9, "ACCEPTED")
       verify(cs).setString(10, "0000")
       verify(cs).setString(11, "business")
@@ -4822,7 +4836,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
   "sdltResetGovTalkStatus" - {
 
-    "call SUBMISSION_ADMIN.ResetGovTalkStatus with old and new protocol statuses" in {
+    "call SUBMISSION_ADMIN.ResetGovTalkStatusRecord with old and new protocol statuses" in {
       val db   = mock[Database]
       val conn = mock[Connection]
       val cs   = mock[CallableStatement]
@@ -4831,7 +4845,9 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
       }
 
-      when(conn.prepareCall(eqTo("{ call SUBMISSION_ADMIN.ResetGovTalkStatus(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")))
+      when(
+        conn.prepareCall(eqTo("{ call SUBMISSION_ADMIN.ResetGovTalkStatusRecord(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"))
+      )
         .thenReturn(cs)
 
       val repo = new SdltFormpRepository(db)
@@ -4857,7 +4873,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       result.success mustBe true
 
-      verify(conn).prepareCall("{ call SUBMISSION_ADMIN.ResetGovTalkStatus(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+      verify(conn).prepareCall("{ call SUBMISSION_ADMIN.ResetGovTalkStatusRecord(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
       verify(cs).setString(1, "STORN12345")
       verify(cs).setString(2, "SUB123")
       verify(cs).setString(3, "CORR-XYZ")
@@ -5050,8 +5066,8 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       when(rsStatus.next()).thenReturn(true, false)
       when(rsStatus.getString("USER_IDENTIFIER")).thenReturn("STORN12345")
-      when(rsStatus.getString("FORM_RESULT_ID")).thenReturn("SUB123")
-      when(rsStatus.getString("CORRELATION_ID")).thenReturn("CORR-XYZ")
+      when(rsStatus.getString("FORMRESULTID")).thenReturn("SUB123")
+      when(rsStatus.getString("CORRELATIONID")).thenReturn("CORR-XYZ")
       when(rsStatus.getString("FORM_LOCK")).thenReturn("N")
       when(rsStatus.getString("CREATE_TIMESTAMP")).thenReturn("2025-01-15 10:30:00")
       when(rsStatus.getString("ENDSTATE_TIMESTAMP")).thenReturn("2025-01-15 11:00:00")

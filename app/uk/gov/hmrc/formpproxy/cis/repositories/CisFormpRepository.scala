@@ -95,6 +95,8 @@ trait CisMonthlyReturnSource {
   def processVerificationResponseFromChris(req: ProcessVerificationResponseFromChrisRequest): Future[Unit]
 
   def getSubcontractorForDelete(cisId: String, subbieResourceRef: Long): Future[GetSubcontractorForDeleteResponse]
+
+  def getSubmittedVerifications(req: GetSubmittedVerificationsRequest): Future[GetSubmittedVerificationsResponse]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -1851,5 +1853,40 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
   }
+
+  override def getSubmittedVerifications(
+    req: GetSubmittedVerificationsRequest
+  ): Future[GetSubmittedVerificationsResponse] =
+    Future {
+      logger.info(s"[CIS] getSubmittedVerifications(instanceId=${req.instanceId})")
+
+      db.withConnection { conn =>
+        callGetSubmittedVerifications(conn, req.instanceId)
+      }
+    }
+
+  private def callGetSubmittedVerifications(
+    conn: Connection,
+    instanceId: String
+  ): GetSubmittedVerificationsResponse =
+    withCall(conn, CallGetSubmittedVerifications) { cs =>
+      cs.setString(1, instanceId)
+
+      cs.registerOutParameter(2, OracleTypes.CURSOR) // scheme
+      cs.registerOutParameter(3, OracleTypes.CURSOR) // subcontractors
+      cs.registerOutParameter(4, OracleTypes.CURSOR) // verification batches
+      cs.registerOutParameter(5, OracleTypes.CURSOR) // verifications
+      cs.registerOutParameter(6, OracleTypes.CURSOR) // submissions
+
+      cs.execute()
+
+      GetSubmittedVerificationsResponse(
+        scheme = withCursor(cs, 2)(collectSchemes),
+        subcontractors = withCursor(cs, 3)(collectSubcontractors),
+        verificationBatches = withCursor(cs, 4)(collectVerificationBatchesForGetSubmittedVerifications),
+        verifications = withCursor(cs, 5)(collectVerifications),
+        submissions = withCursor(cs, 6)(collectSubmissions)
+      )
+    }
 
 }
