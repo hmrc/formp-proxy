@@ -3871,67 +3871,6 @@ final class CisFormpRepositorySpec extends SpecBase {
       ex.getMessage mustBe "No subcontractor found for resourceRef=456"
     }
 
-    def stubSubmissionRow(rs: ResultSet): Unit = {
-      when(rs.next()).thenReturn(true, false)
-      when(rs.getLong("submission_id")).thenReturn(555L)
-      when(rs.getString("submission_type")).thenReturn("VERIFICATIONS")
-      when(rs.getLong("active_object_id")).thenReturn(99L)
-      when(rs.getString("status")).thenReturn("STARTED")
-      when(rs.getString("hmrc_mark_generated")).thenReturn("old-irmark")
-      when(rs.getString("hmrc_mark_ggis")).thenReturn(null)
-      when(rs.getString("email_recipient")).thenReturn("test@test.com")
-      when(rs.getString("accepted_time")).thenReturn(null)
-      when(rs.getLong("scheme_id")).thenReturn(123L)
-      when(rs.getString("agent_id")).thenReturn("agent-123")
-      when(rs.getString("govtalk_error_code")).thenReturn(null)
-      when(rs.getString("govtalk_error_type")).thenReturn(null)
-      when(rs.getString("govtalk_error_message")).thenReturn(null)
-      when(rs.wasNull()).thenReturn(false)
-    }
-
-    def stubVerificationBatchRow(rs: ResultSet): Unit = {
-      when(rs.next()).thenReturn(true, false)
-      when(rs.getLong("verification_batch_id")).thenReturn(99L)
-      when(rs.getLong("scheme_id")).thenReturn(123L)
-      when(rs.getLong("verifications_counter")).thenReturn(1L)
-      when(rs.getLong("verif_batch_resource_ref")).thenReturn(222L)
-      when(rs.getString("proceed_session")).thenReturn("Y")
-      when(rs.getString("confirm_arrangement")).thenReturn("Y")
-      when(rs.getString("confirm_correct")).thenReturn("Y")
-      when(rs.getString("status")).thenReturn("STARTED")
-      when(rs.getString("verification_number")).thenReturn("VB123")
-      when(rs.getInt("version")).thenReturn(1)
-      when(rs.wasNull()).thenReturn(false)
-    }
-
-    def stubVerificationRow(rs: ResultSet): Unit = {
-      when(rs.next()).thenReturn(true, false)
-      when(rs.getLong("verification_id")).thenReturn(1001L)
-      when(rs.getString("matched")).thenReturn(null)
-      when(rs.getString("verification_number")).thenReturn(null)
-      when(rs.getString("tax_treatment")).thenReturn(null)
-      when(rs.getString("action_indicator")).thenReturn("VERIFY")
-      when(rs.getLong("verification_batch_id")).thenReturn(99L)
-      when(rs.getLong("scheme_id")).thenReturn(123L)
-      when(rs.getLong("subcontractor_id")).thenReturn(999L)
-      when(rs.getString("subcontractor_name")).thenReturn("John Smith")
-      when(rs.getLong("verification_resource_ref")).thenReturn(456L)
-      when(rs.getString("proceed")).thenReturn("Y")
-      when(rs.getInt("version")).thenReturn(1)
-      when(rs.wasNull()).thenReturn(false)
-    }
-
-    def stubSchemeRow(rs: ResultSet): Unit = {
-      when(rs.next()).thenReturn(true, false)
-      when(rs.getInt("scheme_id")).thenReturn(123)
-      when(rs.getString("instance_id")).thenReturn("abc-123")
-      when(rs.getString("aoref")).thenReturn("123PA00123456")
-      when(rs.getString("tax_office_number")).thenReturn("123")
-      when(rs.getString("tax_office_reference")).thenReturn("AB456")
-      when(rs.getString("email_address")).thenReturn(null)
-      when(rs.wasNull()).thenReturn(false)
-    }
-
     "throws when subcontractor is missing for matching verification" in {
       val db   = mock[Database]
       val conn = mock[Connection]
@@ -3973,6 +3912,136 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(conn, never).prepareCall(eqTo(CisStoredProcedures.CallUpdateVerification))
       verify(conn, never).prepareCall(eqTo(CisStoredProcedures.CallUpdateVerificationBatch))
       verify(conn, never).prepareCall(eqTo(CisStoredProcedures.CallUpdateSubmission))
+    }
+  }
+
+  def stubSubcontractorRow(rs: ResultSet): Unit = {
+    when(rs.next()).thenReturn(true, false)
+    when(rs.getLong("subcontractor_id")).thenReturn(999L)
+    when(rs.getLong("subbie_resource_ref")).thenReturn(456L)
+    when(rs.getString("type")).thenReturn("soletrader")
+    when(rs.getString("utr")).thenReturn("1234567890")
+    when(rs.getString("firstname")).thenReturn("John")
+    when(rs.getString("nino")).thenReturn("AA123456A")
+    when(rs.getString("secondname")).thenReturn("Q")
+    when(rs.getString("surname")).thenReturn("Smith")
+    when(rs.getString("auto_verified")).thenReturn("N")
+    when(rs.getString("updated_tax_treatment")).thenReturn("NET")
+    when(rs.getInt("version")).thenReturn(1)
+    when(rs.wasNull()).thenReturn(false)
+  }
+
+  def stubSubmissionRow(rs: ResultSet): Unit = {
+    when(rs.next()).thenReturn(true, false)
+    when(rs.getLong("submission_id")).thenReturn(555L)
+    when(rs.getString("submission_type")).thenReturn("VERIFICATIONS")
+    when(rs.getLong("active_object_id")).thenReturn(99L)
+    when(rs.getString("status")).thenReturn("STARTED")
+    when(rs.getString("hmrc_mark_generated")).thenReturn("old-irmark")
+    when(rs.getString("hmrc_mark_ggis")).thenReturn(null)
+    when(rs.getString("email_recipient")).thenReturn("test@test.com")
+    when(rs.getString("accepted_time")).thenReturn(null)
+    when(rs.getLong("scheme_id")).thenReturn(123L)
+    when(rs.getString("agent_id")).thenReturn("agent-123")
+    when(rs.getString("govtalk_error_code")).thenReturn(null)
+    when(rs.getString("govtalk_error_type")).thenReturn(null)
+    when(rs.getString("govtalk_error_message")).thenReturn(null)
+    when(rs.wasNull()).thenReturn(false)
+  }
+
+  def stubVerificationBatchRow(rs: ResultSet): Unit = {
+    when(rs.next()).thenReturn(true, false)
+    when(rs.getLong("verification_batch_id")).thenReturn(99L)
+    when(rs.getLong("scheme_id")).thenReturn(123L)
+    when(rs.getLong("verifications_counter")).thenReturn(1L)
+    when(rs.getLong("verif_batch_resource_ref")).thenReturn(222L)
+    when(rs.getString("proceed_session")).thenReturn("Y")
+    when(rs.getString("confirm_arrangement")).thenReturn("Y")
+    when(rs.getString("confirm_correct")).thenReturn("Y")
+    when(rs.getString("status")).thenReturn("STARTED")
+    when(rs.getString("verification_number")).thenReturn("VB123")
+    when(rs.getInt("version")).thenReturn(1)
+    when(rs.wasNull()).thenReturn(false)
+  }
+
+  def stubVerificationRow(rs: ResultSet): Unit = {
+    when(rs.next()).thenReturn(true, false)
+    when(rs.getLong("verification_id")).thenReturn(1001L)
+    when(rs.getString("matched")).thenReturn(null)
+    when(rs.getString("verification_number")).thenReturn(null)
+    when(rs.getString("tax_treatment")).thenReturn(null)
+    when(rs.getString("action_indicator")).thenReturn("VERIFY")
+    when(rs.getLong("verification_batch_id")).thenReturn(99L)
+    when(rs.getLong("scheme_id")).thenReturn(123L)
+    when(rs.getLong("subcontractor_id")).thenReturn(999L)
+    when(rs.getString("subcontractor_name")).thenReturn("John Smith")
+    when(rs.getLong("verification_resource_ref")).thenReturn(456L)
+    when(rs.getString("proceed")).thenReturn("Y")
+    when(rs.getInt("version")).thenReturn(1)
+    when(rs.wasNull()).thenReturn(false)
+  }
+
+  def stubSchemeRow(rs: ResultSet): Unit = {
+    when(rs.next()).thenReturn(true, false)
+    when(rs.getInt("scheme_id")).thenReturn(123)
+    when(rs.getString("instance_id")).thenReturn("abc-123")
+    when(rs.getString("aoref")).thenReturn("123PA00123456")
+    when(rs.getString("tax_office_number")).thenReturn("123")
+    when(rs.getString("tax_office_reference")).thenReturn("AB456")
+    when(rs.getString("email_address")).thenReturn(null)
+    when(rs.wasNull()).thenReturn(false)
+  }
+
+  "getSubmittedVerifications" - {
+
+    "calls Get_Submitted_Verifications and returns response" in {
+      val db                    = mock[Database]
+      val conn                  = mock[Connection]
+      val cs                    = mock[CallableStatement]
+      val rsScheme              = mock[ResultSet]
+      val rsSubcontractors      = mock[ResultSet]
+      val rsVerificationBatches = mock[ResultSet]
+      val rsVerifications       = mock[ResultSet]
+      val rsSubmissions         = mock[ResultSet]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetSubmittedVerifications)))
+        .thenReturn(cs)
+
+      when(cs.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+      when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
+      when(cs.getObject(eqTo(4), eqTo(classOf[ResultSet]))).thenReturn(rsVerificationBatches)
+      when(cs.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsVerifications)
+      when(cs.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsSubmissions)
+
+      stubSchemeRow(rsScheme)
+      stubSubcontractorRow(rsSubcontractors)
+      stubVerificationBatchRow(rsVerificationBatches)
+      stubVerificationRow(rsVerifications)
+      stubSubmissionRow(rsSubmissions)
+
+      val repo = new CisFormpRepository(db)
+
+      val result = repo
+        .getSubmittedVerifications(GetSubmittedVerificationsRequest("abc-123"))
+        .futureValue
+
+      result.scheme              must have size 1
+      result.subcontractors      must have size 1
+      result.verificationBatches must have size 1
+      result.verifications       must have size 1
+      result.submissions         must have size 1
+
+      verify(cs).setString(1, "abc-123")
+      verify(cs).registerOutParameter(2, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(3, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(4, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(5, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(6, OracleTypes.CURSOR)
+      verify(cs).execute()
     }
   }
 

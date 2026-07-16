@@ -99,6 +99,9 @@ object CisRowMappers {
   def collectVerificationBatches(rs: ResultSet): Seq[VerificationBatch] =
     collectVerificationBatches(rs, Nil)
 
+  def collectVerificationBatchesForGetSubmittedVerifications(rs: ResultSet): Seq[VerificationBatch] =
+    collectVerificationBatchesForGetSubmittedVerifications(rs, Nil)
+
   def collectVerifications(rs: ResultSet): Seq[Verification] =
     collectVerifications(rs, Nil)
 
@@ -122,6 +125,18 @@ object CisRowMappers {
   private def collectVerificationBatches(rs: ResultSet, acc: Seq[VerificationBatch]): Seq[VerificationBatch] =
     if (rs == null || !rs.next()) acc
     else collectVerificationBatches(rs, acc :+ readVerificationBatch(rs))
+
+  @tailrec
+  private def collectVerificationBatchesForGetSubmittedVerifications(
+    rs: ResultSet,
+    acc: Seq[VerificationBatch]
+  ): Seq[VerificationBatch] =
+    if (rs == null || !rs.next()) acc
+    else
+      collectVerificationBatchesForGetSubmittedVerifications(
+        rs,
+        acc :+ readVerificationBatchForGetSubmittedVerifications(rs)
+      )
 
   @tailrec
   private def collectVerifications(rs: ResultSet, acc: Seq[Verification]): Seq[Verification] =
@@ -151,6 +166,22 @@ object CisRowMappers {
       verificationsCounter = rs.getOptionalLong("verifications_counter"),
       verifBatchResourceRef = rs.getOptionalLong("verif_batch_resource_ref"),
       proceedSession = rs.getOptionalString("proceed_session"),
+      confirmArrangement = rs.getOptionalString("confirm_arrangement"),
+      confirmCorrect = rs.getOptionalString("confirm_correct"),
+      status = rs.getOptionalString("status"),
+      verificationNumber = rs.getOptionalString("verification_number"),
+      createDate = rs.getOptionalLocalDateTime("create_date"),
+      lastUpdate = rs.getOptionalLocalDateTime("last_update"),
+      version = rs.getOptionalInt("version")
+    )
+
+  private def readVerificationBatchForGetSubmittedVerifications(rs: ResultSet): VerificationBatch =
+    VerificationBatch(
+      verificationBatchId = rs.getLong("verification_batch_id"),
+      schemeId = rs.getLong("scheme_id"),
+      verificationsCounter = rs.getOptionalLong("verifications_counter"),
+      verifBatchResourceRef = rs.getOptionalLong("verif_batch_resource_ref"),
+      proceedSession = None,
       confirmArrangement = rs.getOptionalString("confirm_arrangement"),
       confirmCorrect = rs.getOptionalString("confirm_correct"),
       status = rs.getOptionalString("status"),

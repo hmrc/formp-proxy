@@ -47,6 +47,7 @@ POST       /cis/verification/response/process                       uk.gov.hmrc.
 POST       /cis/amend-monthly-return/create                         uk.gov.hmrc.formpproxy.cis.controllers.AmendMonthlyReturnController.createAmendedMonthlyReturn()
 
 POST       /cis/verification/submission/create                      uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.createSubmissionAndUpdateVerifications()
+POST       /cis/verification/submitted-verifications                uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.getSubmittedVerifications()
 POST       /cis/verification/submission/update                      uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.updateVerificationSubmission()
 
 GET        /cis/batchpoll-submissions                               uk.gov.hmrc.formpproxy.cis.controllers.BatchPollController.getBatchPollSubmissions()
