@@ -2854,8 +2854,8 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     try {
       cs.setString(1, p_user_identifier)
       cs.setString(2, p_formResultId)
-      setRequiredTimestamp(cs, 3, p_endstate_timestamp)
-      cs.setString(4, p_protocol_status)
+      cs.setString(3, p_protocol_status)
+      setRequiredTimestamp(cs, 4, p_endstate_timestamp)
       cs.execute()
       GovTalkStatusReturn(success = true)
     } finally cs.close()
