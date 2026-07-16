@@ -493,7 +493,6 @@ class SubcontractorControllerSpec extends SpecBase {
     }
   }
 
-
   "SubcontractorController deleteSubcontractor" - {
 
     "returns 204 NoContent when service succeeds" in {

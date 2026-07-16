@@ -1774,7 +1774,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   override def deleteSubcontractor(request: DeleteSubcontractorRequest): Future[Unit] =
     Future {
       logger.info(
-        s"[CIS] DeleteSubcontractorRequest(instanceId=${request.instanceId}, resourceReference=${request.subbieResourceRef})"
+        s"[CIS] Deleting subcontractor. instanceId=${request.instanceId}"
       )
       db.withConnection { conn =>
         callDeleteSubcontractor(
