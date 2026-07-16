@@ -4920,8 +4920,8 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(conn).prepareCall("{ call SUBMISSION_ADMIN.UpdateGovTalkStatus(?, ?, ?, ?) }")
       verify(cs).setString(1, "STORN12345")
       verify(cs).setString(2, "SUB123")
-      verify(cs).setTimestamp(3, Timestamp.valueOf("2025-01-15 12:00:00"))
-      verify(cs).setString(4, "response")
+      verify(cs).setString(3, "response")
+      verify(cs).setTimestamp(4, Timestamp.valueOf("2025-01-15 12:00:00"))
       verify(cs).execute()
       verify(cs).close()
     }
