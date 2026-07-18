@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -805,23 +805,23 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       when(cs.getObject(eqTo(12), eqTo(classOf[ResultSet]))).thenReturn(resRetSummary)
 
       // Fetch data
-      when(resRetSummary.next()).thenReturn(true, true, false) // read 2 rows
-      when(resRetSummary.getString("return_resource_ref")).thenReturn("REF01", "REF02")
-      when(resRetSummary.getString("utrn")).thenReturn("UTR001", "UTR003")
-      when(resRetSummary.getString("status")).thenReturn("SUBMITTED", "SUBMITTED")
-      when(resRetSummary.getString("submitted_date")).thenReturn("2025-01-01", "2025-02-03")
+      when(resRetSummary.next()).thenReturn(true, true, true, false)
+      when(resRetSummary.getString("return_resource_ref")).thenReturn("REF01", "REF02", "REF03")
+      when(resRetSummary.getString("utrn")).thenReturn("UTR001", "UTR003", "UTR004")
+      when(resRetSummary.getString("status")).thenReturn("SUBMITTED", "SUBMITTED", null)
+      when(resRetSummary.getString("submitted_date")).thenReturn("2025-01-01", "2025-02-03", "2025-02-04")
 
-      when(resRetSummary.getString("name")).thenReturn("purchaserName1", "purchaserName2")
+      when(resRetSummary.getString("name")).thenReturn("purchaserName1", "purchaserName2", "purchaserName3")
 
-      when(resRetSummary.getString("address")).thenReturn("Address 11", "Address 22")
-      when(resRetSummary.getString("agent")).thenReturn("Agent 11", "Agent 22")
+      when(resRetSummary.getString("address")).thenReturn("Address 11", "Address 22", "Address 23")
+      when(resRetSummary.getString("agent")).thenReturn("Agent 11", "Agent 22", "Agent 23")
 
       val repo = new SdltFormpRepository(db)
 
       val result = repo.sdltGetReturns(requestReturns).futureValue
 
       result.returnSummaryCount mustBe Some(1017)
-      result.returnSummaryList.length mustBe 2
+      result.returnSummaryList.length mustBe 3
 
       result.returnSummaryList mustBe expectedReturnsSummary
 
