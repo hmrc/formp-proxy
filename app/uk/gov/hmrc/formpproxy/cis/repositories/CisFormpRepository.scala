@@ -69,6 +69,9 @@ trait CisMonthlyReturnSource {
   def createGovTalkStatusRecord(req: CreateGovTalkStatusRecordRequest): Future[Unit]
   def getNewestVerificationBatch(instanceId: String): Future[GetNewestVerificationBatchResponse]
   def getCurrentVerificationBatch(instanceId: String): Future[GetCurrentVerificationBatchResponse]
+  def getSubmissionWithVerificationBatch(
+    request: GetSubmissionWithVerificationBatchRequest
+  ): Future[GetSubmissionWithVerificationBatchResponse]
   def deleteUnsubmittedMonthlyReturn(req: DeleteUnsubmittedMonthlyReturnRequest): Future[Unit]
   def getMonthlyReturnComplete(
     instanceId: String,
@@ -1237,6 +1240,32 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
             submission = submission
           )
         }
+      }
+    }
+  }
+  override def getSubmissionWithVerificationBatch(
+    request: GetSubmissionWithVerificationBatchRequest
+  ): Future[GetSubmissionWithVerificationBatchResponse] = {
+    logger.info(
+      s"[CIS] getSubmissionWithVerificationBatch(instanceId=${request.instanceId}, verificationBatchResourceRef=${request.verificationBatchResourceRef})"
+    )
+
+    Future {
+      db.withConnection { conn =>
+        val result =
+          callGetSubmissionWithVerificationBatch(
+            conn,
+            request.instanceId,
+            request.verificationBatchResourceRef
+          )
+
+        GetSubmissionWithVerificationBatchResponse(
+          scheme = result.scheme,
+          subcontractors = result.subcontractors,
+          verifications = result.verifications,
+          verificationBatch = result.verificationBatch,
+          submission = result.submission
+        )
       }
     }
   }

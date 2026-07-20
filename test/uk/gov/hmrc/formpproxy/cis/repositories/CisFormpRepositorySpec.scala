@@ -3374,7 +3374,6 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdateV2).close()
     }
   }
-
   "getBatchPollSubmissions" - {
     "register both cursors, execute the proc, and assemble the response" in {
       val db                    = mock[Database]
@@ -3716,6 +3715,67 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdateSubmission).setString(13, "abc-123")
       verify(csUpdateSubmission).setLong(14, 222L)
       verify(csUpdateSubmission).execute()
+    }
+
+    "getSubmissionWithVerificationBatch" - {
+
+      "call Get_Verif_Batch_Submission and return response using existing helper mapping" in {
+        val db   = mock[Database]
+        val conn = mock[Connection]
+        val cs   = mock[CallableStatement]
+
+        val submissionRs        = mock[ResultSet]
+        val verificationBatchRs = mock[ResultSet]
+        val verificationsRs     = mock[ResultSet]
+        val subcontractorsRs    = mock[ResultSet]
+        val schemeRs            = mock[ResultSet]
+
+        val request = GetSubmissionWithVerificationBatchRequest(
+          instanceId = "abc-123",
+          verificationBatchResourceRef = 77L
+        )
+
+        when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+          val f = inv.getArgument(0, classOf[Connection => Any])
+          f(conn)
+        }
+
+        when(conn.prepareCall("{ call SUBMISSION_PROCS.Get_Verif_Batch_Submission(?, ?, ?, ?, ?, ?, ?) }"))
+          .thenReturn(cs)
+
+        when(cs.getObject(3, classOf[ResultSet])).thenReturn(submissionRs)
+        when(cs.getObject(4, classOf[ResultSet])).thenReturn(verificationBatchRs)
+        when(cs.getObject(5, classOf[ResultSet])).thenReturn(verificationsRs)
+        when(cs.getObject(6, classOf[ResultSet])).thenReturn(subcontractorsRs)
+        when(cs.getObject(7, classOf[ResultSet])).thenReturn(schemeRs)
+
+        when(submissionRs.next()).thenReturn(false)
+        when(verificationBatchRs.next()).thenReturn(false)
+        when(verificationsRs.next()).thenReturn(false)
+        when(subcontractorsRs.next()).thenReturn(false)
+        when(schemeRs.next()).thenReturn(false)
+
+        val repo = new CisFormpRepository(db)
+
+        val result =
+          repo.getSubmissionWithVerificationBatch(request).futureValue
+
+        result.scheme mustBe None
+        result.subcontractors mustBe Seq.empty
+        result.verifications mustBe Seq.empty
+        result.verificationBatch mustBe None
+        result.submission mustBe None
+
+        verify(conn).prepareCall("{ call SUBMISSION_PROCS.Get_Verif_Batch_Submission(?, ?, ?, ?, ?, ?, ?) }")
+        verify(cs).setString(1, request.instanceId)
+        verify(cs).setLong(2, request.verificationBatchResourceRef)
+        verify(cs).registerOutParameter(3, OracleTypes.CURSOR)
+        verify(cs).registerOutParameter(4, OracleTypes.CURSOR)
+        verify(cs).registerOutParameter(5, OracleTypes.CURSOR)
+        verify(cs).registerOutParameter(6, OracleTypes.CURSOR)
+        verify(cs).registerOutParameter(7, OracleTypes.CURSOR)
+        verify(cs).execute()
+      }
     }
 
     "throws when scheme is missing" in {

@@ -2557,8 +2557,6 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
 
       cs.execute()
 
-      val submissionId = cs.getLong(4)
-
       CreateSubmissionReturn(success = true)
     } finally cs.close()
   }
@@ -2667,7 +2665,6 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
 
       cs.execute()
 
-      val errorDetailId = cs.getLong(5)
       CreateSubmissionErrorDetailReturn(success = true)
     } finally cs.close()
   }
