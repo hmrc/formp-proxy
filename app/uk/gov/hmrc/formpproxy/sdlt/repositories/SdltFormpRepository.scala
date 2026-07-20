@@ -353,7 +353,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     ReturnSummary(
       returnReference = rs.getString("return_resource_ref"),
       utrn = Option(rs.getString("utrn")),
-      status = Option(rs.getString("status")).getOrElse(""),
+      status = Option(rs.getString("status")),
       dateSubmitted = Try(LocalDate.parse(rs.getString("submitted_date"))).toOption,
       purchaserName = Option(rs.getString("name")).getOrElse(""),
       address = Option(rs.getString("address")).getOrElse(""),

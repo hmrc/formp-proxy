@@ -362,7 +362,7 @@ class ReturnsControllerSpec
       contentType(res) mustBe Some(JSON)
 
       val json: JsValue = contentAsJson(res)
-      (json \ "returnSummaryCount").asOpt[Int] mustBe Some(2)
+      (json \ "returnSummaryCount").asOpt[Int] mustBe Some(3)
       (json \ "returnSummaryList").as[List[ReturnSummary]] mustBe expectedReturnsSummary
 
       verify(mockService).getSDLTReturns(eqTo(requestReturns))
