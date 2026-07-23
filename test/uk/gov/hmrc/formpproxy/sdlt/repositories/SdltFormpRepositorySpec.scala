@@ -22,7 +22,7 @@ import org.mockito.Mockito.*
 import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.sdlt.models.*
-import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnForPurge, ReturnSummary, ReturnsForPurgeResponse, SdltReturnRecordResponse}
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnForPurge, ReturnSummary, ReturnsForPurgeResponse, SdltReturnRecordResponse, SubmissionsForPollingResponse}
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.*
 import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
@@ -951,6 +951,68 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       val result: ReturnsForPurgeResponse = repo.sdltGetReturnsForPurge(requestReturnsForPurge).futureValue
       result.returnsForPurge.length mustBe 0
       result.returnsForPurge mustBe expectedReturnsForPurgeEmpty
+    }
+  }
+
+  "sdltGetSubmissionsForPolling" - {
+    "call GET_SUBMISSIONS_FOR_POLLING and map each cursor row to a SubmissionForPolling" in new ReturnsFixture {
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]);
+        f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo("{ call SUBMISSION_PROCS.GET_SUBMISSIONS_FOR_POLLING(?) }")
+        )
+      ).thenReturn(cs)
+
+      when(cs.getObject(eqTo(1), eqTo(classOf[ResultSet]))).thenReturn(resRetSummary)
+
+      when(resRetSummary.next()).thenReturn(true, true, false)
+      when(resRetSummary.getString("storn")).thenReturn("STORN12345", "STORN12345")
+      when(resRetSummary.getString("submission_id")).thenReturn("9001", "9002")
+      when(resRetSummary.getString("return_resource_ref")).thenReturn("REF01", "REF02")
+      when(resRetSummary.getString("status")).thenReturn("ACCEPTED", "ACCEPTED")
+
+      val repo = new SdltFormpRepository(db)
+
+      val result = repo.sdltGetSubmissionsForPolling().futureValue
+
+      result.submissions.length mustBe 2
+      result.submissions mustBe expectedSubmissionsForPolling
+
+      verify(conn).prepareCall(
+        eqTo("{ call SUBMISSION_PROCS.GET_SUBMISSIONS_FOR_POLLING(?) }")
+      )
+      verify(cs).registerOutParameter(1, OracleTypes.CURSOR)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "call GET_SUBMISSIONS_FOR_POLLING and return an empty list when no submissions are due for polling" in new ReturnsFixture {
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]);
+        f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo("{ call SUBMISSION_PROCS.GET_SUBMISSIONS_FOR_POLLING(?) }")
+        )
+      ).thenReturn(cs)
+
+      when(cs.getObject(eqTo(1), eqTo(classOf[ResultSet]))).thenReturn(resRetSummary)
+
+      when(resRetSummary.next()).thenReturn(false)
+
+      val repo = new SdltFormpRepository(db)
+
+      val result: SubmissionsForPollingResponse = repo.sdltGetSubmissionsForPolling().futureValue
+      result.submissions.length mustBe 0
+      result.submissions mustBe expectedSubmissionsForPollingEmpty
     }
   }
 

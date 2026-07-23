@@ -18,7 +18,7 @@ package uk.gov.hmrc.formpproxy.sdlt.repositories
 
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.formpproxy.sdlt.models.{GetReturnRecordsRequest, GetReturnsForPurgeRequest}
-import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnForPurge, ReturnSummary, ReturnsForPurgeResponse, SdltReturnRecordResponse}
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnForPurge, ReturnSummary, ReturnsForPurgeResponse, SdltReturnRecordResponse, SubmissionForPolling, SubmissionsForPollingResponse}
 
 import java.time.LocalDate
 
@@ -104,5 +104,24 @@ trait SdltFormpRepoDataHelper {
 
   val requestReturnsForPurge: GetReturnsForPurgeRequest = GetReturnsForPurgeRequest(
     purgeDate = LocalDate.parse("2026-06-29")
+  )
+
+  val expectedSubmissionsForPolling: List[SubmissionForPolling]      = List(
+    SubmissionForPolling(
+      submissionId = "9001",
+      storn = "STORN12345",
+      returnResourceRef = "REF01",
+      submissionStatus = "ACCEPTED"
+    ),
+    SubmissionForPolling(
+      submissionId = "9002",
+      storn = "STORN12345",
+      returnResourceRef = "REF02",
+      submissionStatus = "ACCEPTED"
+    )
+  )
+  val expectedSubmissionsForPollingEmpty: List[SubmissionForPolling] = List.empty
+  val submissionsForPollingResponse: SubmissionsForPollingResponse   = SubmissionsForPollingResponse(
+    submissions = expectedSubmissionsForPolling
   )
 }

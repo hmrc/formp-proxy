@@ -23,14 +23,14 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.{JsObject, JsValue, Json}
-import play.api.mvc.{ControllerComponents, PlayBodyParsers, Result}
+import play.api.mvc.{AnyContentAsEmpty, ControllerComponents, PlayBodyParsers, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import uk.gov.hmrc.formpproxy.actions.{ApiKeyAction, AuthAction, FakeApiKeyAction, FakeAuthAction}
+import uk.gov.hmrc.formpproxy.actions.{ApiKeyAction, AuthAction, AuthOrApiKeyAction, FakeApiKeyAction, FakeAuthAction, FakeAuthOrApiKeyAction}
 import uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.{UpdateReturnRequest, UpdateReturnReturn}
-import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnForPurge, ReturnSummary}
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnForPurge, ReturnSummary, SubmissionForPolling}
 import uk.gov.hmrc.formpproxy.sdlt.repositories.SdltFormpRepoDataHelper
 import uk.gov.hmrc.formpproxy.sdlt.services.ReturnService
 import uk.gov.hmrc.http.UpstreamErrorResponse
@@ -459,6 +459,50 @@ class ReturnsControllerSpec
         .thenReturn(Future.failed(new RuntimeException("Database timeout")))
 
       val res: Future[Result] = controller.getSDLTReturnsForPurge()(req)
+
+      status(res) mustBe INTERNAL_SERVER_ERROR
+      (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
+    }
+  }
+
+  "ReturnsController getSDLTSubmissionsForPolling" - {
+
+    "returns 200 with the submissions due for polling when the service succeeds" in new Setup {
+      when(mockService.getSDLTSubmissionsForPolling())
+        .thenReturn(Future.successful(submissionsForPollingResponse))
+      val req: FakeRequest[AnyContentAsEmpty.type] = makeSubmissionsForPollingRequest()
+      val res: Future[Result]                      = controller.getSDLTSubmissionsForPolling()(req)
+
+      status(res) mustBe OK
+      contentType(res) mustBe Some(JSON)
+
+      val json: JsValue = contentAsJson(res)
+      (json \ "submissions").as[List[SubmissionForPolling]] mustBe expectedSubmissionsForPolling
+
+      verify(mockService).getSDLTSubmissionsForPolling()
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns the upstream status when FORMP responds with an error" in new Setup {
+      val req: FakeRequest[AnyContentAsEmpty.type] = makeSubmissionsForPollingRequest()
+      val err: UpstreamErrorResponse               = UpstreamErrorResponse("FORMP service unavailable", BAD_GATEWAY, BAD_GATEWAY)
+
+      when(mockService.getSDLTSubmissionsForPolling())
+        .thenReturn(Future.failed(err))
+
+      val res: Future[Result] = controller.getSDLTSubmissionsForPolling()(req)
+
+      status(res) mustBe BAD_GATEWAY
+      (contentAsJson(res) \ "message").as[String] must include("FORMP service unavailable")
+    }
+
+    "returns 500 with a generic message on an unexpected exception" in new Setup {
+      val req: FakeRequest[AnyContentAsEmpty.type] = makeSubmissionsForPollingRequest()
+
+      when(mockService.getSDLTSubmissionsForPolling())
+        .thenReturn(Future.failed(new RuntimeException("Database timeout")))
+
+      val res: Future[Result] = controller.getSDLTSubmissionsForPolling()(req)
 
       status(res) mustBe INTERNAL_SERVER_ERROR
       (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
@@ -976,14 +1020,15 @@ class ReturnsControllerSpec
   }
 
   private trait Setup {
-    implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.global
-    private val cc: ControllerComponents = stubControllerComponents()
-    private val parsers: PlayBodyParsers = cc.parsers
-    private def fakeAuth: AuthAction     = new FakeAuthAction(parsers)
-    private def fakeApiKey: ApiKeyAction = new FakeApiKeyAction(parsers)
+    implicit val ec: ExecutionContext                = scala.concurrent.ExecutionContext.global
+    private val cc: ControllerComponents             = stubControllerComponents()
+    private val parsers: PlayBodyParsers             = cc.parsers
+    private def fakeAuth: AuthAction                 = new FakeAuthAction(parsers)
+    private def fakeApiKey: ApiKeyAction             = new FakeApiKeyAction(parsers)
+    private def fakeAuthOrApiKey: AuthOrApiKeyAction = new FakeAuthOrApiKeyAction(parsers)
 
     val mockService: ReturnService = mock[ReturnService]
-    val controller                 = new ReturnsController(fakeAuth, fakeApiKey, mockService, cc)
+    val controller                 = new ReturnsController(fakeAuth, fakeApiKey, fakeAuthOrApiKey, mockService, cc)
 
     def makeJsonRequest(body: JsValue): FakeRequest[JsValue] =
       FakeRequest(POST, "/formp-proxy/sdlt/return")
@@ -999,6 +1044,10 @@ class ReturnsControllerSpec
       FakeRequest(POST, "/formp-proxy/sdlt/returns-for-purge")
         .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
         .withBody(body)
+
+    def makeSubmissionsForPollingRequest(): FakeRequest[AnyContentAsEmpty.type] =
+      FakeRequest(GET, "/formp-proxy/sdlt/submissions-polling")
+        .withHeaders(ACCEPT -> JSON)
 
     val fullReturnData: GetReturnRequest = GetReturnRequest(
       stornId = Some("STORN12345"),

@@ -22,7 +22,7 @@ import play.api.db.{Database, NamedDatabase}
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
 import uk.gov.hmrc.formpproxy.sdlt.models.organisation.*
-import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnForPurge, ReturnSummary, ReturnsForPurgeResponse, SdltReturnRecordResponse}
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnForPurge, ReturnSummary, ReturnsForPurgeResponse, SdltReturnRecordResponse, SubmissionForPolling, SubmissionsForPollingResponse}
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.*
 import uk.gov.hmrc.formpproxy.sdlt.models.land.*
@@ -45,6 +45,7 @@ trait SdltSource {
   def sdltGetReturn(returnResourceRef: String, storn: String): Future[GetReturnRequest]
   def sdltGetReturns(request: GetReturnRecordsRequest): Future[SdltReturnRecordResponse]
   def sdltGetReturnsForPurge(request: GetReturnsForPurgeRequest): Future[ReturnsForPurgeResponse]
+  def sdltGetSubmissionsForPolling(): Future[SubmissionsForPollingResponse]
   def sdltDeleteReturn(request: DeleteReturnRequest): Future[DeleteReturnReturn]
   def sdltCreateVendor(request: CreateVendorRequest): Future[CreateVendorReturn]
   def sdltUpdateVendor(request: UpdateVendorRequest): Future[UpdateVendorReturn]
@@ -321,6 +322,34 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       storn = rs.getString("storn"),
       returnResourceRef = rs.getString("return_resource_ref"),
       status = Option(rs.getString("status")).getOrElse("")
+    )
+
+  override def sdltGetSubmissionsForPolling(): Future[SubmissionsForPollingResponse] = {
+    logger.info("[SDLT] sdltGetSubmissionsForPolling()")
+    Future {
+      db.withConnection { conn =>
+        val cs = conn.prepareCall(
+          "{ call SUBMISSION_PROCS.GET_SUBMISSIONS_FOR_POLLING(?) }"
+        )
+        try {
+          cs.registerOutParameter(1, OracleTypes.CURSOR)
+          cs.execute()
+
+          val submissions: Seq[SubmissionForPolling] =
+            processResultSetSeq(cs, 1, processSubmissionForPolling)
+
+          SubmissionsForPollingResponse(submissions = submissions.toList)
+        } finally cs.close()
+      }
+    }
+  }
+
+  private def processSubmissionForPolling(rs: ResultSet): SubmissionForPolling =
+    SubmissionForPolling(
+      submissionId = rs.getString("submission_id"),
+      storn = rs.getString("storn"),
+      returnResourceRef = rs.getString("return_resource_ref"),
+      submissionStatus = Option(rs.getString("status")).getOrElse("")
     )
 
   override def sdltDeleteReturn(request: DeleteReturnRequest): Future[DeleteReturnReturn] = Future {

@@ -29,7 +29,7 @@ import uk.gov.hmrc.formpproxy.sdlt.models.residency.*
 import uk.gov.hmrc.formpproxy.sdlt.models.transaction.*
 import uk.gov.hmrc.formpproxy.sdlt.models.lease.*
 import uk.gov.hmrc.formpproxy.sdlt.models.taxCalculation.*
-import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnsForPurgeResponse, SdltReturnRecordResponse}
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnsForPurgeResponse, SdltReturnRecordResponse, SubmissionsForPollingResponse}
 import uk.gov.hmrc.formpproxy.sdlt.repositories.{SdltFormpRepoDataHelper, SdltFormpRepository}
 
 import scala.concurrent.Future
@@ -559,6 +559,20 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
       result mustBe returnsForPurgeResponse
 
       verify(repo).sdltGetReturnsForPurge(eqTo(requestReturnsForPurge))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "ReturnService getSDLTSubmissionsForPolling" - {
+    "delegate to the repository" in new ReturnsFixture {
+
+      when(repo.sdltGetSubmissionsForPolling())
+        .thenReturn(Future.successful(submissionsForPollingResponse))
+
+      val result: SubmissionsForPollingResponse = service.getSDLTSubmissionsForPolling().futureValue
+      result mustBe submissionsForPollingResponse
+
+      verify(repo).sdltGetSubmissionsForPolling()
       verifyNoMoreInteractions(repo)
     }
   }
