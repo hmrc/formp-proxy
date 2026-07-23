@@ -94,6 +94,8 @@ trait CisMonthlyReturnSource {
   def getSubcontractorForDelete(cisId: String, subbieResourceRef: Long): Future[GetSubcontractorForDeleteResponse]
 
   def getSubmittedVerifications(req: GetSubmittedVerificationsRequest): Future[GetSubmittedVerificationsResponse]
+
+  def getSubcontractor(cisId: String, subbieResourceRef: Long): Future[GetSubcontractorResponse]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -1858,6 +1860,35 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         verifications = withCursor(cs, 5)(collectVerifications),
         submissions = withCursor(cs, 6)(collectSubmissions)
       )
+    }
+
+  override def getSubcontractor(
+    cisId: String,
+    subbieResourceRef: Long
+  ): Future[GetSubcontractorResponse] =
+    Future {
+      logger.info(
+        s"[CIS] getSubcontractor(cisId=$cisId, subbieResourceRef=$subbieResourceRef)"
+      )
+
+      db.withConnection { conn =>
+        withCall(conn, CallGetSubcontractor) { cs =>
+          cs.setString(1, cisId)
+          cs.setLong(2, subbieResourceRef)
+
+          cs.registerOutParameter(3, OracleTypes.CURSOR)
+          cs.registerOutParameter(4, OracleTypes.CURSOR)
+          cs.registerOutParameter(5, OracleTypes.CURSOR)
+
+          cs.execute()
+
+          GetSubcontractorResponse(
+            scheme = withCursor(cs, 3)(collectSchemes).headOption,
+            subcontractor = withCursor(cs, 4)(collectSubcontractors).headOption,
+            otherInfo = withCursor(cs, 5)(collectSubcontractorOtherInfo)
+          )
+        }
+      }
     }
 
 }

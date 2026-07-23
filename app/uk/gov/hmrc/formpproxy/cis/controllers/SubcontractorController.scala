@@ -24,6 +24,7 @@ import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.formpproxy.cis.models.requests.CreateAndUpdateSubcontractorRequest
+import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorResponse
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -76,6 +77,23 @@ class SubcontractorController @Inject() (
         .recover { case t =>
           logger.error(
             s"[getSubcontractorForDelete] failed (cisId=$cisId, subbieResourceRef=$subbieResourceRef)",
+            t
+          )
+          InternalServerError(Json.obj("message" -> "Unexpected error"))
+        }
+    }
+
+  def getSubcontractor(
+    cisId: String,
+    subbieResourceRef: Long
+  ): Action[AnyContent] =
+    authorise.async { implicit request =>
+      service
+        .getSubcontractor(cisId, subbieResourceRef)
+        .map(response => Ok(Json.toJson(response)))
+        .recover { case t =>
+          logger.error(
+            s"[getSubcontractor] failed (cisId=$cisId, subbieResourceRef=$subbieResourceRef)",
             t
           )
           InternalServerError(Json.obj("message" -> "Unexpected error"))

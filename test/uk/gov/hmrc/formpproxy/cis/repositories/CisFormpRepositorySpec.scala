@@ -28,6 +28,7 @@ import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorForDeleteResponse
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
+import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorOtherInfo, GetSubcontractorResponse}
 
 import java.sql.*
 import java.time.{Instant, LocalDateTime}
@@ -4256,6 +4257,169 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       exception mustBe an[IllegalStateException]
       exception.getMessage must include("Expected exactly one subcontractor")
+    }
+  }
+
+  "getSubcontractor" - {
+
+    "calls SUBCONTRACTOR_PROCS.Get_Subcontractor, parses scheme, subcontractor and otherInfo, and closes resources" in {
+      val db       = mock[Database]
+      val conn     = mock[Connection]
+      val cs       = mock[CallableStatement]
+      val rsScheme = mock[ResultSet]
+      val rsSub    = mock[ResultSet]
+      val rsOther  = mock[ResultSet]
+
+      val cisId             = "cis-123"
+      val subbieResourceRef = 10L
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      val call = "{ call SUBCONTRACTOR_PROCS.Get_Subcontractor(?, ?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+
+      when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+      when(cs.getObject(eqTo(4), eqTo(classOf[ResultSet]))).thenReturn(rsSub)
+      when(cs.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsOther)
+
+      when(rsScheme.next()).thenReturn(true, false)
+      when(rsScheme.getInt("scheme_id")).thenReturn(123)
+      when(rsScheme.getString("instance_id")).thenReturn(cisId)
+      when(rsScheme.getString("aoref")).thenReturn("123PA00123456")
+      when(rsScheme.getString("tax_office_number")).thenReturn("123")
+      when(rsScheme.getString("tax_office_reference")).thenReturn("AB456")
+      when(rsScheme.getString("utr")).thenReturn("1234567890")
+      when(rsScheme.getString("name")).thenReturn("Test Contractor Ltd")
+      when(rsScheme.getString("email_address")).thenReturn("contractor@example.com")
+      when(rsScheme.getString("display_welcome_page")).thenReturn("Y")
+      when(rsScheme.getInt("pre_pop_count")).thenReturn(1)
+      when(rsScheme.getString("pre_pop_successful")).thenReturn("Y")
+      when(rsScheme.getInt("subcontractor_counter")).thenReturn(1)
+      when(rsScheme.getInt("verif_batch_counter")).thenReturn(1)
+      when(rsScheme.getTimestamp("create_date")).thenReturn(null)
+      when(rsScheme.getTimestamp("last_update")).thenReturn(null)
+      when(rsScheme.getInt("version")).thenReturn(1)
+      when(rsScheme.wasNull()).thenReturn(false)
+
+      when(rsSub.next()).thenReturn(true, false)
+      when(rsSub.getLong("subcontractor_id")).thenReturn(1L)
+      when(rsSub.getLong("subbie_resource_ref")).thenReturn(10L)
+      when(rsSub.getString("type")).thenReturn("soletrader")
+      when(rsSub.getString("utr")).thenReturn("1234567890")
+      when(rsSub.getInt("page_visited")).thenReturn(2)
+      when(rsSub.getString("partner_utr")).thenReturn(null)
+      when(rsSub.getString("crn")).thenReturn(null)
+      when(rsSub.getString("firstname")).thenReturn("John")
+      when(rsSub.getString("nino")).thenReturn("AA123456A")
+      when(rsSub.getString("secondname")).thenReturn(null)
+      when(rsSub.getString("surname")).thenReturn("Smith")
+      when(rsSub.getString("partnership_tradingname")).thenReturn(null)
+      when(rsSub.getString("tradingname")).thenReturn("ACME")
+      when(rsSub.getString("address_line_1")).thenReturn("1 Main Street")
+      when(rsSub.getString("address_line_2")).thenReturn(null)
+      when(rsSub.getString("address_line_3")).thenReturn(null)
+      when(rsSub.getString("address_line_4")).thenReturn(null)
+      when(rsSub.getString("country")).thenReturn("United Kingdom")
+      when(rsSub.getString("postcode")).thenReturn("AA1 1AA")
+      when(rsSub.getString("email_address")).thenReturn(null)
+      when(rsSub.getString("phone_number")).thenReturn(null)
+      when(rsSub.getString("mobile_phone_number")).thenReturn(null)
+      when(rsSub.getString("works_reference_number")).thenReturn(null)
+      when(rsSub.getInt("version")).thenReturn(1)
+      when(rsSub.getString("tax_treatment")).thenReturn(null)
+      when(rsSub.getString("updated_tax_treatment")).thenReturn(null)
+      when(rsSub.getString("verification_number")).thenReturn(null)
+      when(rsSub.getTimestamp("create_date")).thenReturn(Timestamp.valueOf("2026-01-10 09:00:00"))
+      when(rsSub.getTimestamp("last_update")).thenReturn(Timestamp.valueOf("2026-01-11 10:00:00"))
+      when(rsSub.getString("matched")).thenReturn(null)
+      when(rsSub.getString("verified")).thenReturn(null)
+      when(rsSub.getString("auto_verified")).thenReturn(null)
+      when(rsSub.getTimestamp("verification_date")).thenReturn(null)
+      when(rsSub.getTimestamp("last_monthly_return_date")).thenReturn(null)
+      when(rsSub.getInt("pending_verifications")).thenReturn(0)
+      when(rsSub.wasNull()).thenReturn(false)
+
+      when(rsOther.next()).thenReturn(true, false)
+      when(rsOther.getString("utr")).thenReturn("1111111111")
+
+      val repo = new CisFormpRepository(db)
+
+      val out = repo.getSubcontractor(cisId, subbieResourceRef).futureValue
+
+      out.scheme mustBe defined
+      out.scheme.value.schemeId mustBe 123
+      out.scheme.value.instanceId mustBe cisId
+
+      out.subcontractor mustBe defined
+      out.subcontractor.value.subcontractorId mustBe 1L
+      out.subcontractor.value.subbieResourceRef mustBe Some(10L)
+      out.subcontractor.value.subcontractorType mustBe Some("soletrader")
+      out.subcontractor.value.utr mustBe Some("1234567890")
+      out.subcontractor.value.firstName mustBe Some("John")
+      out.subcontractor.value.surname mustBe Some("Smith")
+      out.subcontractor.value.displayName mustBe "Smith, John"
+
+      out.otherInfo mustBe Seq(
+        GetSubcontractorOtherInfo("1111111111")
+      )
+
+      verify(conn).prepareCall(eqTo(call))
+      verify(cs).setString(1, cisId)
+      verify(cs).setLong(2, subbieResourceRef)
+      verify(cs).registerOutParameter(3, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(4, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(5, OracleTypes.CURSOR)
+      verify(cs).execute()
+
+      verify(rsScheme).close()
+      verify(rsSub).close()
+      verify(rsOther).close()
+      verify(cs).close()
+    }
+
+    "returns None for scheme and subcontractor when cursors are empty" in {
+      val db       = mock[Database]
+      val conn     = mock[Connection]
+      val cs       = mock[CallableStatement]
+      val rsScheme = mock[ResultSet]
+      val rsSub    = mock[ResultSet]
+      val rsOther  = mock[ResultSet]
+
+      val cisId             = "cis-123"
+      val subbieResourceRef = 10L
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      val call = "{ call SUBCONTRACTOR_PROCS.Get_Subcontractor(?, ?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+
+      when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+      when(cs.getObject(eqTo(4), eqTo(classOf[ResultSet]))).thenReturn(rsSub)
+      when(cs.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsOther)
+
+      when(rsScheme.next()).thenReturn(false)
+      when(rsSub.next()).thenReturn(false)
+      when(rsOther.next()).thenReturn(false)
+
+      val repo = new CisFormpRepository(db)
+
+      val out = repo.getSubcontractor(cisId, subbieResourceRef).futureValue
+
+      out.scheme mustBe None
+      out.subcontractor mustBe None
+      out.otherInfo mustBe empty
+
+      verify(cs).execute()
+      verify(rsScheme).close()
+      verify(rsSub).close()
+      verify(rsOther).close()
+      verify(cs).close()
     }
   }
 

@@ -263,6 +263,23 @@ class CisRowMappersSpec extends AnyFreeSpec with Matchers with MockitoSugar {
     }
   }
 
+  "collectSubcontractorOtherInfo reads rows until rs.next() is false" in {
+    val rs = mock[ResultSet]
+
+    when(rs.next()).thenReturn(true, true, false)
+    when(rs.getString("utr")).thenReturn("1111111111", "2222222222")
+
+    val out = CisRowMappers.collectSubcontractorOtherInfo(rs)
+
+    out mustBe Seq(
+      GetSubcontractorOtherInfo("1111111111"),
+      GetSubcontractorOtherInfo("2222222222")
+    )
+
+    verify(rs, times(3)).next()
+    verify(rs, times(2)).getString("utr")
+  }
+
   "collectVerificationSubmissionsToPoll" - {
 
     "map a single row into a VerificationSubmissionToPoll" in {
