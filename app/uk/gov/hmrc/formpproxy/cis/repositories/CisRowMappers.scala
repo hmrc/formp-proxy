@@ -19,6 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.repositories
 import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
+import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorOtherInfo
 
 import java.sql.ResultSet
 import scala.annotation.tailrec
@@ -471,5 +472,21 @@ object CisRowMappers {
       verificationDate = None,
       lastMonthlyReturnDate = rs.getOptionalLocalDateTime("last_monthly_return_date"),
       pendingVerifications = None
+    )
+
+  def collectSubcontractorOtherInfo(rs: ResultSet): Seq[GetSubcontractorOtherInfo] =
+    collectSubcontractorOtherInfo(rs, Nil)
+
+  @tailrec
+  private def collectSubcontractorOtherInfo(
+    rs: ResultSet,
+    acc: Seq[GetSubcontractorOtherInfo]
+  ): Seq[GetSubcontractorOtherInfo] =
+    if (rs == null || !rs.next()) acc
+    else collectSubcontractorOtherInfo(rs, acc :+ readSubcontractorOtherInfo(rs))
+
+  private def readSubcontractorOtherInfo(rs: ResultSet): GetSubcontractorOtherInfo =
+    GetSubcontractorOtherInfo(
+      utr = rs.getString("utr")
     )
 }

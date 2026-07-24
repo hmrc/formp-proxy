@@ -24,7 +24,8 @@ import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
-import uk.gov.hmrc.formpproxy.cis.models.Subcontractor
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, Subcontractor}
+import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorOtherInfo, GetSubcontractorResponse}
 import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorForDeleteResponse, GetSubcontractorListResponse}
 import uk.gov.hmrc.formpproxy.cis.models.requests.CreateAndUpdateSubcontractorRequest
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
@@ -349,6 +350,143 @@ class SubcontractorControllerSpec extends SpecBase {
 
       verify(mockService)
         .getSubcontractorForDelete(
+          eqTo(cisId),
+          eqTo(subbieResourceRef)
+        )
+    }
+  }
+
+  "getSubcontractor" - {
+
+    val cisId             = "123"
+    val subbieResourceRef = 10L
+
+    "must return OK with JSON when service succeeds" in new Setup {
+
+      val response =
+        GetSubcontractorResponse(
+          scheme = Some(
+            ContractorScheme(
+              schemeId = 123,
+              instanceId = cisId,
+              accountsOfficeReference = "123PA00123456",
+              taxOfficeNumber = "123",
+              taxOfficeReference = "AB456",
+              utr = Some("1234567890"),
+              name = Some("Test Contractor Ltd"),
+              emailAddress = Some("contractor@example.com"),
+              displayWelcomePage = Some("Y"),
+              prePopCount = Some(1),
+              prePopSuccessful = Some("Y"),
+              subcontractorCounter = Some(1),
+              verificationBatchCounter = Some(1),
+              version = Some(1)
+            )
+          ),
+          subcontractor = Some(
+            Subcontractor(
+              subcontractorId = 1L,
+              subbieResourceRef = Some(10L),
+              subcontractorType = Some("soletrader"),
+              utr = Some("1234567890"),
+              pageVisited = Some(2),
+              partnerUtr = None,
+              crn = None,
+              firstName = Some("John"),
+              nino = Some("AA123456A"),
+              secondName = None,
+              surname = Some("Smith"),
+              partnershipTradingName = None,
+              tradingName = Some("ACME"),
+              addressLine1 = Some("1 Main Street"),
+              addressLine2 = None,
+              addressLine3 = None,
+              addressLine4 = None,
+              country = Some("United Kingdom"),
+              postcode = Some("AA1 1AA"),
+              emailAddress = None,
+              phoneNumber = None,
+              mobilePhoneNumber = None,
+              worksReferenceNumber = None,
+              version = Some(1),
+              taxTreatment = None,
+              updatedTaxTreatment = None,
+              verificationNumber = None,
+              createDate = None,
+              lastUpdate = None,
+              matched = None,
+              verified = None,
+              autoVerified = None,
+              verificationDate = None,
+              lastMonthlyReturnDate = None,
+              pendingVerifications = Some(0)
+            )
+          ),
+          otherInfo = Seq(
+            GetSubcontractorOtherInfo("1111111111")
+          )
+        )
+
+      when(
+        mockService.getSubcontractor(
+          eqTo(cisId),
+          eqTo(subbieResourceRef)
+        )
+      ).thenReturn(Future.successful(response))
+
+      val result =
+        controller.getSubcontractor(cisId, subbieResourceRef)(
+          FakeRequest(
+            GET,
+            s"/cis/subcontractor/$cisId/$subbieResourceRef"
+          )
+        )
+
+      status(result) mustBe OK
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.toJson(response)
+
+      (contentAsJson(result) \ "scheme" \ "schemeId").as[Int] mustBe 123
+      (contentAsJson(result) \ "subcontractor" \ "subcontractorId").as[Long] mustBe 1L
+      (contentAsJson(result) \ "subcontractor" \ "displayName").as[String] mustBe "Smith, John"
+      (contentAsJson(result) \ "otherInfo")(0).\("utr").as[String] mustBe "1111111111"
+
+      verify(mockService)
+        .getSubcontractor(
+          eqTo(cisId),
+          eqTo(subbieResourceRef)
+        )
+    }
+
+    "must return InternalServerError when service fails" in new Setup {
+
+      when(
+        mockService.getSubcontractor(
+          eqTo(cisId),
+          eqTo(subbieResourceRef)
+        )
+      ).thenReturn(
+        Future.failed(
+          new RuntimeException("boom")
+        )
+      )
+
+      val result =
+        controller.getSubcontractor(cisId, subbieResourceRef)(
+          FakeRequest(
+            GET,
+            s"/cis/subcontractor/$cisId/$subbieResourceRef"
+          )
+        )
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+
+      contentAsJson(result) mustBe Json.obj(
+        "message" -> "Unexpected error"
+      )
+
+      verify(mockService)
+        .getSubcontractor(
           eqTo(cisId),
           eqTo(subbieResourceRef)
         )

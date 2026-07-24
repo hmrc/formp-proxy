@@ -21,6 +21,7 @@ import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
 import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorForDeleteResponse, GetSubcontractorListResponse}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 import uk.gov.hmrc.formpproxy.cis.models.CreateAndUpdateSubcontractorDatabaseRecord
+import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorResponse
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
@@ -142,5 +143,11 @@ class SubcontractorService @Inject() (repo: CisMonthlyReturnSource) {
           worksReferenceNumber = t.worksReferenceNumber
         )
     }
+
+  def getSubcontractor(
+    cisId: String,
+    subbieResourceRef: Long
+  ): Future[GetSubcontractorResponse] =
+    repo.getSubcontractor(cisId, subbieResourceRef)
 
 }
