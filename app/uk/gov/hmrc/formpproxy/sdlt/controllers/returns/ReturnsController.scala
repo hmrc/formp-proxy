@@ -34,8 +34,8 @@ package uk.gov.hmrc.formpproxy.sdlt.controllers.returns
 
 import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
-import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.formpproxy.actions.{ApiKeyAction, AuthAction}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import uk.gov.hmrc.formpproxy.actions.{ApiKeyAction, AuthAction, AuthOrApiKeyAction}
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.UpdateReturnRequest
 import uk.gov.hmrc.formpproxy.sdlt.services.ReturnService
@@ -48,6 +48,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class ReturnsController @Inject() (
   authorise: AuthAction,
   apiKeyAction: ApiKeyAction,
+  authOrApiKeyAction: AuthOrApiKeyAction,
   service: ReturnService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
@@ -75,7 +76,7 @@ class ReturnsController @Inject() (
     }
 
   def getSDLTReturn(): Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    authOrApiKeyAction.async(parse.json) { implicit request =>
       request.body
         .validate[GetReturnByRefRequest]
         .fold(
@@ -157,6 +158,20 @@ class ReturnsController @Inject() (
                   InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )
+    }
+
+  def getSDLTSubmissionsForPolling(): Action[AnyContent] =
+    apiKeyAction.async { implicit request =>
+      service
+        .getSDLTSubmissionsForPolling()
+        .map(rs => Ok(Json.toJson(rs)))
+        .recover {
+          case u: UpstreamErrorResponse =>
+            Status(u.statusCode)(Json.obj("message" -> u.message))
+          case t: Throwable             =>
+            logger.error("[getSDLTSubmissionsForPolling] failed", t)
+            InternalServerError(Json.obj("message" -> "Unexpected error"))
+        }
     }
 
   def deleteSDLTReturn(): Action[JsValue] =

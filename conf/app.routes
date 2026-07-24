@@ -61,6 +61,7 @@ POST       /retrieve-return                                         uk.gov.hmrc.
 POST       /delete/return                                           uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.deleteSDLTReturn()
 POST       /returns                                                 uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.getSDLTReturns()
 POST       /returns-for-purge                                       uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.getSDLTReturnsForPurge()
+GET        /submissions-polling                                     uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController.getSDLTSubmissionsForPolling()
 
 
 

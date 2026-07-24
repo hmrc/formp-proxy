@@ -18,7 +18,7 @@ package uk.gov.hmrc.formpproxy.sdlt.services
 
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
-import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnsForPurgeResponse, SdltReturnRecordResponse}
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnsForPurgeResponse, SdltReturnRecordResponse, SubmissionsForPollingResponse}
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.*
 import uk.gov.hmrc.formpproxy.sdlt.models.land.*
@@ -44,6 +44,9 @@ class ReturnService @Inject() (repo: SdltFormpRepository) {
 
   def getSDLTReturnsForPurge(request: GetReturnsForPurgeRequest): Future[ReturnsForPurgeResponse] =
     repo.sdltGetReturnsForPurge(request)
+
+  def getSDLTSubmissionsForPolling(): Future[SubmissionsForPollingResponse] =
+    repo.sdltGetSubmissionsForPolling()
 
   def deleteSDLTReturn(req: DeleteReturnRequest): Future[DeleteReturnReturn] =
     repo.sdltDeleteReturn(req)
