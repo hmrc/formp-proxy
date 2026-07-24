@@ -57,6 +57,24 @@ class VerificationController @Inject() (
         }
     }
 
+  def getSubmissionWithVerificationBatch: Action[JsValue] =
+    Action(parse.json).async { implicit request =>
+      request.body
+        .validate[GetSubmissionWithVerificationBatchRequest]
+        .fold(
+          errs =>
+            Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
+          req =>
+            service
+              .getSubmissionWithVerificationBatch(req)
+              .map(res => Ok(Json.toJson(res)))
+              .recover { case t =>
+                logger.error("[getSubmissionWithVerificationBatch] failed", t)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
+              }
+        )
+    }
+
   def createVerificationBatchAndVerifications(): Action[JsValue] =
     authorise(parse.json).async { implicit request =>
       request.body
@@ -112,7 +130,7 @@ class VerificationController @Inject() (
     }
 
   def updateVerificationSubmission(): Action[JsValue] =
-    authorise(parse.json).async { implicit request =>
+    Action(parse.json).async { implicit request =>
       request.body
         .validate[UpdateVerificationSubmissionRequest]
         .fold(
@@ -130,7 +148,7 @@ class VerificationController @Inject() (
     }
 
   def processVerificationResponseFromChris(): Action[JsValue] =
-    authorise(parse.json).async { implicit request =>
+    Action(parse.json).async { implicit request =>
       request.body
         .validate[ProcessVerificationResponseFromChrisRequest]
         .fold(

@@ -24,7 +24,7 @@ import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateVerifications, DeleteVerifications, MonthlyReturn, Subcontractor, Submission, Verification, VerificationBatch}
-import uk.gov.hmrc.formpproxy.cis.models.response.{CreateSubmissionAndUpdateVerificationsResponse, CreateVerificationBatchAndVerificationsResponse, GetCurrentVerificationBatchResponse, GetNewestVerificationBatchResponse, GetSubmittedVerificationsResponse}
+import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.services.VerificationService
 
@@ -944,6 +944,123 @@ class VerificationControllerSpec extends SpecBase {
       contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
 
       verify(mockService).processVerificationResponseFromChris(eqTo(requestModel))
+      verifyNoMoreInteractions(mockService)
+    }
+  }
+
+  "POST /cis/verification/submission-batch (getSubmissionWithVerificationBatch)" - {
+
+    val url = "/cis/verification/submission-batch"
+
+    "returns 200 OK with JSON body when service succeeds" in {
+      val s = setup
+      import s.*
+
+      val requestModel =
+        GetSubmissionWithVerificationBatchRequest(
+          instanceId = "abc-123",
+          verificationBatchResourceRef = 77L
+        )
+
+      val responseModel =
+        GetSubmissionWithVerificationBatchResponse(
+          scheme = None,
+          submission = None,
+          verificationBatch = None,
+          verifications = Seq.empty,
+          subcontractors = Seq.empty
+        )
+
+      when(
+        mockService.getSubmissionWithVerificationBatch(
+          eqTo(requestModel)
+        )
+      ).thenReturn(Future.successful(responseModel))
+
+      val req =
+        FakeRequest(POST, url)
+          .withHeaders(CONTENT_TYPE -> JSON)
+          .withBody(Json.toJson(requestModel))
+
+      val result =
+        controller.getSubmissionWithVerificationBatch
+          .apply(req)
+
+      status(result) mustBe OK
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.toJson(responseModel)
+
+      verify(mockService)
+        .getSubmissionWithVerificationBatch(eqTo(requestModel))
+
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 400 BadRequest when JSON is invalid" in {
+      val s = setup
+      import s.*
+
+      val invalidJson =
+        Json.obj(
+          "instanceId" -> "abc-123"
+          // verificationBatchResourceRef is missing
+        )
+
+      val req =
+        FakeRequest(POST, url)
+          .withHeaders(CONTENT_TYPE -> JSON)
+          .withBody(invalidJson)
+
+      val result =
+        controller.getSubmissionWithVerificationBatch
+          .apply(req)
+
+      status(result) mustBe BAD_REQUEST
+      contentType(result) mustBe Some(JSON)
+
+      val body = contentAsJson(result)
+
+      (body \ "message").as[String] mustBe "Invalid payload"
+      (body \ "errors").isDefined mustBe true
+
+      verifyNoInteractions(mockService)
+    }
+
+    "returns 500 InternalServerError when service fails" in {
+      val s = setup
+      import s.*
+
+      val requestModel =
+        GetSubmissionWithVerificationBatchRequest(
+          instanceId = "abc-123",
+          verificationBatchResourceRef = 77L
+        )
+
+      when(
+        mockService.getSubmissionWithVerificationBatch(
+          eqTo(requestModel)
+        )
+      ).thenReturn(
+        Future.failed(new RuntimeException("boom"))
+      )
+
+      val req =
+        FakeRequest(POST, url)
+          .withHeaders(CONTENT_TYPE -> JSON)
+          .withBody(Json.toJson(requestModel))
+
+      val result =
+        controller.getSubmissionWithVerificationBatch
+          .apply(req)
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe
+        Json.obj("message" -> "Unexpected error")
+
+      verify(mockService)
+        .getSubmissionWithVerificationBatch(eqTo(requestModel))
+
       verifyNoMoreInteractions(mockService)
     }
   }
