@@ -84,7 +84,6 @@ object CisStoredProcedures {
 
   val CallDeleteSubcontractor = "{ call  SUBCONTRACTOR_PROCS.Delete_Subcontractor(?, ?) }"
 
-
   val CallGetSubmittedVerifications =
     "{ call VERIFICATION_PROCS.Get_Submitted_Verifications(?, ?, ?, ?, ?, ?) }"
 
