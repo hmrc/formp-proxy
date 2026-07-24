@@ -27,6 +27,7 @@ import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorForDeleteResponse
+import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.CallDeleteSubcontractor
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorOtherInfo, GetSubcontractorResponse}
 
@@ -1514,6 +1515,37 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(cs).setInt(3, 1)
       verify(cs).setString(4, "N")
       verify(cs).setLong(5, 98765L)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+  }
+
+  "deleteSubcontractor" - {
+
+    "calls CallDeleteSubcontractor with correct parameters and executes" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      val call = CallDeleteSubcontractor
+      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = DeleteSubcontractorRequest(
+        instanceId = "abc-123",
+        subbieResourceRef = 98765L
+      )
+
+      repo.deleteSubcontractor(req).futureValue mustBe ()
+
+      verify(conn).prepareCall(eqTo(call))
+      verify(cs).setString(1, "abc-123")
+      verify(cs).setLong(2, 98765L)
       verify(cs).execute()
       verify(cs).close()
     }

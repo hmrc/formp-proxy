@@ -41,6 +41,9 @@ class SubcontractorService @Inject() (repo: CisMonthlyReturnSource) {
   ): Future[GetSubcontractorForDeleteResponse] =
     repo.getSubcontractorForDelete(cisId, subbieResourceRef)
 
+  def deleteSubcontractor(req: DeleteSubcontractorRequest): Future[Unit] =
+    repo.deleteSubcontractor(req)
+
   private def toDbRecord(req: CreateAndUpdateSubcontractorRequest): CreateAndUpdateSubcontractorDatabaseRecord =
     req match {
       case s: CreateAndUpdateSubcontractorRequest.SoleTraderRequest =>

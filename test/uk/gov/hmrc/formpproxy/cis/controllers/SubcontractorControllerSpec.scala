@@ -27,7 +27,7 @@ import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, Subcontractor}
 import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorOtherInfo, GetSubcontractorResponse}
 import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorForDeleteResponse, GetSubcontractorListResponse}
-import uk.gov.hmrc.formpproxy.cis.models.requests.CreateAndUpdateSubcontractorRequest
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest}
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 
 import scala.concurrent.Future
@@ -493,4 +493,52 @@ class SubcontractorControllerSpec extends SpecBase {
     }
   }
 
+  "SubcontractorController deleteSubcontractor" - {
+
+    "returns 204 NoContent when service succeeds" in {
+      val s = setup; import s.*
+
+      val requestBody = DeleteSubcontractorRequest(
+        instanceId = "abc-123",
+        subbieResourceRef = 98765L
+      )
+
+      when(mockService.deleteSubcontractor(eqTo(requestBody)))
+        .thenReturn(Future.successful(()))
+
+      val req: FakeRequest[DeleteSubcontractorRequest] =
+        FakeRequest(POST, "/cis/subcontractor/delete").withBody(requestBody)
+
+      val result = controller.deleteSubcontractor(req)
+
+      status(result) mustBe NO_CONTENT
+      contentAsString(result) mustBe ""
+
+      verify(mockService).deleteSubcontractor(eqTo(requestBody))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 500 with generic message on unexpected exception" in {
+      val s = setup; import s.*
+
+      val requestBody = DeleteSubcontractorRequest(
+        instanceId = "abc-123",
+        subbieResourceRef = 98765L
+      )
+
+      when(mockService.deleteSubcontractor(eqTo(requestBody)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val req: FakeRequest[DeleteSubcontractorRequest] =
+        FakeRequest(POST, "/cis/subcontractor/delete").withBody(requestBody)
+
+      val result = controller.deleteSubcontractor(req)
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
+
+      verify(mockService).deleteSubcontractor(eqTo(requestBody))
+      verifyNoMoreInteractions(mockService)
+    }
+  }
 }
