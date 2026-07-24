@@ -510,7 +510,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   override def applyPrepopulation(req: ApplyPrepopulationRequest): Future[Int] =
     Future {
       logger.info(
-        s"[CIS] applyPrepopulation(schemeId=${req.schemeId}, instanceId=${req.instanceId}, version=${req.version}, subs=${req.subcontractorTypes.size})"
+        s"[CIS] applyPrepopulation(schemeId=${req.schemeId}, instanceId=${req.instanceId}, version=${req.version}, subs=${req.subcontractors.size})"
       )
 
       db.withTransaction { conn =>
@@ -533,16 +533,9 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           cs.execute()
         }
 
-        // 2) Create_Subcontractor for each subcontractorType
-        req.subcontractorTypes.foreach { subcontractorType =>
-          withCall(conn, CallCreateSubcontractor) { cs =>
-            cs.setInt(1, req.schemeId)
-            cs.setInt(2, req.version)
-            cs.setString(3, subcontractorType.toString)
-            cs.registerOutParameter(4, OracleTypes.INTEGER)
-
-            cs.execute()
-          }
+        // 2) Create_Subcontractor_Prepop for each subcontractor (rolled back with scheme on failure)
+        req.subcontractors.foreach { subcontractor =>
+          callCreateSubcontractorPrepop(conn, req.schemeId, subcontractor)
         }
 
         // 3) Update_Version_Number – increment version atomically in same transaction
@@ -1041,6 +1034,49 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.execute()
 
       cs.getInt(4)
+    } finally cs.close()
+  }
+
+  private def callCreateSubcontractorPrepop(
+    conn: Connection,
+    schemeId: Int,
+    subcontractor: PrepopulationSubcontractor
+  ): Int = {
+    val cs = conn.prepareCall(CallCreateSubcontractorPrepop)
+    try {
+      cs.setInt(1, schemeId)
+      cs.setString(2, subcontractor.utr)
+      cs.setInt(3, 0) // page_visited
+      cs.setOptionalString(4, None) // partner_utr
+      cs.setOptionalString(5, None) // crn
+      cs.setOptionalString(6, subcontractor.firstName)
+      cs.setOptionalString(7, None) // nino
+      cs.setOptionalString(8, subcontractor.secondName)
+      cs.setOptionalString(9, subcontractor.surname)
+      cs.setOptionalString(10, subcontractor.partnershipTradingName)
+      cs.setOptionalString(11, subcontractor.tradingName)
+      cs.setString(12, subcontractor.subcontractorType.toString)
+      cs.setOptionalString(13, None) // address_line_1
+      cs.setOptionalString(14, None) // address_line_2
+      cs.setOptionalString(15, None) // address_line_3
+      cs.setOptionalString(16, None) // address_line_4
+      cs.setOptionalString(17, None) // country
+      cs.setOptionalString(18, None) // postcode
+      cs.setOptionalString(19, None) // email_address
+      cs.setOptionalString(20, None) // phone_number
+      cs.setOptionalString(21, None) // mobile_phone_number
+      cs.setOptionalString(22, None) // works_reference_number
+      cs.setOptionalString(23, None) // matched
+      cs.setOptionalString(24, subcontractor.autoVerified)
+      cs.setOptionalString(25, subcontractor.verified)
+      cs.setOptionalString(26, subcontractor.verificationNumber)
+      cs.setOptionalString(27, None) // tax_treatment
+      cs.setOptionalString(28, None) // updated_tax_treatment
+      cs.setOptionalTimestamp(29, None) // verification_date
+      cs.registerOutParameter(30, OracleTypes.INTEGER)
+
+      cs.execute()
+      cs.getInt(30)
     } finally cs.close()
   }
 
