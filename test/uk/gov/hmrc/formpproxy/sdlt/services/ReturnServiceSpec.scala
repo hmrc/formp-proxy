@@ -614,7 +614,7 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
         addressLine3 = Some("City Center"),
         addressLine4 = None,
         postcode = Some("SW1A 1AA"),
-        isRepresentedByAgent = "N"
+        isRepresentedByAgent = Some("no")
       )
       val expectedResponse: CreateVendorReturn = CreateVendorReturn(
         vendorResourceRef = "V100001",
@@ -647,7 +647,7 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
         addressLine3 = None,
         addressLine4 = None,
         postcode = None,
-        isRepresentedByAgent = "Y"
+        isRepresentedByAgent = Some("yes")
       )
       val expectedResponse: CreateVendorReturn = CreateVendorReturn(
         vendorResourceRef = "V100002",
@@ -672,7 +672,7 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
         returnResourceRef = "100001",
         name = "Smith",
         addressLine1 = "Main Street",
-        isRepresentedByAgent = "N"
+        isRepresentedByAgent = Some("no")
       )
       val boom                         = new RuntimeException("database connection failed")
 
@@ -705,7 +705,7 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
         addressLine3 = None,
         addressLine4 = None,
         postcode = Some("W1A 1AA"),
-        isRepresentedByAgent = "Y",
+        isRepresentedByAgent = Some("yes"),
         vendorResourceRef = "V100001",
         nextVendorId = None
       )
@@ -729,7 +729,7 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
         returnResourceRef = "100002",
         name = "Updated Vendor",
         addressLine1 = "New Street",
-        isRepresentedByAgent = "N",
+        isRepresentedByAgent = Some("no"),
         vendorResourceRef = "V100002"
       )
       val expectedResponse: UpdateVendorReturn = UpdateVendorReturn(updated = false)
@@ -752,7 +752,7 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
         returnResourceRef = "100001",
         name = "Doe",
         addressLine1 = "Oak Avenue",
-        isRepresentedByAgent = "Y",
+        isRepresentedByAgent = Some("yes"),
         vendorResourceRef = "V100001"
       )
       val boom                         = new RuntimeException("database timeout")

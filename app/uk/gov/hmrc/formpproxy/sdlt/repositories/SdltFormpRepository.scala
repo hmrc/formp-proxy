@@ -773,7 +773,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     p_address_3: Option[String],
     p_address_4: Option[String],
     p_postcode: Option[String],
-    p_is_represented_by_agent: String
+    p_is_represented_by_agent: Option[String]
   ): CreateVendorReturn = {
 
     val cs = conn.prepareCall("{ call VENDOR_PROCS.Create_Vendor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
@@ -790,7 +790,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       cs.setOptionalString(10, p_address_3)
       cs.setOptionalString(11, p_address_4)
       cs.setOptionalString(12, p_postcode)
-      cs.setString(13, p_is_represented_by_agent)
+      cs.setOptionalString(13, p_is_represented_by_agent)
 
       cs.registerOutParameter(14, Types.NUMERIC)
       cs.registerOutParameter(15, Types.NUMERIC)
@@ -844,7 +844,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     p_address_3: Option[String],
     p_address_4: Option[String],
     p_postcode: Option[String],
-    p_is_represented_by_agent: String,
+    p_is_represented_by_agent: Option[String],
     p_vendor_resource_ref: Long,
     p_next_vendor_id: Option[String]
   ): UpdateVendorReturn = {
@@ -863,7 +863,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       cs.setOptionalString(10, p_address_3)
       cs.setOptionalString(11, p_address_4)
       cs.setOptionalString(12, p_postcode)
-      cs.setString(13, p_is_represented_by_agent)
+      cs.setOptionalString(13, p_is_represented_by_agent)
       cs.setLong(14, p_vendor_resource_ref)
       cs.setOptionalString(15, p_next_vendor_id)
 

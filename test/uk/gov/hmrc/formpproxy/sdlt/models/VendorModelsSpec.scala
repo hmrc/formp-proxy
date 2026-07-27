@@ -39,7 +39,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
         addressLine3 = Some("City Center"),
         addressLine4 = Some("Greater London"),
         postcode = Some("SW1A 1AA"),
-        isRepresentedByAgent = "N"
+        isRepresentedByAgent = Some("no")
       )
 
       val json = Json.toJson(request)
@@ -56,7 +56,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
       (json \ "addressLine3").as[String] mustBe "City Center"
       (json \ "addressLine4").as[String] mustBe "Greater London"
       (json \ "postcode").as[String] mustBe "SW1A 1AA"
-      (json \ "isRepresentedByAgent").as[String] mustBe "N"
+      (json \ "isRepresentedByAgent").as[String] mustBe "no"
     }
 
     "must serialize to JSON correctly with only required fields" in {
@@ -73,7 +73,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
         addressLine3 = None,
         addressLine4 = None,
         postcode = None,
-        isRepresentedByAgent = "Y"
+        isRepresentedByAgent = Some("yes")
       )
 
       val json = Json.toJson(request)
@@ -82,7 +82,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
       (json \ "returnResourceRef").as[String] mustBe "100001"
       (json \ "name").as[String] mustBe "Company Vendor Ltd"
       (json \ "addressLine1").as[String] mustBe "Business Park"
-      (json \ "isRepresentedByAgent").as[String] mustBe "Y"
+      (json \ "isRepresentedByAgent").as[String] mustBe "yes"
       (json \ "title").toOption mustBe None
       (json \ "forename1").toOption mustBe None
       (json \ "forename2").toOption mustBe None
@@ -107,7 +107,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
         "addressLine3"         -> "City Center",
         "addressLine4"         -> "Greater London",
         "postcode"             -> "SW1A 1AA",
-        "isRepresentedByAgent" -> "N"
+        "isRepresentedByAgent" -> "no"
       )
 
       val result = json.validate[CreateVendorRequest]
@@ -127,7 +127,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
       request.addressLine3 mustBe Some("City Center")
       request.addressLine4 mustBe Some("Greater London")
       request.postcode mustBe Some("SW1A 1AA")
-      request.isRepresentedByAgent mustBe "N"
+      request.isRepresentedByAgent mustBe Some("no")
     }
 
     "must deserialize from JSON correctly with only required fields" in {
@@ -136,7 +136,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
         "returnResourceRef"    -> "100001",
         "name"                 -> "Company Vendor Ltd",
         "addressLine1"         -> "Business Park",
-        "isRepresentedByAgent" -> "Y"
+        "isRepresentedByAgent" -> "yes"
       )
 
       val result = json.validate[CreateVendorRequest]
@@ -148,7 +148,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
       request.returnResourceRef mustBe "100001"
       request.name mustBe "Company Vendor Ltd"
       request.addressLine1 mustBe "Business Park"
-      request.isRepresentedByAgent mustBe "Y"
+      request.isRepresentedByAgent mustBe Some("yes")
       request.title mustBe None
       request.forename1 mustBe None
       request.forename2 mustBe None
@@ -164,7 +164,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
         "returnResourceRef"    -> "100001",
         "name"                 -> "Smith",
         "addressLine1"         -> "Main Street",
-        "isRepresentedByAgent" -> "N"
+        "isRepresentedByAgent" -> "no"
       )
 
       val result = json.validate[CreateVendorRequest]
@@ -177,7 +177,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
         "stornId"              -> "STORN12345",
         "name"                 -> "Smith",
         "addressLine1"         -> "Main Street",
-        "isRepresentedByAgent" -> "N"
+        "isRepresentedByAgent" -> "no"
       )
 
       val result = json.validate[CreateVendorRequest]
@@ -190,7 +190,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
         "stornId"              -> "STORN12345",
         "returnResourceRef"    -> "100001",
         "addressLine1"         -> "Main Street",
-        "isRepresentedByAgent" -> "N"
+        "isRepresentedByAgent" -> "no"
       )
 
       val result = json.validate[CreateVendorRequest]
@@ -203,7 +203,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
         "stornId"              -> "STORN12345",
         "returnResourceRef"    -> "100001",
         "name"                 -> "Smith",
-        "isRepresentedByAgent" -> "N"
+        "isRepresentedByAgent" -> "no"
       )
 
       val result = json.validate[CreateVendorRequest]
@@ -211,7 +211,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
       result.isError mustBe true
     }
 
-    "must fail to deserialize when required field isRepresentedByAgent is missing" in {
+    "must deserialize when required field isRepresentedByAgent is missing" in {
       val json = Json.obj(
         "stornId"           -> "STORN12345",
         "returnResourceRef" -> "100001",
@@ -221,7 +221,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
 
       val result = json.validate[CreateVendorRequest]
 
-      result.isError mustBe true
+      result.isError mustBe false
     }
   }
 
@@ -287,7 +287,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
         addressLine3 = Some("Downtown"),
         addressLine4 = Some("Greater Manchester"),
         postcode = Some("W1A 1AA"),
-        isRepresentedByAgent = "Y",
+        isRepresentedByAgent = Some("yes"),
         vendorResourceRef = "V100001",
         nextVendorId = Some("V100002")
       )
@@ -306,7 +306,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
       (json \ "addressLine3").as[String] mustBe "Downtown"
       (json \ "addressLine4").as[String] mustBe "Greater Manchester"
       (json \ "postcode").as[String] mustBe "W1A 1AA"
-      (json \ "isRepresentedByAgent").as[String] mustBe "Y"
+      (json \ "isRepresentedByAgent").asOpt[String] mustBe Some("yes")
       (json \ "vendorResourceRef").as[String] mustBe "V100001"
       (json \ "nextVendorId").as[String] mustBe "V100002"
     }
@@ -325,7 +325,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
         addressLine3 = None,
         addressLine4 = None,
         postcode = None,
-        isRepresentedByAgent = "N",
+        isRepresentedByAgent = None,
         vendorResourceRef = "V100002",
         nextVendorId = None
       )
@@ -336,7 +336,6 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
       (json \ "returnResourceRef").as[String] mustBe "100002"
       (json \ "name").as[String] mustBe "Updated Vendor Ltd"
       (json \ "addressLine1").as[String] mustBe "New Business Park"
-      (json \ "isRepresentedByAgent").as[String] mustBe "N"
       (json \ "vendorResourceRef").as[String] mustBe "V100002"
       (json \ "nextVendorId").toOption mustBe None
     }
@@ -355,7 +354,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
         "addressLine3"         -> "Downtown",
         "addressLine4"         -> "Greater Manchester",
         "postcode"             -> "W1A 1AA",
-        "isRepresentedByAgent" -> "Y",
+        "isRepresentedByAgent" -> "yes",
         "vendorResourceRef"    -> "V100001",
         "nextVendorId"         -> "V100002"
       )
@@ -377,7 +376,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
       request.addressLine3 mustBe Some("Downtown")
       request.addressLine4 mustBe Some("Greater Manchester")
       request.postcode mustBe Some("W1A 1AA")
-      request.isRepresentedByAgent mustBe "Y"
+      request.isRepresentedByAgent mustBe Some("yes")
       request.vendorResourceRef mustBe "V100001"
       request.nextVendorId mustBe Some("V100002")
     }
@@ -388,7 +387,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
         "returnResourceRef"    -> "100002",
         "name"                 -> "Updated Vendor Ltd",
         "addressLine1"         -> "New Business Park",
-        "isRepresentedByAgent" -> "N",
+        "isRepresentedByAgent" -> "no",
         "vendorResourceRef"    -> "V100002"
       )
 
@@ -401,7 +400,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
       request.returnResourceRef mustBe "100002"
       request.name mustBe "Updated Vendor Ltd"
       request.addressLine1 mustBe "New Business Park"
-      request.isRepresentedByAgent mustBe "N"
+      request.isRepresentedByAgent mustBe Some("no")
       request.vendorResourceRef mustBe "V100002"
       request.nextVendorId mustBe None
     }
@@ -411,7 +410,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
         "returnResourceRef"    -> "100001",
         "name"                 -> "Doe",
         "addressLine1"         -> "Oak Avenue",
-        "isRepresentedByAgent" -> "Y",
+        "isRepresentedByAgent" -> "yes",
         "vendorResourceRef"    -> "V100001"
       )
 
@@ -425,7 +424,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
         "stornId"              -> "STORN12345",
         "name"                 -> "Doe",
         "addressLine1"         -> "Oak Avenue",
-        "isRepresentedByAgent" -> "Y",
+        "isRepresentedByAgent" -> "yes",
         "vendorResourceRef"    -> "V100001"
       )
 
@@ -439,7 +438,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
         "stornId"              -> "STORN12345",
         "returnResourceRef"    -> "100001",
         "addressLine1"         -> "Oak Avenue",
-        "isRepresentedByAgent" -> "Y",
+        "isRepresentedByAgent" -> "yes",
         "vendorResourceRef"    -> "V100001"
       )
 
@@ -453,22 +452,8 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
         "stornId"              -> "STORN12345",
         "returnResourceRef"    -> "100001",
         "name"                 -> "Doe",
-        "isRepresentedByAgent" -> "Y",
+        "isRepresentedByAgent" -> "yes",
         "vendorResourceRef"    -> "V100001"
-      )
-
-      val result = json.validate[UpdateVendorRequest]
-
-      result.isError mustBe true
-    }
-
-    "must fail to deserialize when required field isRepresentedByAgent is missing" in {
-      val json = Json.obj(
-        "stornId"           -> "STORN12345",
-        "returnResourceRef" -> "100001",
-        "name"              -> "Doe",
-        "addressLine1"      -> "Oak Avenue",
-        "vendorResourceRef" -> "V100001"
       )
 
       val result = json.validate[UpdateVendorRequest]
@@ -482,7 +467,7 @@ class VendorModelsSpec extends AnyFreeSpec with Matchers {
         "returnResourceRef"    -> "100001",
         "name"                 -> "Doe",
         "addressLine1"         -> "Oak Avenue",
-        "isRepresentedByAgent" -> "Y"
+        "isRepresentedByAgent" -> "yes"
       )
 
       val result = json.validate[UpdateVendorRequest]
