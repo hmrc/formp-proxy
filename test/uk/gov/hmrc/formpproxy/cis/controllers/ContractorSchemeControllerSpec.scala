@@ -27,7 +27,7 @@ import play.api.mvc.{AnyContent, ControllerComponents, PlayBodyParsers, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
-import uk.gov.hmrc.formpproxy.cis.models.requests.ApplyPrepopulationRequest
+import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, PrepopulationSubcontractor}
 import uk.gov.hmrc.formpproxy.cis.models.{Company, ContractorScheme, CreateContractorSchemeParams, SoleTrader, UpdateContractorSchemeParams}
 import uk.gov.hmrc.formpproxy.cis.services.ContractorSchemeService
 import uk.gov.hmrc.http.UpstreamErrorResponse
@@ -573,7 +573,32 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
         prePopCount = 5,
         prePopSuccessful = "Y",
         version = 1,
-        subcontractorTypes = Seq(SoleTrader, Company)
+        subcontractors = Seq(
+          PrepopulationSubcontractor(
+            subcontractorType = SoleTrader,
+            utr = "1111111111",
+            verificationNumber = Some("V1"),
+            firstName = Some("A"),
+            secondName = None,
+            surname = Some("B"),
+            tradingName = None,
+            partnershipTradingName = None,
+            verified = Some("Y"),
+            autoVerified = Some("Y")
+          ),
+          PrepopulationSubcontractor(
+            subcontractorType = Company,
+            utr = "2222222222",
+            verificationNumber = Some("V2"),
+            firstName = None,
+            secondName = None,
+            surname = None,
+            tradingName = Some("Acme"),
+            partnershipTradingName = None,
+            verified = Some("Y"),
+            autoVerified = Some("Y")
+          )
+        )
       )
 
   }

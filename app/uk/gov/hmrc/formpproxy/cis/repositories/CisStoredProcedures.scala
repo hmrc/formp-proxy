@@ -27,6 +27,8 @@ object CisStoredProcedures {
   val CallCreateScheme                        = "{ call SCHEME_PROCS.Create_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
   val CallUpdateScheme                        = "{ call SCHEME_PROCS.Update_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
   val CallCreateSubcontractor                 = "{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }"
+  val CallCreateSubcontractorPrepop           =
+    "{ call SUBCONTRACTOR_PROCS.Create_Subcontractor_Prepop(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
   val CallGetAllMonthlyReturns                = "{ call MONTHLY_RETURN_PROCS_2016.Get_All_Monthly_Returns(?, ?, ?) }"
   val CallGetUnsubmittedMonthlyReturns        = "{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Returns(?, ?, ?) }"
   val CallGetSubmittedMonthlyReturns          = "{ call MONTHLY_RETURN_PROCS_2016.GET_SUBMITTED_RETURNS(?, ?, ?, ?) }"
