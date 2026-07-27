@@ -1079,7 +1079,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         addressLine3 = Some("City Center"),
         addressLine4 = Some("Greater London"),
         postcode = Some("SW1A 1AA"),
-        isRepresentedByAgent = "NO"
+        isRepresentedByAgent = Some("no")
       )
 
       val result = repo.sdltCreateVendor(request).futureValue
@@ -1100,7 +1100,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).setString(10, "City Center")
       verify(cs).setString(11, "Greater London")
       verify(cs).setString(12, "SW1A 1AA")
-      verify(cs).setString(13, "NO")
+      verify(cs).setString(13, "no")
       verify(cs).registerOutParameter(14, Types.NUMERIC)
       verify(cs).registerOutParameter(15, Types.NUMERIC)
       verify(cs).execute()
@@ -1135,7 +1135,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         addressLine3 = None,
         addressLine4 = None,
         postcode = None,
-        isRepresentedByAgent = "YES"
+        isRepresentedByAgent = Some("yes")
       )
 
       val result = repo.sdltCreateVendor(request).futureValue
@@ -1155,7 +1155,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).setNull(10, Types.VARCHAR)
       verify(cs).setNull(11, Types.VARCHAR)
       verify(cs).setNull(12, Types.VARCHAR)
-      verify(cs).setString(13, "YES")
+      verify(cs).setString(13, "yes")
       verify(cs).execute()
     }
   }
@@ -1189,7 +1189,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         addressLine3 = None,
         addressLine4 = None,
         postcode = Some("W1A 1AA"),
-        isRepresentedByAgent = "YES",
+        isRepresentedByAgent = Some("yes"),
         vendorResourceRef = "100001",
         nextVendorId = Some("100002")
       )
@@ -1211,7 +1211,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).setNull(10, Types.VARCHAR)
       verify(cs).setNull(11, Types.VARCHAR)
       verify(cs).setString(12, "W1A 1AA")
-      verify(cs).setString(13, "YES")
+      verify(cs).setString(13, "yes")
       verify(cs).setLong(14, 100001L)
       verify(cs).setString(15, "100002")
       verify(cs).execute()
@@ -1244,7 +1244,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         addressLine3 = None,
         addressLine4 = None,
         postcode = None,
-        isRepresentedByAgent = "NO",
+        isRepresentedByAgent = Some("no"),
         vendorResourceRef = "100002",
         nextVendorId = None
       )
@@ -1265,7 +1265,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).setNull(10, Types.VARCHAR)
       verify(cs).setNull(11, Types.VARCHAR)
       verify(cs).setNull(12, Types.VARCHAR)
-      verify(cs).setString(13, "NO")
+      verify(cs).setString(13, "no")
       verify(cs).setLong(14, 100002L)
       verify(cs).setNull(15, Types.VARCHAR)
       verify(cs).execute()
