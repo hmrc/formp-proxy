@@ -1933,14 +1933,12 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
           cs.registerOutParameter(3, OracleTypes.CURSOR)
           cs.registerOutParameter(4, OracleTypes.CURSOR)
-          cs.registerOutParameter(5, OracleTypes.CURSOR)
 
           cs.execute()
 
           GetSubcontractorResponse(
             scheme = withCursor(cs, 3)(collectSchemes).headOption,
-            subcontractor = withCursor(cs, 4)(collectSubcontractors).headOption,
-            otherInfo = withCursor(cs, 5)(collectSubcontractorOtherInfo)
+            subcontractor = withCursor(cs, 4)(collectSubcontractors).headOption
           )
         }
       }
