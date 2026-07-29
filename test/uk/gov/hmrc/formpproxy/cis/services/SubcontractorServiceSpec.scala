@@ -384,8 +384,7 @@ class SubcontractorServiceSpec extends SpecBase {
 
       val response = GetSubcontractorResponse(
         scheme = None,
-        subcontractor = None,
-        otherInfo = Seq.empty
+        subcontractor = None
       )
 
       when(

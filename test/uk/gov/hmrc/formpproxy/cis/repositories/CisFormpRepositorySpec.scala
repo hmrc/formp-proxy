@@ -29,7 +29,7 @@ import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.CallDeleteSubcontractor
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
-import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorOtherInfo, GetSubcontractorResponse}
+import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorResponse
 
 import java.sql.*
 import java.time.{Instant, LocalDateTime}
@@ -4294,7 +4294,7 @@ final class CisFormpRepositorySpec extends SpecBase {
 
   "getSubcontractor" - {
 
-    "calls SUBCONTRACTOR_PROCS.Get_Subcontractor, parses scheme, subcontractor and otherInfo, and closes resources" in {
+    "calls SUBCONTRACTOR_PROCS.Get_Subcontractor, parses scheme and subcontractor, discards otherInfo cursor, and closes resources" in {
       val db       = mock[Database]
       val conn     = mock[Connection]
       val cs       = mock[CallableStatement]
@@ -4306,10 +4306,12 @@ final class CisFormpRepositorySpec extends SpecBase {
       val subbieResourceRef = 10L
 
       when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
-        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+        val f = inv.getArgument(0, classOf[Connection => Any])
+        f(conn)
       }
 
-      val call = "{ call SUBCONTRACTOR_PROCS.Get_Subcontractor(?, ?, ?, ?, ?) }"
+      val call =
+        "{ call SUBCONTRACTOR_PROCS.Get_Subcontractor(?, ?, ?, ?, ?) }"
 
       when(conn.prepareCall(eqTo(call))).thenReturn(cs)
 
@@ -4374,12 +4376,10 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsSub.getInt("pending_verifications")).thenReturn(0)
       when(rsSub.wasNull()).thenReturn(false)
 
-      when(rsOther.next()).thenReturn(true, false)
-      when(rsOther.getString("utr")).thenReturn("1111111111")
-
       val repo = new CisFormpRepository(db)
 
-      val out = repo.getSubcontractor(cisId, subbieResourceRef).futureValue
+      val out =
+        repo.getSubcontractor(cisId, subbieResourceRef).futureValue
 
       out.scheme mustBe defined
       out.scheme.value.schemeId mustBe 123
@@ -4394,17 +4394,19 @@ final class CisFormpRepositorySpec extends SpecBase {
       out.subcontractor.value.surname mustBe Some("Smith")
       out.subcontractor.value.displayName mustBe "Smith, John"
 
-      out.otherInfo mustBe Seq(
-        GetSubcontractorOtherInfo("1111111111")
-      )
-
       verify(conn).prepareCall(eqTo(call))
       verify(cs).setString(1, cisId)
       verify(cs).setLong(2, subbieResourceRef)
+
       verify(cs).registerOutParameter(3, OracleTypes.CURSOR)
       verify(cs).registerOutParameter(4, OracleTypes.CURSOR)
       verify(cs).registerOutParameter(5, OracleTypes.CURSOR)
+
       verify(cs).execute()
+
+      verify(cs).getObject(3, classOf[ResultSet])
+      verify(cs).getObject(4, classOf[ResultSet])
+      verify(cs).getObject(5, classOf[ResultSet])
 
       verify(rsScheme).close()
       verify(rsSub).close()
@@ -4424,10 +4426,12 @@ final class CisFormpRepositorySpec extends SpecBase {
       val subbieResourceRef = 10L
 
       when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
-        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+        val f = inv.getArgument(0, classOf[Connection => Any])
+        f(conn)
       }
 
-      val call = "{ call SUBCONTRACTOR_PROCS.Get_Subcontractor(?, ?, ?, ?, ?) }"
+      val call =
+        "{ call SUBCONTRACTOR_PROCS.Get_Subcontractor(?, ?, ?, ?, ?) }"
 
       when(conn.prepareCall(eqTo(call))).thenReturn(cs)
 
@@ -4437,17 +4441,29 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       when(rsScheme.next()).thenReturn(false)
       when(rsSub.next()).thenReturn(false)
-      when(rsOther.next()).thenReturn(false)
 
       val repo = new CisFormpRepository(db)
 
-      val out = repo.getSubcontractor(cisId, subbieResourceRef).futureValue
+      val out =
+        repo.getSubcontractor(cisId, subbieResourceRef).futureValue
 
       out.scheme mustBe None
       out.subcontractor mustBe None
-      out.otherInfo mustBe empty
+
+      verify(conn).prepareCall(eqTo(call))
+      verify(cs).setString(1, cisId)
+      verify(cs).setLong(2, subbieResourceRef)
+
+      verify(cs).registerOutParameter(3, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(4, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(5, OracleTypes.CURSOR)
 
       verify(cs).execute()
+
+      verify(cs).getObject(3, classOf[ResultSet])
+      verify(cs).getObject(4, classOf[ResultSet])
+      verify(cs).getObject(5, classOf[ResultSet])
+
       verify(rsScheme).close()
       verify(rsSub).close()
       verify(rsOther).close()

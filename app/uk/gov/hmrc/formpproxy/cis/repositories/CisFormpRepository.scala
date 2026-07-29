@@ -1937,10 +1937,17 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
           cs.execute()
 
+          val scheme =
+            withCursor(cs, 3)(collectSchemes).headOption
+
+          val subcontractor =
+            withCursor(cs, 4)(collectSubcontractors).headOption
+
+          discardCursor(cs, 5)
+
           GetSubcontractorResponse(
-            scheme = withCursor(cs, 3)(collectSchemes).headOption,
-            subcontractor = withCursor(cs, 4)(collectSubcontractors).headOption,
-            otherInfo = withCursor(cs, 5)(collectSubcontractorOtherInfo)
+            scheme = scheme,
+            subcontractor = subcontractor
           )
         }
       }

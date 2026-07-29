@@ -21,7 +21,6 @@ import play.api.libs.json.{JsSuccess, Json}
 import java.time.LocalDateTime
 import uk.gov.hmrc.formpproxy.cis.models._
 import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorResponse
-import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorOtherInfo
 
 final class GetSubcontractorResponseSpec extends PlaySpec {
 
@@ -82,14 +81,9 @@ final class GetSubcontractorResponseSpec extends PlaySpec {
       pendingVerifications = Some(0)
     )
 
-    val otherInfo = GetSubcontractorOtherInfo(
-      utr = "1111111111"
-    )
-
     val model = GetSubcontractorResponse(
       scheme = Some(scheme),
-      subcontractor = Some(subcontractor),
-      otherInfo = Seq(otherInfo)
+      subcontractor = Some(subcontractor)
     )
 
     "serialize to JSON" in {
@@ -105,9 +99,6 @@ final class GetSubcontractorResponseSpec extends PlaySpec {
       (json \ "subcontractor" \ "subcontractorType").as[String] mustBe "soletrader"
       (json \ "subcontractor" \ "displayName").as[String] mustBe "Smith, John"
 
-      (json \ "otherInfo")(0).\("utr").as[String] mustBe "1111111111"
-
-      (json \ "otherInfo")(0).\("utr").as[String] mustBe "1111111111"
     }
 
     "deserialize from JSON" in {
@@ -162,61 +153,13 @@ final class GetSubcontractorResponseSpec extends PlaySpec {
           |    "updatedTaxTreatment": "NET",
           |    "lastMonthlyReturnDate": "2026-05-15T10:05:00",
           |    "pendingVerifications": 0
-          |  },
-          |  "otherInfo": [
-          |    {
-          |      "utr": "1111111111"
-          |    }
-          |  ]
+          |  }
           |}
           |""".stripMargin
       )
 
       json.validate[GetSubcontractorResponse] mustBe JsSuccess(model)
     }
-
-    "deserialize empty collections" in {
-      val json = Json.parse(
-        """
-          |{
-          |  "scheme": null,
-          |  "subcontractors": null,
-          |  "otherInfo": []
-          |}
-          |""".stripMargin
-      )
-
-      json.validate[GetSubcontractorResponse] mustBe JsSuccess(
-        GetSubcontractorResponse(
-          scheme = None,
-          subcontractor = None,
-          otherInfo = Seq.empty
-        )
-      )
-    }
-
-    "fail to deserialize when required fields are missing" in {
-      Json
-        .obj()
-        .validate[GetSubcontractorResponse]
-        .isError mustBe true
-    }
   }
 
-  "GetSubcontractorOtherInfo" should {
-
-    "serialize to JSON" in {
-      Json.toJson(GetSubcontractorOtherInfo("1111111111")) mustBe Json.obj(
-        "utr" -> "1111111111"
-      )
-    }
-
-    "deserialize from JSON" in {
-      Json
-        .obj("utr" -> "1111111111")
-        .validate[GetSubcontractorOtherInfo] mustBe JsSuccess(
-        GetSubcontractorOtherInfo("1111111111")
-      )
-    }
-  }
 }

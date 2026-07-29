@@ -25,7 +25,7 @@ import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, Subcontractor}
-import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorOtherInfo, GetSubcontractorResponse}
+import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorResponse
 import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorForDeleteResponse, GetSubcontractorListResponse}
 import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest}
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
@@ -421,9 +421,6 @@ class SubcontractorControllerSpec extends SpecBase {
               lastMonthlyReturnDate = None,
               pendingVerifications = Some(0)
             )
-          ),
-          otherInfo = Seq(
-            GetSubcontractorOtherInfo("1111111111")
           )
         )
 
@@ -449,7 +446,6 @@ class SubcontractorControllerSpec extends SpecBase {
       (contentAsJson(result) \ "scheme" \ "schemeId").as[Int] mustBe 123
       (contentAsJson(result) \ "subcontractor" \ "subcontractorId").as[Long] mustBe 1L
       (contentAsJson(result) \ "subcontractor" \ "displayName").as[String] mustBe "Smith, John"
-      (contentAsJson(result) \ "otherInfo")(0).\("utr").as[String] mustBe "1111111111"
 
       verify(mockService)
         .getSubcontractor(
