@@ -51,7 +51,7 @@ class VendorReturnsControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         addressLine3 = Some("City Center"),
         addressLine4 = Some("Greater London"),
         postcode = Some("SW1A 1AA"),
-        isRepresentedByAgent = "NO"
+        isRepresentedByAgent = Some("no")
       )
 
       val expectedResponse: CreateVendorReturn = CreateVendorReturn(
@@ -87,7 +87,7 @@ class VendorReturnsControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         addressLine3 = None,
         addressLine4 = None,
         postcode = Some("EC1A 1BB"),
-        isRepresentedByAgent = "Y"
+        isRepresentedByAgent = Some("yes")
       )
 
       val expectedResponse: CreateVendorReturn = CreateVendorReturn(
@@ -160,7 +160,7 @@ class VendorReturnsControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         addressLine3 = None,
         addressLine4 = None,
         postcode = None,
-        isRepresentedByAgent = "N"
+        isRepresentedByAgent = Some("no")
       )
 
       when(mockService.createVendor(eqTo(request)))
@@ -194,7 +194,7 @@ class VendorReturnsControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         addressLine3 = Some("Downtown"),
         addressLine4 = None,
         postcode = Some("W1A 1AA"),
-        isRepresentedByAgent = "Y"
+        isRepresentedByAgent = Some("yes")
       )
 
       val expectedResponse: UpdateVendorReturn = UpdateVendorReturn(
@@ -230,7 +230,7 @@ class VendorReturnsControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         addressLine3 = None,
         addressLine4 = None,
         postcode = Some("EC2A 2BB"),
-        isRepresentedByAgent = "N"
+        isRepresentedByAgent = Some("no")
       )
 
       val expectedResponse: UpdateVendorReturn = UpdateVendorReturn(
@@ -356,7 +356,7 @@ class VendorReturnsControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         addressLine3 = None,
         addressLine4 = None,
         postcode = None,
-        isRepresentedByAgent = "N"
+        isRepresentedByAgent = Some("no")
       )
 
       when(mockService.updateVendor(eqTo(request)))

@@ -18,12 +18,11 @@ package uk.gov.hmrc.formpproxy.cis.models.requests
 
 import play.api.libs.json.{Json, OFormat}
 
-final case class GetSubmissionWithVerificationBatchRequest(
+case class DeleteSubcontractorRequest(
   instanceId: String,
-  verificationBatchResourceRef: Long
+  subbieResourceRef: Long
 )
 
-object GetSubmissionWithVerificationBatchRequest {
-  given format: OFormat[GetSubmissionWithVerificationBatchRequest] =
-    Json.format[GetSubmissionWithVerificationBatchRequest]
+object DeleteSubcontractorRequest {
+  given format: OFormat[DeleteSubcontractorRequest] = Json.format[DeleteSubcontractorRequest]
 }

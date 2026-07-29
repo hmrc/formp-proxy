@@ -26,8 +26,10 @@ import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
-import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorForDeleteResponse
+import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.CallDeleteSubcontractor
+import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
+import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorResponse
 
 import java.sql.*
 import java.time.{Instant, LocalDateTime}
@@ -1513,6 +1515,37 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(cs).setInt(3, 1)
       verify(cs).setString(4, "N")
       verify(cs).setLong(5, 98765L)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+  }
+
+  "deleteSubcontractor" - {
+
+    "calls CallDeleteSubcontractor with correct parameters and executes" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      val call = CallDeleteSubcontractor
+      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = DeleteSubcontractorRequest(
+        instanceId = "abc-123",
+        subbieResourceRef = 98765L
+      )
+
+      repo.deleteSubcontractor(req).futureValue mustBe ()
+
+      verify(conn).prepareCall(eqTo(call))
+      verify(cs).setString(1, "abc-123")
+      verify(cs).setLong(2, 98765L)
       verify(cs).execute()
       verify(cs).close()
     }
@@ -4319,4 +4352,252 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
   }
 
+  "getSubcontractor" - {
+
+    "calls SUBCONTRACTOR_PROCS.Get_Subcontractor, parses scheme and subcontractor, discards otherInfo cursor, and closes resources" in {
+      val db       = mock[Database]
+      val conn     = mock[Connection]
+      val cs       = mock[CallableStatement]
+      val rsScheme = mock[ResultSet]
+      val rsSub    = mock[ResultSet]
+      val rsOther  = mock[ResultSet]
+
+      val cisId             = "cis-123"
+      val subbieResourceRef = 10L
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any])
+        f(conn)
+      }
+
+      val call =
+        "{ call SUBCONTRACTOR_PROCS.Get_Subcontractor(?, ?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+
+      when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+      when(cs.getObject(eqTo(4), eqTo(classOf[ResultSet]))).thenReturn(rsSub)
+      when(cs.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsOther)
+
+      when(rsScheme.next()).thenReturn(true, false)
+      when(rsScheme.getInt("scheme_id")).thenReturn(123)
+      when(rsScheme.getString("instance_id")).thenReturn(cisId)
+      when(rsScheme.getString("aoref")).thenReturn("123PA00123456")
+      when(rsScheme.getString("tax_office_number")).thenReturn("123")
+      when(rsScheme.getString("tax_office_reference")).thenReturn("AB456")
+      when(rsScheme.getString("utr")).thenReturn("1234567890")
+      when(rsScheme.getString("name")).thenReturn("Test Contractor Ltd")
+      when(rsScheme.getString("email_address")).thenReturn("contractor@example.com")
+      when(rsScheme.getString("display_welcome_page")).thenReturn("Y")
+      when(rsScheme.getInt("pre_pop_count")).thenReturn(1)
+      when(rsScheme.getString("pre_pop_successful")).thenReturn("Y")
+      when(rsScheme.getInt("subcontractor_counter")).thenReturn(1)
+      when(rsScheme.getInt("verif_batch_counter")).thenReturn(1)
+      when(rsScheme.getTimestamp("create_date")).thenReturn(null)
+      when(rsScheme.getTimestamp("last_update")).thenReturn(null)
+      when(rsScheme.getInt("version")).thenReturn(1)
+      when(rsScheme.wasNull()).thenReturn(false)
+
+      when(rsSub.next()).thenReturn(true, false)
+      when(rsSub.getLong("subcontractor_id")).thenReturn(1L)
+      when(rsSub.getLong("subbie_resource_ref")).thenReturn(10L)
+      when(rsSub.getString("type")).thenReturn("soletrader")
+      when(rsSub.getString("utr")).thenReturn("1234567890")
+      when(rsSub.getInt("page_visited")).thenReturn(2)
+      when(rsSub.getString("partner_utr")).thenReturn(null)
+      when(rsSub.getString("crn")).thenReturn(null)
+      when(rsSub.getString("firstname")).thenReturn("John")
+      when(rsSub.getString("nino")).thenReturn("AA123456A")
+      when(rsSub.getString("secondname")).thenReturn(null)
+      when(rsSub.getString("surname")).thenReturn("Smith")
+      when(rsSub.getString("partnership_tradingname")).thenReturn(null)
+      when(rsSub.getString("tradingname")).thenReturn("ACME")
+      when(rsSub.getString("address_line_1")).thenReturn("1 Main Street")
+      when(rsSub.getString("address_line_2")).thenReturn(null)
+      when(rsSub.getString("address_line_3")).thenReturn(null)
+      when(rsSub.getString("address_line_4")).thenReturn(null)
+      when(rsSub.getString("country")).thenReturn("United Kingdom")
+      when(rsSub.getString("postcode")).thenReturn("AA1 1AA")
+      when(rsSub.getString("email_address")).thenReturn(null)
+      when(rsSub.getString("phone_number")).thenReturn(null)
+      when(rsSub.getString("mobile_phone_number")).thenReturn(null)
+      when(rsSub.getString("works_reference_number")).thenReturn(null)
+      when(rsSub.getInt("version")).thenReturn(1)
+      when(rsSub.getString("tax_treatment")).thenReturn(null)
+      when(rsSub.getString("updated_tax_treatment")).thenReturn(null)
+      when(rsSub.getString("verification_number")).thenReturn(null)
+      when(rsSub.getTimestamp("create_date")).thenReturn(Timestamp.valueOf("2026-01-10 09:00:00"))
+      when(rsSub.getTimestamp("last_update")).thenReturn(Timestamp.valueOf("2026-01-11 10:00:00"))
+      when(rsSub.getString("matched")).thenReturn(null)
+      when(rsSub.getString("verified")).thenReturn(null)
+      when(rsSub.getString("auto_verified")).thenReturn(null)
+      when(rsSub.getTimestamp("verification_date")).thenReturn(null)
+      when(rsSub.getTimestamp("last_monthly_return_date")).thenReturn(null)
+      when(rsSub.getInt("pending_verifications")).thenReturn(0)
+      when(rsSub.wasNull()).thenReturn(false)
+
+      val repo = new CisFormpRepository(db)
+
+      val out =
+        repo.getSubcontractor(cisId, subbieResourceRef).futureValue
+
+      out.scheme mustBe defined
+      out.scheme.value.schemeId mustBe 123
+      out.scheme.value.instanceId mustBe cisId
+
+      out.subcontractor mustBe defined
+      out.subcontractor.value.subcontractorId mustBe 1L
+      out.subcontractor.value.subbieResourceRef mustBe Some(10L)
+      out.subcontractor.value.subcontractorType mustBe Some("soletrader")
+      out.subcontractor.value.utr mustBe Some("1234567890")
+      out.subcontractor.value.firstName mustBe Some("John")
+      out.subcontractor.value.surname mustBe Some("Smith")
+      out.subcontractor.value.displayName mustBe "Smith, John"
+
+      verify(conn).prepareCall(eqTo(call))
+      verify(cs).setString(1, cisId)
+      verify(cs).setLong(2, subbieResourceRef)
+
+      verify(cs).registerOutParameter(3, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(4, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(5, OracleTypes.CURSOR)
+
+      verify(cs).execute()
+
+      verify(cs).getObject(3, classOf[ResultSet])
+      verify(cs).getObject(4, classOf[ResultSet])
+      verify(cs).getObject(5, classOf[ResultSet])
+
+      verify(rsScheme).close()
+      verify(rsSub).close()
+      verify(rsOther).close()
+      verify(cs).close()
+    }
+
+    "returns None for scheme and subcontractor when cursors are empty" in {
+      val db       = mock[Database]
+      val conn     = mock[Connection]
+      val cs       = mock[CallableStatement]
+      val rsScheme = mock[ResultSet]
+      val rsSub    = mock[ResultSet]
+      val rsOther  = mock[ResultSet]
+
+      val cisId             = "cis-123"
+      val subbieResourceRef = 10L
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any])
+        f(conn)
+      }
+
+      val call =
+        "{ call SUBCONTRACTOR_PROCS.Get_Subcontractor(?, ?, ?, ?, ?) }"
+
+      when(conn.prepareCall(eqTo(call))).thenReturn(cs)
+
+      when(cs.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+      when(cs.getObject(eqTo(4), eqTo(classOf[ResultSet]))).thenReturn(rsSub)
+      when(cs.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsOther)
+
+      when(rsScheme.next()).thenReturn(false)
+      when(rsSub.next()).thenReturn(false)
+
+      val repo = new CisFormpRepository(db)
+
+      val out =
+        repo.getSubcontractor(cisId, subbieResourceRef).futureValue
+
+      out.scheme mustBe None
+      out.subcontractor mustBe None
+
+      verify(conn).prepareCall(eqTo(call))
+      verify(cs).setString(1, cisId)
+      verify(cs).setLong(2, subbieResourceRef)
+
+      verify(cs).registerOutParameter(3, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(4, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(5, OracleTypes.CURSOR)
+
+      verify(cs).execute()
+
+      verify(cs).getObject(3, classOf[ResultSet])
+      verify(cs).getObject(4, classOf[ResultSet])
+      verify(cs).getObject(5, classOf[ResultSet])
+
+      verify(rsScheme).close()
+      verify(rsSub).close()
+      verify(rsOther).close()
+      verify(cs).close()
+    }
+  }
+
+  "getSubmissionWithVerificationBatch" - {
+
+    "return empty response when all cursors contain no rows" in {
+      val db                  = mock[Database]
+      val conn                = mock[Connection]
+      val cs                  = mock[CallableStatement]
+      val submissionRs        = mock[ResultSet]
+      val verificationBatchRs = mock[ResultSet]
+      val verificationsRs     = mock[ResultSet]
+      val subcontractorsRs    = mock[ResultSet]
+      val schemeRs            = mock[ResultSet]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any]))
+        .thenAnswer { invocation =>
+          val operation =
+            invocation.getArgument(
+              0,
+              classOf[java.sql.Connection => Any]
+            )
+
+          operation(conn)
+        }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      when(cs.getObject(3, classOf[ResultSet])).thenReturn(submissionRs)
+      when(cs.getObject(4, classOf[ResultSet])).thenReturn(verificationBatchRs)
+      when(cs.getObject(5, classOf[ResultSet])).thenReturn(verificationsRs)
+      when(cs.getObject(6, classOf[ResultSet])).thenReturn(subcontractorsRs)
+      when(cs.getObject(7, classOf[ResultSet])).thenReturn(schemeRs)
+
+      when(submissionRs.next()).thenReturn(false)
+      when(verificationBatchRs.next()).thenReturn(false)
+      when(verificationsRs.next()).thenReturn(false)
+      when(subcontractorsRs.next()).thenReturn(false)
+      when(schemeRs.next()).thenReturn(false)
+
+      val request =
+        GetSubmissionWithVerificationBatchRequest(
+          instanceId = "abc-123",
+          verificationBatchResourceRef = 77L
+        )
+
+      val repository =
+        new CisFormpRepository(db)
+
+      val result =
+        repository
+          .getSubmissionWithVerificationBatch(request)
+          .futureValue
+
+      result mustBe GetSubmissionWithVerificationBatchResponse(
+        scheme = None,
+        submission = None,
+        verificationBatch = None,
+        verifications = Seq.empty,
+        subcontractors = Seq.empty
+      )
+
+      verify(cs).setString(1, "abc-123")
+      verify(cs).setLong(2, 77L)
+      verify(cs).registerOutParameter(3, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(4, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(5, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(6, OracleTypes.CURSOR)
+      verify(cs).registerOutParameter(7, OracleTypes.CURSOR)
+      verify(cs).execute()
+    }
+  }
 }

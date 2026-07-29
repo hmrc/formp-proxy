@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import org.mockito.Mockito.*
 import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.sdlt.models.*
-import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnForPurge, ReturnSummary, ReturnsForPurgeResponse, SdltReturnRecordResponse}
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnForPurge, ReturnSummary, ReturnsForPurgeResponse, SdltReturnRecordResponse, SubmissionsForPollingResponse}
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.*
 import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
@@ -805,23 +805,23 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       when(cs.getObject(eqTo(12), eqTo(classOf[ResultSet]))).thenReturn(resRetSummary)
 
       // Fetch data
-      when(resRetSummary.next()).thenReturn(true, true, false) // read 2 rows
-      when(resRetSummary.getString("return_resource_ref")).thenReturn("REF01", "REF02")
-      when(resRetSummary.getString("utrn")).thenReturn("UTR001", "UTR003")
-      when(resRetSummary.getString("status")).thenReturn("SUBMITTED", "SUBMITTED")
-      when(resRetSummary.getString("submitted_date")).thenReturn("2025-01-01", "2025-02-03")
+      when(resRetSummary.next()).thenReturn(true, true, true, false)
+      when(resRetSummary.getString("return_resource_ref")).thenReturn("REF01", "REF02", "REF03")
+      when(resRetSummary.getString("utrn")).thenReturn("UTR001", "UTR003", "UTR004")
+      when(resRetSummary.getString("status")).thenReturn("SUBMITTED", "SUBMITTED", null)
+      when(resRetSummary.getString("submitted_date")).thenReturn("2025-01-01", "2025-02-03", "2025-02-04")
 
-      when(resRetSummary.getString("name")).thenReturn("purchaserName1", "purchaserName2")
+      when(resRetSummary.getString("name")).thenReturn("purchaserName1", "purchaserName2", "purchaserName3")
 
-      when(resRetSummary.getString("address")).thenReturn("Address 11", "Address 22")
-      when(resRetSummary.getString("agent")).thenReturn("Agent 11", "Agent 22")
+      when(resRetSummary.getString("address")).thenReturn("Address 11", "Address 22", "Address 23")
+      when(resRetSummary.getString("agent")).thenReturn("Agent 11", "Agent 22", "Agent 23")
 
       val repo = new SdltFormpRepository(db)
 
       val result = repo.sdltGetReturns(requestReturns).futureValue
 
       result.returnSummaryCount mustBe Some(1017)
-      result.returnSummaryList.length mustBe 2
+      result.returnSummaryList.length mustBe 3
 
       result.returnSummaryList mustBe expectedReturnsSummary
 
@@ -954,6 +954,68 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
     }
   }
 
+  "sdltGetSubmissionsForPolling" - {
+    "call GET_SUBMISSIONS_FOR_POLLING and map each cursor row to a SubmissionForPolling" in new ReturnsFixture {
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]);
+        f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo("{ call SUBMISSION_PROCS.GET_SUBMISSIONS_FOR_POLLING(?) }")
+        )
+      ).thenReturn(cs)
+
+      when(cs.getObject(eqTo(1), eqTo(classOf[ResultSet]))).thenReturn(resRetSummary)
+
+      when(resRetSummary.next()).thenReturn(true, true, false)
+      when(resRetSummary.getString("storn")).thenReturn("STORN12345", "STORN12345")
+      when(resRetSummary.getString("submission_id")).thenReturn("9001", "9002")
+      when(resRetSummary.getString("return_resource_ref")).thenReturn("REF01", "REF02")
+      when(resRetSummary.getString("status")).thenReturn("ACCEPTED", "ACCEPTED")
+
+      val repo = new SdltFormpRepository(db)
+
+      val result = repo.sdltGetSubmissionsForPolling().futureValue
+
+      result.submissions.length mustBe 2
+      result.submissions mustBe expectedSubmissionsForPolling
+
+      verify(conn).prepareCall(
+        eqTo("{ call SUBMISSION_PROCS.GET_SUBMISSIONS_FOR_POLLING(?) }")
+      )
+      verify(cs).registerOutParameter(1, OracleTypes.CURSOR)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "call GET_SUBMISSIONS_FOR_POLLING and return an empty list when no submissions are due for polling" in new ReturnsFixture {
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]);
+        f(conn)
+      }
+
+      when(
+        conn.prepareCall(
+          eqTo("{ call SUBMISSION_PROCS.GET_SUBMISSIONS_FOR_POLLING(?) }")
+        )
+      ).thenReturn(cs)
+
+      when(cs.getObject(eqTo(1), eqTo(classOf[ResultSet]))).thenReturn(resRetSummary)
+
+      when(resRetSummary.next()).thenReturn(false)
+
+      val repo = new SdltFormpRepository(db)
+
+      val result: SubmissionsForPollingResponse = repo.sdltGetSubmissionsForPolling().futureValue
+      result.submissions.length mustBe 0
+      result.submissions mustBe expectedSubmissionsForPollingEmpty
+    }
+  }
+
   "sdltDeleteReturn" - {
 
     "call delete_return stored procedure with correct parameters" in {
@@ -1017,7 +1079,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         addressLine3 = Some("City Center"),
         addressLine4 = Some("Greater London"),
         postcode = Some("SW1A 1AA"),
-        isRepresentedByAgent = "NO"
+        isRepresentedByAgent = Some("no")
       )
 
       val result = repo.sdltCreateVendor(request).futureValue
@@ -1038,7 +1100,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).setString(10, "City Center")
       verify(cs).setString(11, "Greater London")
       verify(cs).setString(12, "SW1A 1AA")
-      verify(cs).setString(13, "NO")
+      verify(cs).setString(13, "no")
       verify(cs).registerOutParameter(14, Types.NUMERIC)
       verify(cs).registerOutParameter(15, Types.NUMERIC)
       verify(cs).execute()
@@ -1073,7 +1135,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         addressLine3 = None,
         addressLine4 = None,
         postcode = None,
-        isRepresentedByAgent = "YES"
+        isRepresentedByAgent = Some("yes")
       )
 
       val result = repo.sdltCreateVendor(request).futureValue
@@ -1093,7 +1155,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).setNull(10, Types.VARCHAR)
       verify(cs).setNull(11, Types.VARCHAR)
       verify(cs).setNull(12, Types.VARCHAR)
-      verify(cs).setString(13, "YES")
+      verify(cs).setString(13, "yes")
       verify(cs).execute()
     }
   }
@@ -1127,7 +1189,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         addressLine3 = None,
         addressLine4 = None,
         postcode = Some("W1A 1AA"),
-        isRepresentedByAgent = "YES",
+        isRepresentedByAgent = Some("yes"),
         vendorResourceRef = "100001",
         nextVendorId = Some("100002")
       )
@@ -1149,7 +1211,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).setNull(10, Types.VARCHAR)
       verify(cs).setNull(11, Types.VARCHAR)
       verify(cs).setString(12, "W1A 1AA")
-      verify(cs).setString(13, "YES")
+      verify(cs).setString(13, "yes")
       verify(cs).setLong(14, 100001L)
       verify(cs).setString(15, "100002")
       verify(cs).execute()
@@ -1182,7 +1244,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         addressLine3 = None,
         addressLine4 = None,
         postcode = None,
-        isRepresentedByAgent = "NO",
+        isRepresentedByAgent = Some("no"),
         vendorResourceRef = "100002",
         nextVendorId = None
       )
@@ -1203,7 +1265,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).setNull(10, Types.VARCHAR)
       verify(cs).setNull(11, Types.VARCHAR)
       verify(cs).setNull(12, Types.VARCHAR)
-      verify(cs).setString(13, "NO")
+      verify(cs).setString(13, "no")
       verify(cs).setLong(14, 100002L)
       verify(cs).setNull(15, Types.VARCHAR)
       verify(cs).execute()
@@ -4920,8 +4982,8 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(conn).prepareCall("{ call SUBMISSION_ADMIN.UpdateGovTalkStatus(?, ?, ?, ?) }")
       verify(cs).setString(1, "STORN12345")
       verify(cs).setString(2, "SUB123")
-      verify(cs).setTimestamp(3, Timestamp.valueOf("2025-01-15 12:00:00"))
-      verify(cs).setString(4, "response")
+      verify(cs).setString(3, "response")
+      verify(cs).setTimestamp(4, Timestamp.valueOf("2025-01-15 12:00:00"))
       verify(cs).execute()
       verify(cs).close()
     }

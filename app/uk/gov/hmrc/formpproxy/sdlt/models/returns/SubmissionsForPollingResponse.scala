@@ -1,5 +1,5 @@
 /*
- * Copyright 2026 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,25 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.cis.models.requests
+package uk.gov.hmrc.formpproxy.sdlt.models.returns
 
 import play.api.libs.json.{Json, OFormat}
 
-final case class GetSubmissionWithVerificationBatchRequest(
-  instanceId: String,
-  verificationBatchResourceRef: Long
+case class SubmissionsForPollingResponse(
+  submissions: List[SubmissionForPolling]
 )
 
-object GetSubmissionWithVerificationBatchRequest {
-  given format: OFormat[GetSubmissionWithVerificationBatchRequest] =
-    Json.format[GetSubmissionWithVerificationBatchRequest]
+object SubmissionsForPollingResponse {
+  implicit val format: OFormat[SubmissionsForPollingResponse] = Json.format[SubmissionsForPollingResponse]
+}
+
+case class SubmissionForPolling(
+  submissionId: String,
+  storn: String,
+  returnResourceRef: String,
+  submissionStatus: String
+)
+
+object SubmissionForPolling {
+  implicit val format: OFormat[SubmissionForPolling] = Json.format[SubmissionForPolling]
 }

@@ -16,15 +16,15 @@
 
 package uk.gov.hmrc.formpproxy.cis.models.response
 
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, Subcontractor, Submission, Verification, VerificationBatch}
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.formpproxy.cis.models.*
 
 final case class GetSubmissionWithVerificationBatchResponse(
   scheme: Option[ContractorScheme],
-  subcontractors: Seq[Subcontractor],
-  verifications: Seq[Verification],
+  submission: Option[Submission],
   verificationBatch: Option[VerificationBatch],
-  submission: Option[Submission]
+  verifications: Seq[Verification],
+  subcontractors: Seq[Subcontractor]
 )
 
 object GetSubmissionWithVerificationBatchResponse {

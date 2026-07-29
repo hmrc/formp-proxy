@@ -23,10 +23,12 @@ import uk.gov.hmrc.formpproxy.actions.AuthAction
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.formpproxy.cis.models.requests.CreateAndUpdateSubcontractorRequest
+import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorResponse
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest}
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 class SubcontractorController @Inject() (
   authorise: AuthAction,
@@ -78,6 +80,34 @@ class SubcontractorController @Inject() (
             s"[getSubcontractorForDelete] failed (cisId=$cisId, subbieResourceRef=$subbieResourceRef)",
             t
           )
+          InternalServerError(Json.obj("message" -> "Unexpected error"))
+        }
+    }
+
+  def getSubcontractor(
+    cisId: String,
+    subbieResourceRef: Long
+  ): Action[AnyContent] =
+    authorise.async { implicit request =>
+      service
+        .getSubcontractor(cisId, subbieResourceRef)
+        .map(response => Ok(Json.toJson(response)))
+        .recover { case t =>
+          logger.error(
+            s"[getSubcontractor] failed (cisId=$cisId, subbieResourceRef=$subbieResourceRef)",
+            t
+          )
+          InternalServerError(Json.obj("message" -> "Unexpected error"))
+        }
+    }
+
+  def deleteSubcontractor: Action[DeleteSubcontractorRequest] =
+    authorise.async(parse.json[DeleteSubcontractorRequest]) { implicit request =>
+      service
+        .deleteSubcontractor(request.body)
+        .map(_ => NoContent)
+        .recover { case NonFatal(e) =>
+          logger.error("[deleteSubcontractor] failed", e)
           InternalServerError(Json.obj("message" -> "Unexpected error"))
         }
     }

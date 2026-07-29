@@ -18,7 +18,7 @@ package uk.gov.hmrc.formpproxy.sdlt.repositories
 
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.formpproxy.sdlt.models.{GetReturnRecordsRequest, GetReturnsForPurgeRequest}
-import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnForPurge, ReturnSummary, ReturnsForPurgeResponse, SdltReturnRecordResponse}
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnForPurge, ReturnSummary, ReturnsForPurgeResponse, SdltReturnRecordResponse, SubmissionForPolling, SubmissionsForPollingResponse}
 
 import java.time.LocalDate
 
@@ -27,7 +27,7 @@ trait SdltFormpRepoDataHelper {
     ReturnSummary(
       returnReference = "REF01",
       utrn = Some("UTR001"),
-      status = "SUBMITTED",
+      status = Some("SUBMITTED"),
       dateSubmitted = Some(LocalDate.parse("2025-01-01")),
       purchaserName = "purchaserName1",
       address = "Address 11",
@@ -36,11 +36,19 @@ trait SdltFormpRepoDataHelper {
     ReturnSummary(
       returnReference = "REF02",
       utrn = Some("UTR003"),
-      status = "SUBMITTED",
+      status = Some("SUBMITTED"),
       dateSubmitted = Some(LocalDate.parse("2025-02-03")),
       purchaserName = "purchaserName2",
       address = "Address 22",
       agentReference = Some("Agent 22")
+    ),
+    ReturnSummary(
+      returnReference = "REF03",
+      utrn = Some("UTR004"),
+      dateSubmitted = Some(LocalDate.parse("2025-02-04")),
+      purchaserName = "purchaserName3",
+      address = "Address 23",
+      agentReference = Some("Agent 23")
     )
   )
   val expectedReturnsSummaryEmpty: List[ReturnSummary] = List.empty
@@ -96,5 +104,24 @@ trait SdltFormpRepoDataHelper {
 
   val requestReturnsForPurge: GetReturnsForPurgeRequest = GetReturnsForPurgeRequest(
     purgeDate = LocalDate.parse("2026-06-29")
+  )
+
+  val expectedSubmissionsForPolling: List[SubmissionForPolling]      = List(
+    SubmissionForPolling(
+      submissionId = "9001",
+      storn = "STORN12345",
+      returnResourceRef = "REF01",
+      submissionStatus = "ACCEPTED"
+    ),
+    SubmissionForPolling(
+      submissionId = "9002",
+      storn = "STORN12345",
+      returnResourceRef = "REF02",
+      submissionStatus = "ACCEPTED"
+    )
+  )
+  val expectedSubmissionsForPollingEmpty: List[SubmissionForPolling] = List.empty
+  val submissionsForPollingResponse: SubmissionsForPollingResponse   = SubmissionsForPollingResponse(
+    submissions = expectedSubmissionsForPolling
   )
 }

@@ -22,7 +22,7 @@ import play.api.db.{Database, NamedDatabase}
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.agents.*
 import uk.gov.hmrc.formpproxy.sdlt.models.organisation.*
-import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnForPurge, ReturnSummary, ReturnsForPurgeResponse, SdltReturnRecordResponse}
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnForPurge, ReturnSummary, ReturnsForPurgeResponse, SdltReturnRecordResponse, SubmissionForPolling, SubmissionsForPollingResponse}
 import uk.gov.hmrc.formpproxy.sdlt.models.vendor.*
 import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.*
 import uk.gov.hmrc.formpproxy.sdlt.models.land.*
@@ -45,6 +45,7 @@ trait SdltSource {
   def sdltGetReturn(returnResourceRef: String, storn: String): Future[GetReturnRequest]
   def sdltGetReturns(request: GetReturnRecordsRequest): Future[SdltReturnRecordResponse]
   def sdltGetReturnsForPurge(request: GetReturnsForPurgeRequest): Future[ReturnsForPurgeResponse]
+  def sdltGetSubmissionsForPolling(): Future[SubmissionsForPollingResponse]
   def sdltDeleteReturn(request: DeleteReturnRequest): Future[DeleteReturnReturn]
   def sdltCreateVendor(request: CreateVendorRequest): Future[CreateVendorReturn]
   def sdltUpdateVendor(request: UpdateVendorRequest): Future[UpdateVendorReturn]
@@ -323,6 +324,34 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       status = Option(rs.getString("status")).getOrElse("")
     )
 
+  override def sdltGetSubmissionsForPolling(): Future[SubmissionsForPollingResponse] = {
+    logger.info("[SDLT] sdltGetSubmissionsForPolling()")
+    Future {
+      db.withConnection { conn =>
+        val cs = conn.prepareCall(
+          "{ call SUBMISSION_PROCS.GET_SUBMISSIONS_FOR_POLLING(?) }"
+        )
+        try {
+          cs.registerOutParameter(1, OracleTypes.CURSOR)
+          cs.execute()
+
+          val submissions: Seq[SubmissionForPolling] =
+            processResultSetSeq(cs, 1, processSubmissionForPolling)
+
+          SubmissionsForPollingResponse(submissions = submissions.toList)
+        } finally cs.close()
+      }
+    }
+  }
+
+  private def processSubmissionForPolling(rs: ResultSet): SubmissionForPolling =
+    SubmissionForPolling(
+      submissionId = rs.getString("submission_id"),
+      storn = rs.getString("storn"),
+      returnResourceRef = rs.getString("return_resource_ref"),
+      submissionStatus = Option(rs.getString("status")).getOrElse("")
+    )
+
   override def sdltDeleteReturn(request: DeleteReturnRequest): Future[DeleteReturnReturn] = Future {
     db.withTransaction { conn =>
       callDeleteReturn(
@@ -353,7 +382,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     ReturnSummary(
       returnReference = rs.getString("return_resource_ref"),
       utrn = Option(rs.getString("utrn")),
-      status = Option(rs.getString("status")).getOrElse(""),
+      status = Option(rs.getString("status")),
       dateSubmitted = Try(LocalDate.parse(rs.getString("submitted_date"))).toOption,
       purchaserName = Option(rs.getString("name")).getOrElse(""),
       address = Option(rs.getString("address")).getOrElse(""),
@@ -744,7 +773,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     p_address_3: Option[String],
     p_address_4: Option[String],
     p_postcode: Option[String],
-    p_is_represented_by_agent: String
+    p_is_represented_by_agent: Option[String]
   ): CreateVendorReturn = {
 
     val cs = conn.prepareCall("{ call VENDOR_PROCS.Create_Vendor(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")
@@ -761,7 +790,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       cs.setOptionalString(10, p_address_3)
       cs.setOptionalString(11, p_address_4)
       cs.setOptionalString(12, p_postcode)
-      cs.setString(13, p_is_represented_by_agent)
+      cs.setOptionalString(13, p_is_represented_by_agent)
 
       cs.registerOutParameter(14, Types.NUMERIC)
       cs.registerOutParameter(15, Types.NUMERIC)
@@ -815,7 +844,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     p_address_3: Option[String],
     p_address_4: Option[String],
     p_postcode: Option[String],
-    p_is_represented_by_agent: String,
+    p_is_represented_by_agent: Option[String],
     p_vendor_resource_ref: Long,
     p_next_vendor_id: Option[String]
   ): UpdateVendorReturn = {
@@ -834,7 +863,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       cs.setOptionalString(10, p_address_3)
       cs.setOptionalString(11, p_address_4)
       cs.setOptionalString(12, p_postcode)
-      cs.setString(13, p_is_represented_by_agent)
+      cs.setOptionalString(13, p_is_represented_by_agent)
       cs.setLong(14, p_vendor_resource_ref)
       cs.setOptionalString(15, p_next_vendor_id)
 
@@ -2851,8 +2880,8 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     try {
       cs.setString(1, p_user_identifier)
       cs.setString(2, p_formResultId)
-      setRequiredTimestamp(cs, 3, p_endstate_timestamp)
-      cs.setString(4, p_protocol_status)
+      cs.setString(3, p_protocol_status)
+      setRequiredTimestamp(cs, 4, p_endstate_timestamp)
       cs.execute()
       GovTalkStatusReturn(success = true)
     } finally cs.close()

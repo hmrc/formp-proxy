@@ -29,7 +29,7 @@ import uk.gov.hmrc.formpproxy.sdlt.models.residency.*
 import uk.gov.hmrc.formpproxy.sdlt.models.transaction.*
 import uk.gov.hmrc.formpproxy.sdlt.models.lease.*
 import uk.gov.hmrc.formpproxy.sdlt.models.taxCalculation.*
-import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnsForPurgeResponse, SdltReturnRecordResponse}
+import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnsForPurgeResponse, SdltReturnRecordResponse, SubmissionsForPollingResponse}
 import uk.gov.hmrc.formpproxy.sdlt.repositories.{SdltFormpRepoDataHelper, SdltFormpRepository}
 
 import scala.concurrent.Future
@@ -563,6 +563,20 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
     }
   }
 
+  "ReturnService getSDLTSubmissionsForPolling" - {
+    "delegate to the repository" in new ReturnsFixture {
+
+      when(repo.sdltGetSubmissionsForPolling())
+        .thenReturn(Future.successful(submissionsForPollingResponse))
+
+      val result: SubmissionsForPollingResponse = service.getSDLTSubmissionsForPolling().futureValue
+      result mustBe submissionsForPollingResponse
+
+      verify(repo).sdltGetSubmissionsForPolling()
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
   "ReturnService deleteSDLTReturn" - {
     "delegate to the repository" in new ReturnsFixture {
       val request: DeleteReturnRequest         = DeleteReturnRequest(
@@ -600,7 +614,7 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
         addressLine3 = Some("City Center"),
         addressLine4 = None,
         postcode = Some("SW1A 1AA"),
-        isRepresentedByAgent = "N"
+        isRepresentedByAgent = Some("no")
       )
       val expectedResponse: CreateVendorReturn = CreateVendorReturn(
         vendorResourceRef = "V100001",
@@ -633,7 +647,7 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
         addressLine3 = None,
         addressLine4 = None,
         postcode = None,
-        isRepresentedByAgent = "Y"
+        isRepresentedByAgent = Some("yes")
       )
       val expectedResponse: CreateVendorReturn = CreateVendorReturn(
         vendorResourceRef = "V100002",
@@ -658,7 +672,7 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
         returnResourceRef = "100001",
         name = "Smith",
         addressLine1 = "Main Street",
-        isRepresentedByAgent = "N"
+        isRepresentedByAgent = Some("no")
       )
       val boom                         = new RuntimeException("database connection failed")
 
@@ -691,7 +705,7 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
         addressLine3 = None,
         addressLine4 = None,
         postcode = Some("W1A 1AA"),
-        isRepresentedByAgent = "Y",
+        isRepresentedByAgent = Some("yes"),
         vendorResourceRef = "V100001",
         nextVendorId = None
       )
@@ -715,7 +729,7 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
         returnResourceRef = "100002",
         name = "Updated Vendor",
         addressLine1 = "New Street",
-        isRepresentedByAgent = "N",
+        isRepresentedByAgent = Some("no"),
         vendorResourceRef = "V100002"
       )
       val expectedResponse: UpdateVendorReturn = UpdateVendorReturn(updated = false)
@@ -738,7 +752,7 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
         returnResourceRef = "100001",
         name = "Doe",
         addressLine1 = "Oak Avenue",
-        isRepresentedByAgent = "Y",
+        isRepresentedByAgent = Some("yes"),
         vendorResourceRef = "V100001"
       )
       val boom                         = new RuntimeException("database timeout")

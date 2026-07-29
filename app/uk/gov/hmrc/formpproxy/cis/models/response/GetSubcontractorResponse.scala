@@ -14,16 +14,17 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.cis.models.requests
+package uk.gov.hmrc.formpproxy.cis.models.response
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.formpproxy.cis.models._
 
-final case class GetSubmissionWithVerificationBatchRequest(
-  instanceId: String,
-  verificationBatchResourceRef: Long
+final case class GetSubcontractorResponse(
+  scheme: Option[ContractorScheme],
+  subcontractor: Option[Subcontractor]
 )
 
-object GetSubmissionWithVerificationBatchRequest {
-  given format: OFormat[GetSubmissionWithVerificationBatchRequest] =
-    Json.format[GetSubmissionWithVerificationBatchRequest]
+object GetSubcontractorResponse {
+  given format: OFormat[GetSubcontractorResponse] =
+    Json.format[GetSubcontractorResponse]
 }

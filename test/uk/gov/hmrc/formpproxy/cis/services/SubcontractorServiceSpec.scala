@@ -23,8 +23,8 @@ import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.{Company, Partnership, SoleTrader, Trust}
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
 import uk.gov.hmrc.formpproxy.cis.models.CreateAndUpdateSubcontractorDatabaseRecord
-import uk.gov.hmrc.formpproxy.cis.models.requests.CreateAndUpdateSubcontractorRequest
-import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorForDeleteResponse, GetSubcontractorListResponse}
+import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorForDeleteResponse, GetSubcontractorListResponse, GetSubcontractorResponse}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 
 import scala.concurrent.Future
@@ -374,4 +374,113 @@ class SubcontractorServiceSpec extends SpecBase {
         )
     }
   }
+
+  "getSubcontractor" - {
+
+    val cisId             = "123"
+    val subbieResourceRef = 10L
+
+    "return response from repository when successful" in new Ctx {
+
+      val response = GetSubcontractorResponse(
+        scheme = None,
+        subcontractor = None
+      )
+
+      when(
+        repo.getSubcontractor(
+          eqTo(cisId),
+          eqTo(subbieResourceRef)
+        )
+      ).thenReturn(Future.successful(response))
+
+      val result =
+        service
+          .getSubcontractor(
+            cisId,
+            subbieResourceRef
+          )
+          .futureValue
+
+      result mustBe response
+
+      verify(repo)
+        .getSubcontractor(
+          eqTo(cisId),
+          eqTo(subbieResourceRef)
+        )
+    }
+
+    "propagate failure from repository" in new Ctx {
+
+      when(
+        repo.getSubcontractor(
+          eqTo(cisId),
+          eqTo(subbieResourceRef)
+        )
+      ).thenReturn(
+        Future.failed(
+          new RuntimeException("boom")
+        )
+      )
+
+      val result =
+        service.getSubcontractor(
+          cisId,
+          subbieResourceRef
+        )
+
+      result.failed.futureValue.getMessage mustBe "boom"
+
+      verify(repo)
+        .getSubcontractor(
+          eqTo(cisId),
+          eqTo(subbieResourceRef)
+        )
+    }
+  }
+
+  "SubcontractorService#deleteSubcontractor" - {
+
+    "delegates to repo with request and returns Unit" in {
+      val c = Ctx();
+      import c.*
+
+      val req = DeleteSubcontractorRequest(
+        instanceId = "abc-123",
+        subbieResourceRef = 98765L
+      )
+
+      when(repo.deleteSubcontractor(eqTo(req)))
+        .thenReturn(Future.successful(()))
+
+      val out: Unit = service.deleteSubcontractor(req).futureValue
+      out mustBe ((): Unit)
+
+      verify(repo).deleteSubcontractor(eqTo(req))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failure from repo" in {
+      val c = Ctx();
+      import c.*
+
+      val req = DeleteSubcontractorRequest(
+        instanceId = "abc-123",
+        subbieResourceRef = 98765L
+      )
+
+      val boom = new RuntimeException("boom")
+
+      when(repo.deleteSubcontractor(eqTo(req)))
+        .thenReturn(Future.failed(boom))
+
+      val ex = service.deleteSubcontractor(req).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).deleteSubcontractor(eqTo(req))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
 }

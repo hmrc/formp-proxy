@@ -93,10 +93,16 @@ trait CisMonthlyReturnSource {
   def getBatchPollSubmissions(): Future[GetBatchPollSubmissionsResponse]
   def updateVerificationSubmission(req: UpdateVerificationSubmissionRequest): Future[Unit]
   def processVerificationResponseFromChris(req: ProcessVerificationResponseFromChrisRequest): Future[Unit]
-
+  def getSubmissionWithVerificationBatch(
+    req: GetSubmissionWithVerificationBatchRequest
+  ): Future[GetSubmissionWithVerificationBatchResponse]
   def getSubcontractorForDelete(cisId: String, subbieResourceRef: Long): Future[GetSubcontractorForDeleteResponse]
 
+  def deleteSubcontractor(request: DeleteSubcontractorRequest): Future[Unit]
+
   def getSubmittedVerifications(req: GetSubmittedVerificationsRequest): Future[GetSubmittedVerificationsResponse]
+
+  def getSubcontractor(cisId: String, subbieResourceRef: Long): Future[GetSubcontractorResponse]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -1631,6 +1637,32 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
 
+  override def getSubmissionWithVerificationBatch(
+    req: GetSubmissionWithVerificationBatchRequest
+  ): Future[GetSubmissionWithVerificationBatchResponse] = {
+    logger.info(
+      s"[CIS] getSubmissionWithVerificationBatch(instanceId=${req.instanceId}, verificationBatchResourceRef=${req.verificationBatchResourceRef})"
+    )
+
+    Future {
+      db.withConnection { conn =>
+        val record = callGetSubmissionWithVerificationBatch(
+          conn = conn,
+          instanceId = req.instanceId,
+          verificationBatchResourceRef = req.verificationBatchResourceRef
+        )
+
+        GetSubmissionWithVerificationBatchResponse(
+          scheme = record.scheme,
+          submission = record.submission,
+          verificationBatch = record.verificationBatch,
+          verifications = record.verifications,
+          subcontractors = record.subcontractors
+        )
+      }
+    }
+  }
+
   private final case class SubmissionWithVerificationBatchRecord(
     scheme: Option[ContractorScheme],
     submission: Option[Submission],
@@ -1796,6 +1828,31 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.execute()
     }
 
+  override def deleteSubcontractor(request: DeleteSubcontractorRequest): Future[Unit] =
+    Future {
+      logger.info(
+        s"[CIS] Deleting subcontractor. instanceId=${request.instanceId}"
+      )
+      db.withConnection { conn =>
+        callDeleteSubcontractor(
+          conn,
+          request.instanceId,
+          request.subbieResourceRef
+        )
+      }
+    }
+
+  private def callDeleteSubcontractor(
+    connection: Connection,
+    instanceId: String,
+    subbieResourceRef: Long
+  ): Unit =
+    withCall(connection, CallDeleteSubcontractor) { cs =>
+      cs.setString(1, instanceId)
+      cs.setLong(2, subbieResourceRef)
+      cs.execute()
+    }
+
   override def getSubcontractorForDelete(
     cisId: String,
     subbieResourceRef: Long
@@ -1887,6 +1944,42 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         verifications = withCursor(cs, 5)(collectVerifications),
         submissions = withCursor(cs, 6)(collectSubmissions)
       )
+    }
+
+  override def getSubcontractor(
+    cisId: String,
+    subbieResourceRef: Long
+  ): Future[GetSubcontractorResponse] =
+    Future {
+      logger.info(
+        s"[CIS] getSubcontractor(cisId=$cisId, subbieResourceRef=$subbieResourceRef)"
+      )
+
+      db.withConnection { conn =>
+        withCall(conn, CallGetSubcontractor) { cs =>
+          cs.setString(1, cisId)
+          cs.setLong(2, subbieResourceRef)
+
+          cs.registerOutParameter(3, OracleTypes.CURSOR)
+          cs.registerOutParameter(4, OracleTypes.CURSOR)
+          cs.registerOutParameter(5, OracleTypes.CURSOR)
+
+          cs.execute()
+
+          val scheme =
+            withCursor(cs, 3)(collectSchemes).headOption
+
+          val subcontractor =
+            withCursor(cs, 4)(collectSubcontractors).headOption
+
+          discardCursor(cs, 5)
+
+          GetSubcontractorResponse(
+            scheme = scheme,
+            subcontractor = subcontractor
+          )
+        }
+      }
     }
 
 }
