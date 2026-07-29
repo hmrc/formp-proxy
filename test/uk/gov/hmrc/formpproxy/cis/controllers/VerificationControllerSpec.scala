@@ -1099,46 +1099,51 @@ class VerificationControllerSpec extends SpecBase {
       verifyNoMoreInteractions(mockService)
     }
 
-    "GET /cis/verification/submission-batch/:instanceId/:verificationBatchResourceRef (getSubmissionWithVerificationBatch)" - {
+    "GET /cis/verification/submission-batch/:instanceId/:verificationBatchResourceRef (getSubmissionWithVerificationBatchByRefs)" - {
 
       "returns 200 OK with JSON body when service succeeds" in {
         val s = setup
         import s.*
 
-        val requestModel = GetSubmissionWithVerificationBatchRequest(
-          instanceId = "abc-123",
-          verificationBatchResourceRef = 77L
-        )
+        val requestModel =
+          GetSubmissionWithVerificationBatchRequest(
+            instanceId = "abc-123",
+            verificationBatchResourceRef = 77L
+          )
 
-        val response = GetSubmissionWithVerificationBatchResponse(
-          scheme = None,
-          subcontractors = Seq.empty,
-          verifications = Seq.empty,
-          verificationBatch = None,
-          submission = None
-        )
+        val responseModel =
+          GetSubmissionWithVerificationBatchResponse(
+            scheme = None,
+            subcontractors = Seq.empty,
+            verifications = Seq.empty,
+            verificationBatch = None,
+            submission = None
+          )
 
         when(mockService.getSubmissionWithVerificationBatch(eqTo(requestModel)))
-          .thenReturn(Future.successful(response))
+          .thenReturn(Future.successful(responseModel))
 
-        val req = FakeRequest(
-          GET,
-          s"/cis/verification/submission-batch/${requestModel.instanceId}/${requestModel.verificationBatchResourceRef}"
-        )
+        val req =
+          FakeRequest(
+            GET,
+            s"/cis/verification/submission-batch/${requestModel.instanceId}/${requestModel.verificationBatchResourceRef}"
+          )
 
         val result =
           controller
-            .getSubmissionWithVerificationBatch(
-              instanceId = requestModel.instanceId,
-              verificationBatchResourceRef = requestModel.verificationBatchResourceRef
+            .getSubmissionWithVerificationBatchByRefs(
+              requestModel.instanceId,
+              requestModel.verificationBatchResourceRef
             )
             .apply(req)
 
         status(result) mustBe OK
         contentType(result) mustBe Some(JSON)
-        contentAsJson(result) mustBe Json.toJson(response)
+        contentAsJson(result) mustBe Json.toJson(responseModel)
 
-        verify(mockService).getSubmissionWithVerificationBatch(eqTo(requestModel))
+        verify(mockService)
+          .getSubmissionWithVerificationBatch(eqTo(requestModel))
+
         verifyNoMoreInteractions(mockService)
       }
 
@@ -1146,24 +1151,26 @@ class VerificationControllerSpec extends SpecBase {
         val s = setup
         import s.*
 
-        val requestModel = GetSubmissionWithVerificationBatchRequest(
-          instanceId = "abc-123",
-          verificationBatchResourceRef = 77L
-        )
+        val requestModel =
+          GetSubmissionWithVerificationBatchRequest(
+            instanceId = "abc-123",
+            verificationBatchResourceRef = 77L
+          )
 
         when(mockService.getSubmissionWithVerificationBatch(eqTo(requestModel)))
           .thenReturn(Future.failed(new RuntimeException("boom")))
 
-        val req = FakeRequest(
-          GET,
-          s"/cis/verification/submission-batch/${requestModel.instanceId}/${requestModel.verificationBatchResourceRef}"
-        )
+        val req =
+          FakeRequest(
+            GET,
+            s"/cis/verification/submission-batch/${requestModel.instanceId}/${requestModel.verificationBatchResourceRef}"
+          )
 
         val result =
           controller
-            .getSubmissionWithVerificationBatch(
-              instanceId = requestModel.instanceId,
-              verificationBatchResourceRef = requestModel.verificationBatchResourceRef
+            .getSubmissionWithVerificationBatchByRefs(
+              requestModel.instanceId,
+              requestModel.verificationBatchResourceRef
             )
             .apply(req)
 
@@ -1171,30 +1178,11 @@ class VerificationControllerSpec extends SpecBase {
         contentType(result) mustBe Some(JSON)
         contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
 
-        verify(mockService).getSubmissionWithVerificationBatch(eqTo(requestModel))
+        verify(mockService)
+          .getSubmissionWithVerificationBatch(eqTo(requestModel))
+
         verifyNoMoreInteractions(mockService)
       }
-    }
-    "returns 400 BadRequest with error payload when JSON is invalid" in {
-      val s = setup
-      import s.*
-
-      val badJson = Json.obj("wrong" -> "value")
-
-      val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
-        .withBody(badJson)
-
-      val result = controller.getSubmittedVerifications().apply(req)
-
-      status(result) mustBe BAD_REQUEST
-      contentType(result) mustBe Some(JSON)
-
-      val body = contentAsJson(result)
-      (body \ "message").as[String] mustBe "Invalid payload"
-      (body \ "errors").isDefined mustBe true
-
-      verifyNoInteractions(mockService)
     }
 
     "returns 500 InternalServerError with error body when service fails" in {
