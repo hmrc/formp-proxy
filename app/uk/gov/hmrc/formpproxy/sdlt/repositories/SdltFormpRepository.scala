@@ -2695,6 +2695,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       cs.registerOutParameter(5, Types.NUMERIC)
 
       cs.execute()
+
       val errorDetailId = cs.getLong(5)
       CreateSubmissionErrorDetailReturn(success = true)
     } finally cs.close()
