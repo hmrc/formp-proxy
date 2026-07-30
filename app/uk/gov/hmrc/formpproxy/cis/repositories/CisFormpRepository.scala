@@ -100,6 +100,8 @@ trait CisMonthlyReturnSource {
   def getSubmittedVerifications(req: GetSubmittedVerificationsRequest): Future[GetSubmittedVerificationsResponse]
 
   def getSubcontractor(cisId: String, subbieResourceRef: Long): Future[GetSubcontractorResponse]
+
+  def updateSubcontractor(request: UpdateSubcontractorRequest): Future[UpdateSubcontractorResponse]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -1951,6 +1953,95 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           )
         }
       }
+    }
+
+  override def updateSubcontractor(
+    request: UpdateSubcontractorRequest
+  ): Future[UpdateSubcontractorResponse] =
+    Future {
+      logger.info(
+        s"[CIS] updateSubcontractor(cisId=${request.cisId}, subbieResourceRef=${request.subcontractor.subbieResourceRef})"
+      )
+
+      db.withConnection { conn =>
+        val scheme =
+          loadScheme(conn, request.cisId)
+
+        val subbieResourceRef =
+          request.subcontractor.subbieResourceRef.getOrElse(
+            throw new IllegalArgumentException("subbieResourceRef is required")
+          )
+
+        val updatedSubcontractorVersion =
+          callUpdateExistingSubcontractor(
+            conn = conn,
+            schemeId = scheme.schemeId,
+            subbieResourceRef = subbieResourceRef,
+            subcontractor = request.subcontractor
+          )
+
+        callUpdateSchemeVersion(
+          conn,
+          request.cisId,
+          scheme.version.getOrElse(0)
+        )
+
+        UpdateSubcontractorResponse(
+          version = updatedSubcontractorVersion
+        )
+      }
+    }
+
+  private def callUpdateExistingSubcontractor(
+    conn: Connection,
+    schemeId: Long,
+    subbieResourceRef: Long,
+    subcontractor: Subcontractor
+  ): Int =
+    withCall(conn, CallUpdateSubcontractor) { cs =>
+      cs.setLong(1, schemeId)
+      cs.setLong(2, subbieResourceRef)
+
+      cs.setOptionalString(3, subcontractor.utr)
+      cs.setOptionalInt(4, subcontractor.pageVisited)
+      cs.setOptionalString(5, subcontractor.partnerUtr)
+      cs.setOptionalString(6, subcontractor.crn)
+
+      cs.setOptionalString(7, subcontractor.firstName)
+      cs.setOptionalString(8, subcontractor.nino)
+      cs.setOptionalString(9, subcontractor.secondName)
+      cs.setOptionalString(10, subcontractor.surname)
+
+      cs.setOptionalString(11, subcontractor.partnershipTradingName)
+      cs.setOptionalString(12, subcontractor.tradingName)
+
+      cs.setOptionalString(13, subcontractor.addressLine1)
+      cs.setOptionalString(14, subcontractor.addressLine2)
+      cs.setOptionalString(15, subcontractor.addressLine3)
+      cs.setOptionalString(16, subcontractor.addressLine4)
+
+      cs.setOptionalString(17, subcontractor.country)
+      cs.setOptionalString(18, subcontractor.postcode)
+
+      cs.setOptionalString(19, subcontractor.emailAddress)
+      cs.setOptionalString(20, subcontractor.phoneNumber)
+      cs.setOptionalString(21, subcontractor.mobilePhoneNumber)
+      cs.setOptionalString(22, subcontractor.worksReferenceNumber)
+
+      cs.setOptionalString(23, subcontractor.matched)
+      cs.setOptionalString(24, subcontractor.autoVerified)
+      cs.setOptionalString(25, subcontractor.verified)
+      cs.setOptionalString(26, subcontractor.verificationNumber)
+      cs.setOptionalString(27, subcontractor.taxTreatment)
+      cs.setOptionalString(28, subcontractor.updatedTaxTreatment)
+      cs.setOptionalTimestamp(29, subcontractor.verificationDate)
+
+      cs.setOptionalInt(30, subcontractor.version)
+      cs.registerOutParameter(30, Types.INTEGER)
+
+      cs.execute()
+
+      cs.getInt(30)
     }
 
 }

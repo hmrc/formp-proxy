@@ -26,8 +26,8 @@ import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, Subcontractor}
 import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorResponse
-import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorForDeleteResponse, GetSubcontractorListResponse}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest}
+import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorForDeleteResponse, GetSubcontractorListResponse, UpdateSubcontractorResponse}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest, UpdateSubcontractorRequest}
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 
 import scala.concurrent.Future
@@ -486,6 +486,132 @@ class SubcontractorControllerSpec extends SpecBase {
           eqTo(cisId),
           eqTo(subbieResourceRef)
         )
+    }
+  }
+
+  "SubcontractorController updateSubcontractor" - {
+
+    "returns 200 OK with updated version when service succeeds" in {
+      val s = setup
+      import s.*
+
+      val json =
+        Json.parse(
+          """
+            |{
+            |  "cisId": "abc-123",
+            |  "subcontractor": {
+            |    "subcontractorId": 999,
+            |    "subbieResourceRef": 10,
+            |    "utr": "1234567890",
+            |    "pageVisited": 1,
+            |    "firstName": "John",
+            |    "nino": "AA123456A",
+            |    "secondName": "Q",
+            |    "surname": "Smith",
+            |    "tradingName": "John Smith Trading",
+            |    "subcontractorType": "soletrader",
+            |    "addressLine1": "1 Main Street",
+            |    "addressLine2": "Flat 2",
+            |    "addressLine3": "London",
+            |    "country": "United Kingdom",
+            |    "postcode": "AA1 1AA",
+            |    "emailAddress": "subcontractor@example.com",
+            |    "phoneNumber": "01234567890",
+            |    "mobilePhoneNumber": "07123456789",
+            |    "worksReferenceNumber": "WR-123",
+            |    "matched": "Y",
+            |    "autoVerified": "N",
+            |    "verified": "Y",
+            |    "verificationNumber": "V123456",
+            |    "taxTreatment": "NET",
+            |    "updatedTaxTreatment": "NET",
+            |    "version": 1,
+            |    "pendingVerifications": 0
+            |  }
+            |}
+            |""".stripMargin
+        )
+
+      val request =
+        json.as[UpdateSubcontractorRequest]
+
+      val response =
+        UpdateSubcontractorResponse(version = 2)
+
+      when(mockService.updateSubcontractor(eqTo(request)))
+        .thenReturn(Future.successful(response))
+
+      val result =
+        controller.updateSubcontractor.apply(
+          postJson("/cis/subcontractor/update", json)
+        )
+
+      status(result) mustBe OK
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.toJson(response)
+      (contentAsJson(result) \ "version").as[Int] mustBe 2
+
+      verify(mockService).updateSubcontractor(eqTo(request))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 400 BadRequest when payload is invalid" in {
+      val s = setup
+      import s.*
+
+      val badJson =
+        Json.obj("bad" -> "payload")
+
+      val result =
+        controller.updateSubcontractor.apply(
+          postJson("/cis/subcontractor/update", badJson)
+        )
+
+      status(result) mustBe BAD_REQUEST
+      (contentAsJson(result) \ "message").as[String] mustBe "Invalid payload"
+
+      verify(mockService, never()).updateSubcontractor(any[UpdateSubcontractorRequest])
+    }
+
+    "returns 500 InternalServerError when service fails" in {
+      val s = setup
+      import s.*
+
+      val json =
+        Json.parse(
+          """
+            |{
+            |  "cisId": "abc-123",
+            |  "subcontractor": {
+            |    "subcontractorId": 999,
+            |    "subbieResourceRef": 10,
+            |    "utr": "1234567890",
+            |    "subcontractorType": "soletrader",
+            |    "firstName": "John",
+            |    "surname": "Smith",
+            |    "version": 1
+            |  }
+            |}
+            |""".stripMargin
+        )
+
+      val request =
+        json.as[UpdateSubcontractorRequest]
+
+      when(mockService.updateSubcontractor(eqTo(request)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val result =
+        controller.updateSubcontractor.apply(
+          postJson("/cis/subcontractor/update", json)
+        )
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
+
+      verify(mockService).updateSubcontractor(eqTo(request))
+      verifyNoMoreInteractions(mockService)
     }
   }
 
