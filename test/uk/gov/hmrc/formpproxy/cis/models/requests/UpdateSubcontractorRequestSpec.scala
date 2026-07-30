@@ -164,7 +164,7 @@ final class UpdateSubcontractorRequestSpec extends PlaySpec {
       Json
         .obj(
           "subcontractor" -> Json.obj(
-            "subcontractorId" -> 999,
+            "subcontractorId"   -> 999,
             "subbieResourceRef" -> 10
           )
         )
