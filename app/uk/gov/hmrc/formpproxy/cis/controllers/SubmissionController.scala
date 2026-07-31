@@ -19,7 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.formpproxy.actions.AuthAction
+import uk.gov.hmrc.formpproxy.actions.{AuthAction, CisAuthOrApiKeyAction}
 import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateSubmissionRequest, UpdateSubmissionRequest}
 import uk.gov.hmrc.formpproxy.cis.services.SubmissionService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -29,6 +29,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class SubmissionController @Inject() (
   authorise: AuthAction,
+  cisAuthOrApiKeyAction: CisAuthOrApiKeyAction,
   service: SubmissionService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
@@ -54,7 +55,7 @@ class SubmissionController @Inject() (
     }
 
   def updateSubmission(): Action[JsValue] =
-    Action.async(parse.json) { implicit request =>
+    cisAuthOrApiKeyAction.async(parse.json) { implicit request =>
       request.body
         .validate[UpdateSubmissionRequest]
         .fold(

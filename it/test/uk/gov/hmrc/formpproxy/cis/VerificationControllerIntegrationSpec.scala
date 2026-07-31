@@ -155,7 +155,7 @@ class VerificationControllerIntegrationSpec
       (res1.json \ "message").as[String].toLowerCase must include("invalid payload")
     }
 
-    "return 204 without an authenticated session" in {
+    "return 401 without an authenticated session or internal api key" in {
       AuthStub.unauthorised()
 
       val res = postAwait(
@@ -171,7 +171,7 @@ class VerificationControllerIntegrationSpec
         )
       )
 
-      res.status mustBe NO_CONTENT
+      res.status mustBe UNAUTHORIZED
     }
 
     "return 204 when the request is valid" in {

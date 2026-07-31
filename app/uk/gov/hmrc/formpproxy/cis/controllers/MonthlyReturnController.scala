@@ -19,7 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.formpproxy.actions.AuthAction
+import uk.gov.hmrc.formpproxy.actions.{AuthAction, CisAuthOrApiKeyAction}
 import uk.gov.hmrc.formpproxy.cis.models.UserMonthlyReturns
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.GetSubmittedMonthlyReturnsDataResponse
@@ -34,6 +34,7 @@ import scala.util.control.NonFatal
 
 class MonthlyReturnController @Inject() (
   authorise: AuthAction,
+  cisAuthOrApiKeyAction: CisAuthOrApiKeyAction,
   service: MonthlyReturnService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
@@ -151,7 +152,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def getMonthlyReturnForEdit: Action[JsValue] =
-    Action.async(parse.json) { implicit request =>
+    cisAuthOrApiKeyAction.async(parse.json) { implicit request =>
       request.body
         .validate[GetMonthlyReturnForEditRequest]
         .foldErrorsIntoBadRequest { req =>

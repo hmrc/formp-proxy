@@ -20,6 +20,9 @@ import javax.inject.{Inject, Singleton}
 import play.api.Configuration
 
 @Singleton
-class AppConfig @Inject() (config: Configuration):
+class AppConfig @Inject() (config: Configuration) {
 
   val appName: String = config.get[String]("appName")
+
+  val cisInternalServiceApiKey: String = config.get[String]("cis-internal-service-api-key")
+}

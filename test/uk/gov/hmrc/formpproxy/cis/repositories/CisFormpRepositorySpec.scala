@@ -29,7 +29,6 @@ import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.CallDeleteSubcontractor
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
-import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorResponse
 
 import java.sql.*
 import java.time.{Instant, LocalDateTime}

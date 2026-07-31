@@ -23,13 +23,16 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{ControllerComponents, Result}
+import play.api.mvc.{BodyParsers, ControllerComponents, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
+import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.formpproxy.actions.{CisAuthOrApiKeyAction, DefaultCisAuthOrApiKeyAction}
 import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.UpdateGovTalkStatusCorrelationIdRequest
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.services.GovTalkService
+import uk.gov.hmrc.formpproxy.config.AppConfig
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
 import java.time.LocalDateTime
@@ -100,9 +103,14 @@ class GovTalkControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
 
   "GovTalkController updateGovTalkStatusCorrelationId" - {
 
+    val url = "/formp-proxy/cis/govtalkstatus/update-correlationID"
+
     "returns 204 when service succeeds" in new Setup {
-      when(mockService.updateGovTalkStatusCorrelationId(any()))
-        .thenReturn(Future.successful(()))
+      when(
+        mockService.updateGovTalkStatusCorrelationId(
+          any[UpdateGovTalkStatusCorrelationIdRequest]
+        )
+      ).thenReturn(Future.successful(()))
 
       val body = UpdateGovTalkStatusCorrelationIdRequest(
         userIdentifier = "1",
@@ -113,19 +121,32 @@ class GovTalkControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
       )
 
       val req: FakeRequest[UpdateGovTalkStatusCorrelationIdRequest] =
-        FakeRequest(POST, "/formp-proxy/cis/govtalkstatus/update-correlationID")
-          .withBody(body)
+        makeTypedRequest(
+          method = POST,
+          path = url,
+          body = body
+        )
 
       val res: Future[Result] = controller.updateGovTalkStatusCorrelationId(req)
 
       status(res) mustBe NO_CONTENT
-      verify(mockService).updateGovTalkStatusCorrelationId(any())
+
+      verify(mockService).updateGovTalkStatusCorrelationId(
+        any[UpdateGovTalkStatusCorrelationIdRequest]
+      )
+
       verifyNoMoreInteractions(mockService)
+      verifyNoInteractions(mockAuthConnector)
     }
 
     "returns 500 with generic message on unexpected exception" in new Setup {
-      when(mockService.updateGovTalkStatusCorrelationId(any()))
-        .thenReturn(Future.failed(new RuntimeException("boom")))
+      when(
+        mockService.updateGovTalkStatusCorrelationId(
+          any[UpdateGovTalkStatusCorrelationIdRequest]
+        )
+      ).thenReturn(
+        Future.failed(new RuntimeException("boom"))
+      )
 
       val body = UpdateGovTalkStatusCorrelationIdRequest(
         userIdentifier = "1",
@@ -136,13 +157,24 @@ class GovTalkControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
       )
 
       val req: FakeRequest[UpdateGovTalkStatusCorrelationIdRequest] =
-        FakeRequest(POST, "/formp-proxy/cis/govtalkstatus/update-correlationID")
-          .withBody(body)
+        makeTypedRequest(
+          method = POST,
+          path = url,
+          body = body
+        )
 
       val res: Future[Result] = controller.updateGovTalkStatusCorrelationId(req)
 
       status(res) mustBe INTERNAL_SERVER_ERROR
+
       (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
+
+      verify(mockService).updateGovTalkStatusCorrelationId(
+        any[UpdateGovTalkStatusCorrelationIdRequest]
+      )
+
+      verifyNoMoreInteractions(mockService)
+      verifyNoInteractions(mockAuthConnector)
     }
   }
 
@@ -630,15 +662,51 @@ class GovTalkControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
   }
 
   private trait Setup {
+
     implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.global
     private val cc: ControllerComponents = stubControllerComponents()
 
-    val mockService: GovTalkService = mock[GovTalkService]
-    val controller                  = new GovTalkController(mockService, cc)
+    val expectedApiKey                   = "test-cis-api-key"
+    val mockService: GovTalkService      = mock[GovTalkService]
+    val mockAuthConnector: AuthConnector = mock[AuthConnector]
+    val mockAppConfig: AppConfig         = mock[AppConfig]
+
+    when(mockAppConfig.cisInternalServiceApiKey)
+      .thenReturn(expectedApiKey)
+
+    val cisAuthOrApiKeyAction: CisAuthOrApiKeyAction =
+      new DefaultCisAuthOrApiKeyAction(
+        authConnector = mockAuthConnector,
+        appConfig = mockAppConfig,
+        parser = new BodyParsers.Default(cc.parsers)
+      )
+
+    val controller =
+      new GovTalkController(
+        cisAuthOrApiKeyAction = cisAuthOrApiKeyAction,
+        service = mockService,
+        cc = cc
+      )
 
     def makeJsonRequest(body: JsValue): FakeRequest[JsValue] =
-      FakeRequest(POST, "/formp-proxy/cis/govtalkstatus/get")
-        .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
+      FakeRequest(
+        POST,
+        "/formp-proxy/cis/govtalkstatus/get"
+      )
+        .withHeaders(
+          CONTENT_TYPE -> JSON,
+          ACCEPT       -> JSON,
+          "X-API-Key"  -> expectedApiKey
+        )
+        .withBody(body)
+
+    def makeTypedRequest[A](
+      method: String,
+      path: String,
+      body: A
+    ): FakeRequest[A] =
+      FakeRequest(method, path)
+        .withHeaders("X-API-Key" -> expectedApiKey)
         .withBody(body)
 
     private def mkRecord(protocol: String, numPolls: Int, pollInterval: Int): GovTalkStatusRecord =

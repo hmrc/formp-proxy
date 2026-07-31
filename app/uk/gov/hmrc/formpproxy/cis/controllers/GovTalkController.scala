@@ -19,6 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
+import uk.gov.hmrc.formpproxy.actions.CisAuthOrApiKeyAction
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.services.GovTalkService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -28,6 +29,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 class GovTalkController @Inject() (
+  cisAuthOrApiKeyAction: CisAuthOrApiKeyAction,
   service: GovTalkService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
@@ -35,7 +37,7 @@ class GovTalkController @Inject() (
     with Logging {
 
   def getGovTalkStatus: Action[JsValue] =
-    Action.async(parse.json) { implicit request =>
+    cisAuthOrApiKeyAction.async(parse.json) { implicit request =>
       request.body
         .validate[GetGovTalkStatusRequest]
         .fold(
@@ -56,7 +58,7 @@ class GovTalkController @Inject() (
     }
 
   def updateGovTalkStatusCorrelationId: Action[UpdateGovTalkStatusCorrelationIdRequest] =
-    Action.async(parse.json[UpdateGovTalkStatusCorrelationIdRequest]) { implicit request =>
+    cisAuthOrApiKeyAction.async(parse.json[UpdateGovTalkStatusCorrelationIdRequest]) { implicit request =>
       service
         .updateGovTalkStatusCorrelationId(request.body)
         .map(_ => NoContent)
@@ -67,7 +69,7 @@ class GovTalkController @Inject() (
     }
 
   def resetGovTalkStatus: Action[JsValue] =
-    Action.async(parse.json) { implicit request =>
+    cisAuthOrApiKeyAction.async(parse.json) { implicit request =>
       request.body
         .validate[ResetGovTalkStatusRequest]
         .fold(
@@ -85,7 +87,7 @@ class GovTalkController @Inject() (
     }
 
   def updateGovTalkStatus: Action[JsValue] =
-    Action.async(parse.json) { implicit request =>
+    cisAuthOrApiKeyAction.async(parse.json) { implicit request =>
       request.body
         .validate[UpdateGovTalkStatusRequest]
         .fold(
@@ -103,7 +105,7 @@ class GovTalkController @Inject() (
     }
 
   def updateGovTalkStatusStatistics: Action[JsValue] =
-    Action.async(parse.json) { implicit request =>
+    cisAuthOrApiKeyAction.async(parse.json) { implicit request =>
       request.body
         .validate[UpdateGovTalkStatusStatisticsRequest]
         .fold(
@@ -121,7 +123,7 @@ class GovTalkController @Inject() (
     }
 
   def createGovTalkStatusRecord: Action[JsValue] =
-    Action.async(parse.json) { implicit request =>
+    cisAuthOrApiKeyAction.async(parse.json) { implicit request =>
       request.body
         .validate[CreateGovTalkStatusRecordRequest]
         .fold(

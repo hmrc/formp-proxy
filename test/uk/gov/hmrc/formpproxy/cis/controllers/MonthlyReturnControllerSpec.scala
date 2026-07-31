@@ -23,14 +23,17 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{ControllerComponents, PlayBodyParsers, Result}
+import play.api.mvc.*
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
+import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.formpproxy.actions.{CisAuthOrApiKeyAction, DefaultCisAuthOrApiKeyAction}
 import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, SubmittedMonthlyReturn, SubmittedMonthlyReturns, UnsubmittedMonthlyReturns, UserMonthlyReturns, requests}
 import uk.gov.hmrc.formpproxy.cis.services.MonthlyReturnService
+import uk.gov.hmrc.formpproxy.config.AppConfig
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
 import java.time.LocalDateTime
@@ -588,7 +591,7 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
       when(mockService.getMonthlyReturnForEdit(eqTo(requestBody)))
         .thenReturn(Future.successful(payload))
 
-      val request = makeJsonRequest(Json.toJson(requestBody))
+      val request = makeCisJsonRequest(Json.toJson(requestBody))
       val result  = controller.getMonthlyReturnForEdit(request)
 
       status(result) mustBe OK
@@ -602,7 +605,7 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
       when(mockService.getMonthlyReturnForEdit(eqTo(requestBody)))
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
-      val request = makeJsonRequest(Json.toJson(requestBody))
+      val request = makeCisJsonRequest(Json.toJson(requestBody))
       val result  = controller.getMonthlyReturnForEdit(request)
 
       status(result) mustBe INTERNAL_SERVER_ERROR
@@ -853,12 +856,46 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
     private val parsers: PlayBodyParsers = cc.parsers
     private def fakeAuth: AuthAction     = new FakeAuthAction(parsers)
 
+    val expectedApiKey                    = "test-cis-api-key"
     val mockService: MonthlyReturnService = mock[MonthlyReturnService]
-    val controller                        = new MonthlyReturnController(fakeAuth, mockService, cc)
+    val mockAuthConnector: AuthConnector  = mock[AuthConnector]
+    val mockAppConfig: AppConfig          = mock[AppConfig]
 
-    def makeJsonRequest(body: JsValue) =
+    when(mockAppConfig.cisInternalServiceApiKey)
+      .thenReturn(expectedApiKey)
+
+    val cisAuthOrApiKeyAction: CisAuthOrApiKeyAction =
+      new DefaultCisAuthOrApiKeyAction(
+        authConnector = mockAuthConnector,
+        appConfig = mockAppConfig,
+        parser = new BodyParsers.Default(cc.parsers)
+      )
+
+    val controller =
+      new MonthlyReturnController(
+        authorise = fakeAuth,
+        cisAuthOrApiKeyAction = cisAuthOrApiKeyAction,
+        service = mockService,
+        cc = cc
+      )
+
+    def makeJsonRequest(body: JsValue): FakeRequest[JsValue] =
       FakeRequest(POST, "/formp-proxy/monthly-returns")
         .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
+        .withBody(body)
+
+    def makeCisJsonRequest(
+      body: JsValue
+    ): FakeRequest[JsValue] =
+      FakeRequest(
+        POST,
+        "/formp-proxy/monthly-return/edit"
+      )
+        .withHeaders(
+          CONTENT_TYPE -> JSON,
+          ACCEPT       -> JSON,
+          "X-API-Key"  -> expectedApiKey
+        )
         .withBody(body)
 
     def mkReturn(id: Long, month: Int, year: Int = 2025): MonthlyReturn =

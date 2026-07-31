@@ -19,6 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import uk.gov.hmrc.formpproxy.actions.CisAuthOrApiKeyAction
 import uk.gov.hmrc.formpproxy.cis.services.BatchPollService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -26,13 +27,14 @@ import javax.inject.Inject
 import scala.concurrent.ExecutionContext
 
 class BatchPollController @Inject() (
+  cisAuthOrApiKeyAction: CisAuthOrApiKeyAction,
   service: BatchPollService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
-  def getBatchPollSubmissions(): Action[AnyContent] = Action.async { implicit request =>
+  def getBatchPollSubmissions(): Action[AnyContent] = cisAuthOrApiKeyAction.async { implicit request =>
     service
       .getBatchPollSubmissions()
       .map(response => Ok(Json.toJson(response)))

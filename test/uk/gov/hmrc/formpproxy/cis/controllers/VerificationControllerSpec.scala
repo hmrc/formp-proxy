@@ -16,29 +16,65 @@
 
 package uk.gov.hmrc.formpproxy.cis.controllers
 
-import org.mockito.ArgumentMatchers.eq as eqTo
+import org.mockito.ArgumentMatchers.{any, eq as eqTo}
 import org.mockito.Mockito.*
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
+import play.api.mvc.*
+import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.formpproxy.actions.{CisAuthOrApiKeyAction, DefaultCisAuthOrApiKeyAction}
 import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateVerifications, DeleteVerifications, MonthlyReturn, Subcontractor, Submission, Verification, VerificationBatch}
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.services.VerificationService
+import uk.gov.hmrc.formpproxy.config.AppConfig
 
 import java.time.LocalDateTime
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class VerificationControllerSpec extends SpecBase {
 
   trait Setup {
+
+    implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.Implicits.global
+    val expectedApiKey                   = "test-cis-api-key"
     val mockService: VerificationService = mock[VerificationService]
-    val auth                             = new FakeAuthAction(cc.parsers)
-    lazy val controller                  = new VerificationController(auth, mockService, cc)(
-      scala.concurrent.ExecutionContext.Implicits.global
-    )
+    val auth: FakeAuthAction             = new FakeAuthAction(cc.parsers)
+    val mockAuthConnector: AuthConnector = mock[AuthConnector]
+    val appConfig: AppConfig             = mock[AppConfig]
+
+    when(appConfig.cisInternalServiceApiKey)
+      .thenReturn(expectedApiKey)
+
+    val cisAuthOrApiKeyAction: CisAuthOrApiKeyAction =
+      new DefaultCisAuthOrApiKeyAction(
+        authConnector = mockAuthConnector,
+        appConfig = appConfig,
+        parser = new BodyParsers.Default(cc.parsers)
+      )
+
+    lazy val controller =
+      new VerificationController(
+        authorise = auth,
+        cisAuthOrApiKeyAction = cisAuthOrApiKeyAction,
+        service = mockService,
+        cc = cc
+      )
+
+    def cisJsonRequest(
+      url: String,
+      body: JsValue
+    ): FakeRequest[JsValue] =
+      FakeRequest(POST, url)
+        .withHeaders(
+          CONTENT_TYPE -> JSON,
+          ACCEPT       -> JSON,
+          "X-API-Key"  -> expectedApiKey
+        )
+        .withBody(body)
   }
 
   private def setup: Setup = new Setup {}
@@ -773,42 +809,59 @@ class VerificationControllerSpec extends SpecBase {
         govtalkErrorMessage = Some("timeOut")
       )
 
-      when(mockService.updateVerificationSubmission(eqTo(requestModel)))
-        .thenReturn(Future.successful(()))
+      when(
+        mockService.updateVerificationSubmission(
+          any[UpdateVerificationSubmissionRequest]
+        )
+      ).thenReturn(Future.successful(()))
 
-      val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
-        .withBody(Json.toJson(requestModel))
+      val request =
+        cisJsonRequest(
+          url,
+          Json.toJson(requestModel)
+        )
 
-      val result = controller.updateVerificationSubmission().apply(req)
+      val result =
+        controller
+          .updateVerificationSubmission()
+          .apply(request)
 
       status(result) mustBe NO_CONTENT
       contentAsString(result) mustBe ""
 
-      verify(mockService).updateVerificationSubmission(eqTo(requestModel))
+      verify(mockService).updateVerificationSubmission(
+        any[UpdateVerificationSubmissionRequest]
+      )
+
       verifyNoMoreInteractions(mockService)
+      verifyNoInteractions(mockAuthConnector)
     }
 
     "returns 400 BadRequest with error payload when JSON is invalid" in {
       val s = setup
       import s.*
 
-      val badJson = Json.obj("instanceId" -> "abc-123")
+      val request =
+        cisJsonRequest(
+          url,
+          Json.obj("instanceId" -> "abc-123")
+        )
 
-      val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
-        .withBody(badJson)
-
-      val result = controller.updateVerificationSubmission().apply(req)
+      val result =
+        controller
+          .updateVerificationSubmission()
+          .apply(request)
 
       status(result) mustBe BAD_REQUEST
       contentType(result) mustBe Some(JSON)
 
       val body = contentAsJson(result)
+
       (body \ "message").as[String] mustBe "Invalid payload"
       (body \ "errors").isDefined mustBe true
 
       verifyNoInteractions(mockService)
+      verifyNoInteractions(mockAuthConnector)
     }
 
     "returns 500 InternalServerError with error body when service fails" in {
@@ -826,21 +879,37 @@ class VerificationControllerSpec extends SpecBase {
         govtalkErrorMessage = Some("some error text")
       )
 
-      when(mockService.updateVerificationSubmission(eqTo(requestModel)))
-        .thenReturn(Future.failed(new RuntimeException("boom")))
+      when(
+        mockService.updateVerificationSubmission(
+          any[UpdateVerificationSubmissionRequest]
+        )
+      ).thenReturn(
+        Future.failed(new RuntimeException("boom"))
+      )
 
-      val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
-        .withBody(Json.toJson(requestModel))
+      val request =
+        cisJsonRequest(
+          url,
+          Json.toJson(requestModel)
+        )
 
-      val result = controller.updateVerificationSubmission().apply(req)
+      val result =
+        controller
+          .updateVerificationSubmission()
+          .apply(request)
 
       status(result) mustBe INTERNAL_SERVER_ERROR
       contentType(result) mustBe Some(JSON)
-      contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
 
-      verify(mockService).updateVerificationSubmission(eqTo(requestModel))
+      contentAsJson(result) mustBe
+        Json.obj("message" -> "Unexpected error")
+
+      verify(mockService).updateVerificationSubmission(
+        any[UpdateVerificationSubmissionRequest]
+      )
+
       verifyNoMoreInteractions(mockService)
+      verifyNoInteractions(mockAuthConnector)
     }
   }
 
@@ -870,42 +939,59 @@ class VerificationControllerSpec extends SpecBase {
         )
       )
 
-      when(mockService.processVerificationResponseFromChris(eqTo(requestModel)))
-        .thenReturn(Future.successful(()))
+      when(
+        mockService.processVerificationResponseFromChris(
+          any[ProcessVerificationResponseFromChrisRequest]
+        )
+      ).thenReturn(Future.successful(()))
 
-      val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
-        .withBody(Json.toJson(requestModel))
+      val request =
+        cisJsonRequest(
+          url,
+          Json.toJson(requestModel)
+        )
 
-      val result = controller.processVerificationResponseFromChris().apply(req)
+      val result =
+        controller
+          .processVerificationResponseFromChris()
+          .apply(request)
 
       status(result) mustBe NO_CONTENT
       contentAsString(result) mustBe ""
 
-      verify(mockService).processVerificationResponseFromChris(eqTo(requestModel))
+      verify(mockService).processVerificationResponseFromChris(
+        any[ProcessVerificationResponseFromChrisRequest]
+      )
+
       verifyNoMoreInteractions(mockService)
+      verifyNoInteractions(mockAuthConnector)
     }
 
     "returns 400 BadRequest with error payload when JSON is invalid" in {
       val s = setup
       import s.*
 
-      val badJson = Json.obj("instanceId" -> "abc-123")
+      val request =
+        cisJsonRequest(
+          url,
+          Json.obj("instanceId" -> "abc-123")
+        )
 
-      val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
-        .withBody(badJson)
-
-      val result = controller.processVerificationResponseFromChris().apply(req)
+      val result =
+        controller
+          .processVerificationResponseFromChris()
+          .apply(request)
 
       status(result) mustBe BAD_REQUEST
       contentType(result) mustBe Some(JSON)
 
       val body = contentAsJson(result)
+
       (body \ "message").as[String] mustBe "Invalid payload"
       (body \ "errors").isDefined mustBe true
 
       verifyNoInteractions(mockService)
+      verifyNoInteractions(mockAuthConnector)
     }
 
     "returns 500 InternalServerError with error body when service fails" in {
@@ -930,21 +1016,37 @@ class VerificationControllerSpec extends SpecBase {
         )
       )
 
-      when(mockService.processVerificationResponseFromChris(eqTo(requestModel)))
-        .thenReturn(Future.failed(new RuntimeException("boom")))
+      when(
+        mockService.processVerificationResponseFromChris(
+          any[ProcessVerificationResponseFromChrisRequest]
+        )
+      ).thenReturn(
+        Future.failed(new RuntimeException("boom"))
+      )
 
-      val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
-        .withBody(Json.toJson(requestModel))
+      val request =
+        cisJsonRequest(
+          url,
+          Json.toJson(requestModel)
+        )
 
-      val result = controller.processVerificationResponseFromChris().apply(req)
+      val result =
+        controller
+          .processVerificationResponseFromChris()
+          .apply(request)
 
       status(result) mustBe INTERNAL_SERVER_ERROR
       contentType(result) mustBe Some(JSON)
-      contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
 
-      verify(mockService).processVerificationResponseFromChris(eqTo(requestModel))
+      contentAsJson(result) mustBe
+        Json.obj("message" -> "Unexpected error")
+
+      verify(mockService).processVerificationResponseFromChris(
+        any[ProcessVerificationResponseFromChrisRequest]
+      )
+
       verifyNoMoreInteractions(mockService)
+      verifyNoInteractions(mockAuthConnector)
     }
   }
 
@@ -973,27 +1075,30 @@ class VerificationControllerSpec extends SpecBase {
 
       when(
         mockService.getSubmissionWithVerificationBatch(
-          eqTo(requestModel)
+          any[GetSubmissionWithVerificationBatchRequest]
         )
       ).thenReturn(Future.successful(responseModel))
 
-      val req =
-        FakeRequest(POST, url)
-          .withHeaders(CONTENT_TYPE -> JSON)
-          .withBody(Json.toJson(requestModel))
+      val request =
+        cisJsonRequest(
+          url,
+          Json.toJson(requestModel)
+        )
 
       val result =
         controller.getSubmissionWithVerificationBatch
-          .apply(req)
+          .apply(request)
 
       status(result) mustBe OK
       contentType(result) mustBe Some(JSON)
       contentAsJson(result) mustBe Json.toJson(responseModel)
 
-      verify(mockService)
-        .getSubmissionWithVerificationBatch(eqTo(requestModel))
+      verify(mockService).getSubmissionWithVerificationBatch(
+        any[GetSubmissionWithVerificationBatchRequest]
+      )
 
       verifyNoMoreInteractions(mockService)
+      verifyNoInteractions(mockAuthConnector)
     }
 
     "returns 400 BadRequest when JSON is invalid" in {
@@ -1003,17 +1108,17 @@ class VerificationControllerSpec extends SpecBase {
       val invalidJson =
         Json.obj(
           "instanceId" -> "abc-123"
-          // verificationBatchResourceRef is missing
         )
 
-      val req =
-        FakeRequest(POST, url)
-          .withHeaders(CONTENT_TYPE -> JSON)
-          .withBody(invalidJson)
+      val request =
+        cisJsonRequest(
+          url,
+          invalidJson
+        )
 
       val result =
         controller.getSubmissionWithVerificationBatch
-          .apply(req)
+          .apply(request)
 
       status(result) mustBe BAD_REQUEST
       contentType(result) mustBe Some(JSON)
@@ -1024,6 +1129,7 @@ class VerificationControllerSpec extends SpecBase {
       (body \ "errors").isDefined mustBe true
 
       verifyNoInteractions(mockService)
+      verifyNoInteractions(mockAuthConnector)
     }
 
     "returns 500 InternalServerError when service fails" in {
@@ -1038,30 +1144,91 @@ class VerificationControllerSpec extends SpecBase {
 
       when(
         mockService.getSubmissionWithVerificationBatch(
-          eqTo(requestModel)
+          any[GetSubmissionWithVerificationBatchRequest]
         )
       ).thenReturn(
         Future.failed(new RuntimeException("boom"))
       )
 
-      val req =
+      val request =
+        cisJsonRequest(
+          url,
+          Json.toJson(requestModel)
+        )
+
+      val result =
+        controller.getSubmissionWithVerificationBatch
+          .apply(request)
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentType(result) mustBe Some(JSON)
+
+      contentAsJson(result) mustBe
+        Json.obj("message" -> "Unexpected error")
+
+      verify(mockService).getSubmissionWithVerificationBatch(
+        any[GetSubmissionWithVerificationBatchRequest]
+      )
+
+      verifyNoMoreInteractions(mockService)
+      verifyNoInteractions(mockAuthConnector)
+    }
+
+    "returns 401 Unauthorized when the API key is missing" in {
+      val s = setup
+      import s.*
+
+      val requestModel =
+        GetSubmissionWithVerificationBatchRequest(
+          instanceId = "abc-123",
+          verificationBatchResourceRef = 77L
+        )
+
+      val request =
         FakeRequest(POST, url)
-          .withHeaders(CONTENT_TYPE -> JSON)
+          .withHeaders(
+            CONTENT_TYPE -> JSON,
+            ACCEPT       -> JSON
+          )
           .withBody(Json.toJson(requestModel))
 
       val result =
         controller.getSubmissionWithVerificationBatch
-          .apply(req)
+          .apply(request)
 
-      status(result) mustBe INTERNAL_SERVER_ERROR
-      contentType(result) mustBe Some(JSON)
-      contentAsJson(result) mustBe
-        Json.obj("message" -> "Unexpected error")
+      status(result) mustBe UNAUTHORIZED
 
-      verify(mockService)
-        .getSubmissionWithVerificationBatch(eqTo(requestModel))
+      verifyNoInteractions(mockService)
+      verifyNoInteractions(mockAuthConnector)
+    }
 
-      verifyNoMoreInteractions(mockService)
+    "returns 401 Unauthorized when the API key is incorrect" in {
+      val s = setup
+      import s.*
+
+      val requestModel =
+        GetSubmissionWithVerificationBatchRequest(
+          instanceId = "abc-123",
+          verificationBatchResourceRef = 77L
+        )
+
+      val request =
+        FakeRequest(POST, url)
+          .withHeaders(
+            CONTENT_TYPE -> JSON,
+            ACCEPT       -> JSON,
+            "X-API-Key"  -> "wrong-key"
+          )
+          .withBody(Json.toJson(requestModel))
+
+      val result =
+        controller.getSubmissionWithVerificationBatch
+          .apply(request)
+
+      status(result) mustBe UNAUTHORIZED
+
+      verifyNoInteractions(mockService)
+      verifyNoInteractions(mockAuthConnector)
     }
   }
 

@@ -21,15 +21,20 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.Json
-import play.api.mvc.ControllerComponents
+import play.api.mvc.{BodyParsers, ControllerComponents}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
+import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.formpproxy.actions.{CisAuthOrApiKeyAction, DefaultCisAuthOrApiKeyAction}
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.services.BatchPollService
+import uk.gov.hmrc.formpproxy.config.AppConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class BatchPollControllerSpec extends AnyFreeSpec with Matchers with MockitoSugar {
+
+  private val expectedApiKey = "test-cis-api-key"
 
   "BatchPollController getBatchPollSubmissions" - {
 
@@ -37,9 +42,13 @@ class BatchPollControllerSpec extends AnyFreeSpec with Matchers with MockitoSuga
       when(mockService.getBatchPollSubmissions())
         .thenReturn(Future.successful(nonEmptyResponse))
 
-      val result = controller
-        .getBatchPollSubmissions()
-        .apply(FakeRequest(GET, "/cis/batchpoll-submissions"))
+      val result =
+        controller
+          .getBatchPollSubmissions()
+          .apply(
+            FakeRequest(GET, "/cis/batchpoll-submissions")
+              .withHeaders("X-API-Key" -> expectedApiKey)
+          )
 
       status(result) mustBe OK
       contentType(result) mustBe Some(JSON)
@@ -47,51 +56,116 @@ class BatchPollControllerSpec extends AnyFreeSpec with Matchers with MockitoSuga
 
       verify(mockService).getBatchPollSubmissions()
       verifyNoMoreInteractions(mockService)
+      verifyNoInteractions(mockAuthConnector)
     }
 
     "must return 200 with empty lists when no submissions are returned" in new Setup {
       when(mockService.getBatchPollSubmissions())
         .thenReturn(Future.successful(emptyResponse))
 
-      val result = controller
-        .getBatchPollSubmissions()
-        .apply(FakeRequest(GET, "/cis/batchpoll-submissions"))
+      val result =
+        controller
+          .getBatchPollSubmissions()
+          .apply(
+            FakeRequest(GET, "/cis/batchpoll-submissions")
+              .withHeaders("X-API-Key" -> expectedApiKey)
+          )
 
       status(result) mustBe OK
+      contentType(result) mustBe Some(JSON)
       contentAsJson(result) mustBe Json.toJson(emptyResponse)
 
       verify(mockService).getBatchPollSubmissions()
       verifyNoMoreInteractions(mockService)
+      verifyNoInteractions(mockAuthConnector)
     }
 
     "must return 500 when service fails" in new Setup {
       when(mockService.getBatchPollSubmissions())
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
-      val result = controller
-        .getBatchPollSubmissions()
-        .apply(FakeRequest(GET, "/cis/batchpoll-submissions"))
+      val result =
+        controller
+          .getBatchPollSubmissions()
+          .apply(
+            FakeRequest(GET, "/cis/batchpoll-submissions")
+              .withHeaders("X-API-Key" -> expectedApiKey)
+          )
 
       status(result) mustBe INTERNAL_SERVER_ERROR
-      contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.obj(
+        "message" -> "Unexpected error"
+      )
 
       verify(mockService).getBatchPollSubmissions()
       verifyNoMoreInteractions(mockService)
+      verifyNoInteractions(mockAuthConnector)
+    }
+
+    "must return 401 when the API key is missing" in new Setup {
+      val result =
+        controller
+          .getBatchPollSubmissions()
+          .apply(
+            FakeRequest(GET, "/cis/batchpoll-submissions")
+          )
+
+      status(result) mustBe UNAUTHORIZED
+
+      verifyNoInteractions(mockService)
+      verifyNoInteractions(mockAuthConnector)
+    }
+
+    "must return 401 when the API key is incorrect" in new Setup {
+      val result =
+        controller
+          .getBatchPollSubmissions()
+          .apply(
+            FakeRequest(GET, "/cis/batchpoll-submissions")
+              .withHeaders("X-API-Key" -> "wrong-api-key")
+          )
+
+      status(result) mustBe UNAUTHORIZED
+
+      verifyNoInteractions(mockService)
+      verifyNoInteractions(mockAuthConnector)
     }
   }
 
   private trait Setup {
 
-    implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+    implicit val ec: ExecutionContext =
+      scala.concurrent.ExecutionContext.global
 
-    private val cc: ControllerComponents = stubControllerComponents()
+    private val cc: ControllerComponents =
+      stubControllerComponents()
 
-    val mockService: BatchPollService = mock[BatchPollService]
+    val mockService: BatchPollService =
+      mock[BatchPollService]
 
-    val controller = new BatchPollController(
-      service = mockService,
-      cc = cc
-    )
+    val mockAuthConnector: AuthConnector =
+      mock[AuthConnector]
+
+    val mockAppConfig: AppConfig =
+      mock[AppConfig]
+
+    when(mockAppConfig.cisInternalServiceApiKey)
+      .thenReturn(expectedApiKey)
+
+    val cisAuthOrApiKeyAction: CisAuthOrApiKeyAction =
+      new DefaultCisAuthOrApiKeyAction(
+        authConnector = mockAuthConnector,
+        appConfig = mockAppConfig,
+        parser = new BodyParsers.Default(cc.parsers)
+      )
+
+    val controller =
+      new BatchPollController(
+        cisAuthOrApiKeyAction = cisAuthOrApiKeyAction,
+        service = mockService,
+        cc = cc
+      )
 
     val verificationSubmission: VerificationSubmissionToPoll =
       VerificationSubmissionToPoll(

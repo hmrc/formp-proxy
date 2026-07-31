@@ -20,20 +20,53 @@ import org.mockito.ArgumentMatchers.*
 import org.mockito.Mockito.*
 import org.scalatest.freespec.AnyFreeSpec
 import play.api.http.Status.CREATED
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.*
+import play.api.test.FakeRequest
 import play.api.test.Helpers.*
+import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.formpproxy.actions.{CisAuthOrApiKeyAction, DefaultCisAuthOrApiKeyAction}
 import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
 import uk.gov.hmrc.formpproxy.base.SpecBase
-import uk.gov.hmrc.formpproxy.cis.models.requests._
+import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.services.SubmissionService
+import uk.gov.hmrc.formpproxy.config.AppConfig
 
 import scala.concurrent.Future
 
 class SubmissionControllerSpec extends SpecBase {
+
   trait Setup {
-    val service: SubmissionService = mock[SubmissionService]
-    val auth: FakeAuthAction       = new FakeAuthAction(cc.parsers)
-    lazy val controller            = new SubmissionController(auth, service, cc)
+    val expectedApiKey               = "test-cis-api-key"
+    val service: SubmissionService   = mock[SubmissionService]
+    val auth: FakeAuthAction         = new FakeAuthAction(cc.parsers)
+    val authConnector: AuthConnector = mock[AuthConnector]
+    val appConfig: AppConfig         = mock[AppConfig]
+
+    when(appConfig.cisInternalServiceApiKey)
+      .thenReturn(expectedApiKey)
+
+    val cisAuthOrApiKeyAction: CisAuthOrApiKeyAction =
+      new DefaultCisAuthOrApiKeyAction(
+        authConnector = authConnector,
+        appConfig = appConfig,
+        parser = new BodyParsers.Default(cc.parsers)
+      )
+
+    lazy val controller =
+      new SubmissionController(
+        authorise = auth,
+        cisAuthOrApiKeyAction = cisAuthOrApiKeyAction,
+        service = service,
+        cc = cc
+      )
+
+    def postCisJson(
+      path: String,
+      json: JsValue
+    ): FakeRequest[JsValue] =
+      postJson(path, json)
+        .withHeaders("X-API-Key" -> expectedApiKey)
   }
 
   def setup: Setup = new Setup {}
@@ -105,72 +138,156 @@ class SubmissionControllerSpec extends SpecBase {
   "POST /submissions/update (updateSubmission)" - {
 
     "returns 204 NoContent on valid payload" in {
-      val s = setup; import s.*
+      val s = setup
+      import s.*
+
+      val request = UpdateSubmissionRequest(
+        instanceId = "123",
+        taxYear = 2024,
+        taxMonth = 4,
+        amendment = "N",
+        hmrcMarkGenerated = "Dj5TVJDyRYCn9zta5EdySeY4fyA=",
+        submittableStatus = "ACCEPTED"
+      )
 
       when(service.updateSubmission(any[UpdateSubmissionRequest]))
         .thenReturn(Future.successful(()))
 
-      val json = Json.toJson(
-        UpdateSubmissionRequest(
-          instanceId = "123",
-          taxYear = 2024,
-          taxMonth = 4,
-          amendment = "N",
-          hmrcMarkGenerated = "Dj5TVJDyRYCn9zta5EdySeY4fyA=",
-          submittableStatus = "ACCEPTED"
-        )
-      )
-
-      val result = controller
-        .updateSubmission()
-        .apply(
-          postJson("/submissions/update", json)
-        )
+      val result =
+        controller
+          .updateSubmission()
+          .apply(
+            postCisJson(
+              "/submissions/update",
+              Json.toJson(request)
+            )
+          )
 
       status(result) mustBe NO_CONTENT
-      verify(service).updateSubmission(any[UpdateSubmissionRequest])
+
+      verify(service)
+        .updateSubmission(any[UpdateSubmissionRequest])
+
+      verifyNoMoreInteractions(service)
+      verifyNoInteractions(authConnector)
     }
 
     "returns 400 BadRequest for invalid JSON" in {
-      val s = setup; import s.*
+      val s = setup
+      import s.*
 
-      val bad = Json.obj("bad" -> "json")
-
-      val result = controller
-        .updateSubmission()
-        .apply(
-          postJson("/submissions/update", bad)
-        )
+      val result =
+        controller
+          .updateSubmission()
+          .apply(
+            postCisJson(
+              "/submissions/update",
+              Json.obj("bad" -> "json")
+            )
+          )
 
       status(result) mustBe BAD_REQUEST
-      (contentAsJson(result) \ "message").as[String] mustBe "Invalid payload"
-      verify(service, never()).updateSubmission(any[UpdateSubmissionRequest])
+
+      (contentAsJson(result) \ "message")
+        .as[String] mustBe "Invalid payload"
+
+      verify(service, never())
+        .updateSubmission(any[UpdateSubmissionRequest])
+
+      verifyNoInteractions(authConnector)
     }
 
-    "maps service failure to 500 (no body expected)" in {
-      val s = setup; import s.*
+    "maps service failure to 500" in {
+      val s = setup
+      import s.*
+
+      val request = UpdateSubmissionRequest(
+        instanceId = "123",
+        taxYear = 2024,
+        taxMonth = 4,
+        amendment = "N",
+        hmrcMarkGenerated = "Dj5TVJDyRYCn9zta5EdySeY4fyA=",
+        submittableStatus = "ACCEPTED"
+      )
 
       when(service.updateSubmission(any[UpdateSubmissionRequest]))
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
-      val json = Json.toJson(
-        UpdateSubmissionRequest(
-          instanceId = "123",
-          taxYear = 2024,
-          taxMonth = 4,
-          amendment = "N",
-          hmrcMarkGenerated = "Dj5TVJDyRYCn9zta5EdySeY4fyA=",
-          submittableStatus = "ACCEPTED"
-        )
-      )
-
-      val result = controller
-        .updateSubmission()
-        .apply(
-          postJson("/submissions/update", json)
-        )
+      val result =
+        controller
+          .updateSubmission()
+          .apply(
+            postCisJson(
+              "/submissions/update",
+              Json.toJson(request)
+            )
+          )
 
       status(result) mustBe INTERNAL_SERVER_ERROR
+
+      verify(service)
+        .updateSubmission(any[UpdateSubmissionRequest])
+
+      verifyNoMoreInteractions(service)
+      verifyNoInteractions(authConnector)
+    }
+
+    "returns 401 Unauthorized when the API key is missing" in {
+      val s = setup
+      import s.*
+
+      val request = UpdateSubmissionRequest(
+        instanceId = "123",
+        taxYear = 2024,
+        taxMonth = 4,
+        amendment = "N",
+        hmrcMarkGenerated = "Dj5TVJDyRYCn9zta5EdySeY4fyA=",
+        submittableStatus = "ACCEPTED"
+      )
+
+      val result =
+        controller
+          .updateSubmission()
+          .apply(
+            postJson(
+              "/submissions/update",
+              Json.toJson(request)
+            )
+          )
+
+      status(result) mustBe UNAUTHORIZED
+
+      verifyNoInteractions(service)
+      verifyNoInteractions(authConnector)
+    }
+
+    "returns 401 Unauthorized when the API key is incorrect" in {
+      val s = setup
+      import s.*
+
+      val request = UpdateSubmissionRequest(
+        instanceId = "123",
+        taxYear = 2024,
+        taxMonth = 4,
+        amendment = "N",
+        hmrcMarkGenerated = "Dj5TVJDyRYCn9zta5EdySeY4fyA=",
+        submittableStatus = "ACCEPTED"
+      )
+
+      val result =
+        controller
+          .updateSubmission()
+          .apply(
+            postJson(
+              "/submissions/update",
+              Json.toJson(request)
+            ).withHeaders("X-API-Key" -> "wrong-key")
+          )
+
+      status(result) mustBe UNAUTHORIZED
+
+      verifyNoInteractions(service)
+      verifyNoInteractions(authConnector)
     }
   }
 }

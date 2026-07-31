@@ -72,6 +72,7 @@ final class SubmissionControllerIntegrationSpec
     "POST /formp-proxy/submissions/update (updateSubmission)" should {
 
       "returns 400 when JSON is missing required fields" in {
+        AuthStub.authorised()
         val res = postAwait(updatePath, Json.obj("instanceId" -> "123"))
 
         res.status mustBe BAD_REQUEST

@@ -19,16 +19,17 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.formpproxy.actions.AuthAction
+import uk.gov.hmrc.formpproxy.actions.{AuthAction, CisAuthOrApiKeyAction}
 import uk.gov.hmrc.formpproxy.cis.services.VerificationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.formpproxy.cis.models.requests._
+import uk.gov.hmrc.formpproxy.cis.models.requests.*
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class VerificationController @Inject() (
   authorise: AuthAction,
+  cisAuthOrApiKeyAction: CisAuthOrApiKeyAction,
   service: VerificationService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
@@ -58,7 +59,7 @@ class VerificationController @Inject() (
     }
 
   def getSubmissionWithVerificationBatch: Action[JsValue] =
-    Action(parse.json).async { implicit request =>
+    cisAuthOrApiKeyAction(parse.json).async { implicit request =>
       request.body
         .validate[GetSubmissionWithVerificationBatchRequest]
         .fold(
@@ -130,7 +131,7 @@ class VerificationController @Inject() (
     }
 
   def updateVerificationSubmission(): Action[JsValue] =
-    Action(parse.json).async { implicit request =>
+    cisAuthOrApiKeyAction(parse.json).async { implicit request =>
       request.body
         .validate[UpdateVerificationSubmissionRequest]
         .fold(
@@ -148,7 +149,7 @@ class VerificationController @Inject() (
     }
 
   def processVerificationResponseFromChris(): Action[JsValue] =
-    Action(parse.json).async { implicit request =>
+    cisAuthOrApiKeyAction(parse.json).async { implicit request =>
       request.body
         .validate[ProcessVerificationResponseFromChrisRequest]
         .fold(
