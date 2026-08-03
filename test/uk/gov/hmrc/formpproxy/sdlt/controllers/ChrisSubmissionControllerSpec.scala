@@ -645,8 +645,8 @@ class ChrisSubmissionControllerSpec extends AnyFreeSpec with Matchers with Scala
         userIdentifier = "USER123",
         formResultId = "FRID-1",
         correlationId = "CORR-1",
-        endStateTimestamp = "2026-01-02 11:30:00",
-        protocolStatus = "SUBMITTED"
+        pollInterval = 30,
+        gatewayUrl = "http://chris.example/poll"
       )
 
       when(mockService.updateGovTalkStatusCorrelationId(eqTo(request)))
@@ -693,8 +693,8 @@ class ChrisSubmissionControllerSpec extends AnyFreeSpec with Matchers with Scala
         userIdentifier = "USER123",
         formResultId = "FRID-1",
         correlationId = "CORR-1",
-        endStateTimestamp = "2026-01-02 11:30:00",
-        protocolStatus = "SUBMITTED"
+        pollInterval = 30,
+        gatewayUrl = "http://chris.example/poll"
       )
 
       when(mockService.updateGovTalkStatusCorrelationId(eqTo(request)))

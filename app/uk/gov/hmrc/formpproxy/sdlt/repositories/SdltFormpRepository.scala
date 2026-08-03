@@ -2951,8 +2951,8 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
         p_user_identifier = request.userIdentifier,
         p_formResultId = request.formResultId,
         p_correlation_id = request.correlationId,
-        p_endstate_timestamp = request.endStateTimestamp,
-        p_protocol_status = request.protocolStatus
+        p_poll_interval = request.pollInterval,
+        p_gatewayurl = request.gatewayUrl
       )
     }
   }
@@ -2962,16 +2962,16 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     p_user_identifier: String,
     p_formResultId: String,
     p_correlation_id: String,
-    p_endstate_timestamp: String,
-    p_protocol_status: String
+    p_poll_interval: Int,
+    p_gatewayurl: String
   ): GovTalkStatusReturn = {
     val cs = conn.prepareCall("{ call SUBMISSION_ADMIN.UpdateGovTalkStatusCorr(?, ?, ?, ?, ?) }")
     try {
       cs.setString(1, p_user_identifier)
       cs.setString(2, p_formResultId)
       cs.setString(3, p_correlation_id)
-      setRequiredTimestamp(cs, 4, p_endstate_timestamp)
-      cs.setString(5, p_protocol_status)
+      cs.setInt(4, p_poll_interval)
+      cs.setString(5, p_gatewayurl)
       cs.execute()
       GovTalkStatusReturn(success = true)
     } finally cs.close()
