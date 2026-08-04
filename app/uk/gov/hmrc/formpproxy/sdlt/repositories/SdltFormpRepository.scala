@@ -2586,9 +2586,10 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
 
       cs.execute()
 
-      val submissionId = cs.getLong(4)
+      val raw          = cs.getLong(4)
+      val submissionId = if (cs.wasNull) None else Some(raw.toString)
 
-      CreateSubmissionReturn(success = true)
+      CreateSubmissionReturn(success = submissionId.isDefined, submissionId)
     } finally cs.close()
   }
 
