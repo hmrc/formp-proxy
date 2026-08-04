@@ -147,17 +147,21 @@ class VerificationController @Inject() (
               }
         )
     }
+
   def getSubmissionWithVerificationBatchByRefs(
     instanceId: String,
     verificationBatchResourceRef: Long
   ): Action[AnyContent] =
     authorise.async { implicit request =>
-      handleGetSubmissionWithVerificationBatch(
-        GetSubmissionWithVerificationBatchRequest(
-          instanceId = instanceId,
-          verificationBatchResourceRef = verificationBatchResourceRef
+      if (instanceId.isBlank)
+        Future.successful(BadRequest(Json.obj("message" -> "instanceId must not be blank")))
+      else
+        handleGetSubmissionWithVerificationBatch(
+          GetSubmissionWithVerificationBatchRequest(
+            instanceId = instanceId,
+            verificationBatchResourceRef = verificationBatchResourceRef
+          )
         )
-      )
     }
 
   def getSubmissionWithVerificationBatch: Action[JsValue] =

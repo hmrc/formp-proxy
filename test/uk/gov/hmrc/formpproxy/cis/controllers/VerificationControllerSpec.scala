@@ -1130,6 +1130,27 @@ class VerificationControllerSpec extends SpecBase {
       verify(mockService).getSubmissionWithVerificationBatch(eqTo(requestModel))
       verifyNoMoreInteractions(mockService)
     }
+
+    "returns 400 BadRequest when instanceId is blank" in {
+      val s = setup
+      import s.*
+
+      val result =
+        controller
+          .getSubmissionWithVerificationBatchByRefs(
+            "   ",
+            requestModel.verificationBatchResourceRef
+          )
+          .apply(
+            FakeRequest(GET, s"/cis/verification/submission-batch/%20/${requestModel.verificationBatchResourceRef}")
+          )
+
+      status(result) mustBe BAD_REQUEST
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.obj("message" -> "instanceId must not be blank")
+
+      verifyNoInteractions(mockService)
+    }
   }
 
   "POST /cis/verification/submitted-verifications (getSubmittedVerifications)" - {
