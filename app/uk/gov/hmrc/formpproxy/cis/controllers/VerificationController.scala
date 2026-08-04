@@ -18,7 +18,7 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 
 import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
 import uk.gov.hmrc.formpproxy.cis.services.VerificationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -26,6 +26,7 @@ import uk.gov.hmrc.formpproxy.cis.models.requests._
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 class VerificationController @Inject() (
   authorise: AuthAction,
@@ -55,24 +56,6 @@ class VerificationController @Inject() (
           logger.error(s"[getCurrentVerificationBatch] failed (instanceId=$instanceId)", t)
           InternalServerError(Json.obj("message" -> "Unexpected error"))
         }
-    }
-
-  def getSubmissionWithVerificationBatch: Action[JsValue] =
-    Action(parse.json).async { implicit request =>
-      request.body
-        .validate[GetSubmissionWithVerificationBatchRequest]
-        .fold(
-          errs =>
-            Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
-          req =>
-            service
-              .getSubmissionWithVerificationBatch(req)
-              .map(res => Ok(Json.toJson(res)))
-              .recover { case t =>
-                logger.error("[getSubmissionWithVerificationBatch] failed", t)
-                InternalServerError(Json.obj("message" -> "Unexpected error"))
-              }
-        )
     }
 
   def createVerificationBatchAndVerifications(): Action[JsValue] =
@@ -164,6 +147,57 @@ class VerificationController @Inject() (
               }
         )
     }
+
+  def getSubmissionWithVerificationBatchByRefs(
+    instanceId: String,
+    verificationBatchResourceRef: Long
+  ): Action[AnyContent] =
+    authorise.async { implicit request =>
+      if (instanceId.isBlank)
+        Future.successful(BadRequest(Json.obj("message" -> "instanceId must not be blank")))
+      else
+        handleGetSubmissionWithVerificationBatch(
+          GetSubmissionWithVerificationBatchRequest(
+            instanceId = instanceId,
+            verificationBatchResourceRef = verificationBatchResourceRef
+          )
+        )
+    }
+
+  def getSubmissionWithVerificationBatch: Action[JsValue] =
+    Action(parse.json).async { implicit request =>
+      request.body
+        .validate[GetSubmissionWithVerificationBatchRequest]
+        .fold(
+          errors =>
+            Future.successful(
+              BadRequest(
+                Json.obj(
+                  "message" -> "Invalid payload",
+                  "errors"  -> JsError.toJson(errors)
+                )
+              )
+            ),
+          handleGetSubmissionWithVerificationBatch
+        )
+    }
+
+  private def handleGetSubmissionWithVerificationBatch(
+    request: GetSubmissionWithVerificationBatchRequest
+  ): Future[Result] =
+    service
+      .getSubmissionWithVerificationBatch(request)
+      .map(response => Ok(Json.toJson(response)))
+      .recover { case NonFatal(exception) =>
+        logger.error(
+          s"[VerificationController][getSubmissionWithVerificationBatch] failed for " +
+            s"instanceId=${request.instanceId}, " +
+            s"verificationBatchResourceRef=${request.verificationBatchResourceRef}",
+          exception
+        )
+
+        InternalServerError(Json.obj("message" -> "Unexpected error"))
+      }
 
   def getSubmittedVerifications(): Action[JsValue] =
     authorise(parse.json).async { implicit request =>

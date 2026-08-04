@@ -1065,8 +1065,95 @@ class VerificationControllerSpec extends SpecBase {
     }
   }
 
-  "POST /cis/verification/submitted-verifications (getSubmittedVerifications)" - {
+  "GET /cis/verification/submission-batch/:instanceId/:verificationBatchResourceRef (getSubmissionWithVerificationBatchByRefs)" - {
 
+    val requestModel =
+      GetSubmissionWithVerificationBatchRequest(
+        instanceId = "abc-123",
+        verificationBatchResourceRef = 77L
+      )
+
+    val getUrl =
+      s"/cis/verification/submission-batch/${requestModel.instanceId}/${requestModel.verificationBatchResourceRef}"
+
+    "returns 200 OK with JSON body when service succeeds" in {
+      val s = setup
+      import s.*
+
+      val responseModel =
+        GetSubmissionWithVerificationBatchResponse(
+          scheme = None,
+          subcontractors = Seq.empty,
+          verifications = Seq.empty,
+          verificationBatch = None,
+          submission = None
+        )
+
+      when(mockService.getSubmissionWithVerificationBatch(eqTo(requestModel)))
+        .thenReturn(Future.successful(responseModel))
+
+      val result =
+        controller
+          .getSubmissionWithVerificationBatchByRefs(
+            requestModel.instanceId,
+            requestModel.verificationBatchResourceRef
+          )
+          .apply(FakeRequest(GET, getUrl))
+
+      status(result) mustBe OK
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.toJson(responseModel)
+
+      verify(mockService).getSubmissionWithVerificationBatch(eqTo(requestModel))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 500 InternalServerError with error body when service fails" in {
+      val s = setup
+      import s.*
+
+      when(mockService.getSubmissionWithVerificationBatch(eqTo(requestModel)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val result =
+        controller
+          .getSubmissionWithVerificationBatchByRefs(
+            requestModel.instanceId,
+            requestModel.verificationBatchResourceRef
+          )
+          .apply(FakeRequest(GET, getUrl))
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
+
+      verify(mockService).getSubmissionWithVerificationBatch(eqTo(requestModel))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 400 BadRequest when instanceId is blank" in {
+      val s = setup
+      import s.*
+
+      val result =
+        controller
+          .getSubmissionWithVerificationBatchByRefs(
+            "   ",
+            requestModel.verificationBatchResourceRef
+          )
+          .apply(
+            FakeRequest(GET, s"/cis/verification/submission-batch/%20/${requestModel.verificationBatchResourceRef}")
+          )
+
+      status(result) mustBe BAD_REQUEST
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.obj("message" -> "instanceId must not be blank")
+
+      verifyNoInteractions(mockService)
+    }
+  }
+
+  "POST /cis/verification/submitted-verifications (getSubmittedVerifications)" - {
     val url = "/cis/verification/submitted-verifications"
 
     "returns 200 OK with JSON body when service succeeds" in {
