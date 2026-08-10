@@ -104,6 +104,8 @@ trait CisMonthlyReturnSource {
 
   def getSubcontractor(cisId: String, subbieResourceRef: Long): Future[GetSubcontractorResponse]
 
+  def updateSubcontractorForEdit(request: UpdateSubcontractorForEditRequest): Future[Unit]
+
   def updateSubcontractor(
     request: UpdateSubcontractorRequest,
     submittedFields: Set[String]
@@ -2350,5 +2352,71 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       version = existing.version
     )
   }
+
+  override def updateSubcontractorForEdit(request: UpdateSubcontractorForEditRequest): Future[Unit] =
+    Future {
+      logger.info(
+        s"[CIS] updateSubcontractorForEdit(cisId=${request.cisId}, subbieResourceRef=${request.subbieResourceRef})"
+      )
+
+      db.withTransaction { conn =>
+        val scheme = loadScheme(conn, request.cisId)
+
+        callUpdateSubcontractorForEdit(
+          conn = conn,
+          schemeId = scheme.schemeId,
+          request = request
+        )
+
+        callUpdateSchemeVersion(
+          conn = conn,
+          instanceId = request.cisId,
+          currentVersion = scheme.version.getOrElse(0)
+        )
+      }
+    }
+
+  private def callUpdateSubcontractorForEdit(
+    conn: Connection,
+    schemeId: Long,
+    request: UpdateSubcontractorForEditRequest
+  ): Unit =
+    withCall(conn, CallUpdateSubcontractorForEdit) { cs =>
+      cs.setLong(1, schemeId)
+      cs.setLong(2, request.subbieResourceRef)
+
+      cs.setOptionalString(3, request.utr)
+      cs.setOptionalInt(4, request.pageVisited)
+      cs.setOptionalString(5, request.partnerUtr)
+      cs.setOptionalString(6, request.crn)
+
+      cs.setOptionalString(7, request.firstName)
+      cs.setOptionalString(8, request.nino)
+      cs.setOptionalString(9, request.secondName)
+      cs.setOptionalString(10, request.surname)
+
+      cs.setOptionalString(11, request.partnershipTradingName)
+      cs.setOptionalString(12, request.tradingName)
+
+      cs.setOptionalString(13, request.addressLine1)
+      cs.setOptionalString(14, request.addressLine2)
+      cs.setOptionalString(15, request.addressLine3)
+      cs.setOptionalString(16, request.addressLine4)
+      cs.setOptionalString(17, request.country)
+      cs.setOptionalString(18, request.postcode)
+
+      cs.setOptionalString(19, request.emailAddress)
+      cs.setOptionalString(20, request.phoneNumber)
+      cs.setOptionalString(21, request.mobilePhoneNumber)
+      cs.setOptionalString(22, request.worksReferenceNumber)
+
+      cs.setOptionalString(23, request.matched)
+      cs.setOptionalString(24, request.autoVerified)
+
+      cs.setOptionalInt(25, request.version)
+      cs.registerOutParameter(25, Types.INTEGER)
+
+      cs.execute()
+    }
 
 }

@@ -23,6 +23,8 @@ import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.{Company, Partnership, SoleTrader, Trust}
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
 import uk.gov.hmrc.formpproxy.cis.models.CreateAndUpdateSubcontractorDatabaseRecord
+import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorForDeleteResponse, GetSubcontractorListResponse, GetSubcontractorResponse}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest, UpdateSubcontractorForEditRequest}
 import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorForDeleteResponse, GetSubcontractorListResponse, GetSubcontractorResponse, UpdateSubcontractorResponse}
 import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest, UpdateSubcontractorRequest}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
@@ -569,6 +571,99 @@ class SubcontractorServiceSpec extends SpecBase {
       ex mustBe boom
 
       verify(repo).deleteSubcontractor(eqTo(req))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "SubcontractorService#updateSubcontractorForEdit" - {
+
+    "delegates to repo with request and returns Unit" in {
+      val c = Ctx()
+      import c.*
+
+      val request = UpdateSubcontractorForEditRequest(
+        cisId = "abc-123",
+        subbieResourceRef = 999L,
+        utr = Some("1234567890"),
+        pageVisited = Some(1),
+        partnerUtr = None,
+        crn = Some("CRN123"),
+        firstName = Some("John"),
+        nino = Some("AA123456A"),
+        secondName = None,
+        surname = Some("Smith"),
+        partnershipTradingName = None,
+        tradingName = Some("ABC Ltd"),
+        addressLine1 = Some("1 Main Street"),
+        addressLine2 = None,
+        addressLine3 = None,
+        addressLine4 = None,
+        country = Some("United Kingdom"),
+        postcode = Some("AA1 1AA"),
+        emailAddress = Some("john@test.com"),
+        phoneNumber = Some("01234567890"),
+        mobilePhoneNumber = Some("07123456789"),
+        worksReferenceNumber = Some("WRN123"),
+        matched = Some("Y"),
+        autoVerified = Some("Y"),
+        version = Some(1)
+      )
+
+      when(repo.updateSubcontractorForEdit(eqTo(request)))
+        .thenReturn(Future.successful(()))
+
+      val out: Unit =
+        service.updateSubcontractorForEdit(request).futureValue
+
+      out mustBe ((): Unit)
+
+      verify(repo).updateSubcontractorForEdit(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failure from repo" in {
+      val c = Ctx()
+      import c.*
+
+      val request = UpdateSubcontractorForEditRequest(
+        cisId = "abc-123",
+        subbieResourceRef = 999L,
+        utr = None,
+        pageVisited = None,
+        partnerUtr = None,
+        crn = None,
+        firstName = None,
+        nino = None,
+        secondName = None,
+        surname = None,
+        partnershipTradingName = None,
+        tradingName = None,
+        addressLine1 = None,
+        addressLine2 = None,
+        addressLine3 = None,
+        addressLine4 = None,
+        country = None,
+        postcode = None,
+        emailAddress = None,
+        phoneNumber = None,
+        mobilePhoneNumber = None,
+        worksReferenceNumber = None,
+        matched = None,
+        autoVerified = None,
+        version = None
+      )
+
+      val boom = new RuntimeException("boom")
+
+      when(repo.updateSubcontractorForEdit(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      val ex =
+        service.updateSubcontractorForEdit(request).failed.futureValue
+
+      ex mustBe boom
+
+      verify(repo).updateSubcontractorForEdit(eqTo(request))
       verifyNoMoreInteractions(repo)
     }
   }

@@ -5465,4 +5465,153 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csVersion).execute()
     }
   }
+
+  "updateSubcontractorForEdit" - {
+
+    "update subcontractor and scheme version successfully" in {
+
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val loadSchemeCs = mock[CallableStatement]
+      val loadSchemeRs = mock[ResultSet]
+
+      val updateSubCs = mock[CallableStatement]
+      val updateVerCs = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[java.sql.Connection => Any]))
+        .thenAnswer { inv =>
+          val f = inv.getArgument(0, classOf[java.sql.Connection => Any])
+          f(conn)
+        }
+
+      when(conn.prepareCall(anyArg[String]))
+        .thenReturn(loadSchemeCs)
+        .thenReturn(updateSubCs)
+        .thenReturn(updateVerCs)
+
+      when(loadSchemeCs.getObject(anyInt(), eqTo(classOf[ResultSet])))
+        .thenReturn(loadSchemeRs)
+
+      when(loadSchemeRs.next()).thenReturn(true, false)
+
+      when(loadSchemeRs.getLong("scheme_id")).thenReturn(12345L)
+      when(loadSchemeRs.getInt("version")).thenReturn(7)
+      when(loadSchemeRs.wasNull()).thenReturn(false)
+
+      val request =
+        UpdateSubcontractorForEditRequest(
+          cisId = "abc-123",
+          subbieResourceRef = 999L,
+          utr = Some("1234567890"),
+          pageVisited = Some(5),
+          partnerUtr = None,
+          crn = Some("CRN123"),
+          firstName = Some("John"),
+          nino = Some("AA123456A"),
+          secondName = None,
+          surname = Some("Smith"),
+          partnershipTradingName = None,
+          tradingName = Some("Trading Ltd"),
+          addressLine1 = Some("Line1"),
+          addressLine2 = None,
+          addressLine3 = None,
+          addressLine4 = None,
+          country = Some("GB"),
+          postcode = Some("NE1 1AA"),
+          emailAddress = Some("test@test.com"),
+          phoneNumber = Some("0123456789"),
+          mobilePhoneNumber = None,
+          worksReferenceNumber = Some("WRN123"),
+          matched = Some("Y"),
+          autoVerified = Some("Y"),
+          version = Some(7)
+        )
+
+      val repo = new CisFormpRepository(db)
+
+      repo.updateSubcontractorForEdit(request).futureValue
+
+      verify(updateSubCs).setLong(1, 12345L)
+      verify(updateSubCs).setLong(2, 999L)
+
+      verify(updateSubCs).registerOutParameter(25, Types.INTEGER)
+      verify(updateSubCs).execute()
+
+      verify(updateVerCs).execute()
+    }
+
+    "propagate failures from update subcontractor stored procedure" in {
+
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val loadSchemeCs = mock[CallableStatement]
+      val loadSchemeRs = mock[ResultSet]
+
+      val updateSubCs = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[java.sql.Connection => Any]))
+        .thenAnswer { inv =>
+          val f = inv.getArgument(0, classOf[java.sql.Connection => Any])
+          f(conn)
+        }
+
+      when(conn.prepareCall(anyArg[String]))
+        .thenReturn(loadSchemeCs)
+        .thenReturn(updateSubCs)
+
+      when(loadSchemeCs.getObject(anyInt(), eqTo(classOf[ResultSet])))
+        .thenReturn(loadSchemeRs)
+
+      when(loadSchemeRs.next()).thenReturn(true, false)
+      when(loadSchemeRs.getLong("scheme_id")).thenReturn(12345L)
+      when(loadSchemeRs.getInt("version")).thenReturn(7)
+      when(loadSchemeRs.wasNull()).thenReturn(false)
+
+      when(updateSubCs.execute())
+        .thenThrow(new RuntimeException("update failed"))
+
+      val request =
+        UpdateSubcontractorForEditRequest(
+          cisId = "abc-123",
+          subbieResourceRef = 999L,
+          utr = None,
+          pageVisited = None,
+          partnerUtr = None,
+          crn = None,
+          firstName = None,
+          nino = None,
+          secondName = None,
+          surname = None,
+          partnershipTradingName = None,
+          tradingName = None,
+          addressLine1 = None,
+          addressLine2 = None,
+          addressLine3 = None,
+          addressLine4 = None,
+          country = None,
+          postcode = None,
+          emailAddress = None,
+          phoneNumber = None,
+          mobilePhoneNumber = None,
+          worksReferenceNumber = None,
+          matched = None,
+          autoVerified = None,
+          version = None
+        )
+
+      val repo = new CisFormpRepository(db)
+
+      val ex =
+        repo.updateSubcontractorForEdit(request).failed.futureValue
+
+      ex mustBe a[RuntimeException]
+      ex.getMessage mustBe "update failed"
+
+      verify(updateSubCs).execute()
+
+      verify(conn, times(2)).prepareCall(any[String])
+    }
+  }
 }

@@ -18,7 +18,7 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 
 import org.mockito.ArgumentMatchers.{any, eq as eqTo}
 import org.mockito.Mockito.*
-import play.api.libs.json.Json
+import play.api.libs.json.{JsError, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import play.api.mvc.{BodyParsers, PlayBodyParsers}
@@ -30,6 +30,8 @@ import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, Subcontractor}
 import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorResponse
+import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorForDeleteResponse, GetSubcontractorListResponse}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest, UpdateSubcontractorForEditRequest}
 import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorForDeleteResponse, GetSubcontractorListResponse, UpdateSubcontractorResponse}
 import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest, UpdateSubcontractorRequest}
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
@@ -715,6 +717,117 @@ class SubcontractorControllerSpec extends SpecBase {
 
       verify(mockService).deleteSubcontractor(eqTo(requestBody))
       verifyNoMoreInteractions(mockService)
+    }
+  }
+
+  "POST /subcontractor/update-for-edit (updateSubcontractorForEdit)" - {
+
+    def validRequest: UpdateSubcontractorForEditRequest =
+      UpdateSubcontractorForEditRequest(
+        cisId = "123",
+        subbieResourceRef = 999L,
+        utr = Some("1234567890"),
+        pageVisited = Some(5),
+        partnerUtr = None,
+        crn = Some("CRN123"),
+        firstName = Some("John"),
+        nino = Some("AA123456A"),
+        secondName = None,
+        surname = Some("Smith"),
+        partnershipTradingName = None,
+        tradingName = Some("ABC Ltd"),
+        addressLine1 = Some("1 Main Street"),
+        addressLine2 = None,
+        addressLine3 = None,
+        addressLine4 = None,
+        country = Some("United Kingdom"),
+        postcode = Some("AA1 1AA"),
+        emailAddress = Some("john@test.com"),
+        phoneNumber = Some("01234567890"),
+        mobilePhoneNumber = Some("07123456789"),
+        worksReferenceNumber = Some("WRN123"),
+        matched = Some("Y"),
+        autoVerified = Some("Y"),
+        version = Some(1)
+      )
+
+    "returns 204 NoContent when service succeeds" in {
+      val s = setup;
+      import s.*
+
+      when(mockService.updateSubcontractorForEdit(any[UpdateSubcontractorForEditRequest]))
+        .thenReturn(Future.successful(()))
+
+      val result =
+        controller
+          .updateSubcontractorForEdit()
+          .apply(
+            postJson(
+              "/subcontractor/update-for-edit",
+              Json.toJson(validRequest)
+            )
+          )
+
+      status(result) mustBe NO_CONTENT
+
+      verify(mockService)
+        .updateSubcontractorForEdit(any[UpdateSubcontractorForEditRequest])
+    }
+
+    "returns 400 BadRequest for invalid payload" in {
+      val s = setup;
+      import s.*
+
+      val result =
+        controller
+          .updateSubcontractorForEdit()
+          .apply(
+            postJson(
+              "/subcontractor/update-for-edit",
+              Json.obj("foo" -> "bar")
+            )
+          )
+
+      status(result) mustBe BAD_REQUEST
+
+      (contentAsJson(result) \ "message").as[String] mustBe "Invalid payload"
+
+      verify(mockService, never())
+        .updateSubcontractorForEdit(any[UpdateSubcontractorForEditRequest])
+
+      verify(mockService, never())
+        .updateSubcontractorForEdit(any[UpdateSubcontractorForEditRequest])
+    }
+
+    "returns 500 when service fails" in {
+      val s = setup;
+      import s.*
+
+      when(mockService.updateSubcontractorForEdit(any[UpdateSubcontractorForEditRequest]))
+        .thenReturn(
+          Future.failed(
+            new RuntimeException("boom")
+          )
+        )
+
+      val result =
+        controller
+          .updateSubcontractorForEdit()
+          .apply(
+            postJson(
+              "/subcontractor/update-for-edit",
+              Json.toJson(validRequest)
+            )
+          )
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+
+      contentAsJson(result) mustBe Json.obj(
+        "message" -> "Unexpected error"
+      )
+
+      verify(mockService)
+        .updateSubcontractorForEdit(any[UpdateSubcontractorForEditRequest])
     }
   }
 }
