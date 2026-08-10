@@ -152,9 +152,13 @@ class VerificationController @Inject() (
     instanceId: String,
     verificationBatchResourceRef: Long
   ): Action[AnyContent] =
-    authorise.async { implicit request =>
+    Action.async { implicit request =>
       if (instanceId.isBlank)
-        Future.successful(BadRequest(Json.obj("message" -> "instanceId must not be blank")))
+        Future.successful(
+          BadRequest(
+            Json.obj("message" -> "instanceId must not be blank")
+          )
+        )
       else
         handleGetSubmissionWithVerificationBatch(
           GetSubmissionWithVerificationBatchRequest(
