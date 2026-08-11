@@ -183,4 +183,21 @@ class VerificationController @Inject() (
         )
     }
 
+  def proceedInsufficientVerification(): Action[JsValue] =
+    Action(parse.json).async { implicit request =>
+      request.body
+        .validate[ProceedInsufficientVerificationRequest]
+        .fold(
+          errs =>
+            Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
+          req =>
+            service
+              .proceedInsufficientVerification(req)
+              .map(_ => Ok)
+              .recover { case t =>
+                logger.error("[proceedInsufficientVerification] failed", t)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
+              }
+        )
+    }
 }
