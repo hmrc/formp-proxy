@@ -26,10 +26,9 @@ import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
-import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.CallDeleteSubcontractor
 import uk.gov.hmrc.formpproxy.cis.models.response.*
+import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.CallDeleteSubcontractor
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
-import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorResponse
 
 import java.sql.*
 import java.time.{Instant, LocalDateTime}
@@ -3407,7 +3406,6 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdateV2).close()
     }
   }
-
   "getBatchPollSubmissions" - {
     "register both cursors, execute the proc, and assemble the response" in {
       val db                    = mock[Database]
@@ -4530,6 +4528,7 @@ final class CisFormpRepositorySpec extends SpecBase {
         subcontractors = Seq.empty
       )
 
+      verify(conn).prepareCall("{ call SUBMISSION_PROCS.Get_Verif_Batch_Submission(?, ?, ?, ?, ?, ?, ?) }")
       verify(cs).setString(1, "abc-123")
       verify(cs).setLong(2, 77L)
       verify(cs).registerOutParameter(3, OracleTypes.CURSOR)

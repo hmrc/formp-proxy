@@ -21,7 +21,7 @@ import org.mockito.Mockito.*
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
+import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateVerifications, DeleteVerifications, MonthlyReturn, Subcontractor, Submission, Verification, VerificationBatch}
 import uk.gov.hmrc.formpproxy.cis.models.response.*
@@ -36,9 +36,17 @@ class VerificationControllerSpec extends SpecBase {
   trait Setup {
     val mockService: VerificationService = mock[VerificationService]
     val auth                             = new FakeAuthAction(cc.parsers)
-    lazy val controller                  = new VerificationController(auth, mockService, cc)(
-      scala.concurrent.ExecutionContext.Implicits.global
-    )
+    val mockAuth: AuthAction             = mock[AuthAction]
+
+    lazy val controller =
+      new VerificationController(auth, mockService, cc)(
+        scala.concurrent.ExecutionContext.Implicits.global
+      )
+
+    lazy val scheduledController =
+      new VerificationController(mockAuth, mockService, cc)(
+        scala.concurrent.ExecutionContext.Implicits.global
+      )
   }
 
   private def setup: Setup = new Setup {}
@@ -1065,8 +1073,120 @@ class VerificationControllerSpec extends SpecBase {
     }
   }
 
-  "POST /cis/verification/submitted-verifications (getSubmittedVerifications)" - {
+  "GET /cis/verification/submission-batch/:instanceId/:verificationBatchResourceRef (getSubmissionWithVerificationBatchByRefs)" - {
 
+    val requestModel =
+      GetSubmissionWithVerificationBatchRequest(
+        instanceId = "abc-123",
+        verificationBatchResourceRef = 77L
+      )
+
+    val getUrl =
+      s"/cis/verification/submission-batch/${requestModel.instanceId}/${requestModel.verificationBatchResourceRef}"
+
+    "returns 200 OK without authentication when service succeeds" in {
+      val s = setup
+      import s.*
+
+      val responseModel =
+        GetSubmissionWithVerificationBatchResponse(
+          scheme = None,
+          subcontractors = Seq.empty,
+          verifications = Seq.empty,
+          verificationBatch = None,
+          submission = None
+        )
+
+      when(
+        mockService.getSubmissionWithVerificationBatch(
+          eqTo(requestModel)
+        )
+      ).thenReturn(Future.successful(responseModel))
+
+      val result =
+        scheduledController
+          .getSubmissionWithVerificationBatchByRefs(
+            requestModel.instanceId,
+            requestModel.verificationBatchResourceRef
+          )
+          .apply(
+            FakeRequest(GET, getUrl)
+          )
+
+      status(result) mustBe OK
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.toJson(responseModel)
+
+      verify(mockService)
+        .getSubmissionWithVerificationBatch(eqTo(requestModel))
+
+      verifyNoMoreInteractions(mockService)
+      verifyNoInteractions(mockAuth)
+    }
+
+    "returns 500 InternalServerError without authentication when service fails" in {
+      val s = setup
+      import s.*
+
+      val exception =
+        new RuntimeException("boom")
+
+      when(
+        mockService.getSubmissionWithVerificationBatch(
+          eqTo(requestModel)
+        )
+      ).thenReturn(Future.failed(exception))
+
+      val result =
+        scheduledController
+          .getSubmissionWithVerificationBatchByRefs(
+            requestModel.instanceId,
+            requestModel.verificationBatchResourceRef
+          )
+          .apply(
+            FakeRequest(GET, getUrl)
+          )
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe
+        Json.obj("message" -> "Unexpected error")
+
+      verify(mockService)
+        .getSubmissionWithVerificationBatch(eqTo(requestModel))
+
+      verifyNoMoreInteractions(mockService)
+      verifyNoInteractions(mockAuth)
+    }
+
+    "returns 400 BadRequest without authentication when instanceId is blank" in {
+      val s = setup
+      import s.*
+
+      val blankInstanceIdUrl =
+        s"/cis/verification/submission-batch/%20/${requestModel.verificationBatchResourceRef}"
+
+      val result =
+        scheduledController
+          .getSubmissionWithVerificationBatchByRefs(
+            "   ",
+            requestModel.verificationBatchResourceRef
+          )
+          .apply(
+            FakeRequest(GET, blankInstanceIdUrl)
+          )
+
+      status(result) mustBe BAD_REQUEST
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe
+        Json.obj("message" -> "instanceId must not be blank")
+
+      verifyNoInteractions(mockService)
+      verifyNoInteractions(mockAuth)
+    }
+  }
+
+  "POST /cis/verification/submitted-verifications (getSubmittedVerifications)" - {
     val url = "/cis/verification/submitted-verifications"
 
     "returns 200 OK with JSON body when service succeeds" in {
