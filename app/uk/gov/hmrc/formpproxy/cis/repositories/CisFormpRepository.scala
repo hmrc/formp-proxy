@@ -1972,12 +1972,25 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
             throw new IllegalArgumentException("subbieResourceRef is required")
           )
 
+        val existingSubcontractor =
+          getExistingSubcontractorForUpdate(
+            conn = conn,
+            cisId = request.cisId,
+            subbieResourceRef = subbieResourceRef
+          )
+
+        val mergedSubcontractor =
+          mergeSubcontractorForUpdate(
+            existing = existingSubcontractor,
+            incoming = request.subcontractor
+          )
+
         val updatedSubcontractorVersion =
           callUpdateExistingSubcontractor(
             conn = conn,
             schemeId = scheme.schemeId,
             subbieResourceRef = subbieResourceRef,
-            subcontractor = request.subcontractor
+            subcontractor = mergedSubcontractor
           )
 
         callUpdateSchemeVersion(
@@ -2043,5 +2056,69 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
       cs.getInt(30)
     }
+
+  private def getExistingSubcontractorForUpdate(
+    conn: Connection,
+    cisId: String,
+    subbieResourceRef: Long
+  ): Subcontractor =
+    withCall(conn, CallGetSubcontractor) { cs =>
+      cs.setString(1, cisId)
+      cs.setLong(2, subbieResourceRef)
+
+      cs.registerOutParameter(3, OracleTypes.CURSOR)
+      cs.registerOutParameter(4, OracleTypes.CURSOR)
+      cs.registerOutParameter(5, OracleTypes.CURSOR)
+
+      cs.execute()
+
+      discardCursor(cs, 3)
+
+      val subcontractor =
+        withCursor(cs, 4)(collectSubcontractors).headOption.getOrElse(
+          throw new RuntimeException(
+            s"No subcontractor found for cisId=$cisId and subbieResourceRef=$subbieResourceRef"
+          )
+        )
+
+      discardCursor(cs, 5)
+
+      subcontractor
+    }
+
+  private def mergeSubcontractorForUpdate(existing: Subcontractor, incoming: Subcontractor): Subcontractor =
+    existing.copy(
+      utr = incoming.utr.orElse(existing.utr),
+      pageVisited = incoming.pageVisited.orElse(existing.pageVisited),
+      partnerUtr = incoming.partnerUtr.orElse(existing.partnerUtr),
+      crn = incoming.crn.orElse(existing.crn),
+      firstName = incoming.firstName.orElse(existing.firstName),
+      nino = incoming.nino.orElse(existing.nino),
+      secondName = incoming.secondName.orElse(existing.secondName),
+      surname = incoming.surname.orElse(existing.surname),
+      partnershipTradingName = incoming.partnershipTradingName.orElse(existing.partnershipTradingName),
+      tradingName = incoming.tradingName.orElse(existing.tradingName),
+      subcontractorType = incoming.subcontractorType.orElse(existing.subcontractorType),
+      addressLine1 = incoming.addressLine1.orElse(existing.addressLine1),
+      addressLine2 = incoming.addressLine2.orElse(existing.addressLine2),
+      addressLine3 = incoming.addressLine3.orElse(existing.addressLine3),
+      addressLine4 = incoming.addressLine4.orElse(existing.addressLine4),
+      country = incoming.country.orElse(existing.country),
+      postcode = incoming.postcode.orElse(existing.postcode),
+      emailAddress = incoming.emailAddress.orElse(existing.emailAddress),
+      phoneNumber = incoming.phoneNumber.orElse(existing.phoneNumber),
+      mobilePhoneNumber = incoming.mobilePhoneNumber.orElse(existing.mobilePhoneNumber),
+      worksReferenceNumber = incoming.worksReferenceNumber.orElse(existing.worksReferenceNumber),
+      matched = incoming.matched.orElse(existing.matched),
+      autoVerified = incoming.autoVerified.orElse(existing.autoVerified),
+      verified = incoming.verified.orElse(existing.verified),
+      verificationNumber = incoming.verificationNumber.orElse(existing.verificationNumber),
+      taxTreatment = incoming.taxTreatment.orElse(existing.taxTreatment),
+      verificationDate = incoming.verificationDate.orElse(existing.verificationDate),
+      updatedTaxTreatment = incoming.updatedTaxTreatment.orElse(existing.updatedTaxTreatment),
+      version = incoming.version.orElse(existing.version),
+      lastMonthlyReturnDate = incoming.lastMonthlyReturnDate.orElse(existing.lastMonthlyReturnDate),
+      pendingVerifications = incoming.pendingVerifications.orElse(existing.pendingVerifications)
+    )
 
 }
