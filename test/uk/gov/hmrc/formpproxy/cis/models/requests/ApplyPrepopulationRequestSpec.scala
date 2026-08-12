@@ -23,6 +23,32 @@ import uk.gov.hmrc.formpproxy.cis.models.{Company, SoleTrader}
 
 class ApplyPrepopulationRequestSpec extends AnyFreeSpec with Matchers {
 
+  private val soleTrader = PrepopulationSubcontractor(
+    subcontractorType = SoleTrader,
+    utr = "1111111111",
+    verificationNumber = Some("V1"),
+    firstName = Some("A"),
+    secondName = Some("B"),
+    surname = Some("C"),
+    tradingName = None,
+    partnershipTradingName = None,
+    verified = Some("Y"),
+    autoVerified = Some("Y")
+  )
+
+  private val company = PrepopulationSubcontractor(
+    subcontractorType = Company,
+    utr = "2222222222",
+    verificationNumber = Some("V2"),
+    firstName = None,
+    secondName = None,
+    surname = None,
+    tradingName = Some("Acme Ltd"),
+    partnershipTradingName = None,
+    verified = Some("Y"),
+    autoVerified = Some("Y")
+  )
+
   "ApplyPrepopulationRequest.format" - {
 
     "writes then reads back (round-trip) with all fields" in {
@@ -39,7 +65,7 @@ class ApplyPrepopulationRequestSpec extends AnyFreeSpec with Matchers {
         prePopCount = 5,
         prePopSuccessful = "Y",
         version = 1,
-        subcontractorTypes = Seq(SoleTrader, Company)
+        subcontractors = Seq(soleTrader, company)
       )
 
       val json = Json.toJson(model)
@@ -57,7 +83,12 @@ class ApplyPrepopulationRequestSpec extends AnyFreeSpec with Matchers {
         "prePopCount"             -> 5,
         "prePopSuccessful"        -> "Y",
         "version"                 -> 1,
-        "subcontractorTypes"      -> Json.arr("soletrader", "company")
+        "subcontractors"          -> Json.arr(
+          Json.obj(
+            "subcontractorType" -> "soletrader",
+            "utr"               -> "1111111111"
+          )
+        )
       )
 
       val expected = ApplyPrepopulationRequest(
@@ -73,7 +104,20 @@ class ApplyPrepopulationRequestSpec extends AnyFreeSpec with Matchers {
         prePopCount = 5,
         prePopSuccessful = "Y",
         version = 1,
-        subcontractorTypes = Seq(SoleTrader, Company)
+        subcontractors = Seq(
+          PrepopulationSubcontractor(
+            subcontractorType = SoleTrader,
+            utr = "1111111111",
+            verificationNumber = None,
+            firstName = None,
+            secondName = None,
+            surname = None,
+            tradingName = None,
+            partnershipTradingName = None,
+            verified = None,
+            autoVerified = None
+          )
+        )
       )
 
       json.validate[ApplyPrepopulationRequest] mustBe JsSuccess(expected)
