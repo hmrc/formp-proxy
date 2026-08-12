@@ -22,6 +22,8 @@ import uk.gov.hmrc.auth.core.Enrolments
 import scala.concurrent.Future
 import play.api.mvc.Result
 import play.api.mvc.Results
+import AuthenticatedRequest.*
+import play.api.libs.json.Json
 
 case class AuthenticatedRequest[A](
   private val request: Request[A],
@@ -31,13 +33,29 @@ case class AuthenticatedRequest[A](
   enrolments: Enrolments
 ) extends WrappedRequest[A](request) {
 
-  def whenUserEnrolledForCharities(block: => Future[Result]): Future[Result] =
-    if (
-      enrolments.getEnrolment("HMRC-CHAR-ORG").isDefined
-      || enrolments.getEnrolment("HMRC-CHAR-AGENT").isDefined
-    )
+  def whenUserAuthorisedForCharity(charityReference: String)(block: => Future[Result]): Future[Result] =
+    if (enrolments.getEnrolment(agentEnrolmentKey).isDefined)
       block
     else
-      Future.successful(Results.Unauthorized)
+      enrolments.getEnrolment(organisationEnrolmentKey) match {
+        case None            =>
+          Future.successful(Results.Unauthorized)
+        case Some(enrolment) =>
+          val enrolledCharityReference =
+            enrolment.getIdentifier(organisationIdentifierKey).map(_.value.trim).filter(_.nonEmpty)
 
+          if (enrolledCharityReference.contains(charityReference))
+            block
+          else
+            Future.successful(
+              Results.Forbidden(Json.obj("message" -> "Not authorised for the requested charity reference"))
+            )
+      }
+
+}
+
+object AuthenticatedRequest {
+  val organisationEnrolmentKey  = "HMRC-CHAR-ORG"
+  val organisationIdentifierKey = "CHARID"
+  val agentEnrolmentKey         = "HMRC-CHAR-AGENT"
 }

@@ -39,7 +39,7 @@ class UnregulatedDonationsController @Inject() (
 
   def getTotalUnregulatedDonations(charityReference: String): Action[AnyContent] =
     authorise.async { implicit request =>
-      request.whenUserEnrolledForCharities {
+      request.whenUserAuthorisedForCharity(charityReference) {
         service
           .getTotalUnregulatedDonations(charityReference)
           .map {
@@ -55,7 +55,7 @@ class UnregulatedDonationsController @Inject() (
 
   def saveUnregulatedDonation(charityReference: String): Action[SaveUnregulatedDonationRequest] =
     authorise.async(parse.json[SaveUnregulatedDonationRequest]) { implicit request =>
-      request.whenUserEnrolledForCharities {
+      request.whenUserAuthorisedForCharity(charityReference) {
         service
           .saveUnregulatedDonation(charityReference, request.body)
           .map { _ =>

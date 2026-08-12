@@ -47,55 +47,62 @@ class UnregulatedDonationsControllerSpec extends AnyFreeSpec with Matchers with 
     "getTotalUnregulatedDonations" - {
 
       "returns 200 with total when service succeeds with a some total (happy path)" in new Setup {
-        when(mockService.getTotalUnregulatedDonations(eqTo("abc-123")))
+        when(mockService.getTotalUnregulatedDonations(eqTo("OR123")))
           .thenReturn(Future.successful(Some(BigDecimal("1234.56"))))
 
         val req: FakeRequest[AnyContent] =
-          FakeRequest(GET, "/formp-proxy/charities/abc-123/unregulated-donations")
+          FakeRequest(GET, "/formp-proxy/charities/OR123/unregulated-donations")
 
-        val res: Future[Result] = controller.getTotalUnregulatedDonations("abc-123")(req)
+        val res: Future[Result] = controller.getTotalUnregulatedDonations("OR123")(req)
 
         status(res) mustBe OK
         contentType(res) mustBe Some(JSON)
         contentAsJson(res) mustBe Json.obj("unregulatedDonationsTotal" -> 1234.56)
 
-        verify(mockService).getTotalUnregulatedDonations(eqTo("abc-123"))
+        verify(mockService).getTotalUnregulatedDonations(eqTo("OR123"))
         verifyNoMoreInteractions(mockService)
       }
 
       "returns 404 when service returns none" in new Setup {
-        when(mockService.getTotalUnregulatedDonations(eqTo("abc-123")))
+        when(mockService.getTotalUnregulatedDonations(eqTo("OR123")))
           .thenReturn(Future.successful(None))
 
         val req: FakeRequest[AnyContent] =
-          FakeRequest(GET, "/formp-proxy/charities/abc-123/unregulated-donations")
+          FakeRequest(GET, "/formp-proxy/charities/OR123/unregulated-donations")
 
-        val res: Future[Result] = controller.getTotalUnregulatedDonations("abc-123")(req)
+        val res: Future[Result] = controller.getTotalUnregulatedDonations("OR123")(req)
 
         status(res) mustBe NOT_FOUND
         contentType(res) mustBe Some(JSON)
         contentAsJson(res) mustBe Json.obj("message" -> "No unregulated donations found")
 
-        verify(mockService).getTotalUnregulatedDonations(eqTo("abc-123"))
+        verify(mockService).getTotalUnregulatedDonations(eqTo("OR123"))
         verifyNoMoreInteractions(mockService)
       }
 
       "returns 500 with generic message on unexpected exception" in new Setup {
-        when(mockService.getTotalUnregulatedDonations(eqTo("abc-123")))
+        when(mockService.getTotalUnregulatedDonations(eqTo("OR123")))
           .thenReturn(Future.failed(new RuntimeException("boom")))
 
-        val req = FakeRequest(GET, "/formp-proxy/charities/abc-123/unregulated-donations")
-        val res = controller.getTotalUnregulatedDonations("abc-123")(req)
+        val req = FakeRequest(GET, "/formp-proxy/charities/OR123/unregulated-donations")
+        val res = controller.getTotalUnregulatedDonations("OR123")(req)
 
         status(res) mustBe INTERNAL_SERVER_ERROR
         (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
       }
 
       "returns 401 when user is not enrolled for charities" in new Setup {
-        val req = FakeRequest(GET, "/formp-proxy/charities/abc-123/unregulated-donations")
-        val res = controllerNotEnrolled.getTotalUnregulatedDonations("abc-123")(req)
+        val req = FakeRequest(GET, "/formp-proxy/charities/OR123/unregulated-donations")
+        val res = controllerNotEnrolled.getTotalUnregulatedDonations("OR123")(req)
 
         status(res) mustBe UNAUTHORIZED
+      }
+
+      "returns 403 when user's enrolled charity reference does not match the requested charity reference" in new Setup {
+        val req = FakeRequest(GET, "/formp-proxy/charities/OR123/unregulated-donations")
+        val res = controllerEnnrolled("OR456").getTotalUnregulatedDonations("OR123")(req)
+
+        status(res) mustBe FORBIDDEN
       }
     }
 
@@ -104,68 +111,80 @@ class UnregulatedDonationsControllerSpec extends AnyFreeSpec with Matchers with 
       "returns 200 when service succeeds (happy path)" in new Setup {
         when(
           mockService
-            .saveUnregulatedDonation(eqTo("abc-123"), eqTo(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56"))))
+            .saveUnregulatedDonation(eqTo("OR123"), eqTo(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56"))))
         )
           .thenReturn(Future.successful(()))
 
         val req: FakeRequest[SaveUnregulatedDonationRequest] =
-          FakeRequest(POST, "/formp-proxy/charities/abc-123/unregulated-donations")
+          FakeRequest(POST, "/formp-proxy/charities/OR123/unregulated-donations")
             .withBody(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56")))
 
-        val res = controller.saveUnregulatedDonation("abc-123")(req)
+        val res = controller.saveUnregulatedDonation("OR123")(req)
 
         status(res) mustBe OK
         contentType(res) mustBe Some(JSON)
         contentAsJson(res) mustBe Json.obj("success" -> true)
 
         verify(mockService)
-          .saveUnregulatedDonation(eqTo("abc-123"), eqTo(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56"))))
+          .saveUnregulatedDonation(eqTo("OR123"), eqTo(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56"))))
       }
 
       "returns 500 with generic message on unexpected exception" in new Setup {
         when(
           mockService
-            .saveUnregulatedDonation(eqTo("abc-123"), eqTo(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56"))))
+            .saveUnregulatedDonation(eqTo("OR123"), eqTo(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56"))))
         )
           .thenReturn(Future.failed(new RuntimeException("boom")))
 
         val req: FakeRequest[SaveUnregulatedDonationRequest] =
-          FakeRequest(POST, "/formp-proxy/charities/abc-123/unregulated-donations")
+          FakeRequest(POST, "/formp-proxy/charities/OR123/unregulated-donations")
             .withBody(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56")))
 
-        val res = controller.saveUnregulatedDonation("abc-123")(req)
+        val res = controller.saveUnregulatedDonation("OR123")(req)
 
         status(res) mustBe INTERNAL_SERVER_ERROR
         (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
 
         verify(mockService)
-          .saveUnregulatedDonation(eqTo("abc-123"), eqTo(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56"))))
+          .saveUnregulatedDonation(eqTo("OR123"), eqTo(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56"))))
       }
 
       "returns 401 when user is not enrolled for charities" in new Setup {
         val req: FakeRequest[SaveUnregulatedDonationRequest] =
-          FakeRequest(POST, "/formp-proxy/charities/abc-123/unregulated-donations")
+          FakeRequest(POST, "/formp-proxy/charities/OR123/unregulated-donations")
             .withBody(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56")))
 
-        val res = controllerNotEnrolled.saveUnregulatedDonation("abc-123")(req)
+        val res = controllerNotEnrolled.saveUnregulatedDonation("OR123")(req)
 
         status(res) mustBe UNAUTHORIZED
+      }
+
+      "returns 403 when user's enrolled charity reference does not match the requested charity reference" in new Setup {
+        val req: FakeRequest[SaveUnregulatedDonationRequest] =
+          FakeRequest(POST, "/formp-proxy/charities/OR123/unregulated-donations")
+            .withBody(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56")))
+
+        val res = controllerEnnrolled("OR456").saveUnregulatedDonation("OR123")(req)
+
+        status(res) mustBe FORBIDDEN
       }
     }
   }
 
   private trait Setup {
-    implicit val ec: ExecutionContext            = scala.concurrent.ExecutionContext.global
-    private val cc: ControllerComponents         = stubControllerComponents()
-    private val parsers: PlayBodyParsers         = cc.parsers
-    private def fakeAuth: AuthAction             = new FakeAuthAction(
+    implicit val ec: ExecutionContext                          = scala.concurrent.ExecutionContext.global
+    private val cc: ControllerComponents                       = stubControllerComponents()
+    private val parsers: PlayBodyParsers                       = cc.parsers
+    private def fakeAuth(charityReference: String): AuthAction = new FakeAuthAction(
       parsers,
-      Set(Enrolment("HMRC-CHAR-ORG", Seq(EnrolmentIdentifier("CHARID", "OR123")), "ACTIVE"))
+      Set(Enrolment("HMRC-CHAR-ORG", Seq(EnrolmentIdentifier("CHARID", charityReference)), "ACTIVE"))
     )
-    private def fakeAuthNotEnrolled: AuthAction  = new FakeAuthAction(parsers, Set.empty)
-    val mockService: UnregulatedDonationsService = mock[UnregulatedDonationsService]
+    private def fakeAuthNotEnrolled: AuthAction                = new FakeAuthAction(parsers, Set.empty)
+    val mockService: UnregulatedDonationsService               = mock[UnregulatedDonationsService]
 
-    val controller            = new UnregulatedDonationsController(fakeAuth, mockService, cc)
-    val controllerNotEnrolled = new UnregulatedDonationsController(fakeAuthNotEnrolled, mockService, cc)
+    val controller                                                                    = new UnregulatedDonationsController(fakeAuth("OR123"), mockService, cc)
+    def controllerEnnrolled(charityReference: String): UnregulatedDonationsController =
+      new UnregulatedDonationsController(fakeAuth(charityReference), mockService, cc)
+    val controllerNotEnrolled                                                         = new UnregulatedDonationsController(fakeAuthNotEnrolled, mockService, cc)
   }
 }
