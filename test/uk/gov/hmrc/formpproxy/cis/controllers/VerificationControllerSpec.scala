@@ -380,7 +380,7 @@ class VerificationControllerSpec extends SpecBase {
 
       val instId = "abc-123"
 
-      val response = GetCurrentVerificationBatchResponse(
+      val response = GetLastSubmittedVerificationBatchResponse(
         scheme = Some(
           ContractorScheme(
             schemeId = 123,
@@ -496,17 +496,17 @@ class VerificationControllerSpec extends SpecBase {
         )
       )
 
-      when(mockService.getCurrentVerificationBatch(eqTo(instId)))
+      when(mockService.getLastSubmittedVerificationBatch(eqTo(instId)))
         .thenReturn(Future.successful(response))
 
-      val req    = FakeRequest(GET, s"/cis/verification-batch/current/$instId")
-      val result = controller.getCurrentVerificationBatch(instId).apply(req)
+      val req    = FakeRequest(GET, s"/cis/verification-batch/last/$instId")
+      val result = controller.getLastSubmittedVerificationBatch(instId).apply(req)
 
       status(result) mustBe OK
       contentType(result) mustBe Some(JSON)
       contentAsJson(result) mustBe Json.toJson(response)
 
-      verify(mockService).getCurrentVerificationBatch(eqTo(instId))
+      verify(mockService).getLastSubmittedVerificationBatch(eqTo(instId))
       verifyNoMoreInteractions(mockService)
     }
   }
