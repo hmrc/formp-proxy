@@ -37,6 +37,8 @@ import uk.gov.hmrc.formpproxy.charities.services.UnregulatedDonationsService
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import uk.gov.hmrc.formpproxy.charities.models.SaveUnregulatedDonationRequest
+import uk.gov.hmrc.auth.core.Enrolment
+import uk.gov.hmrc.auth.core.EnrolmentIdentifier
 
 class UnregulatedDonationsControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures with MockitoSugar {
 
@@ -88,6 +90,13 @@ class UnregulatedDonationsControllerSpec extends AnyFreeSpec with Matchers with 
         status(res) mustBe INTERNAL_SERVER_ERROR
         (contentAsJson(res) \ "message").as[String] mustBe "Unexpected error"
       }
+
+      "returns 401 when user is not enrolled for charities" in new Setup {
+        val req = FakeRequest(GET, "/formp-proxy/charities/abc-123/unregulated-donations")
+        val res = controllerNotEnrolled.getTotalUnregulatedDonations("abc-123")(req)
+
+        status(res) mustBe UNAUTHORIZED
+      }
     }
 
     "saveUnregulatedDonation" - {
@@ -132,17 +141,31 @@ class UnregulatedDonationsControllerSpec extends AnyFreeSpec with Matchers with 
         verify(mockService)
           .saveUnregulatedDonation(eqTo("abc-123"), eqTo(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56"))))
       }
+
+      "returns 401 when user is not enrolled for charities" in new Setup {
+        val req: FakeRequest[SaveUnregulatedDonationRequest] =
+          FakeRequest(POST, "/formp-proxy/charities/abc-123/unregulated-donations")
+            .withBody(SaveUnregulatedDonationRequest(123, BigDecimal("1234.56")))
+
+        val res = controllerNotEnrolled.saveUnregulatedDonation("abc-123")(req)
+
+        status(res) mustBe UNAUTHORIZED
+      }
     }
   }
 
   private trait Setup {
-    implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.global
-    private val cc: ControllerComponents = stubControllerComponents()
-    private val parsers: PlayBodyParsers = cc.parsers
-    private def fakeAuth: AuthAction     = new FakeAuthAction(parsers)
-
+    implicit val ec: ExecutionContext            = scala.concurrent.ExecutionContext.global
+    private val cc: ControllerComponents         = stubControllerComponents()
+    private val parsers: PlayBodyParsers         = cc.parsers
+    private def fakeAuth: AuthAction             = new FakeAuthAction(
+      parsers,
+      Set(Enrolment("HMRC-CHAR-ORG", Seq(EnrolmentIdentifier("CHARID", "OR123")), "ACTIVE"))
+    )
+    private def fakeAuthNotEnrolled: AuthAction  = new FakeAuthAction(parsers, Set.empty)
     val mockService: UnregulatedDonationsService = mock[UnregulatedDonationsService]
 
-    val controller = new UnregulatedDonationsController(fakeAuth, mockService, cc)
+    val controller            = new UnregulatedDonationsController(fakeAuth, mockService, cc)
+    val controllerNotEnrolled = new UnregulatedDonationsController(fakeAuthNotEnrolled, mockService, cc)
   }
 }

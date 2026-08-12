@@ -18,10 +18,26 @@ package uk.gov.hmrc.formpproxy.cis.models.requests
 
 import play.api.mvc.{Request, WrappedRequest}
 import uk.gov.hmrc.http.SessionId
+import uk.gov.hmrc.auth.core.Enrolments
+import scala.concurrent.Future
+import play.api.mvc.Result
+import play.api.mvc.Results
 
 case class AuthenticatedRequest[A](
   private val request: Request[A],
   internalId: String,
   credentialId: String,
-  sessionId: SessionId
-) extends WrappedRequest[A](request)
+  sessionId: SessionId,
+  enrolments: Enrolments
+) extends WrappedRequest[A](request) {
+
+  def whenUserEnrolledForCharities(block: => Future[Result]): Future[Result] =
+    if (
+      enrolments.getEnrolment("HMRC-CHAR-ORG").isDefined
+      || enrolments.getEnrolment("HMRC-CHAR-AGENT").isDefined
+    )
+      block
+    else
+      Future.successful(Results.Unauthorized)
+
+}
