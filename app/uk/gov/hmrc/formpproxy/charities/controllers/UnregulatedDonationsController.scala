@@ -39,29 +39,33 @@ class UnregulatedDonationsController @Inject() (
 
   def getTotalUnregulatedDonations(charityReference: String): Action[AnyContent] =
     authorise.async { implicit request =>
-      service
-        .getTotalUnregulatedDonations(charityReference)
-        .map {
-          case Some(total) => Ok(Json.obj("unregulatedDonationsTotal" -> total))
-          case None        => NotFound(Json.obj("message" -> "No unregulated donations found"))
-        }
-        .recover { case t: Throwable =>
-          logger.error("[getTotalUnregulatedDonations] failed", t)
-          InternalServerError(Json.obj("message" -> "Unexpected error"))
-        }
+      request.whenUserAuthorisedForCharity(charityReference) {
+        service
+          .getTotalUnregulatedDonations(charityReference)
+          .map {
+            case Some(total) => Ok(Json.obj("unregulatedDonationsTotal" -> total))
+            case None        => NotFound(Json.obj("message" -> "No unregulated donations found"))
+          }
+          .recover { case t: Throwable =>
+            logger.error("[getTotalUnregulatedDonations] failed", t)
+            InternalServerError(Json.obj("message" -> "Unexpected error"))
+          }
+      }
     }
 
   def saveUnregulatedDonation(charityReference: String): Action[SaveUnregulatedDonationRequest] =
     authorise.async(parse.json[SaveUnregulatedDonationRequest]) { implicit request =>
-      service
-        .saveUnregulatedDonation(charityReference, request.body)
-        .map { _ =>
-          Ok(Json.obj("success" -> true))
-        }
-        .recover { case t: Throwable =>
-          logger.error("[saveUnregulatedDonation] failed", t)
-          InternalServerError(Json.obj("message" -> "Unexpected error"))
-        }
+      request.whenUserAuthorisedForCharity(charityReference) {
+        service
+          .saveUnregulatedDonation(charityReference, request.body)
+          .map { _ =>
+            Ok(Json.obj("success" -> true))
+          }
+          .recover { case t: Throwable =>
+            logger.error("[saveUnregulatedDonation] failed", t)
+            InternalServerError(Json.obj("message" -> "Unexpected error"))
+          }
+      }
     }
 
 }

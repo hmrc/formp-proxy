@@ -26,7 +26,7 @@ import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.{AnyContentAsEmpty, ControllerComponents, PlayBodyParsers, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import uk.gov.hmrc.formpproxy.actions.{ApiKeyAction, AuthAction, AuthOrApiKeyAction, FakeApiKeyAction, FakeAuthAction, FakeAuthOrApiKeyAction}
+import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
 import uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.{UpdateReturnRequest, UpdateReturnReturn}
@@ -1020,15 +1020,13 @@ class ReturnsControllerSpec
   }
 
   private trait Setup {
-    implicit val ec: ExecutionContext                = scala.concurrent.ExecutionContext.global
-    private val cc: ControllerComponents             = stubControllerComponents()
-    private val parsers: PlayBodyParsers             = cc.parsers
-    private def fakeAuth: AuthAction                 = new FakeAuthAction(parsers)
-    private def fakeApiKey: ApiKeyAction             = new FakeApiKeyAction(parsers)
-    private def fakeAuthOrApiKey: AuthOrApiKeyAction = new FakeAuthOrApiKeyAction(parsers)
+    implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.global
+    private val cc: ControllerComponents = stubControllerComponents()
+    private val parsers: PlayBodyParsers = cc.parsers
+    private def fakeAuth: AuthAction     = new FakeAuthAction(parsers)
 
     val mockService: ReturnService = mock[ReturnService]
-    val controller                 = new ReturnsController(fakeAuth, fakeApiKey, fakeAuthOrApiKey, mockService, cc)
+    val controller                 = new ReturnsController(fakeAuth, mockService, cc)
 
     def makeJsonRequest(body: JsValue): FakeRequest[JsValue] =
       FakeRequest(POST, "/formp-proxy/sdlt/return")

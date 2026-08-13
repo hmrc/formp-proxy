@@ -26,8 +26,8 @@ import play.api.db.Database
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
-import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.CallDeleteSubcontractor
 import uk.gov.hmrc.formpproxy.cis.models.response.*
+import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.CallDeleteSubcontractor
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 
 import java.sql.*
@@ -971,15 +971,48 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(conn.prepareCall(eqTo("{ call SCHEME_PROCS.Update_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")))
         .thenReturn(csUpdate)
 
-      when(conn.prepareCall(eqTo("{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }")))
-        .thenReturn(csSub)
+      when(
+        conn.prepareCall(
+          eqTo(
+            "{ call SUBCONTRACTOR_PROCS.Create_Subcontractor_Prepop(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+          )
+        )
+      ).thenReturn(csSub)
 
       when(conn.prepareCall(eqTo("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }")))
         .thenReturn(csUpdateVer)
 
       when(csUpdateVer.getInt(2)).thenReturn(2)
+      when(csSub.getInt(30)).thenReturn(101, 102)
 
       val repo = new CisFormpRepository(db)
+
+      val subcontractors = Seq(
+        PrepopulationSubcontractor(
+          subcontractorType = SoleTrader,
+          utr = "1111111111",
+          verificationNumber = Some("V1"),
+          firstName = Some("Ann"),
+          secondName = None,
+          surname = Some("Smith"),
+          tradingName = None,
+          partnershipTradingName = None,
+          verified = Some("Y"),
+          autoVerified = Some("Y")
+        ),
+        PrepopulationSubcontractor(
+          subcontractorType = Company,
+          utr = "2222222222",
+          verificationNumber = Some("V2"),
+          firstName = None,
+          secondName = None,
+          surname = None,
+          tradingName = Some("Acme Ltd"),
+          partnershipTradingName = None,
+          verified = Some("Y"),
+          autoVerified = Some("Y")
+        )
+      )
 
       val req = ApplyPrepopulationRequest(
         schemeId = 789,
@@ -994,19 +1027,27 @@ final class CisFormpRepositorySpec extends SpecBase {
         prePopCount = 5,
         prePopSuccessful = "Y",
         version = 1,
-        subcontractorTypes = Seq(SoleTrader, Company)
+        subcontractors = subcontractors
       )
 
       val out = repo.applyPrepopulation(req).futureValue
       out mustBe 2
 
       verify(conn).prepareCall(eqTo("{ call SCHEME_PROCS.Update_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"))
-      verify(conn, times(req.subcontractorTypes.size))
-        .prepareCall(eqTo("{ call SUBCONTRACTOR_PROCS.CREATE_SUBCONTRACTOR(?, ?, ?, ?) }"))
+      verify(conn, times(req.subcontractors.size))
+        .prepareCall(
+          eqTo(
+            "{ call SUBCONTRACTOR_PROCS.Create_Subcontractor_Prepop(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+          )
+        )
       verify(conn).prepareCall(eqTo("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }"))
 
       verify(csUpdate).execute()
-      verify(csSub, times(req.subcontractorTypes.size)).execute()
+      verify(csSub, times(req.subcontractors.size)).execute()
+      verify(csSub).setString(2, "1111111111")
+      verify(csSub).setString(2, "2222222222")
+      verify(csSub).setString(12, "soletrader")
+      verify(csSub).setString(12, "company")
       verify(csUpdateVer).execute()
     }
   }
@@ -3406,7 +3447,6 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdateV2).close()
     }
   }
-
   "getBatchPollSubmissions" - {
     "register both cursors, execute the proc, and assemble the response" in {
       val db                    = mock[Database]
@@ -4527,6 +4567,7 @@ final class CisFormpRepositorySpec extends SpecBase {
         subcontractors = Seq.empty
       )
 
+      verify(conn).prepareCall("{ call SUBMISSION_PROCS.Get_Verif_Batch_Submission(?, ?, ?, ?, ?, ?, ?) }")
       verify(cs).setString(1, "abc-123")
       verify(cs).setLong(2, 77L)
       verify(cs).registerOutParameter(3, OracleTypes.CURSOR)
