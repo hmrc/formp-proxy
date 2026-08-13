@@ -35,7 +35,7 @@ package uk.gov.hmrc.formpproxy.sdlt.controllers.returns
 import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.formpproxy.actions.{ApiKeyAction, AuthAction, AuthOrApiKeyAction}
+import uk.gov.hmrc.formpproxy.actions.AuthAction
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.UpdateReturnRequest
 import uk.gov.hmrc.formpproxy.sdlt.services.ReturnService
@@ -47,8 +47,6 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ReturnsController @Inject() (
   authorise: AuthAction,
-  apiKeyAction: ApiKeyAction,
-  authOrApiKeyAction: AuthOrApiKeyAction,
   service: ReturnService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
@@ -76,7 +74,7 @@ class ReturnsController @Inject() (
     }
 
   def getSDLTReturn(): Action[JsValue] =
-    authOrApiKeyAction.async(parse.json) { implicit request =>
+    authorise.async(parse.json) { implicit request =>
       request.body
         .validate[GetReturnByRefRequest]
         .fold(
@@ -133,7 +131,7 @@ class ReturnsController @Inject() (
     }
 
   def getSDLTReturnsForPurge(): Action[JsValue] =
-    apiKeyAction.async(parse.json) { implicit request =>
+    authorise.async(parse.json) { implicit request =>
       request.body
         .validate[GetReturnsForPurgeRequest]
         .fold(
@@ -161,7 +159,7 @@ class ReturnsController @Inject() (
     }
 
   def getSDLTSubmissionsForPolling(): Action[AnyContent] =
-    apiKeyAction.async { implicit request =>
+    authorise.async { implicit request =>
       service
         .getSDLTSubmissionsForPolling()
         .map(rs => Ok(Json.toJson(rs)))
@@ -175,7 +173,7 @@ class ReturnsController @Inject() (
     }
 
   def deleteSDLTReturn(): Action[JsValue] =
-    apiKeyAction.async(parse.json) { implicit request =>
+    authorise.async(parse.json) { implicit request =>
       request.body
         .validate[DeleteReturnRequest]
         .fold(
