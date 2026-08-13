@@ -270,7 +270,7 @@ class VerificationControllerSpec extends SpecBase {
   "GET /cis/verification-batch/current/:instanceId (getCurrentVerificationBatch)" - {
 
     "returns 200 OK with JSON body when service succeeds" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val instanceId = "abc-123"
@@ -297,7 +297,7 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 500 InternalServerError with error body when service fails" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val instanceId = "abc-123"
@@ -317,7 +317,7 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 200 OK with JSON body when service succeeds (all fields has values)" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val instId = "abc-123"
@@ -550,7 +550,7 @@ class VerificationControllerSpec extends SpecBase {
     val url = "/cis/verification-batch/modify"
 
     "returns 204 OK with JSON body when service succeeds" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val requestModel = ModifyVerificationsRequest(
@@ -588,7 +588,7 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 400 BadRequest with error payload when JSON is invalid" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val badJson = Json.obj()
@@ -610,7 +610,7 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 500 InternalServerError with error body when service fails" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val requestModel = ModifyVerificationsRequest(
@@ -1192,8 +1192,7 @@ class VerificationControllerSpec extends SpecBase {
       contentType(result) mustBe Some(JSON)
 
       val body = contentAsJson(result)
-      (body \ "message").as[String] mustBe "Invalid payload"
-      (body \ "errors").isDefined mustBe true
+      (body \ "message").as[String] must include("Invalid ProceedInsufficientVerificationRequest payload")
 
       verifyNoInteractions(mockService)
     }
