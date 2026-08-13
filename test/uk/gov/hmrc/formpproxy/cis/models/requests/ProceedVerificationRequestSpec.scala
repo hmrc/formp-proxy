@@ -51,7 +51,6 @@ class ProceedVerificationRequestSpec extends AnyWordSpec with Matchers {
                               |  "instanceId": "1",
                               |  "verificationBatchResourceRef": 9,
                               |  "verificationResourceRef": 10,
-                              |  "proceed": "Y",
                               |  "proceed": "Y"
                               |}
         """.stripMargin)
