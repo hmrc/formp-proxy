@@ -93,7 +93,7 @@ trait CisMonthlyReturnSource {
   def getSubmissionWithVerificationBatch(
     req: GetSubmissionWithVerificationBatchRequest
   ): Future[GetSubmissionWithVerificationBatchResponse]
-  def proceedInsufficientVerification(req: ProceedInsufficientVerificationRequest): Future[Unit]
+  def proceedVerification(req: ProceedVerificationRequest): Future[Unit]
 
   def getSubcontractorForDelete(cisId: String, subbieResourceRef: Long): Future[GetSubcontractorForDeleteResponse]
 
@@ -1344,6 +1344,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
             verificationResourceRef = v.verificationResourceRef,
             actionIndicator = Some(actionIndicator),
             proceed = v.proceedVerification,
+            taxTreatment = None,
             subcontractorName = Some(v.subcontractorName)
           )
         }
@@ -1384,6 +1385,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     verificationResourceRef: Long,
     actionIndicator: Option[String],
     proceed: String,
+    taxTreatment: Option[String],
     subcontractorName: Option[String]
   ): Unit =
     withCall(conn, CallUpdateVerification) { cs =>
@@ -1393,7 +1395,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
       cs.setNull(4, Types.CHAR)
       cs.setNull(5, Types.VARCHAR)
-      cs.setNull(6, Types.VARCHAR)
+      cs.setOptionalString(6, taxTreatment)
 
       cs.setOptionalString(7, actionIndicator)
       cs.setString(8, proceed)
@@ -1451,7 +1453,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
-  override def proceedInsufficientVerification(request: ProceedInsufficientVerificationRequest): Future[Unit] =
+  override def proceedVerification(request: ProceedVerificationRequest): Future[Unit] =
     logger.info(
       s"[CIS] proceedInsufficientVerification(instanceId=${request.instanceId}, verificationBatchResourceRef=${request.verificationBatchResourceRef}, verificationResourceRef=${request.verificationResourceRef})"
     )
@@ -1467,6 +1469,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           verificationResourceRef = request.verificationResourceRef,
           actionIndicator = None,
           proceed = request.proceed,
+          taxTreatment = request.taxTreatment,
           subcontractorName = None
         )
 

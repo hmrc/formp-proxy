@@ -4538,9 +4538,9 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
   }
 
-  "proceedInsufficientVerification" - {
+  "proceedVerification" - {
 
-    "updates insufficient verification " in {
+    "proceed verification with insufficient data" in {
       val db   = mock[Database]
       val conn = mock[Connection]
 
@@ -4571,14 +4571,15 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       val repo = new CisFormpRepository(db)
 
-      val req = ProceedInsufficientVerificationRequest(
+      val req = ProceedVerificationRequest(
         instanceId = "abc-123",
         verificationBatchResourceRef = 999L,
         verificationResourceRef = 77L,
-        proceed = "Y"
+        proceed = "Y",
+        taxTreatment = None
       )
 
-      repo.proceedInsufficientVerification(req).futureValue
+      repo.proceedVerification(req).futureValue
 
       verify(csUpdate).setString(1, "abc-123")
       verify(csUpdate).setLong(2, 999L)
@@ -4587,6 +4588,73 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdate).setNull(4, Types.CHAR) // matched
       verify(csUpdate).setNull(5, Types.VARCHAR) // verification_number
       verify(csUpdate).setNull(6, Types.VARCHAR) // tax_treatment
+
+      verify(csUpdate).setNull(7, Types.VARCHAR) // action_indicator
+      verify(csUpdate).setString(8, "Y") // proceed
+      verify(csUpdate).setNull(9, Types.VARCHAR) // subcontractor_name
+
+      verify(csUpdate).setNull(10, Types.INTEGER)
+      verify(csUpdate).registerOutParameter(10, Types.INTEGER)
+      verify(csUpdate).execute()
+
+      verify(conn).prepareCall(eqTo(CisStoredProcedures.CallGetScheme))
+      verify(csGetScheme).execute()
+
+      verify(conn).prepareCall(eqTo(CisStoredProcedures.CallUpdateSchemeVersion))
+
+      verify(rsScheme).close()
+      verify(csGetScheme).close()
+      verify(csUpdate).close()
+    }
+
+    "proceed unmatched verification" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      val csGetScheme = mock[CallableStatement]
+      val csVersion   = mock[CallableStatement]
+      val rsScheme    = mock[ResultSet]
+
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetScheme))).thenReturn(csGetScheme)
+      when(csGetScheme.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+
+      when(rsScheme.next()).thenReturn(true, false)
+      when(rsScheme.getLong("scheme_id")).thenReturn(123L)
+
+      when(rsScheme.getInt("version")).thenReturn(1)
+      when(rsScheme.wasNull()).thenReturn(false)
+      when(rsScheme.getString("email_address")).thenReturn(null)
+
+      when(conn.prepareCall(CisStoredProcedures.CallUpdateSchemeVersion))
+        .thenReturn(csVersion)
+      when(csVersion.getInt(2)).thenReturn(2)
+
+      val csUpdate = mock[CallableStatement]
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateVerification))).thenReturn(csUpdate)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = ProceedVerificationRequest(
+        instanceId = "abc-123",
+        verificationBatchResourceRef = 999L,
+        verificationResourceRef = 77L,
+        proceed = "Y",
+        taxTreatment = Some("NotKnown")
+      )
+
+      repo.proceedVerification(req).futureValue
+
+      verify(csUpdate).setString(1, "abc-123")
+      verify(csUpdate).setLong(2, 999L)
+      verify(csUpdate).setLong(3, 77L)
+
+      verify(csUpdate).setNull(4, Types.CHAR) // matched
+      verify(csUpdate).setNull(5, Types.VARCHAR) // verification_number
+      verify(csUpdate).setString(6, "NotKnown") // tax_treatment
 
       verify(csUpdate).setNull(7, Types.VARCHAR) // action_indicator
       verify(csUpdate).setString(8, "Y") // proceed

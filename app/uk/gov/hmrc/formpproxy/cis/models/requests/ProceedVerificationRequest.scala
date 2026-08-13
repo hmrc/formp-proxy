@@ -18,14 +18,15 @@ package uk.gov.hmrc.formpproxy.cis.models.requests
 
 import play.api.libs.json.{Json, OFormat}
 
-case class ProceedInsufficientVerificationRequest(
+case class ProceedVerificationRequest(
   instanceId: String,
   verificationBatchResourceRef: Long,
   verificationResourceRef: Long,
-  proceed: String
+  proceed: String,
+  taxTreatment: Option[String]
 )
 
-object ProceedInsufficientVerificationRequest {
-  implicit val format: OFormat[ProceedInsufficientVerificationRequest] =
-    Json.format[ProceedInsufficientVerificationRequest]
+object ProceedVerificationRequest {
+  implicit val format: OFormat[ProceedVerificationRequest] =
+    Json.format[ProceedVerificationRequest]
 }

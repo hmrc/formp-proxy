@@ -20,9 +20,30 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.Json
 
-class ProceedInsufficientVerificationRequestSpec extends AnyWordSpec with Matchers {
+class ProceedVerificationRequestSpec extends AnyWordSpec with Matchers {
 
-  "ProceedInsufficientVerificationRequest (JSON)" should {
+  "ProceedVerificationRequest (JSON)" should {
+
+    "read and write with all fields" in {
+      val json = Json.parse("""
+          |{
+          |  "instanceId": "1",
+          |  "verificationBatchResourceRef": 9,
+          |  "verificationResourceRef": 10,
+          |  "proceed": "Y",
+          |  "taxTreatment": "NotKnown"
+          |}
+            """.stripMargin)
+
+      val model = json.as[ProceedVerificationRequest]
+      model.instanceId mustBe "1"
+      model.verificationBatchResourceRef mustBe 9
+      model.verificationResourceRef mustBe 10
+      model.proceed mustBe "Y"
+      model.taxTreatment mustBe Some("NotKnown")
+
+      Json.toJson(model) mustBe json
+    }
 
     "read and write with mandatory fields" in {
       val json = Json.parse("""
@@ -30,11 +51,12 @@ class ProceedInsufficientVerificationRequestSpec extends AnyWordSpec with Matche
                               |  "instanceId": "1",
                               |  "verificationBatchResourceRef": 9,
                               |  "verificationResourceRef": 10,
+                              |  "proceed": "Y",
                               |  "proceed": "Y"
                               |}
         """.stripMargin)
 
-      val model = json.as[ProceedInsufficientVerificationRequest]
+      val model = json.as[ProceedVerificationRequest]
       model.instanceId mustBe "1"
       model.verificationBatchResourceRef mustBe 9
       model.verificationResourceRef mustBe 10
@@ -52,7 +74,7 @@ class ProceedInsufficientVerificationRequestSpec extends AnyWordSpec with Matche
                               |}
         """.stripMargin)
 
-      val result = json.validate[ProceedInsufficientVerificationRequest]
+      val result = json.validate[ProceedVerificationRequest]
       result.isError mustBe true
     }
 
@@ -65,7 +87,7 @@ class ProceedInsufficientVerificationRequestSpec extends AnyWordSpec with Matche
                               |}
         """.stripMargin)
 
-      val result = json.validate[ProceedInsufficientVerificationRequest]
+      val result = json.validate[ProceedVerificationRequest]
       result.isError mustBe true
     }
 
@@ -78,7 +100,7 @@ class ProceedInsufficientVerificationRequestSpec extends AnyWordSpec with Matche
                               |}
         """.stripMargin)
 
-      val result = json.validate[ProceedInsufficientVerificationRequest]
+      val result = json.validate[ProceedVerificationRequest]
       result.isError mustBe true
     }
 
@@ -91,7 +113,7 @@ class ProceedInsufficientVerificationRequestSpec extends AnyWordSpec with Matche
                               |}
         """.stripMargin)
 
-      val result = json.validate[ProceedInsufficientVerificationRequest]
+      val result = json.validate[ProceedVerificationRequest]
       result.isError mustBe true
     }
   }
