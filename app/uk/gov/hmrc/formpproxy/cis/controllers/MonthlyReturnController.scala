@@ -19,7 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.formpproxy.actions.AuthAction
+import uk.gov.hmrc.formpproxy.actions.InternalAuthAction
 import uk.gov.hmrc.formpproxy.cis.models.UserMonthlyReturns
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.GetSubmittedMonthlyReturnsDataResponse
@@ -33,7 +33,7 @@ import scala.concurrent.ExecutionContext
 import scala.util.control.NonFatal
 
 class MonthlyReturnController @Inject() (
-  authorise: AuthAction,
+  internalAuth: InternalAuthAction,
   service: MonthlyReturnService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
@@ -41,7 +41,7 @@ class MonthlyReturnController @Inject() (
     with Logging {
 
   def retrieveMonthlyReturns: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    internalAuth.async(parse.json) { implicit request =>
       request.body
         .validate[InstanceIdRequest]
         .foldErrorsIntoBadRequest { req =>
@@ -56,7 +56,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def retrieveUnsubmittedMonthlyReturns: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    internalAuth.async(parse.json) { implicit request =>
       request.body
         .validate[InstanceIdRequest]
         .foldErrorsIntoBadRequest { req =>
@@ -71,7 +71,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def retrieveSubmittedMonthlyReturns: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    internalAuth.async(parse.json) { implicit request =>
       request.body
         .validate[InstanceIdRequest]
         .foldErrorsIntoBadRequest { req =>
@@ -86,7 +86,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def createNilMonthlyReturn: Action[CreateNilMonthlyReturnRequest] =
-    authorise.async(parse.json[CreateNilMonthlyReturnRequest]) { implicit request =>
+    internalAuth.async(parse.json[CreateNilMonthlyReturnRequest]) { implicit request =>
       service
         .createNilMonthlyReturn(request.body)
         .map(result => Created(Json.toJson(result)))
@@ -99,7 +99,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def updateMonthlyReturn: Action[UpdateMonthlyReturnRequest] =
-    authorise.async(parse.json[UpdateMonthlyReturnRequest]) { implicit request =>
+    internalAuth.async(parse.json[UpdateMonthlyReturnRequest]) { implicit request =>
       service
         .updateMonthlyReturn(request.body)
         .map(_ => NoContent)
@@ -112,7 +112,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def updateMonthlyReturnItem(): Action[UpdateMonthlyReturnItemRequest] =
-    authorise.async(parse.json[UpdateMonthlyReturnItemRequest]) { implicit request =>
+    internalAuth.async(parse.json[UpdateMonthlyReturnItemRequest]) { implicit request =>
       service
         .updateMonthlyReturnItem(request.body) //
         .map(_ => NoContent)
@@ -125,7 +125,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def createMonthlyReturn: Action[CreateMonthlyReturnRequest] =
-    authorise.async(parse.json[CreateMonthlyReturnRequest]) { implicit request =>
+    internalAuth.async(parse.json[CreateMonthlyReturnRequest]) { implicit request =>
       service
         .createMonthlyReturn(request.body)
         .map(_ => Created)
@@ -138,7 +138,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def getSchemeEmail: Action[InstanceIdRequest] =
-    authorise.async(parse.json[InstanceIdRequest]) { implicit request =>
+    internalAuth.async(parse.json[InstanceIdRequest]) { implicit request =>
       service
         .getSchemeEmail(request.body.instanceId)
         .map(email => Ok(Json.obj("email" -> email)))
@@ -151,7 +151,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def getMonthlyReturnForEdit: Action[JsValue] =
-    Action.async(parse.json) { implicit request =>
+    internalAuth.async(parse.json) { implicit request =>
       request.body
         .validate[GetMonthlyReturnForEditRequest]
         .foldErrorsIntoBadRequest { req =>
@@ -166,7 +166,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def syncMonthlyReturnItems: Action[SyncMonthlyReturnItemsRequest] =
-    authorise.async(parse.json[SyncMonthlyReturnItemsRequest]) { implicit request =>
+    internalAuth.async(parse.json[SyncMonthlyReturnItemsRequest]) { implicit request =>
       service
         .syncMonthlyReturnItems(request.body)
         .map(_ => NoContent)
@@ -177,7 +177,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def deleteMonthlyReturnItem: Action[DeleteMonthlyReturnItemRequest] =
-    authorise.async(parse.json[DeleteMonthlyReturnItemRequest]) { implicit request =>
+    internalAuth.async(parse.json[DeleteMonthlyReturnItemRequest]) { implicit request =>
       service
         .deleteMonthlyReturnItem(request.body)
         .map(_ => NoContent)
@@ -188,7 +188,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def deleteUnsubmittedMonthlyReturn: Action[DeleteUnsubmittedMonthlyReturnRequest] =
-    authorise.async(parse.json[DeleteUnsubmittedMonthlyReturnRequest]) { implicit request =>
+    internalAuth.async(parse.json[DeleteUnsubmittedMonthlyReturnRequest]) { implicit request =>
       service
         .deleteUnsubmittedMonthlyReturn(request.body)
         .map(_ => NoContent)
@@ -198,7 +198,7 @@ class MonthlyReturnController @Inject() (
         }
     }
   def getMonthlyReturnComplete: Action[JsValue]                                     =
-    authorise.async(parse.json) { implicit request =>
+    internalAuth.async(parse.json) { implicit request =>
       request.body
         .validate[GetMonthlyReturnCompleteRequest]
         .foldErrorsIntoBadRequest { req =>
@@ -213,7 +213,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def retrieveSubmittedMonthlyReturnsData: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    internalAuth.async(parse.json) { implicit request =>
       request.body
         .validate[GetSubmittedMonthlyReturnsDataRequest]
         .foldErrorsIntoBadRequest { request =>

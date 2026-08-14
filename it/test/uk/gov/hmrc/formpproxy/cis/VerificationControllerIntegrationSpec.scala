@@ -26,7 +26,7 @@ import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsNull, Json}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
-import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, AuthStub}
+import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, InternalAuthStub}
 
 import scala.concurrent.Future
 
@@ -51,7 +51,7 @@ class VerificationControllerIntegrationSpec
   "GET /formp-proxy/cis/verification-batch/current/:instanceId " should {
 
     "return 401 when there is no active session" in {
-      AuthStub.unauthorised()
+      InternalAuthStub.unauthorised()
 
       val res = getResponse("cis/verification-batch/current/abc-123").futureValue
 
@@ -59,8 +59,6 @@ class VerificationControllerIntegrationSpec
     }
 
     "return 404 for unknown endpoint (routing sanity)" in {
-      AuthStub.authorised()
-
       val res = getResponse("does-not-exist").futureValue
 
       res.status mustBe NOT_FOUND
@@ -72,15 +70,13 @@ class VerificationControllerIntegrationSpec
     val endpoint = "cis/verification-batch/modify"
 
     "return 400 when JSON is missing required fields" in {
-      AuthStub.authorised()
-
       val res1 = postAwait(endpoint, Json.obj())
       res1.status mustBe BAD_REQUEST
       (res1.json \ "message").as[String].toLowerCase must include("invalid payload")
     }
 
     "return 401 when there is no active session" in {
-      AuthStub.unauthorised()
+      InternalAuthStub.unauthorised()
 
       val res = postAwait(
         endpoint,
@@ -101,8 +97,6 @@ class VerificationControllerIntegrationSpec
     }
 
     "return 204 when the request is valid" in {
-      AuthStub.authorised()
-
       val res = postAwait(
         endpoint,
         Json.obj(
@@ -122,8 +116,6 @@ class VerificationControllerIntegrationSpec
     }
 
     "return 404 for unknown endpoint (routing sanity)" in {
-      AuthStub.authorised()
-
       val res = postAwait(
         "does-not-exist",
         Json.obj(
@@ -148,35 +140,31 @@ class VerificationControllerIntegrationSpec
     val endpoint = "cis/verification/submission/update"
 
     "return 400 when JSON is missing required fields" in {
-      AuthStub.authorised()
-
       val res1 = postAwait(endpoint, Json.obj())
       res1.status mustBe BAD_REQUEST
       (res1.json \ "message").as[String].toLowerCase must include("invalid payload")
     }
 
-    "return 204 without an authenticated session" in {
-      AuthStub.unauthorised()
+    "return 401 when there is no active session" in {
+      InternalAuthStub.unauthorised()
 
       val res = postAwait(
         endpoint,
         Json.obj(
-          "instanceId" -> "abc-123",
-          "verificationBatchId" -> 99L,
+          "instanceId"                   -> "abc-123",
+          "verificationBatchId"          -> 99L,
           "verificationBatchResourceRef" -> 77L,
-          "submittableStatus" -> "FATAL_ERROR",
-          "govtalkErrorCode" -> "500",
-          "govtalkErrorType" -> "timeOut",
-          "govtalkErrorMessage" -> "timeOut"
+          "submittableStatus"            -> "FATAL_ERROR",
+          "govtalkErrorCode"             -> "500",
+          "govtalkErrorType"             -> "timeOut",
+          "govtalkErrorMessage"          -> "timeOut"
         )
       )
 
-      res.status mustBe NO_CONTENT
+      res.status mustBe UNAUTHORIZED
     }
 
     "return 204 when the request is valid" in {
-      AuthStub.authorised()
-
       val res = postAwait(
         endpoint,
         Json.obj(
@@ -194,8 +182,6 @@ class VerificationControllerIntegrationSpec
     }
 
     "return 404 for unknown endpoint (routing sanity)" in {
-      AuthStub.authorised()
-
       val res = postAwait(
         "does-not-exist",
         Json.obj(

@@ -22,7 +22,7 @@ import play.api.libs.json.Json
 import play.api.mvc.{ControllerComponents, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
+import uk.gov.hmrc.formpproxy.actions.{FakeInternalAuthAction, InternalAuthAction}
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.requests.CreateAmendedMonthlyReturnRequest
 import uk.gov.hmrc.formpproxy.cis.services.AmendMonthlyReturnService
@@ -84,8 +84,8 @@ class AmendMonthlyReturnControllerSpec extends SpecBase {
   private trait Setup {
     implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.global
 
-    private val cc: ControllerComponents = stubControllerComponents()
-    private val fakeAuth: AuthAction     = new FakeAuthAction(cc.parsers)
+    private val cc: ControllerComponents     = stubControllerComponents()
+    private val fakeAuth: InternalAuthAction = new FakeInternalAuthAction(cc.parsers)
 
     val mockService: AmendMonthlyReturnService = mock[AmendMonthlyReturnService]
 

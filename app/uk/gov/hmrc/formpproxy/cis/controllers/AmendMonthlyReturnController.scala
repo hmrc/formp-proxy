@@ -19,7 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.formpproxy.actions.AuthAction
+import uk.gov.hmrc.formpproxy.actions.InternalAuthAction
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.services.AmendMonthlyReturnService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -29,7 +29,7 @@ import scala.concurrent.ExecutionContext
 import scala.util.control.NonFatal
 
 class AmendMonthlyReturnController @Inject() (
-  authorise: AuthAction,
+  internalAuth: InternalAuthAction,
   service: AmendMonthlyReturnService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
@@ -37,7 +37,7 @@ class AmendMonthlyReturnController @Inject() (
     with Logging {
 
   def createAmendedMonthlyReturn: Action[CreateAmendedMonthlyReturnRequest] =
-    authorise.async(parse.json[CreateAmendedMonthlyReturnRequest]) { implicit request =>
+    internalAuth.async(parse.json[CreateAmendedMonthlyReturnRequest]) { implicit request =>
       service
         .createAmendedMonthlyReturn(request.body)
         .map(_ => Created)

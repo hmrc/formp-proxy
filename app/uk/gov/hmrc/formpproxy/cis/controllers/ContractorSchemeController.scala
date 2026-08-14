@@ -19,7 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
-import uk.gov.hmrc.formpproxy.actions.AuthAction
+import uk.gov.hmrc.formpproxy.actions.InternalAuthAction
 import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, UpdateSchemeVersionRequest}
 import uk.gov.hmrc.formpproxy.cis.models.{CreateContractorSchemeParams, UpdateContractorSchemeParams}
 import uk.gov.hmrc.formpproxy.cis.services.ContractorSchemeService
@@ -31,7 +31,7 @@ import javax.inject.Inject
 import scala.concurrent.ExecutionContext
 
 class ContractorSchemeController @Inject() (
-  authorise: AuthAction,
+  internalAuth: InternalAuthAction,
   service: ContractorSchemeService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
@@ -39,7 +39,7 @@ class ContractorSchemeController @Inject() (
     with Logging {
 
   def getScheme(instanceId: String): Action[AnyContent] =
-    authorise.async { implicit request =>
+    internalAuth.async { implicit request =>
       service
         .getScheme(instanceId)
         .map {
@@ -55,7 +55,7 @@ class ContractorSchemeController @Inject() (
     }
 
   def createScheme: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    internalAuth.async(parse.json) { implicit request =>
       request.body
         .validate[CreateContractorSchemeParams]
         .foldErrorsIntoBadRequest(contractorScheme =>
@@ -72,7 +72,7 @@ class ContractorSchemeController @Inject() (
     }
 
   def updateScheme: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    internalAuth.async(parse.json) { implicit request =>
       request.body
         .validate[UpdateContractorSchemeParams]
         .foldErrorsIntoBadRequest(contractorScheme =>
@@ -89,7 +89,7 @@ class ContractorSchemeController @Inject() (
     }
 
   def updateSchemeVersion: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    internalAuth.async(parse.json) { implicit request =>
       request.body
         .validate[UpdateSchemeVersionRequest]
         .foldErrorsIntoBadRequest { case UpdateSchemeVersionRequest(instanceId, version) =>
@@ -106,7 +106,7 @@ class ContractorSchemeController @Inject() (
     }
 
   def applyPrepopulation: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    internalAuth.async(parse.json) { implicit request =>
       request.body
         .validate[ApplyPrepopulationRequest]
         .foldErrorsIntoBadRequest { prepopReq =>

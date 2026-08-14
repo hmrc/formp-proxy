@@ -20,7 +20,7 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.must.Matchers
 import play.api.http.Status.*
 import play.api.libs.json.Json
-import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, AuthStub}
+import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, InternalAuthStub}
 
 final class SubcontractorControllerIntegrationSpec
     extends Matchers
@@ -35,8 +35,6 @@ final class SubcontractorControllerIntegrationSpec
     "POST /cis/subcontractor/create-and-update (createAndUpdateSubcontractor)" should {
 
       "returns 400 when JSON is missing required fields" in {
-        AuthStub.authorised()
-
         val res = postAwait(createAndUpdatePath, Json.obj())
 
         res.status mustBe BAD_REQUEST
@@ -44,7 +42,7 @@ final class SubcontractorControllerIntegrationSpec
       }
 
       "returns 401 when there is no active session" in {
-        AuthStub.unauthorised()
+        InternalAuthStub.unauthorised()
 
         val json = Json.obj(
           "cisId"                -> "1234567890",
@@ -67,8 +65,6 @@ final class SubcontractorControllerIntegrationSpec
       }
 
       "returns 404 for unknown endpoint (routing sanity)" in {
-        AuthStub.authorised()
-
         val res = postAwait(
           "/does-not-exist",
           Json.obj(

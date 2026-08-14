@@ -29,6 +29,7 @@ import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.UpdateGovTalkStatusCorrelationIdRequest
 import uk.gov.hmrc.formpproxy.cis.models.response.*
+import uk.gov.hmrc.formpproxy.actions.FakeInternalAuthAction
 import uk.gov.hmrc.formpproxy.cis.services.GovTalkService
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
@@ -634,7 +635,7 @@ class GovTalkControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
     private val cc: ControllerComponents = stubControllerComponents()
 
     val mockService: GovTalkService = mock[GovTalkService]
-    val controller                  = new GovTalkController(mockService, cc)
+    val controller                  = new GovTalkController(new FakeInternalAuthAction(cc.parsers), mockService, cc)
 
     def makeJsonRequest(body: JsValue): FakeRequest[JsValue] =
       FakeRequest(POST, "/formp-proxy/cis/govtalkstatus/get")

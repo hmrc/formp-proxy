@@ -20,7 +20,7 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.must.Matchers
 import play.api.http.Status.*
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, AuthStub}
+import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, InternalAuthStub}
 
 final class SubmissionControllerIntegrationSpec
   extends Matchers
@@ -36,8 +36,6 @@ final class SubmissionControllerIntegrationSpec
     "POST /formp-proxy/submissions (createSubmission)" should {
 
       "returns 400 when JSON is missing required fields" in {
-        AuthStub.authorised()
-
         val res = postAwait(createPath, Json.obj())
 
         res.status mustBe BAD_REQUEST
@@ -45,7 +43,7 @@ final class SubmissionControllerIntegrationSpec
       }
 
       "returns 401 when there is no active session" in {
-        AuthStub.unauthorised()
+        InternalAuthStub.unauthorised()
 
         val res = postAwait(createPath, Json.obj(
           "instanceId" -> "123",
@@ -57,8 +55,6 @@ final class SubmissionControllerIntegrationSpec
       }
 
       "returns 404 for unknown endpoint (routing sanity)" in {
-        AuthStub.authorised()
-
         val res = postAwait("/does-not-exist", Json.obj(
           "instanceId" -> "123",
           "taxYear"    -> 2024,

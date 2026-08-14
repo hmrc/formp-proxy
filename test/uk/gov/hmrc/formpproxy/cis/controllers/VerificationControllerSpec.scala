@@ -21,7 +21,7 @@ import org.mockito.Mockito.*
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
+import uk.gov.hmrc.formpproxy.actions.{FakeInternalAuthAction, InternalAuthAction}
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateVerifications, DeleteVerifications, MonthlyReturn, Subcontractor, Submission, Verification, VerificationBatch}
 import uk.gov.hmrc.formpproxy.cis.models.response.*
@@ -35,16 +35,10 @@ class VerificationControllerSpec extends SpecBase {
 
   trait Setup {
     val mockService: VerificationService = mock[VerificationService]
-    val auth                             = new FakeAuthAction(cc.parsers)
-    val mockAuth: AuthAction             = mock[AuthAction]
+    val auth                             = new FakeInternalAuthAction(cc.parsers)
 
     lazy val controller =
       new VerificationController(auth, mockService, cc)(
-        scala.concurrent.ExecutionContext.Implicits.global
-      )
-
-    lazy val scheduledController =
-      new VerificationController(mockAuth, mockService, cc)(
         scala.concurrent.ExecutionContext.Implicits.global
       )
   }
@@ -1084,7 +1078,7 @@ class VerificationControllerSpec extends SpecBase {
     val getUrl =
       s"/cis/verification/submission-batch/${requestModel.instanceId}/${requestModel.verificationBatchResourceRef}"
 
-    "returns 200 OK without authentication when service succeeds" in {
+    "returns 200 OK when service succeeds" in {
       val s = setup
       import s.*
 
@@ -1104,7 +1098,7 @@ class VerificationControllerSpec extends SpecBase {
       ).thenReturn(Future.successful(responseModel))
 
       val result =
-        scheduledController
+        controller
           .getSubmissionWithVerificationBatchByRefs(
             requestModel.instanceId,
             requestModel.verificationBatchResourceRef
@@ -1121,10 +1115,9 @@ class VerificationControllerSpec extends SpecBase {
         .getSubmissionWithVerificationBatch(eqTo(requestModel))
 
       verifyNoMoreInteractions(mockService)
-      verifyNoInteractions(mockAuth)
     }
 
-    "returns 500 InternalServerError without authentication when service fails" in {
+    "returns 500 InternalServerError when service fails" in {
       val s = setup
       import s.*
 
@@ -1138,7 +1131,7 @@ class VerificationControllerSpec extends SpecBase {
       ).thenReturn(Future.failed(exception))
 
       val result =
-        scheduledController
+        controller
           .getSubmissionWithVerificationBatchByRefs(
             requestModel.instanceId,
             requestModel.verificationBatchResourceRef
@@ -1156,10 +1149,9 @@ class VerificationControllerSpec extends SpecBase {
         .getSubmissionWithVerificationBatch(eqTo(requestModel))
 
       verifyNoMoreInteractions(mockService)
-      verifyNoInteractions(mockAuth)
     }
 
-    "returns 400 BadRequest without authentication when instanceId is blank" in {
+    "returns 400 BadRequest when instanceId is blank" in {
       val s = setup
       import s.*
 
@@ -1167,7 +1159,7 @@ class VerificationControllerSpec extends SpecBase {
         s"/cis/verification/submission-batch/%20/${requestModel.verificationBatchResourceRef}"
 
       val result =
-        scheduledController
+        controller
           .getSubmissionWithVerificationBatchByRefs(
             "   ",
             requestModel.verificationBatchResourceRef
@@ -1182,7 +1174,6 @@ class VerificationControllerSpec extends SpecBase {
         Json.obj("message" -> "instanceId must not be blank")
 
       verifyNoInteractions(mockService)
-      verifyNoInteractions(mockAuth)
     }
   }
 

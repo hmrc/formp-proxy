@@ -19,7 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
-import uk.gov.hmrc.formpproxy.actions.AuthAction
+import uk.gov.hmrc.formpproxy.actions.InternalAuthAction
 import uk.gov.hmrc.formpproxy.cis.services.VerificationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.formpproxy.cis.models.requests._
@@ -29,7 +29,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 class VerificationController @Inject() (
-  authorise: AuthAction,
+  internalAuth: InternalAuthAction,
   service: VerificationService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
@@ -37,7 +37,7 @@ class VerificationController @Inject() (
     with Logging {
 
   def getNewestVerificationBatch(instanceId: String): Action[AnyContent] =
-    authorise.async { implicit request =>
+    internalAuth.async { implicit request =>
       service
         .getNewestVerificationBatch(instanceId)
         .map(res => Ok(Json.toJson(res)))
@@ -48,7 +48,7 @@ class VerificationController @Inject() (
     }
 
   def getCurrentVerificationBatch(instanceId: String): Action[AnyContent] =
-    authorise.async { implicit request =>
+    internalAuth.async { implicit request =>
       service
         .getCurrentVerificationBatch(instanceId)
         .map(res => Ok(Json.toJson(res)))
@@ -59,7 +59,7 @@ class VerificationController @Inject() (
     }
 
   def createVerificationBatchAndVerifications(): Action[JsValue] =
-    authorise(parse.json).async { implicit request =>
+    internalAuth(parse.json).async { implicit request =>
       request.body
         .validate[CreateVerificationBatchAndVerificationsRequest]
         .fold(
@@ -77,7 +77,7 @@ class VerificationController @Inject() (
     }
 
   def modifyVerifications(): Action[JsValue] =
-    authorise(parse.json).async { implicit request =>
+    internalAuth(parse.json).async { implicit request =>
       request.body
         .validate[ModifyVerificationsRequest]
         .fold(
@@ -95,7 +95,7 @@ class VerificationController @Inject() (
     }
 
   def createSubmissionAndUpdateVerifications(): Action[JsValue] =
-    authorise(parse.json).async { implicit request =>
+    internalAuth(parse.json).async { implicit request =>
       request.body
         .validate[CreateSubmissionAndUpdateVerificationsRequest]
         .fold(
@@ -113,7 +113,7 @@ class VerificationController @Inject() (
     }
 
   def updateVerificationSubmission(): Action[JsValue] =
-    Action(parse.json).async { implicit request =>
+    internalAuth(parse.json).async { implicit request =>
       request.body
         .validate[UpdateVerificationSubmissionRequest]
         .fold(
@@ -131,7 +131,7 @@ class VerificationController @Inject() (
     }
 
   def processVerificationResponseFromChris(): Action[JsValue] =
-    Action(parse.json).async { implicit request =>
+    internalAuth(parse.json).async { implicit request =>
       request.body
         .validate[ProcessVerificationResponseFromChrisRequest]
         .fold(
@@ -152,7 +152,7 @@ class VerificationController @Inject() (
     instanceId: String,
     verificationBatchResourceRef: Long
   ): Action[AnyContent] =
-    Action.async { implicit request =>
+    internalAuth.async { implicit request =>
       if (instanceId.isBlank)
         Future.successful(
           BadRequest(
@@ -169,7 +169,7 @@ class VerificationController @Inject() (
     }
 
   def getSubmissionWithVerificationBatch: Action[JsValue] =
-    Action(parse.json).async { implicit request =>
+    internalAuth(parse.json).async { implicit request =>
       request.body
         .validate[GetSubmissionWithVerificationBatchRequest]
         .fold(
@@ -204,7 +204,7 @@ class VerificationController @Inject() (
       }
 
   def getSubmittedVerifications(): Action[JsValue] =
-    authorise(parse.json).async { implicit request =>
+    internalAuth(parse.json).async { implicit request =>
       request.body
         .validate[GetSubmittedVerificationsRequest]
         .fold(

@@ -25,6 +25,7 @@ import play.api.mvc.ControllerComponents
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
+import uk.gov.hmrc.formpproxy.actions.FakeInternalAuthAction
 import uk.gov.hmrc.formpproxy.cis.services.BatchPollService
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -89,6 +90,7 @@ class BatchPollControllerSpec extends AnyFreeSpec with Matchers with MockitoSuga
     val mockService: BatchPollService = mock[BatchPollService]
 
     val controller = new BatchPollController(
+      internalAuth = new FakeInternalAuthAction(cc.parsers),
       service = mockService,
       cc = cc
     )

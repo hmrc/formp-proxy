@@ -22,7 +22,7 @@ import org.scalatest.freespec.AnyFreeSpec
 import play.api.http.Status.CREATED
 import play.api.libs.json.Json
 import play.api.test.Helpers.*
-import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
+import uk.gov.hmrc.formpproxy.actions.FakeInternalAuthAction
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.requests._
 import uk.gov.hmrc.formpproxy.cis.services.SubmissionService
@@ -31,9 +31,9 @@ import scala.concurrent.Future
 
 class SubmissionControllerSpec extends SpecBase {
   trait Setup {
-    val service: SubmissionService = mock[SubmissionService]
-    val auth: FakeAuthAction       = new FakeAuthAction(cc.parsers)
-    lazy val controller            = new SubmissionController(auth, service, cc)
+    val service: SubmissionService   = mock[SubmissionService]
+    val auth: FakeInternalAuthAction = new FakeInternalAuthAction(cc.parsers)
+    lazy val controller              = new SubmissionController(auth, service, cc)
   }
 
   def setup: Setup = new Setup {}

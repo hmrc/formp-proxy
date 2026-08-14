@@ -21,7 +21,7 @@ import org.mockito.Mockito.*
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
+import uk.gov.hmrc.formpproxy.actions.FakeInternalAuthAction
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, Subcontractor}
@@ -36,7 +36,7 @@ class SubcontractorControllerSpec extends SpecBase {
 
   trait Setup {
     val mockService: SubcontractorService = mock[SubcontractorService]
-    val auth: FakeAuthAction              = new FakeAuthAction(cc.parsers)
+    val auth: FakeInternalAuthAction      = new FakeInternalAuthAction(cc.parsers)
     lazy val controller                   = new SubcontractorController(auth, mockService, cc)
   }
 

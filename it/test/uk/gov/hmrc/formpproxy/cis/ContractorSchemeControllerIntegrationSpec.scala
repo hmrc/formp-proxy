@@ -20,7 +20,7 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.http.Status.*
-import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, AuthStub}
+import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, InternalAuthStub}
 
 class ContractorSchemeControllerIntegrationSpec
   extends Matchers
@@ -40,7 +40,7 @@ class ContractorSchemeControllerIntegrationSpec
 //    }
 
     "return 401 when there is no active session" in {
-      AuthStub.unauthorised()
+      InternalAuthStub.unauthorised()
 
       val res = getResponse("scheme/abc-123").futureValue
 
@@ -48,8 +48,6 @@ class ContractorSchemeControllerIntegrationSpec
     }
 
     "return 404 for unknown endpoint (routing sanity)" in {
-      AuthStub.authorised()
-
       val res = getResponse("does-not-exist").futureValue
 
       res.status mustBe NOT_FOUND

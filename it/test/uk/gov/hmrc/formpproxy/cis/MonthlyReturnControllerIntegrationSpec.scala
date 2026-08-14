@@ -21,7 +21,7 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.http.Status.*
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, AuthStub}
+import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, InternalAuthStub}
 
 class MonthlyReturnControllerIntegrationSpec
   extends Matchers
@@ -43,22 +43,19 @@ class MonthlyReturnControllerIntegrationSpec
 //    }
 
     "return 400 when JSON is missing required fields" in {
-      AuthStub.authorised()
-
       val res1 = postAwait(endpoint, Json.obj())
       res1.status mustBe BAD_REQUEST
       (res1.json \ "message").as[String].toLowerCase must include("invalid json")
     }
 
     "return 401 when there is no active session" in {
-      AuthStub.unauthorised()
+      InternalAuthStub.unauthorised()
 
       val res = postAwait(endpoint, Json.obj("instanceId" -> "abc-123"))
       res.status mustBe UNAUTHORIZED
     }
 
     "return 404 for unknown endpoint (routing sanity)" in {
-      AuthStub.authorised()
       val res = postAwait("/does-not-exist", Json.obj("instanceId" -> "abc-123"))
       res.status mustBe NOT_FOUND
     }
@@ -67,15 +64,13 @@ class MonthlyReturnControllerIntegrationSpec
   "POST /cis/retrieve-submitted-monthly-returns" should {
 
     "return 400 when JSON is missing required fields" in {
-      AuthStub.authorised()
-
       val res1 = postAwait("/cis/retrieve-submitted-monthly-returns", Json.obj())
       res1.status mustBe BAD_REQUEST
       (res1.json \ "message").as[String].toLowerCase must include("invalid json")
     }
 
     "return 401 when there is no active session" in {
-      AuthStub.unauthorised()
+      InternalAuthStub.unauthorised()
 
       val res = postAwait("/cis/retrieve-submitted-monthly-returns", Json.obj("instanceId" -> "abc-123"))
       res.status mustBe UNAUTHORIZED

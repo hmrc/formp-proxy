@@ -26,7 +26,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{ControllerComponents, PlayBodyParsers, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
+import uk.gov.hmrc.formpproxy.actions.{FakeInternalAuthAction, InternalAuthAction}
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, SubmittedMonthlyReturn, SubmittedMonthlyReturns, UnsubmittedMonthlyReturns, UserMonthlyReturns, requests}
@@ -848,10 +848,10 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
   }
 
   private trait Setup {
-    implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.global
-    private val cc: ControllerComponents = stubControllerComponents()
-    private val parsers: PlayBodyParsers = cc.parsers
-    private def fakeAuth: AuthAction     = new FakeAuthAction(parsers)
+    implicit val ec: ExecutionContext        = scala.concurrent.ExecutionContext.global
+    private val cc: ControllerComponents     = stubControllerComponents()
+    private val parsers: PlayBodyParsers     = cc.parsers
+    private def fakeAuth: InternalAuthAction = new FakeInternalAuthAction(parsers)
 
     val mockService: MonthlyReturnService = mock[MonthlyReturnService]
     val controller                        = new MonthlyReturnController(fakeAuth, mockService, cc)

@@ -19,7 +19,7 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.formpproxy.actions.AuthAction
+import uk.gov.hmrc.formpproxy.actions.InternalAuthAction
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -31,7 +31,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 class SubcontractorController @Inject() (
-  authorise: AuthAction,
+  internalAuth: InternalAuthAction,
   service: SubcontractorService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
@@ -39,7 +39,7 @@ class SubcontractorController @Inject() (
     with Logging {
 
   def createAndUpdateSubcontractor(): Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    internalAuth.async(parse.json) { implicit request =>
       request.body
         .validate[CreateAndUpdateSubcontractorRequest]
         .fold(
@@ -57,7 +57,7 @@ class SubcontractorController @Inject() (
     }
 
   def getSubcontractorList(cisId: String): Action[AnyContent] =
-    authorise.async { implicit request =>
+    internalAuth.async { implicit request =>
       service
         .getSubcontractorList(GetSubcontractorList(cisId))
         .map(res => Ok(Json.toJson(res)))
@@ -71,7 +71,7 @@ class SubcontractorController @Inject() (
     cisId: String,
     subbieResourceRef: Long
   ): Action[AnyContent] =
-    authorise.async { implicit request =>
+    internalAuth.async { implicit request =>
       service
         .getSubcontractorForDelete(cisId, subbieResourceRef)
         .map(res => Ok(Json.toJson(res)))
@@ -88,7 +88,7 @@ class SubcontractorController @Inject() (
     cisId: String,
     subbieResourceRef: Long
   ): Action[AnyContent] =
-    authorise.async { implicit request =>
+    internalAuth.async { implicit request =>
       service
         .getSubcontractor(cisId, subbieResourceRef)
         .map(response => Ok(Json.toJson(response)))
@@ -102,7 +102,7 @@ class SubcontractorController @Inject() (
     }
 
   def deleteSubcontractor: Action[DeleteSubcontractorRequest] =
-    authorise.async(parse.json[DeleteSubcontractorRequest]) { implicit request =>
+    internalAuth.async(parse.json[DeleteSubcontractorRequest]) { implicit request =>
       service
         .deleteSubcontractor(request.body)
         .map(_ => NoContent)

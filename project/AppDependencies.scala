@@ -10,6 +10,7 @@ object AppDependencies {
 
   val compile: Seq[ModuleID] = Seq(
     "uk.gov.hmrc"                      %% "bootstrap-backend-play-30"  % bootstrapVersion,
+    "uk.gov.hmrc"                      %% "internal-auth-client-play-30" % "3.0.0",
     "com.oracle.database.jdbc"         %  "ojdbc8"                     % oraVersion,
     "com.oracle.database.nls"          %  "orai18n"                    % oraVersion,
     "org.scala-lang"                   % "scala-library"               % "2.13.17",

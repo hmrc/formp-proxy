@@ -26,7 +26,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{AnyContent, ControllerComponents, PlayBodyParsers, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
+import uk.gov.hmrc.formpproxy.actions.FakeInternalAuthAction
 import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, PrepopulationSubcontractor}
 import uk.gov.hmrc.formpproxy.cis.models.{Company, ContractorScheme, CreateContractorSchemeParams, SoleTrader, UpdateContractorSchemeParams}
 import uk.gov.hmrc.formpproxy.cis.services.ContractorSchemeService
@@ -492,7 +492,7 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
     implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.global
     private val cc: ControllerComponents = stubControllerComponents()
     private val parsers: PlayBodyParsers = cc.parsers
-    private val fakeAuthAction           = new FakeAuthAction(parsers)
+    private val fakeAuthAction           = new FakeInternalAuthAction(parsers)
 
     val mockService: ContractorSchemeService = mock[ContractorSchemeService]
     val controller                           = new ContractorSchemeController(fakeAuthAction, mockService, cc)
