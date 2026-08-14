@@ -221,4 +221,16 @@ class VerificationController @Inject() (
         )
     }
 
+  def deleteVerification(): Action[JsValue] =
+    Action(parse.json).async { implicit request =>
+      withJsonBody[DeleteVerificationsRequest](req =>
+        service
+          .deleteVerification(req)
+          .map(_ => Ok)
+          .recover { case ex =>
+            logger.error("[deleteVerification] failed", ex)
+            InternalServerError(Json.obj("message" -> "Unexpected error"))
+          }
+      )
+    }
 }

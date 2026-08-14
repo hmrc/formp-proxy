@@ -87,6 +87,7 @@ trait CisMonthlyReturnSource {
   ): Future[GetSubmittedMonthlyReturnsDataResponse]
   def createAmendedMonthlyReturn(request: CreateAmendedMonthlyReturnRequest): Future[Unit]
   def modifyVerifications(req: ModifyVerificationsRequest): Future[Unit]
+  def deleteVerification(req: DeleteVerificationsRequest): Future[Unit]
   def getBatchPollSubmissions(): Future[GetBatchPollSubmissionsResponse]
   def updateVerificationSubmission(req: UpdateVerificationSubmissionRequest): Future[Unit]
   def processVerificationResponseFromChris(req: ProcessVerificationResponseFromChrisRequest): Future[Unit]
@@ -1439,7 +1440,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.execute()
     }
 
-  private def callDeleteVerifications(
+  private def callDeleteVerification(
     conn: Connection,
     instanceId: String,
     verificationResourceRef: Long
@@ -1462,7 +1463,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
         req.deleteVerifications.foreach { deleteVerifications =>
           deleteVerifications.verificationResourceReferences.distinct.foreach { verificationResourceRef =>
-            callDeleteVerifications(
+            callDeleteVerification(
               conn = conn,
               instanceId = req.instanceId,
               verificationResourceRef = verificationResourceRef
@@ -1481,6 +1482,27 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
             )
           }
         }
+      }
+    }
+  }
+
+  override def deleteVerification(req: DeleteVerificationsRequest): Future[Unit] = {
+    logger.info(
+      s"[CIS] deleteVerification(instanceId=${req.instanceId}, verificationResourceRef=${req.verificationResourceRef})"
+    )
+
+    Future {
+      db.withTransaction { conn =>
+
+        val schemeVersionBefore = getSchemeVersion(conn, req.instanceId)
+
+        callDeleteVerification(
+          conn = conn,
+          instanceId = req.instanceId,
+          verificationResourceRef = req.verificationResourceRef
+        )
+
+        callUpdateSchemeVersion(conn, req.instanceId, schemeVersionBefore)
       }
     }
   }

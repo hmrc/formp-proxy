@@ -278,7 +278,7 @@ class VerificationControllerSpec extends SpecBase {
   "GET /cis/verification-batch/current/:instanceId (getCurrentVerificationBatch)" - {
 
     "returns 200 OK with JSON body when service succeeds" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val instanceId = "abc-123"
@@ -305,7 +305,7 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 500 InternalServerError with error body when service fails" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val instanceId = "abc-123"
@@ -325,7 +325,7 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 200 OK with JSON body when service succeeds (all fields has values)" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val instId = "abc-123"
@@ -558,7 +558,7 @@ class VerificationControllerSpec extends SpecBase {
     val url = "/cis/verification-batch/modify"
 
     "returns 204 OK with JSON body when service succeeds" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val requestModel = ModifyVerificationsRequest(
@@ -596,7 +596,7 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 400 BadRequest with error payload when JSON is invalid" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val badJson = Json.obj()
@@ -618,7 +618,7 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 500 InternalServerError with error body when service fails" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val requestModel = ModifyVerificationsRequest(
@@ -1262,6 +1262,54 @@ class VerificationControllerSpec extends SpecBase {
 
       verify(mockService).getSubmittedVerifications(eqTo(requestModel))
       verifyNoMoreInteractions(mockService)
+    }
+  }
+
+  "POST /cis/verification-batch/delete (deleteVerification)" - {
+
+    val url = "/cis/verification/delete"
+
+    "returns 200 when service succeeds" in {
+      val s = setup
+      import s.*
+
+      val requestModel = DeleteVerificationsRequest(
+        instanceId = "1",
+        verificationResourceRef = 9L
+      )
+
+      when(mockService.deleteVerification(eqTo(requestModel)))
+        .thenReturn(Future.successful(()))
+
+      val req = FakeRequest(POST, url).withHeaders(CONTENT_TYPE -> JSON).withBody(Json.toJson(requestModel))
+
+      val result = controller.deleteVerification().apply(req)
+
+      status(result) mustBe OK
+      contentAsString(result) mustBe ""
+
+      verify(mockService).deleteVerification(eqTo(requestModel))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 400 BadRequest with error payload when JSON is invalid" in {
+      val s = setup
+      import s.*
+
+      val badJson = Json.obj("instanceId" -> "abc-123")
+
+      val req = FakeRequest(POST, url).withHeaders(CONTENT_TYPE -> JSON).withBody(badJson)
+
+      val result = controller.deleteVerification().apply(req)
+
+      status(result) mustBe BAD_REQUEST
+      contentType(result) mustBe Some(JSON)
+
+      val body = contentAsJson(result)
+
+      (body \ "message").as[String] must include("Invalid DeleteVerificationsRequest payload")
+
+      verifyNoInteractions(mockService)
     }
   }
 }

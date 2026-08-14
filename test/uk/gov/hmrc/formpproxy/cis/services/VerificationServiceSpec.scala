@@ -102,7 +102,7 @@ class VerificationServiceSpec extends SpecBase {
   "VerificationService#getCurrentVerificationBatch" - {
 
     "return successful response from repo" in {
-      val c = Ctx();
+      val c = Ctx()
       import c.*
 
       val instanceId = "abc-123"
@@ -124,7 +124,7 @@ class VerificationServiceSpec extends SpecBase {
     }
 
     "propagates failure from repo" in {
-      val c = Ctx();
+      val c = Ctx()
       import c.*
 
       val instanceId = "abc-123"
@@ -309,7 +309,7 @@ class VerificationServiceSpec extends SpecBase {
   "VerificationService#createSubmissionForVerification" - {
 
     "delegates to repository" in {
-      val c = Ctx();
+      val c = Ctx()
       import c.*
 
       val req = CreateSubmissionAndUpdateVerificationsRequest(
@@ -345,7 +345,7 @@ class VerificationServiceSpec extends SpecBase {
     }
 
     "propagates failure from repository" in {
-      val c = Ctx();
+      val c = Ctx()
       import c.*
 
       val req = CreateSubmissionAndUpdateVerificationsRequest(
@@ -446,7 +446,7 @@ class VerificationServiceSpec extends SpecBase {
   "VerificationService#updateVerificationSubmission" - {
 
     "delegates to repository" in {
-      val c = Ctx();
+      val c = Ctx()
       import c.*
 
       val req = UpdateVerificationSubmissionRequest(
@@ -470,7 +470,7 @@ class VerificationServiceSpec extends SpecBase {
     }
 
     "propagates failure from repository" in {
-      val c = Ctx();
+      val c = Ctx()
       import c.*
 
       val req = UpdateVerificationSubmissionRequest(
@@ -593,6 +593,46 @@ class VerificationServiceSpec extends SpecBase {
       ex mustBe boom
 
       verify(repo).getSubmissionWithVerificationBatch(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "VerificationService#deleteVerification" - {
+    "delegates to repository" in {
+      val c = Ctx()
+      import c.*
+
+      val req = DeleteVerificationsRequest(
+        instanceId = "1",
+        verificationResourceRef = 9L
+      )
+
+      when(repo.deleteVerification(eqTo(req))).thenReturn(Future.successful(()))
+
+      service.deleteVerification(req).futureValue mustBe ()
+
+      verify(repo).deleteVerification(eqTo(req))
+
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failure from repository" in {
+      val c = Ctx()
+      import c.*
+
+      val req = DeleteVerificationsRequest(
+        instanceId = "1",
+        verificationResourceRef = 9L
+      )
+
+      val boom = new RuntimeException("boom")
+
+      when(repo.deleteVerification(eqTo(req))).thenReturn(Future.failed(boom))
+
+      service.deleteVerification(req).failed.futureValue mustBe boom
+
+      verify(repo).deleteVerification(eqTo(req))
+
       verifyNoMoreInteractions(repo)
     }
   }
