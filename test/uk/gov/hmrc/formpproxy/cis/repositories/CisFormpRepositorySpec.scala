@@ -3349,7 +3349,7 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       val repo = new CisFormpRepository(db)
 
-      val req = DeleteVerificationsRequest(
+      val req = DeleteVerificationRequest(
         instanceId = "abc-123",
         verificationResourceRef = 77L
       )

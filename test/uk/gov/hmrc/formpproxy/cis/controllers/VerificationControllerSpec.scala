@@ -1273,7 +1273,7 @@ class VerificationControllerSpec extends SpecBase {
       val s = setup
       import s.*
 
-      val requestModel = DeleteVerificationsRequest(
+      val requestModel = DeleteVerificationRequest(
         instanceId = "1",
         verificationResourceRef = 9L
       )
@@ -1307,7 +1307,7 @@ class VerificationControllerSpec extends SpecBase {
 
       val body = contentAsJson(result)
 
-      (body \ "message").as[String] must include("Invalid DeleteVerificationsRequest payload")
+      (body \ "message").as[String] must include("Invalid DeleteVerificationRequest payload")
 
       verifyNoInteractions(mockService)
     }

@@ -602,7 +602,7 @@ class VerificationServiceSpec extends SpecBase {
       val c = Ctx()
       import c.*
 
-      val req = DeleteVerificationsRequest(
+      val req = DeleteVerificationRequest(
         instanceId = "1",
         verificationResourceRef = 9L
       )
@@ -620,7 +620,7 @@ class VerificationServiceSpec extends SpecBase {
       val c = Ctx()
       import c.*
 
-      val req = DeleteVerificationsRequest(
+      val req = DeleteVerificationRequest(
         instanceId = "1",
         verificationResourceRef = 9L
       )

@@ -223,7 +223,7 @@ class VerificationController @Inject() (
 
   def deleteVerification(): Action[JsValue] =
     Action(parse.json).async { implicit request =>
-      withJsonBody[DeleteVerificationsRequest](req =>
+      withJsonBody[DeleteVerificationRequest](req =>
         service
           .deleteVerification(req)
           .map(_ => Ok)

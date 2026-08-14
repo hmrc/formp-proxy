@@ -20,9 +20,9 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.Json
 
-class DeleteVerificationsRequestSpec extends AnyWordSpec with Matchers {
+class DeleteVerificationRequestSpec extends AnyWordSpec with Matchers {
 
-  "DeleteVerificationsRequest (JSON)" should {
+  "DeleteVerificationRequest (JSON)" should {
 
     "read and write with mandatory fields" in {
       val json = Json.parse("""
@@ -32,7 +32,7 @@ class DeleteVerificationsRequestSpec extends AnyWordSpec with Matchers {
                               |}
         """.stripMargin)
 
-      val model = json.as[DeleteVerificationsRequest]
+      val model = json.as[DeleteVerificationRequest]
       model.instanceId mustBe "1"
       model.verificationResourceRef mustBe 10
 
@@ -46,7 +46,7 @@ class DeleteVerificationsRequestSpec extends AnyWordSpec with Matchers {
                               |}
         """.stripMargin)
 
-      val result = json.validate[DeleteVerificationsRequest]
+      val result = json.validate[DeleteVerificationRequest]
       result.isError mustBe true
     }
 
@@ -57,7 +57,7 @@ class DeleteVerificationsRequestSpec extends AnyWordSpec with Matchers {
                               |}
         """.stripMargin)
 
-      val result = json.validate[DeleteVerificationsRequest]
+      val result = json.validate[DeleteVerificationRequest]
       result.isError mustBe true
     }
   }

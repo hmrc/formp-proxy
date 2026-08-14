@@ -94,7 +94,7 @@ class VerificationService @Inject() (repo: CisMonthlyReturnSource) {
     repo.getSubmissionWithVerificationBatch(request)
 
   def deleteVerification(
-    request: DeleteVerificationsRequest
+    request: DeleteVerificationRequest
   ): Future[Unit] =
     repo.deleteVerification(request)
 

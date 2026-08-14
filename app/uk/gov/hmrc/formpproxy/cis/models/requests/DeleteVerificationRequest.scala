@@ -18,12 +18,12 @@ package uk.gov.hmrc.formpproxy.cis.models.requests
 
 import play.api.libs.json.{Json, OFormat}
 
-final case class DeleteVerificationsRequest(
+final case class DeleteVerificationRequest(
   instanceId: String,
   verificationResourceRef: Long
 )
 
-object DeleteVerificationsRequest {
-  given OFormat[DeleteVerificationsRequest] =
-    Json.format[DeleteVerificationsRequest]
+object DeleteVerificationRequest {
+  given OFormat[DeleteVerificationRequest] =
+    Json.format[DeleteVerificationRequest]
 }

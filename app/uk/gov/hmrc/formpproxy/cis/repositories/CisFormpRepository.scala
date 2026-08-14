@@ -87,7 +87,7 @@ trait CisMonthlyReturnSource {
   ): Future[GetSubmittedMonthlyReturnsDataResponse]
   def createAmendedMonthlyReturn(request: CreateAmendedMonthlyReturnRequest): Future[Unit]
   def modifyVerifications(req: ModifyVerificationsRequest): Future[Unit]
-  def deleteVerification(req: DeleteVerificationsRequest): Future[Unit]
+  def deleteVerification(req: DeleteVerificationRequest): Future[Unit]
   def getBatchPollSubmissions(): Future[GetBatchPollSubmissionsResponse]
   def updateVerificationSubmission(req: UpdateVerificationSubmissionRequest): Future[Unit]
   def processVerificationResponseFromChris(req: ProcessVerificationResponseFromChrisRequest): Future[Unit]
@@ -1486,7 +1486,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
   }
 
-  override def deleteVerification(req: DeleteVerificationsRequest): Future[Unit] = {
+  override def deleteVerification(req: DeleteVerificationRequest): Future[Unit] = {
     logger.info(
       s"[CIS] deleteVerification(instanceId=${req.instanceId}, verificationResourceRef=${req.verificationResourceRef})"
     )
