@@ -23,18 +23,18 @@ object InternalAuthStub:
 
   def authorised(): StubMapping =
     stubFor(
-      get(urlPathEqualTo("/internal-auth/authorize"))
+      post(urlPathEqualTo("/internal-auth/auth"))
         .willReturn(
           aResponse()
             .withStatus(200)
             .withHeader("Content-Type", "application/json")
-            .withBody("{}")
+            .withBody("""{"retrievals":[]}""")
         )
     )
 
   def unauthorised(): StubMapping =
     stubFor(
-      get(urlPathEqualTo("/internal-auth/authorize"))
+      post(urlPathEqualTo("/internal-auth/auth"))
         .willReturn(
           aResponse()
             .withStatus(401)
