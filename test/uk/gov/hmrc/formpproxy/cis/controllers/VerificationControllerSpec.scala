@@ -1265,9 +1265,9 @@ class VerificationControllerSpec extends SpecBase {
     }
   }
 
-  "POST /cis/verification-batch/proceed-verification (proceedVerification)" - {
+  "POST /cis/verification/proceed-verification (proceedVerification)" - {
 
-    val url = "/cis/verification-batch/proceed"
+    val url = "/cis/verification/proceed"
 
     "returns 200 when service succeeds" in {
       val s = setup
