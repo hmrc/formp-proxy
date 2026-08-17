@@ -94,6 +94,24 @@ class VerificationController @Inject() (
         )
     }
 
+  def deleteVerification(): Action[JsValue] =
+    authorise(parse.json).async { implicit request =>
+      request.body
+        .validate[DeleteVerificationRequest]
+        .fold(
+          errs =>
+            Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
+          req =>
+            service
+              .deleteVerification(req)
+              .map(_ => NoContent)
+              .recover { case t =>
+                logger.error("[deleteVerification] failed", t)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
+              }
+        )
+    }
+
   def createSubmissionAndUpdateVerifications(): Action[JsValue] =
     authorise(parse.json).async { implicit request =>
       request.body

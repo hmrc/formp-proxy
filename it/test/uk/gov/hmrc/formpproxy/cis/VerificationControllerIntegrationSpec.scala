@@ -39,6 +39,7 @@ class VerificationControllerIntegrationSpec
   private lazy val stubRepo: CisMonthlyReturnSource = {
     val m = org.mockito.Mockito.mock(classOf[CisMonthlyReturnSource])
     when(m.modifyVerifications(any())).thenReturn(Future.successful(()))
+    when(m.deleteVerification(any())).thenReturn(Future.successful(()))
     when(m.updateVerificationSubmission(any())).thenReturn(Future.successful(()))
     m
   }
@@ -140,6 +141,47 @@ class VerificationControllerIntegrationSpec
       )
 
       res.status mustBe NOT_FOUND
+    }
+  }
+
+  "POST /formp-proxy/cis/verification/delete " should {
+
+    val endpoint = "cis/verification/delete"
+
+    "return 400 when JSON is missing required fields" in {
+      AuthStub.authorised()
+
+      val res1 = postAwait(endpoint, Json.obj("instanceId" -> "abc-123"))
+      res1.status mustBe BAD_REQUEST
+      (res1.json \ "message").as[String].toLowerCase must include("invalid payload")
+    }
+
+    "return 401 when there is no active session" in {
+      AuthStub.unauthorised()
+
+      val res = postAwait(
+        endpoint,
+        Json.obj(
+          "instanceId"              -> "abc-123",
+          "verificationResourceRef" -> 111L
+        )
+      )
+
+      res.status mustBe UNAUTHORIZED
+    }
+
+    "return 204 when the request is valid" in {
+      AuthStub.authorised()
+
+      val res = postAwait(
+        endpoint,
+        Json.obj(
+          "instanceId"              -> "abc-123",
+          "verificationResourceRef" -> 111L
+        )
+      )
+
+      res.status mustBe NO_CONTENT
     }
   }
 

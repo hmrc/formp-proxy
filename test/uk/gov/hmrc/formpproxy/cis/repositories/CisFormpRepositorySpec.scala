@@ -3316,6 +3316,65 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
   }
 
+  "deleteVerification" - {
+
+    "calls Delete_Verification_2 and returns Unit" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      val callDeleteVerification = "{ call VERIFICATION_PROCS.DELETE_VERIFICATION_2(?, ?) }"
+
+      when(conn.prepareCall(eqTo(callDeleteVerification))).thenReturn(cs)
+
+      val repo = new CisFormpRepository(db)
+
+      val request = DeleteVerificationRequest(
+        instanceId = "abc-123",
+        verificationResourceRef = 111L
+      )
+
+      repo.deleteVerification(request).futureValue mustBe ()
+
+      verify(conn).prepareCall(eqTo(callDeleteVerification))
+      verify(cs).setString(1, "abc-123")
+      verify(cs).setLong(2, 111L)
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "propagates failure if Delete_Verification_2 fails" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      val callDeleteVerification = "{ call VERIFICATION_PROCS.DELETE_VERIFICATION_2(?, ?) }"
+
+      when(conn.prepareCall(eqTo(callDeleteVerification))).thenReturn(cs)
+      when(cs.execute()).thenThrow(new RuntimeException("verification boom"))
+
+      val repo = new CisFormpRepository(db)
+
+      val request = DeleteVerificationRequest(
+        instanceId = "abc-123",
+        verificationResourceRef = 111L
+      )
+
+      val ex = repo.deleteVerification(request).failed.futureValue
+      ex.getMessage must include("verification boom")
+
+      verify(cs).close()
+    }
+  }
+
   "createSubmissionForVerification" - {
 
     "creates submission, updates verification batch, updates each verification (all in one transaction)" in {
