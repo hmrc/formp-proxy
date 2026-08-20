@@ -21,7 +21,11 @@ import org.mockito.Mockito.*
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
+import play.api.mvc.{BodyParsers, PlayBodyParsers}
+import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.formpproxy.actions.AuthOrInternalAuthAction
+import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource, Retrieval}
+import uk.gov.hmrc.internalauth.client.test.{BackendAuthComponentsStub, StubBehaviour}
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, Subcontractor}
@@ -36,8 +40,23 @@ class SubcontractorControllerSpec extends SpecBase {
 
   trait Setup {
     val mockService: SubcontractorService = mock[SubcontractorService]
-    val auth: FakeAuthAction              = new FakeAuthAction(cc.parsers)
-    lazy val controller                   = new SubcontractorController(auth, mockService, cc)
+
+    private val parsers: PlayBodyParsers             = cc.parsers
+    private val resource                             = Resource.from("formp-proxy", "formp-proxy/cis/subcontractors")
+    val readSubcontractors: Predicate.Permission     = Predicate.Permission(resource, IAAction("READ"))
+    val writeSubcontractors: Predicate.Permission    = Predicate.Permission(resource, IAAction("WRITE"))
+    val deleteSubcontractors: Predicate.Permission   = Predicate.Permission(resource, IAAction("DELETE"))
+    val internalAuth: StubBehaviour                  = mock[StubBehaviour]
+    val backendAuth: BackendAuthComponents           = BackendAuthComponentsStub(internalAuth)(cc, ec)
+    val mockAuthConnector: AuthConnector             = mock[AuthConnector]
+    val authOrInternalAuth: AuthOrInternalAuthAction =
+      new AuthOrInternalAuthAction(mockAuthConnector, backendAuth, new BodyParsers.Default(parsers))
+
+    when(internalAuth.stubAuth(Some(readSubcontractors), Retrieval.EmptyRetrieval)).thenReturn(Future.unit)
+    when(internalAuth.stubAuth(Some(writeSubcontractors), Retrieval.EmptyRetrieval)).thenReturn(Future.unit)
+    when(internalAuth.stubAuth(Some(deleteSubcontractors), Retrieval.EmptyRetrieval)).thenReturn(Future.unit)
+
+    lazy val controller = new SubcontractorController(authOrInternalAuth, mockService, cc)
   }
 
   def setup: Setup = new Setup {}
@@ -72,7 +91,7 @@ class SubcontractorControllerSpec extends SpecBase {
 
       val result = controller
         .createAndUpdateSubcontractor()
-        .apply(postJson("/subcontractor/create-and-update", json))
+        .apply(postJson("/subcontractor/create-and-update", json).withHeaders(AUTHORIZATION -> "Token internal-auth"))
 
       status(result) mustBe NO_CONTENT
       verify(mockService).createAndUpdateSubcontractor(any[CreateAndUpdateSubcontractorRequest])
@@ -105,7 +124,7 @@ class SubcontractorControllerSpec extends SpecBase {
 
       val result = controller
         .createAndUpdateSubcontractor()
-        .apply(postJson("/subcontractor/create-and-update", json))
+        .apply(postJson("/subcontractor/create-and-update", json).withHeaders(AUTHORIZATION -> "Token internal-auth"))
 
       status(result) mustBe NO_CONTENT
       verify(mockService).createAndUpdateSubcontractor(any[CreateAndUpdateSubcontractorRequest])
@@ -138,7 +157,7 @@ class SubcontractorControllerSpec extends SpecBase {
 
       val result = controller
         .createAndUpdateSubcontractor()
-        .apply(postJson("/subcontractor/create-and-update", json))
+        .apply(postJson("/subcontractor/create-and-update", json).withHeaders(AUTHORIZATION -> "Token internal-auth"))
 
       status(result) mustBe NO_CONTENT
 
@@ -174,7 +193,7 @@ class SubcontractorControllerSpec extends SpecBase {
 
       val result = controller
         .createAndUpdateSubcontractor()
-        .apply(postJson("/subcontractor/create-and-update", bad))
+        .apply(postJson("/subcontractor/create-and-update", bad).withHeaders(AUTHORIZATION -> "Token internal-auth"))
 
       status(result) mustBe BAD_REQUEST
       (contentAsJson(result) \ "message").as[String] mustBe "Invalid payload"
@@ -197,7 +216,7 @@ class SubcontractorControllerSpec extends SpecBase {
 
       val result = controller
         .createAndUpdateSubcontractor()
-        .apply(postJson("/subcontractor/create-and-update", json))
+        .apply(postJson("/subcontractor/create-and-update", json).withHeaders(AUTHORIZATION -> "Token internal-auth"))
 
       status(result) mustBe INTERNAL_SERVER_ERROR
       contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
@@ -257,6 +276,7 @@ class SubcontractorControllerSpec extends SpecBase {
         .thenReturn(Future.successful(response))
 
       val req    = FakeRequest(GET, s"/cis/subcontractors/$cisId")
+        .withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
       val result = controller.getSubcontractorList(cisId).apply(req)
 
       status(result) mustBe OK
@@ -276,6 +296,7 @@ class SubcontractorControllerSpec extends SpecBase {
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req    = FakeRequest(GET, s"/cis/subcontractors/$cisId")
+        .withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
       val result = controller.getSubcontractorList(cisId).apply(req)
 
       status(result) mustBe INTERNAL_SERVER_ERROR
@@ -312,7 +333,7 @@ class SubcontractorControllerSpec extends SpecBase {
           FakeRequest(
             GET,
             s"/cis/subcontractor/$cisId/$subbieResourceRef/delete-status"
-          )
+          ).withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
         )
 
       status(result) mustBe OK
@@ -339,7 +360,7 @@ class SubcontractorControllerSpec extends SpecBase {
           FakeRequest(
             GET,
             s"/cis/subcontractor/$cisId/$subbieResourceRef/delete-status"
-          )
+          ).withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
         )
 
       status(result) mustBe INTERNAL_SERVER_ERROR
@@ -436,7 +457,7 @@ class SubcontractorControllerSpec extends SpecBase {
           FakeRequest(
             GET,
             s"/cis/subcontractor/$cisId/$subbieResourceRef"
-          )
+          ).withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
         )
 
       status(result) mustBe OK
@@ -472,7 +493,7 @@ class SubcontractorControllerSpec extends SpecBase {
           FakeRequest(
             GET,
             s"/cis/subcontractor/$cisId/$subbieResourceRef"
-          )
+          ).withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
         )
 
       status(result) mustBe INTERNAL_SERVER_ERROR
@@ -503,7 +524,9 @@ class SubcontractorControllerSpec extends SpecBase {
         .thenReturn(Future.successful(()))
 
       val req: FakeRequest[DeleteSubcontractorRequest] =
-        FakeRequest(POST, "/cis/subcontractor/delete").withBody(requestBody)
+        FakeRequest(POST, "/cis/subcontractor/delete")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(requestBody)
 
       val result = controller.deleteSubcontractor(req)
 
@@ -526,7 +549,9 @@ class SubcontractorControllerSpec extends SpecBase {
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req: FakeRequest[DeleteSubcontractorRequest] =
-        FakeRequest(POST, "/cis/subcontractor/delete").withBody(requestBody)
+        FakeRequest(POST, "/cis/subcontractor/delete")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(requestBody)
 
       val result = controller.deleteSubcontractor(req)
 

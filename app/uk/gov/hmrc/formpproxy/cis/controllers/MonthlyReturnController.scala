@@ -19,13 +19,12 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.formpproxy.actions.AuthAction
-import uk.gov.hmrc.formpproxy.cis.models.UserMonthlyReturns
+import uk.gov.hmrc.formpproxy.actions.AuthOrInternalAuthAction
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
-import uk.gov.hmrc.formpproxy.cis.models.response.GetSubmittedMonthlyReturnsDataResponse
 import uk.gov.hmrc.formpproxy.cis.services.MonthlyReturnService
 import uk.gov.hmrc.formpproxy.cis.utils.JsResultUtils.*
 import uk.gov.hmrc.http.UpstreamErrorResponse
+import uk.gov.hmrc.internalauth.client.{IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
@@ -33,15 +32,20 @@ import scala.concurrent.ExecutionContext
 import scala.util.control.NonFatal
 
 class MonthlyReturnController @Inject() (
-  authorise: AuthAction,
+  authOrInternalAuth: AuthOrInternalAuthAction,
   service: MonthlyReturnService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
+  private val monthlyReturns       = Resource.from("formp-proxy", "formp-proxy/cis/monthly-returns")
+  private val readMonthlyReturns   = authOrInternalAuth(Predicate.Permission(monthlyReturns, IAAction("READ")))
+  private val writeMonthlyReturns  = authOrInternalAuth(Predicate.Permission(monthlyReturns, IAAction("WRITE")))
+  private val deleteMonthlyReturns = authOrInternalAuth(Predicate.Permission(monthlyReturns, IAAction("DELETE")))
+
   def retrieveMonthlyReturns: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    readMonthlyReturns.async(parse.json) { implicit request =>
       request.body
         .validate[InstanceIdRequest]
         .foldErrorsIntoBadRequest { req =>
@@ -56,7 +60,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def retrieveUnsubmittedMonthlyReturns: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    readMonthlyReturns.async(parse.json) { implicit request =>
       request.body
         .validate[InstanceIdRequest]
         .foldErrorsIntoBadRequest { req =>
@@ -71,7 +75,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def retrieveSubmittedMonthlyReturns: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    readMonthlyReturns.async(parse.json) { implicit request =>
       request.body
         .validate[InstanceIdRequest]
         .foldErrorsIntoBadRequest { req =>
@@ -86,7 +90,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def createNilMonthlyReturn: Action[CreateNilMonthlyReturnRequest] =
-    authorise.async(parse.json[CreateNilMonthlyReturnRequest]) { implicit request =>
+    writeMonthlyReturns.async(parse.json[CreateNilMonthlyReturnRequest]) { implicit request =>
       service
         .createNilMonthlyReturn(request.body)
         .map(result => Created(Json.toJson(result)))
@@ -99,7 +103,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def updateMonthlyReturn: Action[UpdateMonthlyReturnRequest] =
-    authorise.async(parse.json[UpdateMonthlyReturnRequest]) { implicit request =>
+    writeMonthlyReturns.async(parse.json[UpdateMonthlyReturnRequest]) { implicit request =>
       service
         .updateMonthlyReturn(request.body)
         .map(_ => NoContent)
@@ -112,9 +116,9 @@ class MonthlyReturnController @Inject() (
     }
 
   def updateMonthlyReturnItem(): Action[UpdateMonthlyReturnItemRequest] =
-    authorise.async(parse.json[UpdateMonthlyReturnItemRequest]) { implicit request =>
+    writeMonthlyReturns.async(parse.json[UpdateMonthlyReturnItemRequest]) { implicit request =>
       service
-        .updateMonthlyReturnItem(request.body) //
+        .updateMonthlyReturnItem(request.body)
         .map(_ => NoContent)
         .recover {
           case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
@@ -125,7 +129,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def createMonthlyReturn: Action[CreateMonthlyReturnRequest] =
-    authorise.async(parse.json[CreateMonthlyReturnRequest]) { implicit request =>
+    writeMonthlyReturns.async(parse.json[CreateMonthlyReturnRequest]) { implicit request =>
       service
         .createMonthlyReturn(request.body)
         .map(_ => Created)
@@ -138,7 +142,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def getSchemeEmail: Action[InstanceIdRequest] =
-    authorise.async(parse.json[InstanceIdRequest]) { implicit request =>
+    readMonthlyReturns.async(parse.json[InstanceIdRequest]) { implicit request =>
       service
         .getSchemeEmail(request.body.instanceId)
         .map(email => Ok(Json.obj("email" -> email)))
@@ -151,7 +155,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def getMonthlyReturnForEdit: Action[JsValue] =
-    Action.async(parse.json) { implicit request =>
+    readMonthlyReturns.async(parse.json) { implicit request =>
       request.body
         .validate[GetMonthlyReturnForEditRequest]
         .foldErrorsIntoBadRequest { req =>
@@ -166,7 +170,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def syncMonthlyReturnItems: Action[SyncMonthlyReturnItemsRequest] =
-    authorise.async(parse.json[SyncMonthlyReturnItemsRequest]) { implicit request =>
+    writeMonthlyReturns.async(parse.json[SyncMonthlyReturnItemsRequest]) { implicit request =>
       service
         .syncMonthlyReturnItems(request.body)
         .map(_ => NoContent)
@@ -177,7 +181,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def deleteMonthlyReturnItem: Action[DeleteMonthlyReturnItemRequest] =
-    authorise.async(parse.json[DeleteMonthlyReturnItemRequest]) { implicit request =>
+    deleteMonthlyReturns.async(parse.json[DeleteMonthlyReturnItemRequest]) { implicit request =>
       service
         .deleteMonthlyReturnItem(request.body)
         .map(_ => NoContent)
@@ -188,7 +192,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def deleteUnsubmittedMonthlyReturn: Action[DeleteUnsubmittedMonthlyReturnRequest] =
-    authorise.async(parse.json[DeleteUnsubmittedMonthlyReturnRequest]) { implicit request =>
+    deleteMonthlyReturns.async(parse.json[DeleteUnsubmittedMonthlyReturnRequest]) { implicit request =>
       service
         .deleteUnsubmittedMonthlyReturn(request.body)
         .map(_ => NoContent)
@@ -197,8 +201,9 @@ class MonthlyReturnController @Inject() (
           InternalServerError(Json.obj("message" -> "Unexpected error"))
         }
     }
-  def getMonthlyReturnComplete: Action[JsValue]                                     =
-    authorise.async(parse.json) { implicit request =>
+
+  def getMonthlyReturnComplete: Action[JsValue] =
+    readMonthlyReturns.async(parse.json) { implicit request =>
       request.body
         .validate[GetMonthlyReturnCompleteRequest]
         .foldErrorsIntoBadRequest { req =>
@@ -213,7 +218,7 @@ class MonthlyReturnController @Inject() (
     }
 
   def retrieveSubmittedMonthlyReturnsData: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    readMonthlyReturns.async(parse.json) { implicit request =>
       request.body
         .validate[GetSubmittedMonthlyReturnsDataRequest]
         .foldErrorsIntoBadRequest { request =>

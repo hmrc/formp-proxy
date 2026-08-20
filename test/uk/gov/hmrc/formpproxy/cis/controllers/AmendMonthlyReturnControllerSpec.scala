@@ -19,15 +19,18 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 import org.mockito.Mockito.*
 import org.mockito.ArgumentMatchers.any
 import play.api.libs.json.Json
-import play.api.mvc.{ControllerComponents, Result}
+import play.api.mvc.{BodyParsers, ControllerComponents, PlayBodyParsers, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
+import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.formpproxy.actions.AuthOrInternalAuthAction
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.requests.CreateAmendedMonthlyReturnRequest
 import uk.gov.hmrc.formpproxy.cis.services.AmendMonthlyReturnService
+import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource, Retrieval}
+import uk.gov.hmrc.internalauth.client.test.{BackendAuthComponentsStub, StubBehaviour}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 class AmendMonthlyReturnControllerSpec extends SpecBase {
 
@@ -45,7 +48,9 @@ class AmendMonthlyReturnControllerSpec extends SpecBase {
         .thenReturn(Future.successful(()))
 
       val req: FakeRequest[CreateAmendedMonthlyReturnRequest] =
-        FakeRequest(POST, "/formp-proxy/cis/amend-monthly-return/create").withBody(requestBody)
+        FakeRequest(POST, "/formp-proxy/cis/amend-monthly-return/create")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(requestBody)
 
       val res: Future[Result] =
         controller.createAmendedMonthlyReturn(req)
@@ -68,7 +73,9 @@ class AmendMonthlyReturnControllerSpec extends SpecBase {
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req: FakeRequest[CreateAmendedMonthlyReturnRequest] =
-        FakeRequest(POST, "/formp-proxy/cis/amend-monthly-return/create").withBody(requestBody)
+        FakeRequest(POST, "/formp-proxy/cis/amend-monthly-return/create")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(requestBody)
 
       val res: Future[Result] =
         controller.createAmendedMonthlyReturn(req)
@@ -82,14 +89,20 @@ class AmendMonthlyReturnControllerSpec extends SpecBase {
   }
 
   private trait Setup {
-    implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.global
-
-    private val cc: ControllerComponents = stubControllerComponents()
-    private val fakeAuth: AuthAction     = new FakeAuthAction(cc.parsers)
+    private val parsers: PlayBodyParsers = cc.parsers
 
     val mockService: AmendMonthlyReturnService = mock[AmendMonthlyReturnService]
 
-    val controller =
-      new AmendMonthlyReturnController(fakeAuth, mockService, cc)
+    private val resource                             = Resource.from("formp-proxy", "formp-proxy/cis/monthly-returns")
+    val writeMonthlyReturns: Predicate.Permission    = Predicate.Permission(resource, IAAction("WRITE"))
+    val internalAuth: StubBehaviour                  = mock[StubBehaviour]
+    val backendAuth: BackendAuthComponents           = BackendAuthComponentsStub(internalAuth)(cc, ec)
+    val mockAuthConnector: AuthConnector             = mock[AuthConnector]
+    val authOrInternalAuth: AuthOrInternalAuthAction =
+      new AuthOrInternalAuthAction(mockAuthConnector, backendAuth, new BodyParsers.Default(parsers))
+
+    when(internalAuth.stubAuth(Some(writeMonthlyReturns), Retrieval.EmptyRetrieval)).thenReturn(Future.unit)
+
+    val controller = new AmendMonthlyReturnController(authOrInternalAuth, mockService, cc)
   }
 }
