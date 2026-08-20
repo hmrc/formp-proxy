@@ -323,6 +323,56 @@ class VerificationControllerSpec extends SpecBase {
       verify(mockService).getCurrentVerificationBatch(eqTo(instanceId))
       verifyNoMoreInteractions(mockService)
     }
+  }
+
+  "GET /cis/verification-batch/last/:instanceId (getLastSubmittedVerificationBatch)" - {
+
+    "returns 200 OK with JSON body when service succeeds" in {
+      val s = setup;
+      import s.*
+
+      val instanceId = "abc-123"
+      val response   = GetLastSubmittedVerificationBatchResponse(
+        scheme = None,
+        subcontractors = Seq.empty,
+        verificationBatch = None,
+        verifications = Seq.empty,
+        submission = None
+      )
+
+      when(mockService.getLastSubmittedVerificationBatch(eqTo(instanceId)))
+        .thenReturn(Future.successful(response))
+
+      val req    = FakeRequest(GET, s"/cis/verification-batch/last/$instanceId")
+      val result = controller.getLastSubmittedVerificationBatch(instanceId).apply(req)
+
+      status(result) mustBe OK
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.toJson(response)
+
+      verify(mockService).getLastSubmittedVerificationBatch(eqTo(instanceId))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 500 InternalServerError with error body when service fails" in {
+      val s = setup;
+      import s.*
+
+      val instanceId = "abc-123"
+
+      when(mockService.getLastSubmittedVerificationBatch(eqTo(instanceId)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val req    = FakeRequest(GET, s"/cis/verification-batch/last/$instanceId")
+      val result = controller.getLastSubmittedVerificationBatch(instanceId).apply(req)
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
+
+      verify(mockService).getLastSubmittedVerificationBatch(eqTo(instanceId))
+      verifyNoMoreInteractions(mockService)
+    }
 
     "returns 200 OK with JSON body when service succeeds (all fields has values)" in {
       val s = setup;
@@ -330,7 +380,7 @@ class VerificationControllerSpec extends SpecBase {
 
       val instId = "abc-123"
 
-      val response = GetCurrentVerificationBatchResponse(
+      val response = GetLastSubmittedVerificationBatchResponse(
         scheme = Some(
           ContractorScheme(
             schemeId = 123,
@@ -446,17 +496,17 @@ class VerificationControllerSpec extends SpecBase {
         )
       )
 
-      when(mockService.getCurrentVerificationBatch(eqTo(instId)))
+      when(mockService.getLastSubmittedVerificationBatch(eqTo(instId)))
         .thenReturn(Future.successful(response))
 
-      val req    = FakeRequest(GET, s"/cis/verification-batch/current/$instId")
-      val result = controller.getCurrentVerificationBatch(instId).apply(req)
+      val req    = FakeRequest(GET, s"/cis/verification-batch/last/$instId")
+      val result = controller.getLastSubmittedVerificationBatch(instId).apply(req)
 
       status(result) mustBe OK
       contentType(result) mustBe Some(JSON)
       contentAsJson(result) mustBe Json.toJson(response)
 
-      verify(mockService).getCurrentVerificationBatch(eqTo(instId))
+      verify(mockService).getLastSubmittedVerificationBatch(eqTo(instId))
       verifyNoMoreInteractions(mockService)
     }
   }

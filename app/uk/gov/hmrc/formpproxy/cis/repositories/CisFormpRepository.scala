@@ -69,6 +69,7 @@ trait CisMonthlyReturnSource {
   def createGovTalkStatusRecord(req: CreateGovTalkStatusRecordRequest): Future[Unit]
   def getNewestVerificationBatch(instanceId: String): Future[GetNewestVerificationBatchResponse]
   def getCurrentVerificationBatch(instanceId: String): Future[GetCurrentVerificationBatchResponse]
+  def getLastSubmittedVerificationBatch(instanceId: String): Future[GetLastSubmittedVerificationBatchResponse]
   def deleteUnsubmittedMonthlyReturn(req: DeleteUnsubmittedMonthlyReturnRequest): Future[Unit]
   def getMonthlyReturnComplete(
     instanceId: String,
@@ -1272,6 +1273,41 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           val submission        = withCursor(cs, 6)(collectSubmissionsForGetVerificationBatch).headOption
 
           GetCurrentVerificationBatchResponse(
+            scheme = scheme,
+            subcontractors = subcontractors,
+            verificationBatch = verificationBatch,
+            verifications = verifications,
+            submission = submission
+          )
+        }
+      }
+    }
+  }
+
+  override def getLastSubmittedVerificationBatch(
+    instanceId: String
+  ): Future[GetLastSubmittedVerificationBatchResponse] = {
+    logger.info(s"[CIS] getLastSubmittedVerificationBatch(instanceId=$instanceId)")
+    Future {
+      db.withConnection { conn =>
+        withCall(conn, CallGetLastVerificationBatch) { cs =>
+          cs.setString(1, instanceId)
+
+          cs.registerOutParameter(2, OracleTypes.CURSOR) // scheme
+          cs.registerOutParameter(3, OracleTypes.CURSOR) // subcontractors
+          cs.registerOutParameter(4, OracleTypes.CURSOR) // verification_batch
+          cs.registerOutParameter(5, OracleTypes.CURSOR) // verifications
+          cs.registerOutParameter(6, OracleTypes.CURSOR) // submission
+
+          cs.execute()
+
+          val scheme            = withCursor(cs, 2)(collectSchemes).headOption
+          val subcontractors    = withCursor(cs, 3)(collectSubcontractors)
+          val verificationBatch = withCursor(cs, 4)(collectVerificationBatches).headOption
+          val verifications     = withCursor(cs, 5)(collectVerifications)
+          val submission        = withCursor(cs, 6)(collectSubmissionsForGetVerificationBatch).headOption
+
+          GetLastSubmittedVerificationBatchResponse(
             scheme = scheme,
             subcontractors = subcontractors,
             verificationBatch = verificationBatch,
