@@ -42,6 +42,7 @@ POST       /cis/govtalkstatus/create                                uk.gov.hmrc.
 
 GET        /cis/verification-batch/newest/:instanceId               uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.getNewestVerificationBatch(instanceId: String)
 GET        /cis/verification-batch/current/:instanceId              uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.getCurrentVerificationBatch(instanceId: String)
+GET        /cis/verification-batch/last/:instanceId                 uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.getLastSubmittedVerificationBatch(instanceId: String)
 POST       /cis/verification-batch/create                           uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.createVerificationBatchAndVerifications()
 POST       /cis/verification-batch/modify                           uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.modifyVerifications()
 POST       /cis/verification/proceed-with-insufficient-data   uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.proceedInsufficientVerification()
