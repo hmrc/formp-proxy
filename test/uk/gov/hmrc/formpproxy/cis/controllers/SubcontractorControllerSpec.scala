@@ -42,7 +42,7 @@ class SubcontractorControllerSpec extends SpecBase {
     val mockService: SubcontractorService = mock[SubcontractorService]
 
     private val parsers: PlayBodyParsers             = cc.parsers
-    private val resource                             = Resource.from("formp-proxy", "formp-proxy/cis/subcontractors")
+    private val resource                             = Resource.from("formp-proxy", "formp-proxy/cis")
     val readSubcontractors: Predicate.Permission     = Predicate.Permission(resource, IAAction("READ"))
     val writeSubcontractors: Predicate.Permission    = Predicate.Permission(resource, IAAction("WRITE"))
     val deleteSubcontractors: Predicate.Permission   = Predicate.Permission(resource, IAAction("DELETE"))

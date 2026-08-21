@@ -38,7 +38,7 @@ class SubcontractorController @Inject() (
     extends BackendController(cc)
     with Logging {
 
-  private val subcontractors       = Resource.from("formp-proxy", "formp-proxy/cis/subcontractors")
+  private val subcontractors       = Resource.from("formp-proxy", "formp-proxy/cis")
   private val readSubcontractors   = authOrInternalAuth(Predicate.Permission(subcontractors, IAAction("READ")))
   private val writeSubcontractors  = authOrInternalAuth(Predicate.Permission(subcontractors, IAAction("WRITE")))
   private val deleteSubcontractors = authOrInternalAuth(Predicate.Permission(subcontractors, IAAction("DELETE")))
