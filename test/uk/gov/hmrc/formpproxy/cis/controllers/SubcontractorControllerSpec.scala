@@ -491,7 +491,7 @@ class SubcontractorControllerSpec extends SpecBase {
 
   "SubcontractorController updateSubcontractor" - {
 
-    "returns 200 OK with updated version when service succeeds" in {
+    "returns 200 OK with updated version and passes submitted fields to service" in {
       val s = setup
       import s.*
 
@@ -503,31 +503,11 @@ class SubcontractorControllerSpec extends SpecBase {
             |  "subcontractor": {
             |    "subcontractorId": 999,
             |    "subbieResourceRef": 10,
-            |    "utr": "1234567890",
-            |    "pageVisited": 1,
             |    "firstName": "John",
-            |    "nino": "AA123456A",
-            |    "secondName": "Q",
-            |    "surname": "Smith",
-            |    "tradingName": "John Smith Trading",
-            |    "subcontractorType": "soletrader",
-            |    "addressLine1": "1 Main Street",
-            |    "addressLine2": "Flat 2",
-            |    "addressLine3": "London",
-            |    "country": "United Kingdom",
-            |    "postcode": "AA1 1AA",
-            |    "emailAddress": "subcontractor@example.com",
+            |    "emailAddress": null,
             |    "phoneNumber": "01234567890",
-            |    "mobilePhoneNumber": "07123456789",
-            |    "worksReferenceNumber": "WR-123",
-            |    "matched": "Y",
-            |    "autoVerified": "N",
-            |    "verified": "Y",
-            |    "verificationNumber": "V123456",
-            |    "taxTreatment": "NET",
-            |    "updatedTaxTreatment": "NET",
-            |    "version": 1,
-            |    "pendingVerifications": 0
+            |    "subcontractorType": "company",
+            |    "version": 1
             |  }
             |}
             |""".stripMargin
@@ -536,10 +516,21 @@ class SubcontractorControllerSpec extends SpecBase {
       val request =
         json.as[UpdateSubcontractorRequest]
 
+      val submittedFields =
+        Set(
+          "subcontractorId",
+          "subbieResourceRef",
+          "firstName",
+          "emailAddress",
+          "phoneNumber",
+          "subcontractorType",
+          "version"
+        )
+
       val response =
         UpdateSubcontractorResponse(version = 2)
 
-      when(mockService.updateSubcontractor(eqTo(request)))
+      when(mockService.updateSubcontractor(eqTo(request), eqTo(submittedFields)))
         .thenReturn(Future.successful(response))
 
       val result =
@@ -552,7 +543,7 @@ class SubcontractorControllerSpec extends SpecBase {
       contentAsJson(result) mustBe Json.toJson(response)
       (contentAsJson(result) \ "version").as[Int] mustBe 2
 
-      verify(mockService).updateSubcontractor(eqTo(request))
+      verify(mockService).updateSubcontractor(eqTo(request), eqTo(submittedFields))
       verifyNoMoreInteractions(mockService)
     }
 
@@ -571,7 +562,8 @@ class SubcontractorControllerSpec extends SpecBase {
       status(result) mustBe BAD_REQUEST
       (contentAsJson(result) \ "message").as[String] mustBe "Invalid payload"
 
-      verify(mockService, never()).updateSubcontractor(any[UpdateSubcontractorRequest])
+      verify(mockService, never())
+        .updateSubcontractor(any[UpdateSubcontractorRequest], any[Set[String]])
     }
 
     "returns 500 InternalServerError when service fails" in {
@@ -586,10 +578,7 @@ class SubcontractorControllerSpec extends SpecBase {
             |  "subcontractor": {
             |    "subcontractorId": 999,
             |    "subbieResourceRef": 10,
-            |    "utr": "1234567890",
-            |    "subcontractorType": "soletrader",
             |    "firstName": "John",
-            |    "surname": "Smith",
             |    "version": 1
             |  }
             |}
@@ -599,7 +588,15 @@ class SubcontractorControllerSpec extends SpecBase {
       val request =
         json.as[UpdateSubcontractorRequest]
 
-      when(mockService.updateSubcontractor(eqTo(request)))
+      val submittedFields =
+        Set(
+          "subcontractorId",
+          "subbieResourceRef",
+          "firstName",
+          "version"
+        )
+
+      when(mockService.updateSubcontractor(eqTo(request), eqTo(submittedFields)))
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val result =
@@ -610,7 +607,7 @@ class SubcontractorControllerSpec extends SpecBase {
       status(result) mustBe INTERNAL_SERVER_ERROR
       contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
 
-      verify(mockService).updateSubcontractor(eqTo(request))
+      verify(mockService).updateSubcontractor(eqTo(request), eqTo(submittedFields))
       verifyNoMoreInteractions(mockService)
     }
   }

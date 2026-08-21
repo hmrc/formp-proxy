@@ -17,7 +17,7 @@
 package uk.gov.hmrc.formpproxy.cis.controllers
 
 import play.api.Logging
-import play.api.libs.json.{JsError, JsValue, Json}
+import play.api.libs.json.{JsError, JsObject, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
@@ -114,6 +114,12 @@ class SubcontractorController @Inject() (
 
   def updateSubcontractor: Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
+      val submittedFields: Set[String] =
+        (request.body \ "subcontractor")
+          .asOpt[JsObject]
+          .map(_.keys.toSet)
+          .getOrElse(Set.empty)
+
       request.body
         .validate[UpdateSubcontractorRequest]
         .fold(
@@ -128,7 +134,7 @@ class SubcontractorController @Inject() (
             ),
           body =>
             service
-              .updateSubcontractor(body)
+              .updateSubcontractor(body, submittedFields)
               .map(response => Ok(Json.toJson(response)))
               .recover { case NonFatal(e) =>
                 logger.error("[updateSubcontractor] failed", e)

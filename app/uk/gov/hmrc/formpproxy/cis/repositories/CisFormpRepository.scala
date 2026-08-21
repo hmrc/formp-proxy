@@ -102,7 +102,10 @@ trait CisMonthlyReturnSource {
 
   def getSubcontractor(cisId: String, subbieResourceRef: Long): Future[GetSubcontractorResponse]
 
-  def updateSubcontractor(request: UpdateSubcontractorRequest): Future[UpdateSubcontractorResponse]
+  def updateSubcontractor(
+    request: UpdateSubcontractorRequest,
+    submittedFields: Set[String]
+  ): Future[UpdateSubcontractorResponse]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -2028,7 +2031,8 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     }
 
   override def updateSubcontractor(
-    request: UpdateSubcontractorRequest
+    request: UpdateSubcontractorRequest,
+    submittedFields: Set[String]
   ): Future[UpdateSubcontractorResponse] =
     Future {
       logger.info(
@@ -2054,7 +2058,8 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         val mergedSubcontractor =
           mergeSubcontractorForUpdate(
             existing = existingSubcontractor,
-            incoming = request.subcontractor
+            incoming = request.subcontractor,
+            submittedFields = submittedFields
           )
 
         val updatedSubcontractorVersion =
@@ -2158,39 +2163,161 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       subcontractor
     }
 
-  private def mergeSubcontractorForUpdate(existing: Subcontractor, incoming: Subcontractor): Subcontractor =
+  private def mergeSubcontractorForUpdate(
+    existing: Subcontractor,
+    incoming: Subcontractor,
+    submittedFields: Set[String]
+  ): Subcontractor = {
+
+    val existingType =
+      existing.subcontractorType.map(_.trim.toLowerCase)
+
+    val verified =
+      existing.verified.exists(_.trim.equalsIgnoreCase("Y"))
+
+    val commonEditableFields =
+      Set(
+        "nino",
+        "worksReferenceNumber",
+        "addressLine1",
+        "addressLine2",
+        "addressLine3",
+        "addressLine4",
+        "country",
+        "postcode",
+        "emailAddress",
+        "phoneNumber",
+        "mobilePhoneNumber"
+      )
+
+    val editableWhenUnverified =
+      existingType match {
+        case Some("soletrader" | "individual") =>
+          commonEditableFields ++ Set(
+            "utr",
+            "firstName",
+            "secondName",
+            "surname",
+            "tradingName"
+          )
+
+        case Some("company") =>
+          commonEditableFields ++ Set(
+            "utr",
+            "tradingName",
+            "crn"
+          )
+
+        case Some("trust") =>
+          commonEditableFields ++ Set(
+            "utr",
+            "tradingName"
+          )
+
+        case Some("partnership") =>
+          commonEditableFields ++ Set(
+            "utr",
+            "partnerUtr",
+            "partnershipTradingName",
+            "tradingName",
+            "crn"
+          )
+
+        case _ =>
+          commonEditableFields
+      }
+
+    val nonEditableWhenVerified =
+      existingType match {
+        case Some("soletrader" | "individual") =>
+          Set(
+            "utr",
+            "firstName",
+            "secondName",
+            "surname",
+            "tradingName"
+          )
+
+        case Some("company") =>
+          Set(
+            "utr",
+            "tradingName"
+          )
+
+        case Some("trust") =>
+          Set(
+            "utr",
+            "tradingName"
+          )
+
+        case Some("partnership") =>
+          Set(
+            "utr",
+            "partnerUtr",
+            "partnershipTradingName"
+          )
+
+        case _ =>
+          Set.empty[String]
+      }
+
+    val allowedFields =
+      if (verified) {
+        editableWhenUnverified -- nonEditableWhenVerified
+      } else {
+        editableWhenUnverified
+      }
+
+    def updateIfAllowed[A](
+      fieldName: String,
+      existingValue: Option[A],
+      incomingValue: Option[A]
+    ): Option[A] =
+      if (submittedFields.contains(fieldName) && allowedFields.contains(fieldName)) {
+        incomingValue
+      } else {
+        existingValue
+      }
+
     existing.copy(
-      utr = incoming.utr.orElse(existing.utr),
-      pageVisited = incoming.pageVisited.orElse(existing.pageVisited),
-      partnerUtr = incoming.partnerUtr.orElse(existing.partnerUtr),
-      crn = incoming.crn.orElse(existing.crn),
-      firstName = incoming.firstName.orElse(existing.firstName),
-      nino = incoming.nino.orElse(existing.nino),
-      secondName = incoming.secondName.orElse(existing.secondName),
-      surname = incoming.surname.orElse(existing.surname),
-      partnershipTradingName = incoming.partnershipTradingName.orElse(existing.partnershipTradingName),
-      tradingName = incoming.tradingName.orElse(existing.tradingName),
-      subcontractorType = incoming.subcontractorType.orElse(existing.subcontractorType),
-      addressLine1 = incoming.addressLine1.orElse(existing.addressLine1),
-      addressLine2 = incoming.addressLine2.orElse(existing.addressLine2),
-      addressLine3 = incoming.addressLine3.orElse(existing.addressLine3),
-      addressLine4 = incoming.addressLine4.orElse(existing.addressLine4),
-      country = incoming.country.orElse(existing.country),
-      postcode = incoming.postcode.orElse(existing.postcode),
-      emailAddress = incoming.emailAddress.orElse(existing.emailAddress),
-      phoneNumber = incoming.phoneNumber.orElse(existing.phoneNumber),
-      mobilePhoneNumber = incoming.mobilePhoneNumber.orElse(existing.mobilePhoneNumber),
-      worksReferenceNumber = incoming.worksReferenceNumber.orElse(existing.worksReferenceNumber),
-      matched = incoming.matched.orElse(existing.matched),
-      autoVerified = incoming.autoVerified.orElse(existing.autoVerified),
-      verified = incoming.verified.orElse(existing.verified),
-      verificationNumber = incoming.verificationNumber.orElse(existing.verificationNumber),
-      taxTreatment = incoming.taxTreatment.orElse(existing.taxTreatment),
-      verificationDate = incoming.verificationDate.orElse(existing.verificationDate),
-      updatedTaxTreatment = incoming.updatedTaxTreatment.orElse(existing.updatedTaxTreatment),
-      version = incoming.version.orElse(existing.version),
-      lastMonthlyReturnDate = incoming.lastMonthlyReturnDate.orElse(existing.lastMonthlyReturnDate),
-      pendingVerifications = incoming.pendingVerifications.orElse(existing.pendingVerifications)
+      subcontractorId = existing.subcontractorId,
+      subbieResourceRef = existing.subbieResourceRef,
+      subcontractorType = existing.subcontractorType,
+      utr = updateIfAllowed("utr", existing.utr, incoming.utr),
+      firstName = updateIfAllowed("firstName", existing.firstName, incoming.firstName),
+      secondName = updateIfAllowed("secondName", existing.secondName, incoming.secondName),
+      surname = updateIfAllowed("surname", existing.surname, incoming.surname),
+      tradingName = updateIfAllowed("tradingName", existing.tradingName, incoming.tradingName),
+      partnerUtr = updateIfAllowed("partnerUtr", existing.partnerUtr, incoming.partnerUtr),
+      partnershipTradingName =
+        updateIfAllowed("partnershipTradingName", existing.partnershipTradingName, incoming.partnershipTradingName),
+      crn = updateIfAllowed("crn", existing.crn, incoming.crn),
+      nino = updateIfAllowed("nino", existing.nino, incoming.nino),
+      worksReferenceNumber =
+        updateIfAllowed("worksReferenceNumber", existing.worksReferenceNumber, incoming.worksReferenceNumber),
+      addressLine1 = updateIfAllowed("addressLine1", existing.addressLine1, incoming.addressLine1),
+      addressLine2 = updateIfAllowed("addressLine2", existing.addressLine2, incoming.addressLine2),
+      addressLine3 = updateIfAllowed("addressLine3", existing.addressLine3, incoming.addressLine3),
+      addressLine4 = updateIfAllowed("addressLine4", existing.addressLine4, incoming.addressLine4),
+      country = updateIfAllowed("country", existing.country, incoming.country),
+      postcode = updateIfAllowed("postcode", existing.postcode, incoming.postcode),
+      emailAddress = updateIfAllowed("emailAddress", existing.emailAddress, incoming.emailAddress),
+      phoneNumber = updateIfAllowed("phoneNumber", existing.phoneNumber, incoming.phoneNumber),
+      mobilePhoneNumber = updateIfAllowed("mobilePhoneNumber", existing.mobilePhoneNumber, incoming.mobilePhoneNumber),
+      pageVisited = existing.pageVisited,
+      matched = existing.matched,
+      autoVerified = existing.autoVerified,
+      verified = existing.verified,
+      verificationNumber = existing.verificationNumber,
+      taxTreatment = existing.taxTreatment,
+      updatedTaxTreatment = existing.updatedTaxTreatment,
+      verificationDate = existing.verificationDate,
+      createDate = existing.createDate,
+      lastUpdate = existing.lastUpdate,
+      lastMonthlyReturnDate = existing.lastMonthlyReturnDate,
+      pendingVerifications = existing.pendingVerifications,
+      version = existing.version
     )
+  }
 
 }

@@ -465,39 +465,49 @@ class SubcontractorServiceSpec extends SpecBase {
           addressLine4 = None,
           country = Some("United Kingdom"),
           postcode = Some("AA1 1AA"),
-          emailAddress = Some("subcontractor@example.com"),
+          emailAddress = None,
           phoneNumber = Some("01234567890"),
           mobilePhoneNumber = Some("07123456789"),
           worksReferenceNumber = Some("WR-123"),
           createDate = None,
           lastUpdate = None,
           subbieResourceRef = Some(10L),
-          matched = Some("Y"),
-          autoVerified = Some("N"),
-          verified = Some("Y"),
-          verificationNumber = Some("V123456"),
-          taxTreatment = Some("NET"),
+          matched = None,
+          autoVerified = None,
+          verified = None,
+          verificationNumber = None,
+          taxTreatment = None,
           verificationDate = None,
           version = Some(1),
-          updatedTaxTreatment = Some("NET"),
+          updatedTaxTreatment = None,
           lastMonthlyReturnDate = None,
-          pendingVerifications = Some(0)
+          pendingVerifications = None
         )
       )
 
-    "delegates to repo and returns updated version" in {
+    val submittedFields =
+      Set(
+        "subcontractorId",
+        "subbieResourceRef",
+        "firstName",
+        "emailAddress",
+        "phoneNumber",
+        "version"
+      )
+
+    "delegates to repo with submitted fields and returns updated version" in {
       val c = Ctx()
       import c.*
 
       val response =
         UpdateSubcontractorResponse(version = 2)
 
-      when(repo.updateSubcontractor(eqTo(request)))
+      when(repo.updateSubcontractor(eqTo(request), eqTo(submittedFields)))
         .thenReturn(Future.successful(response))
 
-      service.updateSubcontractor(request).futureValue mustBe response
+      service.updateSubcontractor(request, submittedFields).futureValue mustBe response
 
-      verify(repo).updateSubcontractor(eqTo(request))
+      verify(repo).updateSubcontractor(eqTo(request), eqTo(submittedFields))
       verifyNoMoreInteractions(repo)
     }
 
@@ -507,15 +517,15 @@ class SubcontractorServiceSpec extends SpecBase {
 
       val boom = new RuntimeException("boom")
 
-      when(repo.updateSubcontractor(eqTo(request)))
+      when(repo.updateSubcontractor(eqTo(request), eqTo(submittedFields)))
         .thenReturn(Future.failed(boom))
 
       val ex =
-        service.updateSubcontractor(request).failed.futureValue
+        service.updateSubcontractor(request, submittedFields).failed.futureValue
 
       ex mustBe boom
 
-      verify(repo).updateSubcontractor(eqTo(request))
+      verify(repo).updateSubcontractor(eqTo(request), eqTo(submittedFields))
       verifyNoMoreInteractions(repo)
     }
   }
