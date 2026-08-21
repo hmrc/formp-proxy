@@ -566,6 +566,38 @@ class SubcontractorControllerSpec extends SpecBase {
         .updateSubcontractor(any[UpdateSubcontractorRequest], any[Set[String]])
     }
 
+    "returns 400 BadRequest when subbieResourceRef is missing" in {
+      val s = setup
+      import s.*
+
+      val json =
+        Json.parse(
+          """
+            |{
+            |  "cisId": "abc-123",
+            |  "subcontractor": {
+            |    "subcontractorId": 999,
+            |    "firstName": "John",
+            |    "version": 1
+            |  }
+            |}
+            |""".stripMargin
+        )
+
+      val result =
+        controller.updateSubcontractor.apply(
+          postJson("/cis/subcontractor/update", json)
+        )
+
+      status(result) mustBe BAD_REQUEST
+      contentAsJson(result) mustBe Json.obj(
+        "message" -> "subbieResourceRef is required"
+      )
+
+      verify(mockService, never())
+        .updateSubcontractor(any[UpdateSubcontractorRequest], any[Set[String]])
+    }
+
     "returns 500 InternalServerError when service fails" in {
       val s = setup
       import s.*

@@ -2039,7 +2039,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         s"[CIS] updateSubcontractor(cisId=${request.cisId}, subbieResourceRef=${request.subcontractor.subbieResourceRef})"
       )
 
-      db.withConnection { conn =>
+      db.withTransaction { conn =>
         val scheme =
           loadScheme(conn, request.cisId)
 
@@ -2172,8 +2172,14 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     val existingType =
       existing.subcontractorType.map(_.trim.toLowerCase)
 
-    val verified =
+    val hasCompletedVerification =
       existing.verified.exists(_.trim.equalsIgnoreCase("Y"))
+
+    val hasPendingVerification =
+      existing.pendingVerifications.exists(_ > 0)
+
+    val treatedAsVerified =
+      hasCompletedVerification || hasPendingVerification
 
     val commonEditableFields =
       Set(
@@ -2262,7 +2268,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
 
     val allowedFields =
-      if (verified) {
+      if (treatedAsVerified) {
         editableWhenUnverified -- nonEditableWhenVerified
       } else {
         editableWhenUnverified

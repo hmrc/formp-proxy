@@ -4827,7 +4827,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       val csUpdateSub = mock[CallableStatement]
       val csVersion   = mock[CallableStatement]
 
-      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
         inv.getArgument(0, classOf[Connection => Any]).apply(conn)
       }
 
@@ -5051,7 +5051,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       val csUpdateSub = mock[CallableStatement]
       val csVersion   = mock[CallableStatement]
 
-      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
         inv.getArgument(0, classOf[Connection => Any]).apply(conn)
       }
 
@@ -5207,6 +5207,187 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdateSub).setString(23, "Y")
       verify(csUpdateSub).setString(24, "N")
       verify(csUpdateSub).setString(25, "Y")
+      verify(csUpdateSub).setString(26, "V123456")
+      verify(csUpdateSub).setString(27, "NET")
+      verify(csUpdateSub).setString(28, "NET")
+
+      verify(csUpdateSub).setInt(30, 5)
+      verify(csUpdateSub).registerOutParameter(30, Types.INTEGER)
+      verify(csUpdateSub).execute()
+      verify(csVersion).execute()
+    }
+
+    "treats subcontractor with pending verifications as verified even when verified flag is not Y" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csGetScheme = mock[CallableStatement]
+      val rsScheme    = mock[ResultSet]
+
+      val csGetSub  = mock[CallableStatement]
+      val rsScheme2 = mock[ResultSet]
+      val rsSub     = mock[ResultSet]
+      val rsOther   = mock[ResultSet]
+
+      val csUpdateSub = mock[CallableStatement]
+      val csVersion   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetScheme)))
+        .thenReturn(csGetScheme)
+
+      when(csGetScheme.getObject(eqTo(2), eqTo(classOf[ResultSet])))
+        .thenReturn(rsScheme)
+
+      when(rsScheme.next()).thenReturn(true, false)
+      when(rsScheme.getLong("scheme_id")).thenReturn(123L)
+      when(rsScheme.getInt("version")).thenReturn(5)
+      when(rsScheme.getString("email_address")).thenReturn(null)
+      when(rsScheme.wasNull()).thenReturn(false)
+
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetSubcontractor)))
+        .thenReturn(csGetSub)
+
+      when(csGetSub.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsScheme2)
+      when(csGetSub.getObject(eqTo(4), eqTo(classOf[ResultSet]))).thenReturn(rsSub)
+      when(csGetSub.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsOther)
+
+      when(rsScheme2.next()).thenReturn(false)
+      when(rsOther.next()).thenReturn(false)
+
+      when(rsSub.next()).thenReturn(true, false)
+      when(rsSub.getLong("subcontractor_id")).thenReturn(999L)
+      when(rsSub.getLong("subbie_resource_ref")).thenReturn(10L)
+      when(rsSub.getString("type")).thenReturn("soletrader")
+      when(rsSub.getString("utr")).thenReturn("1234567890")
+      when(rsSub.getInt("page_visited")).thenReturn(1)
+      when(rsSub.getString("partner_utr")).thenReturn(null)
+      when(rsSub.getString("crn")).thenReturn(null)
+      when(rsSub.getString("firstname")).thenReturn("Old John")
+      when(rsSub.getString("nino")).thenReturn("AA123456A")
+      when(rsSub.getString("secondname")).thenReturn("Q")
+      when(rsSub.getString("surname")).thenReturn("Smith")
+      when(rsSub.getString("partnership_tradingname")).thenReturn(null)
+      when(rsSub.getString("tradingname")).thenReturn("Old Trading Name")
+      when(rsSub.getString("address_line_1")).thenReturn("1 Old Street")
+      when(rsSub.getString("address_line_2")).thenReturn("Flat 2")
+      when(rsSub.getString("address_line_3")).thenReturn("London")
+      when(rsSub.getString("address_line_4")).thenReturn("Greater London")
+      when(rsSub.getString("country")).thenReturn("GB")
+      when(rsSub.getString("postcode")).thenReturn("AA1 1AA")
+      when(rsSub.getString("email_address")).thenReturn("old@test.com")
+      when(rsSub.getString("phone_number")).thenReturn("01234567890")
+      when(rsSub.getString("mobile_phone_number")).thenReturn("07123456789")
+      when(rsSub.getString("works_reference_number")).thenReturn("WR-123")
+      when(rsSub.getInt("version")).thenReturn(5)
+      when(rsSub.getString("tax_treatment")).thenReturn("NET")
+      when(rsSub.getString("updated_tax_treatment")).thenReturn("NET")
+      when(rsSub.getString("verification_number")).thenReturn("V123456")
+      when(rsSub.getTimestamp("create_date")).thenReturn(null)
+      when(rsSub.getTimestamp("last_update")).thenReturn(null)
+      when(rsSub.getString("matched")).thenReturn("Y")
+      when(rsSub.getString("verified")).thenReturn("N")
+      when(rsSub.getString("auto_verified")).thenReturn("N")
+      when(rsSub.getTimestamp("verification_date")).thenReturn(null)
+      when(rsSub.getTimestamp("last_monthly_return_date")).thenReturn(null)
+      when(rsSub.getInt("pending_verifications")).thenReturn(1)
+      when(rsSub.wasNull()).thenReturn(false)
+
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateSubcontractor)))
+        .thenReturn(csUpdateSub)
+
+      when(csUpdateSub.getInt(30)).thenReturn(6)
+
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateSchemeVersion)))
+        .thenReturn(csVersion)
+
+      when(csVersion.getInt(2)).thenReturn(6)
+
+      val repo =
+        new CisFormpRepository(db)
+
+      val request =
+        UpdateSubcontractorRequest(
+          cisId = "abc-123",
+          subcontractor = Subcontractor(
+            subcontractorId = 999L,
+            utr = Some("9999999999"),
+            pageVisited = None,
+            partnerUtr = None,
+            crn = None,
+            firstName = Some("Gary"),
+            nino = None,
+            secondName = None,
+            surname = Some("Changed"),
+            partnershipTradingName = None,
+            tradingName = Some("Changed Trading"),
+            subcontractorType = Some("company"),
+            addressLine1 = Some("99 New Street"),
+            addressLine2 = None,
+            addressLine3 = None,
+            addressLine4 = None,
+            country = None,
+            postcode = None,
+            emailAddress = None,
+            phoneNumber = Some("02070000000"),
+            mobilePhoneNumber = None,
+            worksReferenceNumber = None,
+            createDate = None,
+            lastUpdate = None,
+            subbieResourceRef = Some(10L),
+            matched = None,
+            autoVerified = None,
+            verified = None,
+            verificationNumber = None,
+            taxTreatment = None,
+            verificationDate = None,
+            version = Some(5),
+            updatedTaxTreatment = None,
+            lastMonthlyReturnDate = None,
+            pendingVerifications = None
+          )
+        )
+
+      val result =
+        repo
+          .updateSubcontractor(
+            request,
+            submittedFields = Set(
+              "subcontractorId",
+              "subbieResourceRef",
+              "subcontractorType",
+              "utr",
+              "firstName",
+              "surname",
+              "tradingName",
+              "addressLine1",
+              "emailAddress",
+              "phoneNumber",
+              "version"
+            )
+          )
+          .futureValue
+
+      result mustBe UpdateSubcontractorResponse(version = 6)
+
+      verify(csUpdateSub).setString(3, "1234567890")
+      verify(csUpdateSub).setString(7, "Old John")
+      verify(csUpdateSub).setString(10, "Smith")
+      verify(csUpdateSub).setString(12, "Old Trading Name")
+
+      verify(csUpdateSub, never()).setString(eqTo(12), eqTo("Changed Trading"))
+
+      verify(csUpdateSub).setString(13, "99 New Street")
+      verify(csUpdateSub).setNull(19, Types.VARCHAR)
+      verify(csUpdateSub).setString(20, "02070000000")
+
+      verify(csUpdateSub).setInt(4, 1)
+      verify(csUpdateSub).setString(23, "Y")
+      verify(csUpdateSub).setString(24, "N")
+      verify(csUpdateSub).setString(25, "N")
       verify(csUpdateSub).setString(26, "V123456")
       verify(csUpdateSub).setString(27, "NET")
       verify(csUpdateSub).setString(28, "NET")

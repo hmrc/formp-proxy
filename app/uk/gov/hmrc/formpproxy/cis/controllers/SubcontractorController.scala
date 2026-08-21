@@ -50,7 +50,7 @@ class SubcontractorController @Inject() (
               .createAndUpdateSubcontractor(body)
               .map(_ => NoContent)
               .recover { case t =>
-                logger.error("[updateSubcontractor] failed", t)
+                logger.error("[createAndUpdateSubcontractor] failed", t)
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )
@@ -133,13 +133,25 @@ class SubcontractorController @Inject() (
               )
             ),
           body =>
-            service
-              .updateSubcontractor(body, submittedFields)
-              .map(response => Ok(Json.toJson(response)))
-              .recover { case NonFatal(e) =>
-                logger.error("[updateSubcontractor] failed", e)
-                InternalServerError(Json.obj("message" -> "Unexpected error"))
-              }
+            body.subcontractor.subbieResourceRef match {
+              case None =>
+                Future.successful(
+                  BadRequest(
+                    Json.obj(
+                      "message" -> "subbieResourceRef is required"
+                    )
+                  )
+                )
+
+              case Some(_) =>
+                service
+                  .updateSubcontractor(body, submittedFields)
+                  .map(response => Ok(Json.toJson(response)))
+                  .recover { case NonFatal(e) =>
+                    logger.error("[updateSubcontractor] failed", e)
+                    InternalServerError(Json.obj("message" -> "Unexpected error"))
+                  }
+            }
         )
     }
 
