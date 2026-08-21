@@ -19,9 +19,10 @@ package uk.gov.hmrc.formpproxy.sdlt.controllers.returns
 import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.formpproxy.actions.{AuthAction, AuthOrApiKeyAction}
+import uk.gov.hmrc.formpproxy.actions.{AuthAction, AuthOrInternalAuthAction}
 import uk.gov.hmrc.formpproxy.sdlt.models.submission.*
 import uk.gov.hmrc.formpproxy.sdlt.services.submission.ChrisSubmissionService
+import uk.gov.hmrc.internalauth.client.{IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
@@ -29,12 +30,17 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ChrisSubmissionController @Inject() (
   authorise: AuthAction,
-  authOrApiKeyAction: AuthOrApiKeyAction,
+  authOrInternalAuth: AuthOrInternalAuthAction,
   service: ChrisSubmissionService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
+
+  private val submissions = Resource.from("formp-proxy", "formp-proxy/sdlt/submissions")
+
+  private val readSubmissions  = authOrInternalAuth(Predicate.Permission(submissions, IAAction("READ")))
+  private val writeSubmissions = authOrInternalAuth(Predicate.Permission(submissions, IAAction("WRITE")))
 
   def lockReturn(): Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
@@ -78,7 +84,7 @@ class ChrisSubmissionController @Inject() (
     }
 
   def updateSubmission(): Action[JsValue] =
-    authOrApiKeyAction.async(parse.json) { implicit request =>
+    writeSubmissions.async(parse.json) { implicit request =>
       request.body
         .validate[UpdateSubmissionRequest]
         .fold(
@@ -98,7 +104,7 @@ class ChrisSubmissionController @Inject() (
     }
 
   def createSubmissionErrorDetail(): Action[JsValue] =
-    authOrApiKeyAction.async(parse.json) { implicit request =>
+    writeSubmissions.async(parse.json) { implicit request =>
       request.body
         .validate[CreateSubmissionErrorDetailRequest]
         .fold(
@@ -158,7 +164,7 @@ class ChrisSubmissionController @Inject() (
     }
 
   def resetGovTalkStatus(): Action[JsValue] =
-    authOrApiKeyAction.async(parse.json) { implicit request =>
+    writeSubmissions.async(parse.json) { implicit request =>
       request.body
         .validate[ResetGovTalkStatusRequest]
         .fold(
@@ -178,7 +184,7 @@ class ChrisSubmissionController @Inject() (
     }
 
   def updateGovTalkStatus(): Action[JsValue] =
-    authOrApiKeyAction.async(parse.json) { implicit request =>
+    writeSubmissions.async(parse.json) { implicit request =>
       request.body
         .validate[UpdateGovTalkStatusRequest]
         .fold(
@@ -198,7 +204,7 @@ class ChrisSubmissionController @Inject() (
     }
 
   def updateGovTalkStatusCorrelationId(): Action[JsValue] =
-    authOrApiKeyAction.async(parse.json) { implicit request =>
+    writeSubmissions.async(parse.json) { implicit request =>
       request.body
         .validate[UpdateGovTalkStatusCorrelationIdRequest]
         .fold(
@@ -218,7 +224,7 @@ class ChrisSubmissionController @Inject() (
     }
 
   def updateGovTalkStatusLock(): Action[JsValue] =
-    authOrApiKeyAction.async(parse.json) { implicit request =>
+    writeSubmissions.async(parse.json) { implicit request =>
       request.body
         .validate[UpdateGovTalkStatusLockRequest]
         .fold(
@@ -238,7 +244,7 @@ class ChrisSubmissionController @Inject() (
     }
 
   def updateGovTalkStatistics(): Action[JsValue] =
-    authOrApiKeyAction.async(parse.json) { implicit request =>
+    writeSubmissions.async(parse.json) { implicit request =>
       request.body
         .validate[UpdateGovTalkStatisticsRequest]
         .fold(
@@ -278,7 +284,7 @@ class ChrisSubmissionController @Inject() (
     }
 
   def selectGovTalkStatus(): Action[JsValue] =
-    authOrApiKeyAction.async(parse.json) { implicit request =>
+    readSubmissions.async(parse.json) { implicit request =>
       request.body
         .validate[SelectGovTalkStatusRequest]
         .fold(

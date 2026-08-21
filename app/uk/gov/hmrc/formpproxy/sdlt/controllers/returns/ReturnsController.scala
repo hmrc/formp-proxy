@@ -35,11 +35,12 @@ package uk.gov.hmrc.formpproxy.sdlt.controllers.returns
 import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.formpproxy.actions.{ApiKeyAction, AuthAction, AuthOrApiKeyAction}
+import uk.gov.hmrc.formpproxy.actions.{AuthAction, AuthOrInternalAuthAction}
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.UpdateReturnRequest
 import uk.gov.hmrc.formpproxy.sdlt.services.ReturnService
 import uk.gov.hmrc.http.UpstreamErrorResponse
+import uk.gov.hmrc.internalauth.client.{IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
@@ -47,13 +48,17 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ReturnsController @Inject() (
   authorise: AuthAction,
-  apiKeyAction: ApiKeyAction,
-  authOrApiKeyAction: AuthOrApiKeyAction,
+  authOrInternalAuth: AuthOrInternalAuthAction,
   service: ReturnService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
+
+  private val returns = Resource.from("formp-proxy", "formp-proxy/sdlt/returns")
+
+  private val readReturns   = authOrInternalAuth(Predicate.Permission(returns, IAAction("READ")))
+  private val deleteReturns = authOrInternalAuth(Predicate.Permission(returns, IAAction("DELETE")))
 
   def createSDLTReturn(): Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
@@ -76,7 +81,7 @@ class ReturnsController @Inject() (
     }
 
   def getSDLTReturn(): Action[JsValue] =
-    authOrApiKeyAction.async(parse.json) { implicit request =>
+    readReturns.async(parse.json) { implicit request =>
       request.body
         .validate[GetReturnByRefRequest]
         .fold(
@@ -133,7 +138,7 @@ class ReturnsController @Inject() (
     }
 
   def getSDLTReturnsForPurge(): Action[JsValue] =
-    apiKeyAction.async(parse.json) { implicit request =>
+    readReturns.async(parse.json) { implicit request =>
       request.body
         .validate[GetReturnsForPurgeRequest]
         .fold(
@@ -161,7 +166,7 @@ class ReturnsController @Inject() (
     }
 
   def getSDLTSubmissionsForPolling(): Action[AnyContent] =
-    apiKeyAction.async { implicit request =>
+    readReturns.async { implicit request =>
       service
         .getSDLTSubmissionsForPolling()
         .map(rs => Ok(Json.toJson(rs)))
@@ -175,7 +180,7 @@ class ReturnsController @Inject() (
     }
 
   def deleteSDLTReturn(): Action[JsValue] =
-    apiKeyAction.async(parse.json) { implicit request =>
+    deleteReturns.async(parse.json) { implicit request =>
       request.body
         .validate[DeleteReturnRequest]
         .fold(

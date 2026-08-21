@@ -112,8 +112,8 @@ class ChrisSubmissionServiceSpec extends AnyFreeSpec with Matchers with MockitoS
       userIdentifier = "STORN12345",
       formResultId = "SUB123",
       correlationId = "CORR-NEW",
-      endStateTimestamp = "2025-01-15 12:30:00",
-      protocolStatus = "acknowledgement"
+      pollInterval = 30,
+      gatewayUrl = "http://chris.example/poll"
     )
 
   private val updateGovTalkStatusLockRequest =

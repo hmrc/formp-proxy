@@ -5008,8 +5008,8 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         userIdentifier = "STORN12345",
         formResultId = "SUB123",
         correlationId = "CORR-NEW",
-        endStateTimestamp = "2025-01-15 12:30:00",
-        protocolStatus = "acknowledgement"
+        pollInterval = 30,
+        gatewayUrl = "http://chris.example/poll"
       )
 
       val result = repo.sdltUpdateGovTalkStatusCorrelationId(request).futureValue
@@ -5020,8 +5020,8 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).setString(1, "STORN12345")
       verify(cs).setString(2, "SUB123")
       verify(cs).setString(3, "CORR-NEW")
-      verify(cs).setTimestamp(4, Timestamp.valueOf("2025-01-15 12:30:00"))
-      verify(cs).setString(5, "acknowledgement")
+      verify(cs).setInt(4, 30)
+      verify(cs).setString(5, "http://chris.example/poll")
       verify(cs).execute()
       verify(cs).close()
     }

@@ -16,17 +16,18 @@
 
 package uk.gov.hmrc.formpproxy.sdlt.controllers
 
-import org.mockito.ArgumentMatchers.eq as eqTo
+import org.mockito.ArgumentMatchers.{any, eq as eqTo}
 import org.mockito.Mockito.*
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.{JsObject, JsValue, Json}
-import play.api.mvc.{AnyContentAsEmpty, ControllerComponents, PlayBodyParsers, Result}
+import play.api.mvc.{AnyContentAsEmpty, BodyParsers, ControllerComponents, PlayBodyParsers, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import uk.gov.hmrc.formpproxy.actions.{ApiKeyAction, AuthAction, AuthOrApiKeyAction, FakeApiKeyAction, FakeAuthAction, FakeAuthOrApiKeyAction}
+import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.formpproxy.actions.{AuthAction, AuthOrInternalAuthAction, FakeAuthAction}
 import uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ReturnsController
 import uk.gov.hmrc.formpproxy.sdlt.models.*
 import uk.gov.hmrc.formpproxy.sdlt.models.purchaser.{UpdateReturnRequest, UpdateReturnReturn}
@@ -34,6 +35,8 @@ import uk.gov.hmrc.formpproxy.sdlt.models.returns.{ReturnForPurge, ReturnSummary
 import uk.gov.hmrc.formpproxy.sdlt.repositories.SdltFormpRepoDataHelper
 import uk.gov.hmrc.formpproxy.sdlt.services.ReturnService
 import uk.gov.hmrc.http.UpstreamErrorResponse
+import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource, Retrieval}
+import uk.gov.hmrc.internalauth.client.test.{BackendAuthComponentsStub, StubBehaviour}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -350,6 +353,21 @@ class ReturnsControllerSpec
     }
   }
 
+  "still serves a signed in user who is not carrying a service token" in new Setup {
+    when(mockAuthConnector.authorise[Unit](any(), any())(any(), any())).thenReturn(Future.unit)
+    when(mockService.getSDLTReturn(eqTo("100001"), eqTo("STORN12345")))
+      .thenReturn(Future.successful(fullReturnData))
+
+    val getRequest: GetReturnByRefRequest =
+      GetReturnByRefRequest(returnResourceRef = "100001", storn = "STORN12345")
+
+    val res: Future[Result] = controller.getSDLTReturn()(makeUserRequest(Json.toJson(getRequest)))
+
+    status(res) mustBe OK
+    verify(mockService).getSDLTReturn(eqTo("100001"), eqTo("STORN12345"))
+    verifyNoInteractions(internalAuth)
+  }
+
   "ReturnsController getSDLTReturns" - {
 
     "return status code: OK" in new Setup {
@@ -437,6 +455,19 @@ class ReturnsControllerSpec
 
       verify(mockService, times(0)).getSDLTReturnsForPurge(eqTo(requestReturnsForPurge))
       verifyNoMoreInteractions(mockService)
+    }
+
+    "turns a caller away when internal-auth has not granted read on the returns resource" in new Setup {
+      when(internalAuth.stubAuth(Some(readReturns), Retrieval.EmptyRetrieval))
+        .thenReturn(Future.failed(UpstreamErrorResponse("Unauthorized", UNAUTHORIZED)))
+
+      val req: FakeRequest[JsValue]        = makeJsonReturnsForPurgeRequest(Json.toJson(requestReturnsForPurge))
+      val rejection: UpstreamErrorResponse = intercept[UpstreamErrorResponse] {
+        await(controller.getSDLTReturnsForPurge()(req))
+      }
+
+      rejection.statusCode mustBe UNAUTHORIZED
+      verifyNoInteractions(mockService)
     }
 
     "returns the upstream status when FORMP responds with an error" in new Setup {
@@ -537,6 +568,34 @@ class ReturnsControllerSpec
 
       status(res) mustBe BAD_REQUEST
       verifyNoMoreInteractions(mockService)
+    }
+
+    "still deletes for a signed in user who is not carrying a service token" in new Setup {
+      when(mockAuthConnector.authorise[Unit](any(), any())(any(), any())).thenReturn(Future.unit)
+
+      val request: DeleteReturnRequest = DeleteReturnRequest(storn = "STORN12345", returnResourceRef = "100001")
+      when(mockService.deleteSDLTReturn(eqTo(request)))
+        .thenReturn(Future.successful(DeleteReturnReturn(deleted = true)))
+
+      val res: Future[Result] = controller.deleteSDLTReturn()(makeUserRequest(Json.toJson(request)))
+
+      status(res) mustBe OK
+      (contentAsJson(res) \ "deleted").as[Boolean] mustBe true
+      verifyNoInteractions(internalAuth)
+    }
+
+    "will not delete for a caller holding read permission alone, as deleting demands DELETE" in new Setup {
+      when(internalAuth.stubAuth(Some(deleteReturns), Retrieval.EmptyRetrieval))
+        .thenReturn(Future.failed(UpstreamErrorResponse("Unauthorized", UNAUTHORIZED)))
+
+      val request: DeleteReturnRequest     = DeleteReturnRequest(storn = "STORN12345", returnResourceRef = "100001")
+      val req: FakeRequest[JsValue]        = makeJsonRequest(Json.toJson(request))
+      val rejection: UpstreamErrorResponse = intercept[UpstreamErrorResponse] {
+        await(controller.deleteSDLTReturn()(req))
+      }
+
+      rejection.statusCode mustBe UNAUTHORIZED
+      verifyNoInteractions(mockService)
     }
 
     "returns 500 with a generic message on an unexpected exception" in new Setup {
@@ -1020,34 +1079,53 @@ class ReturnsControllerSpec
   }
 
   private trait Setup {
-    implicit val ec: ExecutionContext                = scala.concurrent.ExecutionContext.global
-    private val cc: ControllerComponents             = stubControllerComponents()
-    private val parsers: PlayBodyParsers             = cc.parsers
-    private def fakeAuth: AuthAction                 = new FakeAuthAction(parsers)
-    private def fakeApiKey: ApiKeyAction             = new FakeApiKeyAction(parsers)
-    private def fakeAuthOrApiKey: AuthOrApiKeyAction = new FakeAuthOrApiKeyAction(parsers)
+    implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.global
+    private val cc: ControllerComponents = stubControllerComponents()
+    private val parsers: PlayBodyParsers = cc.parsers
+    private def fakeAuth: AuthAction     = new FakeAuthAction(parsers)
+
+    private val returns = Resource.from("formp-proxy", "formp-proxy/sdlt/returns")
+
+    val readReturns: Predicate.Permission   = Predicate.Permission(returns, IAAction("READ"))
+    val deleteReturns: Predicate.Permission = Predicate.Permission(returns, IAAction("DELETE"))
+
+    val internalAuth: StubBehaviour = mock[StubBehaviour]
+    when(internalAuth.stubAuth(Some(readReturns), Retrieval.EmptyRetrieval)).thenReturn(Future.unit)
+    when(internalAuth.stubAuth(Some(deleteReturns), Retrieval.EmptyRetrieval)).thenReturn(Future.unit)
+
+    val backendAuth: BackendAuthComponents = BackendAuthComponentsStub(internalAuth)(cc, ec)
+    val mockAuthConnector: AuthConnector   = mock[AuthConnector]
+
+    val authOrInternalAuth: AuthOrInternalAuthAction =
+      new AuthOrInternalAuthAction(mockAuthConnector, backendAuth, new BodyParsers.Default(parsers))
 
     val mockService: ReturnService = mock[ReturnService]
-    val controller                 = new ReturnsController(fakeAuth, fakeApiKey, fakeAuthOrApiKey, mockService, cc)
+    val controller                 =
+      new ReturnsController(fakeAuth, authOrInternalAuth, mockService, cc)
 
     def makeJsonRequest(body: JsValue): FakeRequest[JsValue] =
       FakeRequest(POST, "/formp-proxy/sdlt/return")
-        .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
+        .withBody(body)
+
+    def makeUserRequest(body: JsValue): FakeRequest[JsValue] =
+      FakeRequest(POST, "/formp-proxy/sdlt/return")
+        .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON, "X-Session-ID" -> "session-abc")
         .withBody(body)
 
     def makeJsonReturnsRequest(body: JsValue): FakeRequest[JsValue] =
       FakeRequest(POST, "/formp-proxy/sdlt/returns")
-        .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(body)
 
     def makeJsonReturnsForPurgeRequest(body: JsValue): FakeRequest[JsValue] =
       FakeRequest(POST, "/formp-proxy/sdlt/returns-for-purge")
-        .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(body)
 
     def makeSubmissionsForPollingRequest(): FakeRequest[AnyContentAsEmpty.type] =
       FakeRequest(GET, "/formp-proxy/sdlt/submissions-polling")
-        .withHeaders(ACCEPT -> JSON)
+        .withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
 
     val fullReturnData: GetReturnRequest = GetReturnRequest(
       stornId = Some("STORN12345"),

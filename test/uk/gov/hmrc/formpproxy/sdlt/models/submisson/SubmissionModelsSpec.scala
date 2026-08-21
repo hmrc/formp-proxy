@@ -1063,8 +1063,8 @@ class SubmissionModelsSpec extends AnyFreeSpec with Matchers {
         userIdentifier = "USER-001",
         formResultId = "FRID-001",
         correlationId = "CORR-001",
-        endStateTimestamp = "2026-01-15T10:10:00Z",
-        protocolStatus = "ACKNOWLEDGED"
+        pollInterval = 30,
+        gatewayUrl = "http://chris.example/poll"
       )
 
       val json = Json.toJson(request)
@@ -1072,17 +1072,17 @@ class SubmissionModelsSpec extends AnyFreeSpec with Matchers {
       (json \ "userIdentifier").as[String] mustBe "USER-001"
       (json \ "formResultId").as[String] mustBe "FRID-001"
       (json \ "correlationId").as[String] mustBe "CORR-001"
-      (json \ "endStateTimestamp").as[String] mustBe "2026-01-15T10:10:00Z"
-      (json \ "protocolStatus").as[String] mustBe "ACKNOWLEDGED"
+      (json \ "pollInterval").as[Int] mustBe 30
+      (json \ "gatewayUrl").as[String] mustBe "http://chris.example/poll"
     }
 
     "must deserialize from JSON correctly" in {
       val json = Json.obj(
-        "userIdentifier"    -> "USER-001",
-        "formResultId"      -> "FRID-001",
-        "correlationId"     -> "CORR-001",
-        "endStateTimestamp" -> "2026-01-15T10:10:00Z",
-        "protocolStatus"    -> "ACKNOWLEDGED"
+        "userIdentifier" -> "USER-001",
+        "formResultId"   -> "FRID-001",
+        "correlationId"  -> "CORR-001",
+        "pollInterval"   -> 30,
+        "gatewayUrl"     -> "http://chris.example/poll"
       )
 
       val result = json.validate[UpdateGovTalkStatusCorrelationIdRequest]
@@ -1092,15 +1092,16 @@ class SubmissionModelsSpec extends AnyFreeSpec with Matchers {
 
       request.userIdentifier mustBe "USER-001"
       request.correlationId mustBe "CORR-001"
-      request.protocolStatus mustBe "ACKNOWLEDGED"
+      request.pollInterval mustBe 30
+      request.gatewayUrl mustBe "http://chris.example/poll"
     }
 
     "must fail to deserialize when correlationId is missing" in {
       val json = Json.obj(
-        "userIdentifier"    -> "USER-001",
-        "formResultId"      -> "FRID-001",
-        "endStateTimestamp" -> "2026-01-15T10:10:00Z",
-        "protocolStatus"    -> "ACKNOWLEDGED"
+        "userIdentifier" -> "USER-001",
+        "formResultId"   -> "FRID-001",
+        "pollInterval"   -> 30,
+        "gatewayUrl"     -> "http://chris.example/poll"
       )
 
       json.validate[UpdateGovTalkStatusCorrelationIdRequest].isError mustBe true
