@@ -1275,7 +1275,7 @@ class VerificationControllerSpec extends SpecBase {
 
       val requestModel = DeleteVerificationRequest(
         instanceId = "1",
-        verificationResourceRef = 9L
+        verificationResourceRef = 10L
       )
 
       when(mockService.deleteVerification(eqTo(requestModel)))
