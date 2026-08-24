@@ -604,7 +604,7 @@ class VerificationServiceSpec extends SpecBase {
 
       val req = DeleteVerificationRequest(
         instanceId = "1",
-        verificationResourceRef = 9L
+        verificationResourceRef = 10L
       )
 
       when(repo.deleteVerification(eqTo(req))).thenReturn(Future.successful(()))
@@ -622,7 +622,7 @@ class VerificationServiceSpec extends SpecBase {
 
       val req = DeleteVerificationRequest(
         instanceId = "1",
-        verificationResourceRef = 9L
+        verificationResourceRef = 10L
       )
 
       val boom = new RuntimeException("boom")
