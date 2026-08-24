@@ -1339,7 +1339,7 @@ class VerificationControllerSpec extends SpecBase {
 
       val result = controller.proceedInsufficientVerification().apply(req)
 
-      status(result) mustBe OK
+      status(result) mustBe NO_CONTENT
       contentAsString(result) mustBe ""
 
       verify(mockService).proceedInsufficientVerification(eqTo(requestModel))

@@ -237,7 +237,7 @@ class VerificationController @Inject() (
       withJsonBody[ProceedInsufficientVerificationRequest](req =>
         service
           .proceedInsufficientVerification(req)
-          .map(_ => Ok)
+          .map(_ => NoContent)
           .recover { case t =>
             logger.error("[proceedInsufficientVerification] failed", t)
             InternalServerError(Json.obj("message" -> "Unexpected error"))
