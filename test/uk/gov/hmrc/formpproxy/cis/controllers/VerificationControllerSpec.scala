@@ -1285,7 +1285,7 @@ class VerificationControllerSpec extends SpecBase {
 
       val result = controller.deleteVerification().apply(req)
 
-      status(result) mustBe OK
+      status(result) mustBe NO_CONTENT
       contentAsString(result) mustBe ""
 
       verify(mockService).deleteVerification(eqTo(requestModel))

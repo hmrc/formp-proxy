@@ -226,7 +226,7 @@ class VerificationController @Inject() (
       withJsonBody[DeleteVerificationRequest](req =>
         service
           .deleteVerification(req)
-          .map(_ => Ok)
+          .map(_ => NoContent)
           .recover { case ex =>
             logger.error("[deleteVerification] failed", ex)
             InternalServerError(Json.obj("message" -> "Unexpected error"))
