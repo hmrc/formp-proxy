@@ -23,7 +23,5 @@ final case class DeleteVerificationRequest(
   verificationResourceRef: Long
 )
 
-object DeleteVerificationRequest {
-  given OFormat[DeleteVerificationRequest] =
-    Json.format[DeleteVerificationRequest]
-}
+object DeleteVerificationRequest:
+  given OFormat[DeleteVerificationRequest] = Json.format
