@@ -26,6 +26,5 @@ case class ProceedInsufficientVerificationRequest(
 )
 
 object ProceedInsufficientVerificationRequest {
-  implicit val format: OFormat[ProceedInsufficientVerificationRequest] =
-    Json.format[ProceedInsufficientVerificationRequest]
+  given OFormat[ProceedInsufficientVerificationRequest] = Json.format
 }
