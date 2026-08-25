@@ -1319,7 +1319,7 @@ class VerificationControllerSpec extends SpecBase {
 
     val url = "/cis/verification-batch/proceed-with-insufficient-data"
 
-    "returns 200 when service succeeds" in {
+    "returns 204 when service succeeds" in {
       val s = setup
       import s.*
 
