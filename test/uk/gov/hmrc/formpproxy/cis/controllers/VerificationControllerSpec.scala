@@ -1362,7 +1362,7 @@ class VerificationControllerSpec extends SpecBase {
       contentType(result) mustBe Some(JSON)
 
       val body = contentAsJson(result)
-      (body \ "message").as[String] must include("Invalid ProceedInsufficientVerificationRequest payload")
+      (body \ "message").as[String] must include("Invalid payload")
 
       verifyNoInteractions(mockService)
     }
