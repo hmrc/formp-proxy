@@ -33,6 +33,9 @@ class VerificationService @Inject() (repo: CisMonthlyReturnSource) {
   def getCurrentVerificationBatch(instanceId: String): Future[GetCurrentVerificationBatchResponse] =
     repo.getCurrentVerificationBatch(instanceId)
 
+  def getLastSubmittedVerificationBatch(instanceId: String): Future[GetLastSubmittedVerificationBatchResponse] =
+    repo.getLastSubmittedVerificationBatch(instanceId)
+
   def createVerificationBatchAndVerifications(
     request: CreateVerificationBatchAndVerificationsRequest
   ): Future[CreateVerificationBatchAndVerificationsResponse] =

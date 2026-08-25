@@ -58,6 +58,17 @@ class VerificationController @Inject() (
         }
     }
 
+  def getLastSubmittedVerificationBatch(instanceId: String): Action[AnyContent] =
+    authorise.async { implicit request =>
+      service
+        .getLastSubmittedVerificationBatch(instanceId)
+        .map(res => Ok(Json.toJson(res)))
+        .recover { case t =>
+          logger.error(s"[getLastSubmittedVerificationBatch] failed (instanceId=$instanceId)", t)
+          InternalServerError(Json.obj("message" -> "Unexpected error"))
+        }
+    }
+
   def createVerificationBatchAndVerifications(): Action[JsValue] =
     authorise(parse.json).async { implicit request =>
       request.body
@@ -226,7 +237,7 @@ class VerificationController @Inject() (
       withJsonBody[ProceedVerificationRequest](req =>
         service
           .proceedVerification(req)
-          .map(_ => Ok)
+          .map(_ => NoContent)
           .recover { case t =>
             logger.error("[proceedVerification] failed", t)
             InternalServerError(Json.obj("message" -> "Unexpected error"))

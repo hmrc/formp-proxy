@@ -605,8 +605,8 @@ class VerificationServiceSpec extends SpecBase {
 
       val req = ProceedVerificationRequest(
         instanceId = "1",
-        verificationBatchResourceRef = 10L,
-        verificationResourceRef = 9L,
+        verificationBatchResourceRef = 9L,
+        verificationResourceRef = 10L,
         proceed = "Y",
         taxTreatment = None
       )
@@ -626,8 +626,8 @@ class VerificationServiceSpec extends SpecBase {
 
       val req = ProceedVerificationRequest(
         instanceId = "1",
-        verificationBatchResourceRef = 10L,
-        verificationResourceRef = 9L,
+        verificationBatchResourceRef = 9L,
+        verificationResourceRef = 10L,
         proceed = "Y",
         taxTreatment = None
       )

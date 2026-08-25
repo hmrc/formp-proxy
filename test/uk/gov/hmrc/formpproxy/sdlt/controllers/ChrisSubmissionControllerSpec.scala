@@ -16,20 +16,23 @@
 
 package uk.gov.hmrc.formpproxy.sdlt.controllers
 
-import org.mockito.ArgumentMatchers.eq as eqTo
+import org.mockito.ArgumentMatchers.{any, eq as eqTo}
 import org.mockito.Mockito.*
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.{JsObject, JsValue, Json}
-import play.api.mvc.{ControllerComponents, PlayBodyParsers, Result}
+import play.api.mvc.{BodyParsers, ControllerComponents, PlayBodyParsers, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
+import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.formpproxy.actions.{AuthAction, AuthOrInternalAuthAction, FakeAuthAction}
 import uk.gov.hmrc.formpproxy.sdlt.controllers.returns.ChrisSubmissionController
 import uk.gov.hmrc.formpproxy.sdlt.models.submission.*
 import uk.gov.hmrc.formpproxy.sdlt.services.submission.ChrisSubmissionService
+import uk.gov.hmrc.internalauth.client.{IAAction, Predicate, Resource, Retrieval}
+import uk.gov.hmrc.internalauth.client.test.{BackendAuthComponentsStub, StubBehaviour}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -295,6 +298,25 @@ class ChrisSubmissionControllerSpec extends AnyFreeSpec with Matchers with Scala
       verify(mockService).updateSubmission(eqTo(request))
       verifyNoMoreInteractions(mockService)
     }
+  }
+
+  "still updates for a signed in user pressing submit without a service token" in new Setup {
+    when(mockAuthConnector.authorise[Unit](any(), any())(any(), any())).thenReturn(Future.unit)
+
+    val request: UpdateSubmissionRequest = UpdateSubmissionRequest(
+      storn = "STORN12345",
+      returnResourceRef = "100001",
+      submission = submissionUpdate
+    )
+
+    when(mockService.updateSubmission(eqTo(request)))
+      .thenReturn(Future.successful(UpdateSubmissionReturn(success = true)))
+
+    val res: Future[Result] = controller.updateSubmission()(makeUserRequest(Json.toJson(request)))
+
+    status(res) mustBe OK
+    (contentAsJson(res) \ "success").as[Boolean] mustBe true
+    verifyNoInteractions(internalAuth)
   }
 
   "ChrisSubmissionController createSubmissionErrorDetail" - {
@@ -1099,12 +1121,35 @@ class ChrisSubmissionControllerSpec extends AnyFreeSpec with Matchers with Scala
     private val parsers: PlayBodyParsers = cc.parsers
     private def fakeAuth: AuthAction     = new FakeAuthAction(parsers)
 
+    private val submissions      = Resource.from("formp-proxy", "formp-proxy/sdlt/submissions")
+    private val readSubmissions  = Predicate.Permission(submissions, IAAction("READ"))
+    private val writeSubmissions = Predicate.Permission(submissions, IAAction("WRITE"))
+
+    val internalAuth: StubBehaviour = mock[StubBehaviour]
+    when(internalAuth.stubAuth(Some(readSubmissions), Retrieval.EmptyRetrieval)).thenReturn(Future.unit)
+    when(internalAuth.stubAuth(Some(writeSubmissions), Retrieval.EmptyRetrieval)).thenReturn(Future.unit)
+
+    val mockAuthConnector: AuthConnector = mock[AuthConnector]
+
+    val authOrInternalAuth: AuthOrInternalAuthAction =
+      new AuthOrInternalAuthAction(
+        mockAuthConnector,
+        BackendAuthComponentsStub(internalAuth)(cc, ec),
+        new BodyParsers.Default(parsers)
+      )
+
     val mockService: ChrisSubmissionService = mock[ChrisSubmissionService]
-    val controller                          = new ChrisSubmissionController(fakeAuth, mockService, cc)
+    val controller                          =
+      new ChrisSubmissionController(fakeAuth, authOrInternalAuth, mockService, cc)
+
+    def makeUserRequest(body: JsValue): FakeRequest[JsValue] =
+      FakeRequest(POST, "/formp-proxy/sdlt/submission")
+        .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON, "X-Session-ID" -> "session-abc")
+        .withBody(body)
 
     def makeJsonRequest(body: JsValue): FakeRequest[JsValue] =
       FakeRequest(POST, "/formp-proxy/sdlt/submission")
-        .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(body)
   }
 }

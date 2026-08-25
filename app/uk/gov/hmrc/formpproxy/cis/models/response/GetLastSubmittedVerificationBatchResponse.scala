@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,20 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.formpproxy.cis.models.requests
+package uk.gov.hmrc.formpproxy.cis.models.response
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.formpproxy.cis.models.*
 
-case class ProceedVerificationRequest(
-  instanceId: String,
-  verificationBatchResourceRef: Long,
-  verificationResourceRef: Long,
-  proceed: String,
-  taxTreatment: Option[String]
+final case class GetLastSubmittedVerificationBatchResponse(
+  scheme: Option[ContractorScheme],
+  subcontractors: Seq[Subcontractor],
+  verificationBatch: Option[VerificationBatch],
+  verifications: Seq[Verification],
+  submission: Option[Submission]
 )
 
-object ProceedVerificationRequest {
-  given OFormat[ProceedVerificationRequest] = Json.format
+object GetLastSubmittedVerificationBatchResponse {
+  given format: OFormat[GetLastSubmittedVerificationBatchResponse] =
+    Json.format[GetLastSubmittedVerificationBatchResponse]
 }
