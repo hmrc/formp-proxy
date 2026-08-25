@@ -192,7 +192,7 @@ object ResetGovTalkStatusRequest {
 case class UpdateGovTalkStatusRequest(
   userIdentifier: String,
   formResultId: String,
-  endStateTimestamp: String,
+  endStateTimestamp: Option[String],
   protocolStatus: String
 )
 

@@ -1014,7 +1014,7 @@ class SubmissionModelsSpec extends AnyFreeSpec with Matchers {
       val request = UpdateGovTalkStatusRequest(
         userIdentifier = "USER-001",
         formResultId = "FRID-001",
-        endStateTimestamp = "2026-01-15T10:10:00Z",
+        endStateTimestamp = Some("2026-01-15T10:10:00Z"),
         protocolStatus = "ACKNOWLEDGED"
       )
 
@@ -1041,7 +1041,7 @@ class SubmissionModelsSpec extends AnyFreeSpec with Matchers {
 
       request.userIdentifier mustBe "USER-001"
       request.formResultId mustBe "FRID-001"
-      request.endStateTimestamp mustBe "2026-01-15T10:10:00Z"
+      request.endStateTimestamp mustBe Some("2026-01-15T10:10:00Z")
       request.protocolStatus mustBe "ACKNOWLEDGED"
     }
 

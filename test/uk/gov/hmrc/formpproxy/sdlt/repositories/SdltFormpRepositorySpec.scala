@@ -4971,7 +4971,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       val request = UpdateGovTalkStatusRequest(
         userIdentifier = "STORN12345",
         formResultId = "SUB123",
-        endStateTimestamp = "2025-01-15 12:00:00",
+        endStateTimestamp = Some("2025-01-15 12:00:00"),
         protocolStatus = "response"
       )
 
@@ -4984,6 +4984,39 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(cs).setString(2, "SUB123")
       verify(cs).setString(3, "response")
       verify(cs).setTimestamp(4, Timestamp.valueOf("2025-01-15 12:00:00"))
+      verify(cs).execute()
+      verify(cs).close()
+    }
+
+    "bind a SQL NULL end-state timestamp when the caller supplies none" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call SUBMISSION_ADMIN.UpdateGovTalkStatus(?, ?, ?, ?) }"))).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateGovTalkStatusRequest(
+        userIdentifier = "STORN12345",
+        formResultId = "SUB123",
+        endStateTimestamp = None,
+        protocolStatus = "response"
+      )
+
+      val result = repo.sdltUpdateGovTalkStatus(request).futureValue
+
+      result.success mustBe true
+
+      verify(conn).prepareCall("{ call SUBMISSION_ADMIN.UpdateGovTalkStatus(?, ?, ?, ?) }")
+      verify(cs).setString(1, "STORN12345")
+      verify(cs).setString(2, "SUB123")
+      verify(cs).setString(3, "response")
+      verify(cs).setNull(4, Types.TIMESTAMP)
       verify(cs).execute()
       verify(cs).close()
     }

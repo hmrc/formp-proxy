@@ -2877,7 +2877,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     conn: Connection,
     p_user_identifier: String,
     p_formResultId: String,
-    p_endstate_timestamp: String,
+    p_endstate_timestamp: Option[String],
     p_protocol_status: String
   ): GovTalkStatusReturn = {
     val cs = conn.prepareCall("{ call SUBMISSION_ADMIN.UpdateGovTalkStatus(?, ?, ?, ?) }")
@@ -2885,7 +2885,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       cs.setString(1, p_user_identifier)
       cs.setString(2, p_formResultId)
       cs.setString(3, p_protocol_status)
-      setRequiredTimestamp(cs, 4, p_endstate_timestamp)
+      setOptionalTimestamp(cs, 4, p_endstate_timestamp)
       cs.execute()
       GovTalkStatusReturn(success = true)
     } finally cs.close()

@@ -103,7 +103,7 @@ class ChrisSubmissionServiceSpec extends AnyFreeSpec with Matchers with MockitoS
     UpdateGovTalkStatusRequest(
       userIdentifier = "STORN12345",
       formResultId = "SUB123",
-      endStateTimestamp = "2025-01-15 12:00:00",
+      endStateTimestamp = Some("2025-01-15 12:00:00"),
       protocolStatus = "response"
     )
 

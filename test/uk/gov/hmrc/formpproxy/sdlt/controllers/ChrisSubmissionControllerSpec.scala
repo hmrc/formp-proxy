@@ -596,7 +596,7 @@ class ChrisSubmissionControllerSpec extends AnyFreeSpec with Matchers with Scala
       val request: UpdateGovTalkStatusRequest = UpdateGovTalkStatusRequest(
         userIdentifier = "USER123",
         formResultId = "FRID-1",
-        endStateTimestamp = "2026-01-02 11:30:00",
+        endStateTimestamp = Some("2026-01-02 11:30:00"),
         protocolStatus = "SUBMITTED"
       )
 
@@ -642,7 +642,7 @@ class ChrisSubmissionControllerSpec extends AnyFreeSpec with Matchers with Scala
       val request: UpdateGovTalkStatusRequest = UpdateGovTalkStatusRequest(
         userIdentifier = "USER123",
         formResultId = "FRID-1",
-        endStateTimestamp = "2026-01-02 11:30:00",
+        endStateTimestamp = Some("2026-01-02 11:30:00"),
         protocolStatus = "SUBMITTED"
       )
 
