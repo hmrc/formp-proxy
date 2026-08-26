@@ -318,10 +318,12 @@ class VerificationServiceSpec extends SpecBase {
         verificationResourceRef = 111L
       )
 
-      when(repo.deleteVerification(eqTo(request)))
-        .thenReturn(Future.successful(()))
+      val response = DeleteVerificationResponse(Some(2L))
 
-      service.deleteVerification(request).futureValue mustBe ()
+      when(repo.deleteVerification(eqTo(request)))
+        .thenReturn(Future.successful(response))
+
+      service.deleteVerification(request).futureValue mustBe response
 
       verify(repo).deleteVerification(eqTo(request))
       verifyNoMoreInteractions(repo)

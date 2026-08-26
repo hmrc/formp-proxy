@@ -711,7 +711,7 @@ class VerificationControllerSpec extends SpecBase {
 
     val url = "/cis/verification/delete"
 
-    "returns 204 NoContent when service succeeds" in {
+    "returns 200 Ok with remaining verifications counter when service succeeds" in {
       val s = setup;
       import s.*
 
@@ -720,8 +720,10 @@ class VerificationControllerSpec extends SpecBase {
         verificationResourceRef = 111L
       )
 
+      val responseModel = DeleteVerificationResponse(Some(2L))
+
       when(mockService.deleteVerification(eqTo(requestModel)))
-        .thenReturn(Future.successful(()))
+        .thenReturn(Future.successful(responseModel))
 
       val req = FakeRequest(POST, url)
         .withHeaders(CONTENT_TYPE -> JSON)
@@ -729,8 +731,9 @@ class VerificationControllerSpec extends SpecBase {
 
       val result = controller.deleteVerification().apply(req)
 
-      status(result) mustBe NO_CONTENT
-      contentAsString(result) mustBe ""
+      status(result) mustBe OK
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.toJson(responseModel)
 
       verify(mockService).deleteVerification(eqTo(requestModel))
       verifyNoMoreInteractions(mockService)

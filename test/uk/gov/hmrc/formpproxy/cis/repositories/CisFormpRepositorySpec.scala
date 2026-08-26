@@ -3547,18 +3547,64 @@ final class CisFormpRepositorySpec extends SpecBase {
 
   "deleteVerification" - {
 
-    "calls Delete_Verification_2 and returns Unit" in {
+    "updates scheme version, deletes verification, and returns remaining verifications counter" in {
       val db   = mock[Database]
       val conn = mock[Connection]
-      val cs   = mock[CallableStatement]
 
-      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+      val csGetScheme           = mock[CallableStatement]
+      val rsSchemeVersion       = mock[ResultSet]
+      val csDeleteVerification  = mock[CallableStatement]
+      val csUpdateSchemeVersion = mock[CallableStatement]
+      val csGetCurrentBatch     = mock[CallableStatement]
+      val rsScheme              = mock[ResultSet]
+      val rsSubcontractors      = mock[ResultSet]
+      val rsVerificationBatch   = mock[ResultSet]
+      val rsVerifications       = mock[ResultSet]
+      val rsSubmission          = mock[ResultSet]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
         inv.getArgument(0, classOf[Connection => Any]).apply(conn)
       }
 
-      val callDeleteVerification = "{ call VERIFICATION_PROCS.DELETE_VERIFICATION_2(?, ?) }"
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetScheme))).thenReturn(csGetScheme)
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallDeleteVerification))).thenReturn(csDeleteVerification)
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateSchemeVersion))).thenReturn(csUpdateSchemeVersion)
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetCurrentVerificationBatch))).thenReturn(csGetCurrentBatch)
 
-      when(conn.prepareCall(eqTo(callDeleteVerification))).thenReturn(cs)
+      when(csGetScheme.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsSchemeVersion)
+      when(rsSchemeVersion.next()).thenReturn(true, false)
+      when(rsSchemeVersion.getLong("scheme_id")).thenReturn(999L)
+      when(rsSchemeVersion.getInt("version")).thenReturn(4)
+      when(rsSchemeVersion.wasNull()).thenReturn(false)
+      when(rsSchemeVersion.getString("email_address")).thenReturn(null)
+
+      when(csUpdateSchemeVersion.getInt(2)).thenReturn(5)
+
+      when(csGetCurrentBatch.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+      when(csGetCurrentBatch.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
+      when(csGetCurrentBatch.getObject(eqTo(4), eqTo(classOf[ResultSet]))).thenReturn(rsVerificationBatch)
+      when(csGetCurrentBatch.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsVerifications)
+      when(csGetCurrentBatch.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+
+      when(rsScheme.next()).thenReturn(false)
+      when(rsSubcontractors.next()).thenReturn(false)
+      when(rsVerifications.next()).thenReturn(false)
+      when(rsSubmission.next()).thenReturn(false)
+
+      when(rsVerificationBatch.next()).thenReturn(true, false)
+      when(rsVerificationBatch.getLong("verification_batch_id")).thenReturn(55L)
+      when(rsVerificationBatch.getLong("scheme_id")).thenReturn(999L)
+      when(rsVerificationBatch.getLong("verifications_counter")).thenReturn(2L)
+      when(rsVerificationBatch.wasNull()).thenReturn(false)
+      when(rsVerificationBatch.getLong("verif_batch_resource_ref")).thenReturn(101L)
+      when(rsVerificationBatch.getString("proceed_session")).thenReturn("Y")
+      when(rsVerificationBatch.getString("confirm_arrangement")).thenReturn("Y")
+      when(rsVerificationBatch.getString("confirm_correct")).thenReturn("Y")
+      when(rsVerificationBatch.getString("status")).thenReturn("STARTED")
+      when(rsVerificationBatch.getString("verification_number")).thenReturn("VB123")
+      when(rsVerificationBatch.getTimestamp("create_date")).thenReturn(Timestamp.valueOf("2026-04-01 10:00:00"))
+      when(rsVerificationBatch.getTimestamp("last_update")).thenReturn(Timestamp.valueOf("2026-04-02 11:00:00"))
+      when(rsVerificationBatch.getInt("version")).thenReturn(1)
 
       val repo = new CisFormpRepository(db)
 
@@ -3567,28 +3613,63 @@ final class CisFormpRepositorySpec extends SpecBase {
         verificationResourceRef = 111L
       )
 
-      repo.deleteVerification(request).futureValue mustBe ()
+      repo.deleteVerification(request).futureValue mustBe DeleteVerificationResponse(Some(2L))
 
-      verify(conn).prepareCall(eqTo(callDeleteVerification))
-      verify(cs).setString(1, "abc-123")
-      verify(cs).setLong(2, 111L)
-      verify(cs).execute()
-      verify(cs).close()
+      verify(csGetScheme).setString(1, "abc-123")
+      verify(csGetScheme).registerOutParameter(2, Types.REF_CURSOR)
+      verify(csGetScheme).execute()
+
+      verify(csDeleteVerification).setString(1, "abc-123")
+      verify(csDeleteVerification).setLong(2, 111L)
+      verify(csDeleteVerification).execute()
+
+      verify(csUpdateSchemeVersion).setString(1, "abc-123")
+      verify(csUpdateSchemeVersion).setInt(2, 4)
+      verify(csUpdateSchemeVersion).registerOutParameter(2, Types.INTEGER)
+      verify(csUpdateSchemeVersion).execute()
+
+      verify(csGetCurrentBatch).setString(1, "abc-123")
+      verify(csGetCurrentBatch).registerOutParameter(2, OracleTypes.CURSOR)
+      verify(csGetCurrentBatch).registerOutParameter(3, OracleTypes.CURSOR)
+      verify(csGetCurrentBatch).registerOutParameter(4, OracleTypes.CURSOR)
+      verify(csGetCurrentBatch).registerOutParameter(5, OracleTypes.CURSOR)
+      verify(csGetCurrentBatch).registerOutParameter(6, OracleTypes.CURSOR)
+      verify(csGetCurrentBatch).execute()
+
+      verify(csGetScheme).close()
+      verify(rsSchemeVersion).close()
+      verify(csDeleteVerification).close()
+      verify(csUpdateSchemeVersion).close()
+      verify(csGetCurrentBatch).close()
+      verify(rsScheme).close()
+      verify(rsSubcontractors).close()
+      verify(rsVerificationBatch).close()
+      verify(rsVerifications).close()
+      verify(rsSubmission).close()
     }
 
     "propagates failure if Delete_Verification_2 fails" in {
-      val db   = mock[Database]
-      val conn = mock[Connection]
-      val cs   = mock[CallableStatement]
+      val db                   = mock[Database]
+      val conn                 = mock[Connection]
+      val csGetScheme          = mock[CallableStatement]
+      val rsSchemeVersion      = mock[ResultSet]
+      val csDeleteVerification = mock[CallableStatement]
 
-      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
         inv.getArgument(0, classOf[Connection => Any]).apply(conn)
       }
 
-      val callDeleteVerification = "{ call VERIFICATION_PROCS.DELETE_VERIFICATION_2(?, ?) }"
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetScheme))).thenReturn(csGetScheme)
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallDeleteVerification))).thenReturn(csDeleteVerification)
 
-      when(conn.prepareCall(eqTo(callDeleteVerification))).thenReturn(cs)
-      when(cs.execute()).thenThrow(new RuntimeException("verification boom"))
+      when(csGetScheme.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsSchemeVersion)
+      when(rsSchemeVersion.next()).thenReturn(true, false)
+      when(rsSchemeVersion.getLong("scheme_id")).thenReturn(999L)
+      when(rsSchemeVersion.getInt("version")).thenReturn(4)
+      when(rsSchemeVersion.wasNull()).thenReturn(false)
+      when(rsSchemeVersion.getString("email_address")).thenReturn(null)
+
+      when(csDeleteVerification.execute()).thenThrow(new RuntimeException("verification boom"))
 
       val repo = new CisFormpRepository(db)
 
@@ -3600,7 +3681,11 @@ final class CisFormpRepositorySpec extends SpecBase {
       val ex = repo.deleteVerification(request).failed.futureValue
       ex.getMessage must include("verification boom")
 
-      verify(cs).close()
+      verify(csGetScheme).close()
+      verify(rsSchemeVersion).close()
+      verify(csDeleteVerification).close()
+      verify(conn, never()).prepareCall(eqTo(CisStoredProcedures.CallUpdateSchemeVersion))
+      verify(conn, never()).prepareCall(eqTo(CisStoredProcedures.CallGetCurrentVerificationBatch))
     }
   }
 

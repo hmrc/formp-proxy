@@ -115,7 +115,7 @@ class VerificationController @Inject() (
           req =>
             service
               .deleteVerification(req)
-              .map(_ => NoContent)
+              .map(res => Ok(Json.toJson(res)))
               .recover { case t =>
                 logger.error("[deleteVerification] failed", t)
                 InternalServerError(Json.obj("message" -> "Unexpected error"))

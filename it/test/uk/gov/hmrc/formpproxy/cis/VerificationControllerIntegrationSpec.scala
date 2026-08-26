@@ -25,6 +25,7 @@ import play.api.http.Status.*
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsNull, Json}
+import uk.gov.hmrc.formpproxy.cis.models.response.DeleteVerificationResponse
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
 import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, AuthStub}
 
@@ -39,7 +40,7 @@ class VerificationControllerIntegrationSpec
   private lazy val stubRepo: CisMonthlyReturnSource = {
     val m = org.mockito.Mockito.mock(classOf[CisMonthlyReturnSource])
     when(m.modifyVerifications(any())).thenReturn(Future.successful(()))
-    when(m.deleteVerification(any())).thenReturn(Future.successful(()))
+    when(m.deleteVerification(any())).thenReturn(Future.successful(DeleteVerificationResponse(Some(2L))))
     when(m.updateVerificationSubmission(any())).thenReturn(Future.successful(()))
     m
   }
@@ -170,7 +171,7 @@ class VerificationControllerIntegrationSpec
       res.status mustBe UNAUTHORIZED
     }
 
-    "return 204 when the request is valid" in {
+    "return 200 with remaining verifications counter when the request is valid" in {
       AuthStub.authorised()
 
       val res = postAwait(
@@ -181,7 +182,8 @@ class VerificationControllerIntegrationSpec
         )
       )
 
-      res.status mustBe NO_CONTENT
+      res.status mustBe OK
+      res.json mustBe Json.obj("verificationsCounter" -> 2L)
     }
   }
 
