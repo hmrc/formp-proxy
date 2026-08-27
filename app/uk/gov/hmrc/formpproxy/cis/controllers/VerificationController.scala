@@ -234,14 +234,19 @@ class VerificationController @Inject() (
 
   def proceedVerification(): Action[JsValue] =
     Action(parse.json).async { implicit request =>
-      withJsonBody[ProceedVerificationRequest](req =>
-        service
-          .proceedVerification(req)
-          .map(_ => NoContent)
-          .recover { case t =>
-            logger.error("[proceedVerification] failed", t)
-            InternalServerError(Json.obj("message" -> "Unexpected error"))
-          }
-      )
+      request.body
+        .validate[ProceedVerificationRequest]
+        .fold(
+          errs =>
+            Future.successful(BadRequest(Json.obj("message" -> "Invalid payload", "errors" -> JsError.toJson(errs)))),
+          req =>
+            service
+              .proceedVerification(req)
+              .map(_ => NoContent)
+              .recover { case t =>
+                logger.error("[proceedVerification] failed", t)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
+              }
+        )
     }
 }
