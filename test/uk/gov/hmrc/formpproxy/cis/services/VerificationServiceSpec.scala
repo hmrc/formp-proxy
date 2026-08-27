@@ -596,4 +596,49 @@ class VerificationServiceSpec extends SpecBase {
       verifyNoMoreInteractions(repo)
     }
   }
+
+  "VerificationService#proceedInsufficientVerification" - {
+
+    "delegates to repository" in {
+      val c = Ctx();
+      import c.*
+
+      val req = ProceedInsufficientVerificationRequest(
+        instanceId = "1",
+        verificationBatchResourceRef = 9L,
+        verificationResourceRef = 10L,
+        proceed = "Y"
+      )
+
+      when(repo.proceedInsufficientVerification(eqTo(req)))
+        .thenReturn(Future.successful(()))
+
+      service.proceedInsufficientVerification(req).futureValue mustBe ()
+
+      verify(repo).proceedInsufficientVerification(eqTo(req))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failure from repository" in {
+      val c = Ctx();
+      import c.*
+
+      val req = ProceedInsufficientVerificationRequest(
+        instanceId = "1",
+        verificationBatchResourceRef = 9L,
+        verificationResourceRef = 10L,
+        proceed = "Y"
+      )
+
+      val boom = new RuntimeException("boom")
+
+      when(repo.proceedInsufficientVerification(eqTo(req)))
+        .thenReturn(Future.failed(boom))
+
+      service.proceedInsufficientVerification(req).failed.futureValue mustBe boom
+
+      verify(repo).proceedInsufficientVerification(eqTo(req))
+      verifyNoMoreInteractions(repo)
+    }
+  }
 }
