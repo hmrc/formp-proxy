@@ -94,6 +94,8 @@ trait CisMonthlyReturnSource {
   def getSubmissionWithVerificationBatch(
     req: GetSubmissionWithVerificationBatchRequest
   ): Future[GetSubmissionWithVerificationBatchResponse]
+  def proceedInsufficientVerification(req: ProceedInsufficientVerificationRequest): Future[Unit]
+
   def getSubcontractorForDelete(cisId: String, subbieResourceRef: Long): Future[GetSubcontractorForDeleteResponse]
 
   def deleteSubcontractor(request: DeleteSubcontractorRequest): Future[Unit]
@@ -1412,9 +1414,9 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
             instanceId = req.instanceId,
             verificationBatchResourceRef = req.verificationBatchResourceRef,
             verificationResourceRef = v.verificationResourceRef,
-            actionIndicator = actionIndicator,
+            actionIndicator = Some(actionIndicator),
             proceed = v.proceedVerification,
-            subcontractorName = v.subcontractorName
+            subcontractorName = Some(v.subcontractorName)
           )
         }
 
@@ -1452,9 +1454,9 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     instanceId: String,
     verificationBatchResourceRef: Long,
     verificationResourceRef: Long,
-    actionIndicator: String,
+    actionIndicator: Option[String],
     proceed: String,
-    subcontractorName: String
+    subcontractorName: Option[String]
   ): Unit =
     withCall(conn, CallUpdateVerification) { cs =>
       cs.setString(1, instanceId)
@@ -1465,9 +1467,9 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setNull(5, Types.VARCHAR)
       cs.setNull(6, Types.VARCHAR)
 
-      cs.setString(7, actionIndicator)
+      cs.setOptionalString(7, actionIndicator)
       cs.setString(8, proceed)
-      cs.setString(9, subcontractorName)
+      cs.setOptionalString(9, subcontractorName)
 
       cs.setNull(10, Types.INTEGER)
       cs.registerOutParameter(10, Types.INTEGER)
@@ -1520,6 +1522,29 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
   }
+
+  override def proceedInsufficientVerification(request: ProceedInsufficientVerificationRequest): Future[Unit] =
+    logger.info(
+      s"[CIS] proceedInsufficientVerification(instanceId=${request.instanceId}, verificationBatchResourceRef=${request.verificationBatchResourceRef}, verificationResourceRef=${request.verificationResourceRef})"
+    )
+    Future {
+      db.withTransaction { conn =>
+
+        val schemeVersionBefore = getSchemeVersion(conn, request.instanceId)
+
+        callUpdateVerification(
+          conn = conn,
+          instanceId = request.instanceId,
+          verificationBatchResourceRef = request.verificationBatchResourceRef,
+          verificationResourceRef = request.verificationResourceRef,
+          actionIndicator = None,
+          proceed = request.proceed,
+          subcontractorName = None
+        )
+
+        callUpdateSchemeVersion(conn, request.instanceId, schemeVersionBefore)
+      }
+    }
 
   override def getBatchPollSubmissions(): Future[GetBatchPollSubmissionsResponse]                                     = {
     logger.info("[CIS][getBatchPollSubmissions] Calling GET_SUBMISSIONS_FOR_POLLING")

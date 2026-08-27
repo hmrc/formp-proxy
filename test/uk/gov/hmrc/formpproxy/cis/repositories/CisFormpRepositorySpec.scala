@@ -2613,25 +2613,25 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsScheme.getString("name")).thenReturn(null)
       when(rsScheme.getString("email_address")).thenReturn(null)
       when(rsScheme.getString("display_welcome_page")).thenReturn(null)
-      when(rsScheme.getInt("pre_pop_count")).thenReturn(0);
+      when(rsScheme.getInt("pre_pop_count")).thenReturn(0)
       when(rsScheme.wasNull()).thenReturn(true)
       when(rsScheme.getString("pre_pop_successful")).thenReturn(null)
-      when(rsScheme.getInt("subcontractor_counter")).thenReturn(0);
+      when(rsScheme.getInt("subcontractor_counter")).thenReturn(0)
       when(rsScheme.wasNull()).thenReturn(true)
-      when(rsScheme.getInt("verif_batch_counter")).thenReturn(0);
+      when(rsScheme.getInt("verif_batch_counter")).thenReturn(0)
       when(rsScheme.wasNull()).thenReturn(true)
       when(rsScheme.getTimestamp("create_date")).thenReturn(null)
       when(rsScheme.getTimestamp("last_update")).thenReturn(null)
-      when(rsScheme.getInt("version")).thenReturn(0);
+      when(rsScheme.getInt("version")).thenReturn(0)
       when(rsScheme.wasNull()).thenReturn(true)
 
       when(rsSubcontractors.next()).thenReturn(true, false)
       when(rsSubcontractors.getLong("subcontractor_id")).thenReturn(1L)
-      when(rsSubcontractors.getLong("subbie_resource_ref")).thenReturn(10L);
+      when(rsSubcontractors.getLong("subbie_resource_ref")).thenReturn(10L)
       when(rsSubcontractors.wasNull()).thenReturn(false)
       when(rsSubcontractors.getString("type")).thenReturn("soletrader")
       when(rsSubcontractors.getString("utr")).thenReturn("1111111111")
-      when(rsSubcontractors.getInt("page_visited")).thenReturn(2);
+      when(rsSubcontractors.getInt("page_visited")).thenReturn(2)
       when(rsSubcontractors.wasNull()).thenReturn(false)
       when(rsSubcontractors.getString("partner_utr")).thenReturn(null)
       when(rsSubcontractors.getString("crn")).thenReturn(null)
@@ -2651,7 +2651,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsSubcontractors.getString("phone_number")).thenReturn(null)
       when(rsSubcontractors.getString("mobile_phone_number")).thenReturn(null)
       when(rsSubcontractors.getString("works_reference_number")).thenReturn(null)
-      when(rsSubcontractors.getInt("version")).thenReturn(1);
+      when(rsSubcontractors.getInt("version")).thenReturn(1)
       when(rsSubcontractors.wasNull()).thenReturn(false)
       when(rsSubcontractors.getString("tax_treatment")).thenReturn(null)
       when(rsSubcontractors.getString("updated_tax_treatment")).thenReturn(null)
@@ -2663,15 +2663,15 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsSubcontractors.getString("auto_verified")).thenReturn(null)
       when(rsSubcontractors.getTimestamp("verification_date")).thenReturn(null)
       when(rsSubcontractors.getTimestamp("last_monthly_return_date")).thenReturn(null)
-      when(rsSubcontractors.getInt("pending_verifications")).thenReturn(0);
+      when(rsSubcontractors.getInt("pending_verifications")).thenReturn(0)
       when(rsSubcontractors.wasNull()).thenReturn(false)
 
       when(rsVerificationBatch.next()).thenReturn(true, false)
       when(rsVerificationBatch.getLong("verification_batch_id")).thenReturn(55L)
       when(rsVerificationBatch.getLong("scheme_id")).thenReturn(999L)
-      when(rsVerificationBatch.getLong("verifications_counter")).thenReturn(1L);
+      when(rsVerificationBatch.getLong("verifications_counter")).thenReturn(1L)
       when(rsVerificationBatch.wasNull()).thenReturn(false)
-      when(rsVerificationBatch.getLong("verif_batch_resource_ref")).thenReturn(101L);
+      when(rsVerificationBatch.getLong("verif_batch_resource_ref")).thenReturn(101L)
       when(rsVerificationBatch.wasNull()).thenReturn(false)
       when(rsVerificationBatch.getString("proceed_session")).thenReturn("Y")
       when(rsVerificationBatch.getString("confirm_arrangement")).thenReturn("Y")
@@ -2680,7 +2680,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsVerificationBatch.getString("verification_number")).thenReturn("VB123")
       when(rsVerificationBatch.getTimestamp("create_date")).thenReturn(Timestamp.valueOf("2026-04-01 10:00:00"))
       when(rsVerificationBatch.getTimestamp("last_update")).thenReturn(Timestamp.valueOf("2026-04-02 11:00:00"))
-      when(rsVerificationBatch.getInt("version")).thenReturn(1);
+      when(rsVerificationBatch.getInt("version")).thenReturn(1)
       when(rsVerificationBatch.wasNull()).thenReturn(false)
 
       when(rsVerifications.next()).thenReturn(true, false)
@@ -2689,25 +2689,25 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsVerifications.getString("verification_number")).thenReturn("V0001")
       when(rsVerifications.getString("tax_treatment")).thenReturn("NET")
       when(rsVerifications.getString("action_indicator")).thenReturn("A")
-      when(rsVerifications.getLong("verification_batch_id")).thenReturn(55L);
+      when(rsVerifications.getLong("verification_batch_id")).thenReturn(55L)
       when(rsVerifications.wasNull()).thenReturn(false)
-      when(rsVerifications.getLong("scheme_id")).thenReturn(999L);
+      when(rsVerifications.getLong("scheme_id")).thenReturn(999L)
       when(rsVerifications.wasNull()).thenReturn(false)
-      when(rsVerifications.getLong("subcontractor_id")).thenReturn(1L);
+      when(rsVerifications.getLong("subcontractor_id")).thenReturn(1L)
       when(rsVerifications.wasNull()).thenReturn(false)
       when(rsVerifications.getString("subcontractor_name")).thenReturn("ACME")
-      when(rsVerifications.getLong("verification_resource_ref")).thenReturn(777L);
+      when(rsVerifications.getLong("verification_resource_ref")).thenReturn(777L)
       when(rsVerifications.wasNull()).thenReturn(false)
       when(rsVerifications.getString("proceed")).thenReturn("Y")
       when(rsVerifications.getTimestamp("create_date")).thenReturn(Timestamp.valueOf("2026-04-01 10:00:00"))
       when(rsVerifications.getTimestamp("last_update")).thenReturn(Timestamp.valueOf("2026-04-02 11:00:00"))
-      when(rsVerifications.getInt("version")).thenReturn(1);
+      when(rsVerifications.getInt("version")).thenReturn(1)
       when(rsVerifications.wasNull()).thenReturn(false)
 
       when(rsSubmission.next()).thenReturn(true, false)
       when(rsSubmission.getLong("submission_id")).thenReturn(500L)
       when(rsSubmission.getString("submission_type")).thenReturn("VERIFICATIONS")
-      when(rsSubmission.getLong("active_object_id")).thenReturn(55L);
+      when(rsSubmission.getLong("active_object_id")).thenReturn(55L)
       when(rsSubmission.wasNull()).thenReturn(false)
       when(rsSubmission.getString("status")).thenReturn("ACCEPTED")
       when(rsSubmission.getString("hmrc_mark_generated")).thenReturn(null)
@@ -4440,7 +4440,7 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       when(cs.getString(6)).thenReturn("true")
 
-      val out =
+      val out: GetSubcontractorForDeleteResponse =
         repo.getSubcontractorForDelete("cis-123", 10L).futureValue
 
       out mustBe GetSubcontractorForDeleteResponse(
@@ -4457,8 +4457,7 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       when(cs.getString(6)).thenReturn("false")
 
-      val out =
-        repo.getSubcontractorForDelete("cis-123", 10L).futureValue
+      val out: GetSubcontractorForDeleteResponse = repo.getSubcontractorForDelete("cis-123", 10L).futureValue
 
       out mustBe GetSubcontractorForDeleteResponse(
         subcontractorName = "Gamma Builders",
@@ -4474,8 +4473,7 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       when(cs.getString(6)).thenReturn(" true ")
 
-      val out =
-        repo.getSubcontractorForDelete("cis-123", 10L).futureValue
+      val out: GetSubcontractorForDeleteResponse = repo.getSubcontractorForDelete("cis-123", 10L).futureValue
 
       out.subcontractorName mustBe "Gamma Builders"
       out.subcontractorCanBeDeleted mustBe true
@@ -4489,7 +4487,7 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       when(cs.getString(6)).thenReturn(null)
 
-      val out =
+      val out: GetSubcontractorForDeleteResponse =
         repo.getSubcontractorForDelete("cis-123", 10L).futureValue
 
       out.subcontractorName mustBe "Gamma Builders"
@@ -4503,7 +4501,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rs4.next()).thenReturn(false)
       when(cs.getString(6)).thenReturn("true")
 
-      val exception =
+      val exception: Throwable =
         repo
           .getSubcontractorForDelete("cis-123", 10L)
           .failed
@@ -4552,7 +4550,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       ).foreach(f => when(rs4.getString(f)).thenReturn(null))
       when(cs.getString(6)).thenReturn("true")
 
-      val exception =
+      val exception: Throwable =
         repo.getSubcontractorForDelete("cis-123", 10L).failed.futureValue
 
       exception mustBe an[IllegalStateException]
@@ -4807,6 +4805,75 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(cs).registerOutParameter(6, OracleTypes.CURSOR)
       verify(cs).registerOutParameter(7, OracleTypes.CURSOR)
       verify(cs).execute()
+    }
+  }
+
+  "proceedInsufficientVerification" - {
+
+    "updates insufficient verification " in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      val csGetScheme = mock[CallableStatement]
+      val csVersion   = mock[CallableStatement]
+      val rsScheme    = mock[ResultSet]
+
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetScheme))).thenReturn(csGetScheme)
+      when(csGetScheme.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+
+      when(rsScheme.next()).thenReturn(true, false)
+      when(rsScheme.getLong("scheme_id")).thenReturn(123L)
+
+      when(rsScheme.getInt("version")).thenReturn(1)
+      when(rsScheme.wasNull()).thenReturn(false)
+      when(rsScheme.getString("email_address")).thenReturn(null)
+
+      when(conn.prepareCall(CisStoredProcedures.CallUpdateSchemeVersion))
+        .thenReturn(csVersion)
+      when(csVersion.getInt(2)).thenReturn(2)
+
+      val csUpdate = mock[CallableStatement]
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateVerification))).thenReturn(csUpdate)
+
+      val repo = new CisFormpRepository(db)
+
+      val req = ProceedInsufficientVerificationRequest(
+        instanceId = "abc-123",
+        verificationBatchResourceRef = 999L,
+        verificationResourceRef = 77L,
+        proceed = "Y"
+      )
+
+      repo.proceedInsufficientVerification(req).futureValue
+
+      verify(csUpdate).setString(1, "abc-123")
+      verify(csUpdate).setLong(2, 999L)
+      verify(csUpdate).setLong(3, 77L)
+
+      verify(csUpdate).setNull(4, Types.CHAR) // matched
+      verify(csUpdate).setNull(5, Types.VARCHAR) // verification_number
+      verify(csUpdate).setNull(6, Types.VARCHAR) // tax_treatment
+
+      verify(csUpdate).setNull(7, Types.VARCHAR) // action_indicator
+      verify(csUpdate).setString(8, "Y") // proceed
+      verify(csUpdate).setNull(9, Types.VARCHAR) // subcontractor_name
+
+      verify(csUpdate).setNull(10, Types.INTEGER)
+      verify(csUpdate).registerOutParameter(10, Types.INTEGER)
+      verify(csUpdate).execute()
+
+      verify(conn).prepareCall(eqTo(CisStoredProcedures.CallGetScheme))
+      verify(csGetScheme).execute()
+
+      verify(conn).prepareCall(eqTo(CisStoredProcedures.CallUpdateSchemeVersion))
+
+      verify(rsScheme).close()
+      verify(csGetScheme).close()
+      verify(csUpdate).close()
     }
   }
 }
