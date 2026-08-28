@@ -100,4 +100,6 @@ class VerificationService @Inject() (repo: CisMonthlyReturnSource) {
   ): Future[GetSubmissionWithVerificationBatchResponse] =
     repo.getSubmissionWithVerificationBatch(request)
 
+  def proceedInsufficientVerification(request: ProceedInsufficientVerificationRequest): Future[Unit] =
+    repo.proceedInsufficientVerification(request)
 }

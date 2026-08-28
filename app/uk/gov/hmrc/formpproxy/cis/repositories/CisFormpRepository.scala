@@ -95,6 +95,8 @@ trait CisMonthlyReturnSource {
   def getSubmissionWithVerificationBatch(
     req: GetSubmissionWithVerificationBatchRequest
   ): Future[GetSubmissionWithVerificationBatchResponse]
+  def proceedInsufficientVerification(req: ProceedInsufficientVerificationRequest): Future[Unit]
+
   def getSubcontractorForDelete(cisId: String, subbieResourceRef: Long): Future[GetSubcontractorForDeleteResponse]
 
   def deleteSubcontractor(request: DeleteSubcontractorRequest): Future[Unit]
@@ -102,6 +104,11 @@ trait CisMonthlyReturnSource {
   def getSubmittedVerifications(req: GetSubmittedVerificationsRequest): Future[GetSubmittedVerificationsResponse]
 
   def getSubcontractor(cisId: String, subbieResourceRef: Long): Future[GetSubcontractorResponse]
+
+  def updateSubcontractor(
+    request: UpdateSubcontractorRequest,
+    submittedFields: Set[String]
+  ): Future[UpdateSubcontractorResponse]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -1417,9 +1424,9 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
             instanceId = req.instanceId,
             verificationBatchResourceRef = req.verificationBatchResourceRef,
             verificationResourceRef = v.verificationResourceRef,
-            actionIndicator = actionIndicator,
+            actionIndicator = Some(actionIndicator),
             proceed = v.proceedVerification,
-            subcontractorName = v.subcontractorName
+            subcontractorName = Some(v.subcontractorName)
           )
         }
 
@@ -1457,9 +1464,9 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     instanceId: String,
     verificationBatchResourceRef: Long,
     verificationResourceRef: Long,
-    actionIndicator: String,
+    actionIndicator: Option[String],
     proceed: String,
-    subcontractorName: String
+    subcontractorName: Option[String]
   ): Unit =
     withCall(conn, CallUpdateVerification) { cs =>
       cs.setString(1, instanceId)
@@ -1470,9 +1477,9 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setNull(5, Types.VARCHAR)
       cs.setNull(6, Types.VARCHAR)
 
-      cs.setString(7, actionIndicator)
+      cs.setOptionalString(7, actionIndicator)
       cs.setString(8, proceed)
-      cs.setString(9, subcontractorName)
+      cs.setOptionalString(9, subcontractorName)
 
       cs.setNull(10, Types.INTEGER)
       cs.registerOutParameter(10, Types.INTEGER)
@@ -1525,6 +1532,29 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       }
     }
   }
+
+  override def proceedInsufficientVerification(request: ProceedInsufficientVerificationRequest): Future[Unit] =
+    logger.info(
+      s"[CIS] proceedInsufficientVerification(instanceId=${request.instanceId}, verificationBatchResourceRef=${request.verificationBatchResourceRef}, verificationResourceRef=${request.verificationResourceRef})"
+    )
+    Future {
+      db.withTransaction { conn =>
+
+        val schemeVersionBefore = getSchemeVersion(conn, request.instanceId)
+
+        callUpdateVerification(
+          conn = conn,
+          instanceId = request.instanceId,
+          verificationBatchResourceRef = request.verificationBatchResourceRef,
+          verificationResourceRef = request.verificationResourceRef,
+          actionIndicator = None,
+          proceed = request.proceed,
+          subcontractorName = None
+        )
+
+        callUpdateSchemeVersion(conn, request.instanceId, schemeVersionBefore)
+      }
+    }
 
   override def deleteVerification(req: DeleteVerificationRequest): Future[DeleteVerificationResponse] = {
     logger.info(
@@ -2054,5 +2084,301 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         }
       }
     }
+
+  override def updateSubcontractor(
+    request: UpdateSubcontractorRequest,
+    submittedFields: Set[String]
+  ): Future[UpdateSubcontractorResponse] =
+    Future {
+      logger.info(
+        s"[CIS] updateSubcontractor(cisId=${request.cisId}, subbieResourceRef=${request.subcontractor.subbieResourceRef})"
+      )
+
+      db.withTransaction { conn =>
+        val scheme =
+          loadScheme(conn, request.cisId)
+
+        val subbieResourceRef =
+          request.subcontractor.subbieResourceRef.getOrElse(
+            throw new IllegalArgumentException("subbieResourceRef is required")
+          )
+
+        val existingSubcontractor =
+          getExistingSubcontractorForUpdate(
+            conn = conn,
+            cisId = request.cisId,
+            subbieResourceRef = subbieResourceRef
+          )
+
+        val mergedSubcontractor =
+          mergeSubcontractorForUpdate(
+            existing = existingSubcontractor,
+            incoming = request.subcontractor,
+            submittedFields = submittedFields
+          )
+
+        val updatedSubcontractorVersion =
+          callUpdateExistingSubcontractor(
+            conn = conn,
+            schemeId = scheme.schemeId,
+            subbieResourceRef = subbieResourceRef,
+            subcontractor = mergedSubcontractor
+          )
+
+        callUpdateSchemeVersion(
+          conn,
+          request.cisId,
+          scheme.version.getOrElse(0)
+        )
+
+        UpdateSubcontractorResponse(
+          version = updatedSubcontractorVersion
+        )
+      }
+    }
+
+  private def callUpdateExistingSubcontractor(
+    conn: Connection,
+    schemeId: Long,
+    subbieResourceRef: Long,
+    subcontractor: Subcontractor
+  ): Int =
+    withCall(conn, CallUpdateSubcontractor) { cs =>
+      cs.setLong(1, schemeId)
+      cs.setLong(2, subbieResourceRef)
+
+      cs.setOptionalString(3, subcontractor.utr)
+      cs.setOptionalInt(4, subcontractor.pageVisited)
+      cs.setOptionalString(5, subcontractor.partnerUtr)
+      cs.setOptionalString(6, subcontractor.crn)
+
+      cs.setOptionalString(7, subcontractor.firstName)
+      cs.setOptionalString(8, subcontractor.nino)
+      cs.setOptionalString(9, subcontractor.secondName)
+      cs.setOptionalString(10, subcontractor.surname)
+
+      cs.setOptionalString(11, subcontractor.partnershipTradingName)
+      cs.setOptionalString(12, subcontractor.tradingName)
+
+      cs.setOptionalString(13, subcontractor.addressLine1)
+      cs.setOptionalString(14, subcontractor.addressLine2)
+      cs.setOptionalString(15, subcontractor.addressLine3)
+      cs.setOptionalString(16, subcontractor.addressLine4)
+
+      cs.setOptionalString(17, subcontractor.country)
+      cs.setOptionalString(18, subcontractor.postcode)
+
+      cs.setOptionalString(19, subcontractor.emailAddress)
+      cs.setOptionalString(20, subcontractor.phoneNumber)
+      cs.setOptionalString(21, subcontractor.mobilePhoneNumber)
+      cs.setOptionalString(22, subcontractor.worksReferenceNumber)
+
+      cs.setOptionalString(23, subcontractor.matched)
+      cs.setOptionalString(24, subcontractor.autoVerified)
+      cs.setOptionalString(25, subcontractor.verified)
+      cs.setOptionalString(26, subcontractor.verificationNumber)
+      cs.setOptionalString(27, subcontractor.taxTreatment)
+      cs.setOptionalString(28, subcontractor.updatedTaxTreatment)
+      cs.setOptionalTimestamp(29, subcontractor.verificationDate)
+
+      cs.setOptionalInt(30, subcontractor.version)
+      cs.registerOutParameter(30, Types.INTEGER)
+
+      cs.execute()
+
+      cs.getInt(30)
+    }
+
+  private def getExistingSubcontractorForUpdate(
+    conn: Connection,
+    cisId: String,
+    subbieResourceRef: Long
+  ): Subcontractor =
+    withCall(conn, CallGetSubcontractor) { cs =>
+      cs.setString(1, cisId)
+      cs.setLong(2, subbieResourceRef)
+
+      cs.registerOutParameter(3, OracleTypes.CURSOR)
+      cs.registerOutParameter(4, OracleTypes.CURSOR)
+      cs.registerOutParameter(5, OracleTypes.CURSOR)
+
+      cs.execute()
+
+      discardCursor(cs, 3)
+
+      val subcontractor =
+        withCursor(cs, 4)(collectSubcontractors).headOption.getOrElse(
+          throw new RuntimeException(
+            s"No subcontractor found for cisId=$cisId and subbieResourceRef=$subbieResourceRef"
+          )
+        )
+
+      discardCursor(cs, 5)
+
+      subcontractor
+    }
+
+  private def mergeSubcontractorForUpdate(
+    existing: Subcontractor,
+    incoming: Subcontractor,
+    submittedFields: Set[String]
+  ): Subcontractor = {
+
+    val existingType =
+      existing.subcontractorType.map(_.trim.toLowerCase)
+
+    val hasCompletedVerification =
+      existing.verified.exists(_.trim.equalsIgnoreCase("Y"))
+
+    val hasPendingVerification =
+      existing.pendingVerifications.exists(_ > 0)
+
+    val treatedAsVerified =
+      hasCompletedVerification || hasPendingVerification
+
+    val commonEditableFields =
+      Set(
+        "nino",
+        "worksReferenceNumber",
+        "addressLine1",
+        "addressLine2",
+        "addressLine3",
+        "addressLine4",
+        "country",
+        "postcode",
+        "emailAddress",
+        "phoneNumber",
+        "mobilePhoneNumber"
+      )
+
+    val editableWhenUnverified =
+      existingType match {
+        case Some("soletrader" | "individual") =>
+          commonEditableFields ++ Set(
+            "utr",
+            "firstName",
+            "secondName",
+            "surname",
+            "tradingName"
+          )
+
+        case Some("company") =>
+          commonEditableFields ++ Set(
+            "utr",
+            "tradingName",
+            "crn"
+          )
+
+        case Some("trust") =>
+          commonEditableFields ++ Set(
+            "utr",
+            "tradingName"
+          )
+
+        case Some("partnership") =>
+          commonEditableFields ++ Set(
+            "utr",
+            "partnerUtr",
+            "partnershipTradingName",
+            "tradingName",
+            "crn"
+          )
+
+        case _ =>
+          commonEditableFields
+      }
+
+    val nonEditableWhenVerified =
+      existingType match {
+        case Some("soletrader" | "individual") =>
+          Set(
+            "utr",
+            "firstName",
+            "secondName",
+            "surname",
+            "tradingName"
+          )
+
+        case Some("company") =>
+          Set(
+            "utr",
+            "tradingName"
+          )
+
+        case Some("trust") =>
+          Set(
+            "utr",
+            "tradingName"
+          )
+
+        case Some("partnership") =>
+          Set(
+            "utr",
+            "partnerUtr",
+            "partnershipTradingName"
+          )
+
+        case _ =>
+          Set.empty[String]
+      }
+
+    val allowedFields =
+      if (treatedAsVerified) {
+        editableWhenUnverified -- nonEditableWhenVerified
+      } else {
+        editableWhenUnverified
+      }
+
+    def updateIfAllowed[A](
+      fieldName: String,
+      existingValue: Option[A],
+      incomingValue: Option[A]
+    ): Option[A] =
+      if (submittedFields.contains(fieldName) && allowedFields.contains(fieldName)) {
+        incomingValue
+      } else {
+        existingValue
+      }
+
+    existing.copy(
+      subcontractorId = existing.subcontractorId,
+      subbieResourceRef = existing.subbieResourceRef,
+      subcontractorType = existing.subcontractorType,
+      utr = updateIfAllowed("utr", existing.utr, incoming.utr),
+      firstName = updateIfAllowed("firstName", existing.firstName, incoming.firstName),
+      secondName = updateIfAllowed("secondName", existing.secondName, incoming.secondName),
+      surname = updateIfAllowed("surname", existing.surname, incoming.surname),
+      tradingName = updateIfAllowed("tradingName", existing.tradingName, incoming.tradingName),
+      partnerUtr = updateIfAllowed("partnerUtr", existing.partnerUtr, incoming.partnerUtr),
+      partnershipTradingName =
+        updateIfAllowed("partnershipTradingName", existing.partnershipTradingName, incoming.partnershipTradingName),
+      crn = updateIfAllowed("crn", existing.crn, incoming.crn),
+      nino = updateIfAllowed("nino", existing.nino, incoming.nino),
+      worksReferenceNumber =
+        updateIfAllowed("worksReferenceNumber", existing.worksReferenceNumber, incoming.worksReferenceNumber),
+      addressLine1 = updateIfAllowed("addressLine1", existing.addressLine1, incoming.addressLine1),
+      addressLine2 = updateIfAllowed("addressLine2", existing.addressLine2, incoming.addressLine2),
+      addressLine3 = updateIfAllowed("addressLine3", existing.addressLine3, incoming.addressLine3),
+      addressLine4 = updateIfAllowed("addressLine4", existing.addressLine4, incoming.addressLine4),
+      country = updateIfAllowed("country", existing.country, incoming.country),
+      postcode = updateIfAllowed("postcode", existing.postcode, incoming.postcode),
+      emailAddress = updateIfAllowed("emailAddress", existing.emailAddress, incoming.emailAddress),
+      phoneNumber = updateIfAllowed("phoneNumber", existing.phoneNumber, incoming.phoneNumber),
+      mobilePhoneNumber = updateIfAllowed("mobilePhoneNumber", existing.mobilePhoneNumber, incoming.mobilePhoneNumber),
+      pageVisited = existing.pageVisited,
+      matched = existing.matched,
+      autoVerified = existing.autoVerified,
+      verified = existing.verified,
+      verificationNumber = existing.verificationNumber,
+      taxTreatment = existing.taxTreatment,
+      updatedTaxTreatment = existing.updatedTaxTreatment,
+      verificationDate = existing.verificationDate,
+      createDate = existing.createDate,
+      lastUpdate = existing.lastUpdate,
+      lastMonthlyReturnDate = existing.lastMonthlyReturnDate,
+      pendingVerifications = existing.pendingVerifications,
+      version = existing.version
+    )
+  }
 
 }

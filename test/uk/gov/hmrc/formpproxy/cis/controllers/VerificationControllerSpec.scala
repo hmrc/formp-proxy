@@ -278,7 +278,7 @@ class VerificationControllerSpec extends SpecBase {
   "GET /cis/verification-batch/current/:instanceId (getCurrentVerificationBatch)" - {
 
     "returns 200 OK with JSON body when service succeeds" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val instanceId = "abc-123"
@@ -305,7 +305,7 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 500 InternalServerError with error body when service fails" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val instanceId = "abc-123"
@@ -375,7 +375,7 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 200 OK with JSON body when service succeeds (all fields has values)" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val instId = "abc-123"
@@ -608,7 +608,7 @@ class VerificationControllerSpec extends SpecBase {
     val url = "/cis/verification-batch/modify"
 
     "returns 204 OK with JSON body when service succeeds" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val requestModel = ModifyVerificationsRequest(
@@ -646,7 +646,7 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 400 BadRequest with error payload when JSON is invalid" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val badJson = Json.obj()
@@ -668,7 +668,7 @@ class VerificationControllerSpec extends SpecBase {
     }
 
     "returns 500 InternalServerError with error body when service fails" in {
-      val s = setup;
+      val s = setup
       import s.*
 
       val requestModel = ModifyVerificationsRequest(
@@ -1392,6 +1392,87 @@ class VerificationControllerSpec extends SpecBase {
       contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
 
       verify(mockService).getSubmittedVerifications(eqTo(requestModel))
+      verifyNoMoreInteractions(mockService)
+    }
+  }
+
+  "POST /cis/verification-batch/proceed-with-insufficient-data (proceedInsufficientVerification)" - {
+
+    val url = "/cis/verification-batch/proceed-with-insufficient-data"
+
+    "returns 204 when service succeeds" in {
+      val s = setup
+      import s.*
+
+      val requestModel = ProceedInsufficientVerificationRequest(
+        instanceId = "1",
+        verificationBatchResourceRef = 9L,
+        verificationResourceRef = 10L,
+        proceed = "Y"
+      )
+
+      when(mockService.proceedInsufficientVerification(eqTo(requestModel)))
+        .thenReturn(Future.successful(()))
+
+      val req = FakeRequest(POST, url)
+        .withHeaders(CONTENT_TYPE -> JSON)
+        .withBody(Json.toJson(requestModel))
+
+      val result = controller.proceedInsufficientVerification().apply(req)
+
+      status(result) mustBe NO_CONTENT
+      contentAsString(result) mustBe ""
+
+      verify(mockService).proceedInsufficientVerification(eqTo(requestModel))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 400 BadRequest with error payload when JSON is invalid" in {
+      val s = setup
+      import s.*
+
+      val badJson = Json.obj("instanceId" -> "abc-123")
+
+      val req = FakeRequest(POST, url)
+        .withHeaders(CONTENT_TYPE -> JSON)
+        .withBody(badJson)
+
+      val result = controller.proceedInsufficientVerification().apply(req)
+
+      status(result) mustBe BAD_REQUEST
+      contentType(result) mustBe Some(JSON)
+
+      val body = contentAsJson(result)
+      (body \ "message").as[String] must include("Invalid payload")
+
+      verifyNoInteractions(mockService)
+    }
+
+    "returns 500 InternalServerError with error body when service fails" in {
+      val s = setup
+      import s.*
+
+      val requestModel = ProceedInsufficientVerificationRequest(
+        instanceId = "1",
+        verificationBatchResourceRef = 10L,
+        verificationResourceRef = 9L,
+        proceed = "Y"
+      )
+
+      when(mockService.proceedInsufficientVerification(eqTo(requestModel)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val req = FakeRequest(POST, url)
+        .withHeaders(CONTENT_TYPE -> JSON)
+        .withBody(Json.toJson(requestModel))
+
+      val result = controller.proceedInsufficientVerification().apply(req)
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
+
+      verify(mockService).proceedInsufficientVerification(eqTo(requestModel))
       verifyNoMoreInteractions(mockService)
     }
   }
