@@ -607,7 +607,7 @@ class VerificationServiceSpec extends SpecBase {
         instanceId = "1",
         verificationBatchResourceRef = 9L,
         verificationResourceRef = 10L,
-        proceed = "Y",
+        proceed = true,
         taxTreatment = None
       )
 
@@ -628,7 +628,7 @@ class VerificationServiceSpec extends SpecBase {
         instanceId = "1",
         verificationBatchResourceRef = 9L,
         verificationResourceRef = 10L,
-        proceed = "Y",
+        proceed = true,
         taxTreatment = None
       )
 

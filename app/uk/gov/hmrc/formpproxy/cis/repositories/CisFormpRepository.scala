@@ -1420,7 +1420,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
             verificationBatchResourceRef = req.verificationBatchResourceRef,
             verificationResourceRef = v.verificationResourceRef,
             actionIndicator = Some(actionIndicator),
-            proceed = v.proceedVerification,
+            proceed = if (v.proceedVerification == "Y") true else false,
             taxTreatment = None,
             subcontractorName = Some(v.subcontractorName)
           )
@@ -1461,7 +1461,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     verificationBatchResourceRef: Long,
     verificationResourceRef: Long,
     actionIndicator: Option[String],
-    proceed: String,
+    proceed: Boolean,
     taxTreatment: Option[String],
     subcontractorName: Option[String]
   ): Unit =
@@ -1475,7 +1475,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setOptionalString(6, taxTreatment)
 
       cs.setOptionalString(7, actionIndicator)
-      cs.setString(8, proceed)
+      cs.setString(8, if (proceed) "Y" else "N")
       cs.setOptionalString(9, subcontractorName)
 
       cs.setNull(10, Types.INTEGER)

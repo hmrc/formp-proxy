@@ -30,7 +30,7 @@ class ProceedVerificationRequestSpec extends AnyWordSpec with Matchers {
           |  "instanceId": "1",
           |  "verificationBatchResourceRef": 9,
           |  "verificationResourceRef": 10,
-          |  "proceed": "Y",
+          |  "proceed": true,
           |  "taxTreatment": "NotKnown"
           |}
             """.stripMargin)
@@ -39,7 +39,7 @@ class ProceedVerificationRequestSpec extends AnyWordSpec with Matchers {
       model.instanceId mustBe "1"
       model.verificationBatchResourceRef mustBe 9
       model.verificationResourceRef mustBe 10
-      model.proceed mustBe "Y"
+      model.proceed mustBe true
       model.taxTreatment mustBe Some("NotKnown")
 
       Json.toJson(model) mustBe json
@@ -51,7 +51,7 @@ class ProceedVerificationRequestSpec extends AnyWordSpec with Matchers {
                               |  "instanceId": "1",
                               |  "verificationBatchResourceRef": 9,
                               |  "verificationResourceRef": 10,
-                              |  "proceed": "Y"
+                              |  "proceed": true
                               |}
         """.stripMargin)
 
@@ -59,7 +59,7 @@ class ProceedVerificationRequestSpec extends AnyWordSpec with Matchers {
       model.instanceId mustBe "1"
       model.verificationBatchResourceRef mustBe 9
       model.verificationResourceRef mustBe 10
-      model.proceed mustBe "Y"
+      model.proceed mustBe true
 
       Json.toJson(model) mustBe json
     }
@@ -69,7 +69,7 @@ class ProceedVerificationRequestSpec extends AnyWordSpec with Matchers {
                               |{
                               |  "verificationBatchResourceRef": 9,
                               |  "verificationResourceRef": 10,
-                              |  "proceed": "Y"
+                              |  "proceed": true
                               |}
         """.stripMargin)
 
@@ -82,7 +82,7 @@ class ProceedVerificationRequestSpec extends AnyWordSpec with Matchers {
                               |{
                               |  "instanceId": "1",
                               |  "verificationResourceRef": 10,
-                              |  "proceed": "Y"
+                              |  "proceed": true
                               |}
         """.stripMargin)
 
@@ -95,7 +95,7 @@ class ProceedVerificationRequestSpec extends AnyWordSpec with Matchers {
                               |{
                               |  "instanceId": "1",
                               |  "verificationBatchResourceRef": 9,
-                              |  "proceed": "Y"
+                              |  "proceed": true
                               |}
         """.stripMargin)
 

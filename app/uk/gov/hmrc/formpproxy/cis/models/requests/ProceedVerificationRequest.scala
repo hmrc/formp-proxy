@@ -22,7 +22,7 @@ case class ProceedVerificationRequest(
   instanceId: String,
   verificationBatchResourceRef: Long,
   verificationResourceRef: Long,
-  proceed: String,
+  proceed: Boolean,
   taxTreatment: Option[String]
 )
 

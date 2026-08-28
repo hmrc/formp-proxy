@@ -5434,7 +5434,7 @@ final class CisFormpRepositorySpec extends SpecBase {
         instanceId = "abc-123",
         verificationBatchResourceRef = 999L,
         verificationResourceRef = 77L,
-        proceed = "Y",
+        proceed = true,
         taxTreatment = None
       )
 
@@ -5501,7 +5501,7 @@ final class CisFormpRepositorySpec extends SpecBase {
         instanceId = "abc-123",
         verificationBatchResourceRef = 999L,
         verificationResourceRef = 77L,
-        proceed = "Y",
+        proceed = true,
         taxTreatment = Some("NotKnown")
       )
 
