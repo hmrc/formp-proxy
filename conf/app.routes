@@ -28,7 +28,8 @@ POST       /cis/subcontractor/create-and-update                         uk.gov.h
 GET        /cis/subcontractors/:cisId                                   uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.getSubcontractorList(cisId: String)
 GET        /cis/subcontractor/:cisId/:subbieResourceRef/delete-status   uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.getSubcontractorForDelete(cisId: String, subbieResourceRef: Long)
 GET        /cis/subcontractor/:cisId/:subbieResourceRef                 uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.getSubcontractor(cisId: String, subbieResourceRef: Long)
-POST       /cis/subcontractor/delete                                uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.deleteSubcontractor
+POST       /cis/subcontractor/delete                                    uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.deleteSubcontractor
+POST        /cis/subcontractor/update                                   uk.gov.hmrc.formpproxy.cis.controllers.SubcontractorController.updateSubcontractor
 
 POST       /submissions/create                                      uk.gov.hmrc.formpproxy.cis.controllers.SubmissionController.createSubmission()
 POST       /submissions/update                                      uk.gov.hmrc.formpproxy.cis.controllers.SubmissionController.updateSubmission()
@@ -45,6 +46,8 @@ GET        /cis/verification-batch/current/:instanceId              uk.gov.hmrc.
 GET        /cis/verification-batch/last/:instanceId                 uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.getLastSubmittedVerificationBatch(instanceId: String)
 POST       /cis/verification-batch/create                           uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.createVerificationBatchAndVerifications()
 POST       /cis/verification-batch/modify                           uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.modifyVerifications()
+POST       /cis/verification/proceed-with-insufficient-data   uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.proceedInsufficientVerification()
+
 POST       /cis/verification/response/process                       uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.processVerificationResponseFromChris()
 POST       /cis/verification/submission-batch                       uk.gov.hmrc.formpproxy.cis.controllers.VerificationController.getSubmissionWithVerificationBatch
 

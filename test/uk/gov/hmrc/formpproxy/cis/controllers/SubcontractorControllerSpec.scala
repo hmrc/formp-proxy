@@ -30,8 +30,8 @@ import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, Subcontractor}
 import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorResponse
-import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorForDeleteResponse, GetSubcontractorListResponse}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest}
+import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorForDeleteResponse, GetSubcontractorListResponse, UpdateSubcontractorResponse}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest, UpdateSubcontractorRequest}
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 
 import scala.concurrent.Future
@@ -42,7 +42,7 @@ class SubcontractorControllerSpec extends SpecBase {
     val mockService: SubcontractorService = mock[SubcontractorService]
 
     private val parsers: PlayBodyParsers             = cc.parsers
-    private val resource                             = Resource.from("formp-proxy", "formp-proxy/cis")
+    private val resource                             = Resource.from("formp-proxy", "formp-proxy/cis/subcontractors")
     val readSubcontractors: Predicate.Permission     = Predicate.Permission(resource, IAAction("READ"))
     val writeSubcontractors: Predicate.Permission    = Predicate.Permission(resource, IAAction("WRITE"))
     val deleteSubcontractors: Predicate.Permission   = Predicate.Permission(resource, IAAction("DELETE"))
@@ -507,6 +507,161 @@ class SubcontractorControllerSpec extends SpecBase {
           eqTo(cisId),
           eqTo(subbieResourceRef)
         )
+    }
+  }
+
+  "SubcontractorController updateSubcontractor" - {
+
+    "returns 200 OK with updated version and passes submitted fields to service" in {
+      val s = setup
+      import s.*
+
+      val json =
+        Json.parse(
+          """
+            |{
+            |  "cisId": "abc-123",
+            |  "subcontractor": {
+            |    "subcontractorId": 999,
+            |    "subbieResourceRef": 10,
+            |    "firstName": "John",
+            |    "emailAddress": null,
+            |    "phoneNumber": "01234567890",
+            |    "subcontractorType": "company",
+            |    "version": 1
+            |  }
+            |}
+            |""".stripMargin
+        )
+
+      val request =
+        json.as[UpdateSubcontractorRequest]
+
+      val submittedFields =
+        Set(
+          "subcontractorId",
+          "subbieResourceRef",
+          "firstName",
+          "emailAddress",
+          "phoneNumber",
+          "subcontractorType",
+          "version"
+        )
+
+      val response =
+        UpdateSubcontractorResponse(version = 2)
+
+      when(mockService.updateSubcontractor(eqTo(request), eqTo(submittedFields)))
+        .thenReturn(Future.successful(response))
+
+      val result =
+        controller.updateSubcontractor.apply(
+          postJson("/cis/subcontractor/update", json).withHeaders(AUTHORIZATION -> "Token internal-auth")
+        )
+
+      status(result) mustBe OK
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.toJson(response)
+      (contentAsJson(result) \ "version").as[Int] mustBe 2
+
+      verify(mockService).updateSubcontractor(eqTo(request), eqTo(submittedFields))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 400 BadRequest when payload is invalid" in {
+      val s = setup
+      import s.*
+
+      val badJson =
+        Json.obj("bad" -> "payload")
+
+      val result =
+        controller.updateSubcontractor.apply(
+          postJson("/cis/subcontractor/update", badJson).withHeaders(AUTHORIZATION -> "Token internal-auth")
+        )
+
+      status(result) mustBe BAD_REQUEST
+      (contentAsJson(result) \ "message").as[String] mustBe "Invalid payload"
+
+      verify(mockService, never())
+        .updateSubcontractor(any[UpdateSubcontractorRequest], any[Set[String]])
+    }
+
+    "returns 400 BadRequest when subbieResourceRef is missing" in {
+      val s = setup
+      import s.*
+
+      val json =
+        Json.parse(
+          """
+            |{
+            |  "cisId": "abc-123",
+            |  "subcontractor": {
+            |    "subcontractorId": 999,
+            |    "firstName": "John",
+            |    "version": 1
+            |  }
+            |}
+            |""".stripMargin
+        )
+
+      val result =
+        controller.updateSubcontractor.apply(
+          postJson("/cis/subcontractor/update", json).withHeaders(AUTHORIZATION -> "Token internal-auth")
+        )
+
+      status(result) mustBe BAD_REQUEST
+      contentAsJson(result) mustBe Json.obj(
+        "message" -> "subbieResourceRef is required"
+      )
+
+      verify(mockService, never())
+        .updateSubcontractor(any[UpdateSubcontractorRequest], any[Set[String]])
+    }
+
+    "returns 500 InternalServerError when service fails" in {
+      val s = setup
+      import s.*
+
+      val json =
+        Json.parse(
+          """
+            |{
+            |  "cisId": "abc-123",
+            |  "subcontractor": {
+            |    "subcontractorId": 999,
+            |    "subbieResourceRef": 10,
+            |    "firstName": "John",
+            |    "version": 1
+            |  }
+            |}
+            |""".stripMargin
+        )
+
+      val request =
+        json.as[UpdateSubcontractorRequest]
+
+      val submittedFields =
+        Set(
+          "subcontractorId",
+          "subbieResourceRef",
+          "firstName",
+          "version"
+        )
+
+      when(mockService.updateSubcontractor(eqTo(request), eqTo(submittedFields)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val result =
+        controller.updateSubcontractor.apply(
+          postJson("/cis/subcontractor/update", json).withHeaders(AUTHORIZATION -> "Token internal-auth")
+        )
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
+
+      verify(mockService).updateSubcontractor(eqTo(request), eqTo(submittedFields))
+      verifyNoMoreInteractions(mockService)
     }
   }
 

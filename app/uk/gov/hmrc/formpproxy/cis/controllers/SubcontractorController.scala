@@ -17,11 +17,12 @@
 package uk.gov.hmrc.formpproxy.cis.controllers
 
 import play.api.Logging
-import play.api.libs.json.{JsError, JsValue, Json}
+import play.api.libs.json.{JsError, JsObject, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthOrInternalAuthAction
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest, UpdateSubcontractorRequest}
+import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorResponse
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 import uk.gov.hmrc.internalauth.client.{IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -38,7 +39,7 @@ class SubcontractorController @Inject() (
     extends BackendController(cc)
     with Logging {
 
-  private val subcontractors       = Resource.from("formp-proxy", "formp-proxy/cis")
+  private val subcontractors       = Resource.from("formp-proxy", "formp-proxy/cis/subcontractors")
   private val readSubcontractors   = authOrInternalAuth(Predicate.Permission(subcontractors, IAAction("READ")))
   private val writeSubcontractors  = authOrInternalAuth(Predicate.Permission(subcontractors, IAAction("WRITE")))
   private val deleteSubcontractors = authOrInternalAuth(Predicate.Permission(subcontractors, IAAction("DELETE")))
@@ -55,7 +56,7 @@ class SubcontractorController @Inject() (
               .createAndUpdateSubcontractor(body)
               .map(_ => NoContent)
               .recover { case t =>
-                logger.error("[updateSubcontractor] failed", t)
+                logger.error("[createAndUpdateSubcontractor] failed", t)
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )
@@ -116,4 +117,48 @@ class SubcontractorController @Inject() (
           InternalServerError(Json.obj("message" -> "Unexpected error"))
         }
     }
+
+  def updateSubcontractor: Action[JsValue] =
+    writeSubcontractors.async(parse.json) { implicit request =>
+      val submittedFields: Set[String] =
+        (request.body \ "subcontractor")
+          .asOpt[JsObject]
+          .map(_.keys.toSet)
+          .getOrElse(Set.empty)
+
+      request.body
+        .validate[UpdateSubcontractorRequest]
+        .fold(
+          errs =>
+            Future.successful(
+              BadRequest(
+                Json.obj(
+                  "message" -> "Invalid payload",
+                  "errors"  -> JsError.toJson(errs)
+                )
+              )
+            ),
+          body =>
+            body.subcontractor.subbieResourceRef match {
+              case None =>
+                Future.successful(
+                  BadRequest(
+                    Json.obj(
+                      "message" -> "subbieResourceRef is required"
+                    )
+                  )
+                )
+
+              case Some(_) =>
+                service
+                  .updateSubcontractor(body, submittedFields)
+                  .map(response => Ok(Json.toJson(response)))
+                  .recover { case NonFatal(e) =>
+                    logger.error("[updateSubcontractor] failed", e)
+                    InternalServerError(Json.obj("message" -> "Unexpected error"))
+                  }
+            }
+        )
+    }
+
 }
