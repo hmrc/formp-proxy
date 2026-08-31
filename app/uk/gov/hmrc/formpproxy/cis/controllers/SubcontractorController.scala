@@ -26,9 +26,6 @@ import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorResponse
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 import uk.gov.hmrc.internalauth.client.{IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorResponse
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest, UpdateSubcontractorForEditRequest}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest, UpdateSubcontractorRequest}
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -60,31 +57,6 @@ class SubcontractorController @Inject() (
               .map(_ => NoContent)
               .recover { case t =>
                 logger.error("[createAndUpdateSubcontractor] failed", t)
-                InternalServerError(Json.obj("message" -> "Unexpected error"))
-              }
-        )
-    }
-
-  def updateSubcontractorForEdit(): Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
-      request.body
-        .validate[UpdateSubcontractorForEditRequest]
-        .fold(
-          errs =>
-            Future.successful(
-              BadRequest(
-                Json.obj(
-                  "message" -> "Invalid payload",
-                  "errors"  -> JsError.toJson(errs)
-                )
-              )
-            ),
-          body =>
-            service
-              .updateSubcontractorForEdit(body)
-              .map(_ => NoContent)
-              .recover { case t =>
-                logger.error("[updateSubcontractorForEdit] failed", t)
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )
@@ -184,6 +156,53 @@ class SubcontractorController @Inject() (
                   .recover { case NonFatal(e) =>
                     logger.error("[updateSubcontractor] failed", e)
                     InternalServerError(Json.obj("message" -> "Unexpected error"))
+                  }
+            }
+        )
+    }
+
+  def updateSubcontractorForEdit: Action[JsValue] =
+    authorise.async(parse.json) { implicit request =>
+      val submittedFields: Set[String] =
+        (request.body \ "subcontractor")
+          .asOpt[JsObject]
+          .map(_.keys.toSet)
+          .getOrElse(Set.empty)
+
+      request.body
+        .validate[UpdateSubcontractorRequest]
+        .fold(
+          errs =>
+            Future.successful(
+              BadRequest(
+                Json.obj(
+                  "message" -> "Invalid payload",
+                  "errors"  -> JsError.toJson(errs)
+                )
+              )
+            ),
+          body =>
+            body.subcontractor.subbieResourceRef match {
+              case None =>
+                Future.successful(
+                  BadRequest(
+                    Json.obj(
+                      "message" -> "subbieResourceRef is required"
+                    )
+                  )
+                )
+
+              case Some(_) =>
+                service
+                  .updateSubcontractorForEdit(body, submittedFields)
+                  .map(response => Ok(Json.toJson(response)))
+                  .recover { case NonFatal(e) =>
+                    logger.error("[updateSubcontractorForEdit] failed", e)
+                    InternalServerError(
+                      Json.obj(
+                        "message" -> "Unexpected error"
+                      )
+                    )
                   }
             }
         )
