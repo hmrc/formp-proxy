@@ -108,6 +108,8 @@ trait CisMonthlyReturnSource {
     request: UpdateSubcontractorRequest,
     submittedFields: Set[String]
   ): Future[UpdateSubcontractorResponse]
+
+  def updateSubcontractorForFinalValidation(request: FinalValidationUpdateSubcontractorRequest): Future[Unit]
 }
 
 private final case class SchemeRow(schemeId: Long, version: Option[Int], email: Option[String])
@@ -2106,6 +2108,83 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         )
       }
     }
+
+  override def updateSubcontractorForFinalValidation(
+    request: FinalValidationUpdateSubcontractorRequest
+  ): Future[Unit] =
+    Future {
+      val submittedFields = submittedFieldsForFinalValidation(request.changeTarget)
+
+      db.withTransaction { conn =>
+        val scheme   = loadScheme(conn, request.instanceId)
+        val existing = getExistingSubcontractorForUpdate(conn, request.instanceId, request.subbieResourceRef)
+
+        validateFinalValidationSubcontractor(existing, request)
+
+        val incoming = applyFinalValidationPatch(existing, request.patch)
+        val merged   = mergeSubcontractorForUpdate(existing, incoming, submittedFields)
+
+        callUpdateExistingSubcontractor(conn, scheme.schemeId, request.subbieResourceRef, merged)
+        callUpdateSchemeVersion(conn, request.instanceId, scheme.version.getOrElse(0))
+
+        ()
+      }
+    }
+
+  private def submittedFieldsForFinalValidation(changeTarget: String): Set[String] =
+    changeTarget match {
+      case "subcontractorName"                                  => Set("firstName", "secondName", "surname")
+      case "tradingName"                                        => Set("tradingName")
+      case "partnershipTradingName"                             => Set("partnershipTradingName")
+      case "addressYesNo" | "address"                           =>
+        Set("addressLine1", "addressLine2", "addressLine3", "addressLine4", "country", "postcode")
+      case "contactDetailsYesNo"                                => Set("emailAddress", "phoneNumber", "mobilePhoneNumber")
+      case "emailAddress"                                       => Set("emailAddress")
+      case "phoneNumber"                                        => Set("phoneNumber")
+      case "mobilePhoneNumber"                                  => Set("mobilePhoneNumber")
+      case "utrYesNo" | "utr"                                   => Set("utr")
+      case "partnerUtrYesNo" | "partnerUtr"                     => Set("partnerUtr")
+      case "ninoYesNo" | "nino"                                 => Set("nino")
+      case "crnYesNo" | "crn"                                   => Set("crn")
+      case "worksReferenceNumberYesNo" | "worksReferenceNumber" => Set("worksReferenceNumber")
+      case other                                                => throw new IllegalArgumentException(s"Unknown change target: $other")
+    }
+
+  private def validateFinalValidationSubcontractor(
+    existing: Subcontractor,
+    request: FinalValidationUpdateSubcontractorRequest
+  ): Unit =
+    if (existing.subcontractorId != request.subcontractorId) {
+      throw new IllegalArgumentException(
+        s"Subcontractor ID mismatch: existing=${existing.subcontractorId}, request=${request.subcontractorId}"
+      )
+    }
+
+  private def applyFinalValidationPatch(
+    existing: Subcontractor,
+    patch: FinalValidationSubcontractorPatch
+  ): Subcontractor =
+    existing.copy(
+      firstName = patch.firstName,
+      secondName = patch.secondName,
+      surname = patch.surname,
+      tradingName = patch.tradingName,
+      partnershipTradingName = patch.partnershipTradingName,
+      addressLine1 = patch.addressLine1,
+      addressLine2 = patch.addressLine2,
+      addressLine3 = patch.addressLine3,
+      addressLine4 = patch.addressLine4,
+      country = patch.country,
+      postcode = patch.postcode,
+      emailAddress = patch.emailAddress,
+      phoneNumber = patch.phoneNumber,
+      mobilePhoneNumber = patch.mobilePhoneNumber,
+      utr = patch.utr,
+      partnerUtr = patch.partnerUtr,
+      nino = patch.nino,
+      crn = patch.crn,
+      worksReferenceNumber = patch.worksReferenceNumber
+    )
 
   private def callUpdateExistingSubcontractor(
     conn: Connection,

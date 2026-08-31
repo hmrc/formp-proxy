@@ -160,4 +160,7 @@ class SubcontractorService @Inject() (repo: CisMonthlyReturnSource) {
   ): Future[UpdateSubcontractorResponse] =
     repo.updateSubcontractor(request, submittedFields)
 
+  def updateSubcontractorForFinalValidation(request: FinalValidationUpdateSubcontractorRequest): Future[Unit] =
+    repo.updateSubcontractorForFinalValidation(request)
+
 }
