@@ -26,7 +26,11 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{AnyContent, ControllerComponents, PlayBodyParsers, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
+import play.api.mvc.{BodyParsers, PlayBodyParsers}
+import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.formpproxy.actions.AuthOrInternalAuthAction
+import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource, Retrieval}
+import uk.gov.hmrc.internalauth.client.test.{BackendAuthComponentsStub, StubBehaviour}
 import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, PrepopulationSubcontractor}
 import uk.gov.hmrc.formpproxy.cis.models.{Company, ContractorScheme, CreateContractorSchemeParams, SoleTrader, UpdateContractorSchemeParams}
 import uk.gov.hmrc.formpproxy.cis.services.ContractorSchemeService
@@ -44,7 +48,8 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       when(mockService.getScheme(eqTo("abc-123")))
         .thenReturn(Future.successful(Some(scheme)))
 
-      val req: FakeRequest[AnyContent] = FakeRequest(GET, "/scheme/abc-123")
+      val req: FakeRequest[AnyContent] =
+        FakeRequest(GET, "/scheme/abc-123").withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
       val res: Future[Result]          = controller.getScheme("abc-123")(req)
 
       status(res) mustBe OK
@@ -58,7 +63,8 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       when(mockService.getScheme(eqTo("unknown-123")))
         .thenReturn(Future.successful(None))
 
-      val req = FakeRequest(GET, "/scheme/unknown-123")
+      val req =
+        FakeRequest(GET, "/scheme/unknown-123").withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
       val res = controller.getScheme("unknown-123")(req)
 
       status(res) mustBe NOT_FOUND
@@ -73,7 +79,7 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       when(mockService.getScheme(eqTo("abc-123")))
         .thenReturn(Future.failed(err))
 
-      val req = FakeRequest(GET, "/scheme/abc-123")
+      val req = FakeRequest(GET, "/scheme/abc-123").withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
       val res = controller.getScheme("abc-123")(req)
 
       status(res) mustBe BAD_GATEWAY
@@ -86,7 +92,7 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       when(mockService.getScheme(eqTo("abc-123")))
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
-      val req = FakeRequest(GET, "/scheme/abc-123")
+      val req = FakeRequest(GET, "/scheme/abc-123").withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
       val res = controller.getScheme("abc-123")(req)
 
       status(res) mustBe INTERNAL_SERVER_ERROR
@@ -116,7 +122,7 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       when(mockService.getScheme(eqTo("abc-123")))
         .thenReturn(Future.successful(Some(scheme)))
 
-      val req = FakeRequest(GET, "/scheme/abc-123")
+      val req = FakeRequest(GET, "/scheme/abc-123").withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
       val res = controller.getScheme("abc-123")(req)
 
       status(res) mustBe OK
@@ -158,7 +164,7 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       when(mockService.getScheme(eqTo("def-456")))
         .thenReturn(Future.successful(Some(scheme)))
 
-      val req = FakeRequest(GET, "/scheme/def-456")
+      val req = FakeRequest(GET, "/scheme/def-456").withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
       val res = controller.getScheme("def-456")(req)
 
       status(res) mustBe OK
@@ -178,7 +184,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       when(mockService.updateScheme(eqTo(updateParams)))
         .thenReturn(Future.successful(2))
 
-      val req                 = FakeRequest(PUT, "/scheme").withBody(Json.toJson(updateParams))
+      val req                 = FakeRequest(PUT, "/scheme")
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
+        .withBody(Json.toJson(updateParams))
       val res: Future[Result] = controller.updateScheme(req)
 
       status(res) mustBe OK
@@ -190,7 +198,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
 
     "returns 400 when JSON body is invalid" in new Setup {
       val invalidJson         = Json.obj("schemeId" -> 123)
-      val req                 = FakeRequest(PUT, "/scheme").withBody(invalidJson)
+      val req                 = FakeRequest(PUT, "/scheme")
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
+        .withBody(invalidJson)
       val res: Future[Result] = controller.updateScheme(req)
 
       status(res) mustBe BAD_REQUEST
@@ -207,7 +217,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
         "taxOfficeNumber"         -> "0001",
         "taxOfficeReference"      -> "AB12345"
       )
-      val req                 = FakeRequest(PUT, "/scheme").withBody(invalidJson)
+      val req                 = FakeRequest(PUT, "/scheme")
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
+        .withBody(invalidJson)
       val res: Future[Result] = controller.updateScheme(req)
 
       status(res) mustBe BAD_REQUEST
@@ -222,7 +234,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       when(mockService.updateScheme(eqTo(updateParams)))
         .thenReturn(Future.failed(err))
 
-      val req                 = FakeRequest(PUT, "/scheme").withBody(Json.toJson(updateParams))
+      val req                 = FakeRequest(PUT, "/scheme")
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
+        .withBody(Json.toJson(updateParams))
       val res: Future[Result] = controller.updateScheme(req)
 
       status(res) mustBe BAD_GATEWAY
@@ -236,7 +250,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       when(mockService.updateScheme(eqTo(updateParams)))
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
-      val req                 = FakeRequest(PUT, "/scheme").withBody(Json.toJson(updateParams))
+      val req                 = FakeRequest(PUT, "/scheme")
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
+        .withBody(Json.toJson(updateParams))
       val res: Future[Result] = controller.updateScheme(req)
 
       status(res) mustBe INTERNAL_SERVER_ERROR
@@ -250,7 +266,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       when(mockService.updateScheme(eqTo(updateParams)))
         .thenReturn(Future.successful(3))
 
-      val req                 = FakeRequest(PUT, "/scheme").withBody(Json.toJson(updateParams))
+      val req                 = FakeRequest(PUT, "/scheme")
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
+        .withBody(Json.toJson(updateParams))
       val res: Future[Result] = controller.updateScheme(req)
 
       status(res) mustBe OK
@@ -267,7 +285,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       when(mockService.createScheme(eqTo(createParams)))
         .thenReturn(Future.successful(123))
 
-      val req                 = FakeRequest(POST, "/scheme").withBody(Json.toJson(createParams))
+      val req                 = FakeRequest(POST, "/scheme")
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
+        .withBody(Json.toJson(createParams))
       val res: Future[Result] = controller.createScheme(req)
 
       status(res) mustBe CREATED
@@ -279,7 +299,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
 
     "returns 400 when JSON body is invalid" in new Setup {
       val invalidJson         = Json.obj("instanceId" -> "abc-123")
-      val req                 = FakeRequest(POST, "/scheme").withBody(invalidJson)
+      val req                 = FakeRequest(POST, "/scheme")
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
+        .withBody(invalidJson)
       val res: Future[Result] = controller.createScheme(req)
 
       status(res) mustBe BAD_REQUEST
@@ -295,7 +317,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
         "taxOfficeNumber"         -> "0001",
         "taxOfficeReference"      -> "AB12345"
       )
-      val req                 = FakeRequest(POST, "/scheme").withBody(invalidJson)
+      val req                 = FakeRequest(POST, "/scheme")
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
+        .withBody(invalidJson)
       val res: Future[Result] = controller.createScheme(req)
 
       status(res) mustBe BAD_REQUEST
@@ -310,7 +334,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       when(mockService.createScheme(eqTo(createParams)))
         .thenReturn(Future.failed(err))
 
-      val req                 = FakeRequest(POST, "/scheme").withBody(Json.toJson(createParams))
+      val req                 = FakeRequest(POST, "/scheme")
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
+        .withBody(Json.toJson(createParams))
       val res: Future[Result] = controller.createScheme(req)
 
       status(res) mustBe BAD_GATEWAY
@@ -324,7 +350,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       when(mockService.createScheme(eqTo(createParams)))
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
-      val req                 = FakeRequest(POST, "/scheme").withBody(Json.toJson(createParams))
+      val req                 = FakeRequest(POST, "/scheme")
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
+        .withBody(Json.toJson(createParams))
       val res: Future[Result] = controller.createScheme(req)
 
       status(res) mustBe INTERNAL_SERVER_ERROR
@@ -338,7 +366,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       when(mockService.createScheme(eqTo(createParams)))
         .thenReturn(Future.successful(789))
 
-      val req                 = FakeRequest(POST, "/scheme").withBody(Json.toJson(createParams))
+      val req                 = FakeRequest(POST, "/scheme")
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
+        .withBody(Json.toJson(createParams))
       val res: Future[Result] = controller.createScheme(req)
 
       status(res) mustBe CREATED
@@ -355,7 +385,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
         .thenReturn(Future.successful(2))
 
       val req                 =
-        FakeRequest(PUT, "/scheme/abc-123/version").withBody(Json.obj("instanceId" -> "abc-123", "version" -> 1))
+        FakeRequest(PUT, "/scheme/abc-123/version")
+          .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
+          .withBody(Json.obj("instanceId" -> "abc-123", "version" -> 1))
       val res: Future[Result] = controller.updateSchemeVersion(req)
 
       status(res) mustBe OK
@@ -367,7 +399,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
 
     "returns 400 when JSON body is invalid" in new Setup {
       val invalidJson         = Json.obj("wrongField" -> 1)
-      val req                 = FakeRequest(PUT, "/scheme/abc-123/version").withBody(invalidJson)
+      val req                 = FakeRequest(PUT, "/scheme/abc-123/version")
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
+        .withBody(invalidJson)
       val res: Future[Result] = controller.updateSchemeVersion(req)
 
       status(res) mustBe BAD_REQUEST
@@ -378,7 +412,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
 
     "returns 400 when JSON body has wrong types" in new Setup {
       val invalidJson         = Json.obj("instanceId" -> "abc-123", "version" -> "not-a-number")
-      val req                 = FakeRequest(PUT, "/scheme/abc-123/version").withBody(invalidJson)
+      val req                 = FakeRequest(PUT, "/scheme/abc-123/version")
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
+        .withBody(invalidJson)
       val res: Future[Result] = controller.updateSchemeVersion(req)
 
       status(res) mustBe BAD_REQUEST
@@ -393,7 +429,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
         .thenReturn(Future.failed(err))
 
       val req                 =
-        FakeRequest(PUT, "/scheme/abc-123/version").withBody(Json.obj("instanceId" -> "abc-123", "version" -> 1))
+        FakeRequest(PUT, "/scheme/abc-123/version")
+          .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
+          .withBody(Json.obj("instanceId" -> "abc-123", "version" -> 1))
       val res: Future[Result] = controller.updateSchemeVersion(req)
 
       status(res) mustBe BAD_GATEWAY
@@ -407,7 +445,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req                 =
-        FakeRequest(PUT, "/scheme/abc-123/version").withBody(Json.obj("instanceId" -> "abc-123", "version" -> 1))
+        FakeRequest(PUT, "/scheme/abc-123/version")
+          .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
+          .withBody(Json.obj("instanceId" -> "abc-123", "version" -> 1))
       val res: Future[Result] = controller.updateSchemeVersion(req)
 
       status(res) mustBe INTERNAL_SERVER_ERROR
@@ -425,7 +465,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
         .thenReturn(Future.successful(2))
 
       val req: FakeRequest[JsValue] =
-        FakeRequest(POST, "/prepopulation/apply").withBody(Json.toJson(prepopReq))
+        FakeRequest(POST, "/prepopulation/apply")
+          .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
+          .withBody(Json.toJson(prepopReq))
 
       val res: Future[Result] = controller.applyPrepopulation(req)
 
@@ -440,7 +482,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
       val invalidJson: JsValue = Json.obj("schemeId" -> 789) // missing required fields
 
       val req: FakeRequest[JsValue] =
-        FakeRequest(POST, "/prepopulation/apply").withBody(invalidJson)
+        FakeRequest(POST, "/prepopulation/apply")
+          .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
+          .withBody(invalidJson)
 
       val res: Future[Result] = controller.applyPrepopulation(req)
 
@@ -458,7 +502,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
         .thenReturn(Future.failed(err))
 
       val req: FakeRequest[JsValue] =
-        FakeRequest(POST, "/prepopulation/apply").withBody(Json.toJson(prepopReq))
+        FakeRequest(POST, "/prepopulation/apply")
+          .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
+          .withBody(Json.toJson(prepopReq))
 
       val res: Future[Result] = controller.applyPrepopulation(req)
 
@@ -476,7 +522,9 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req: FakeRequest[JsValue] =
-        FakeRequest(POST, "/prepopulation/apply").withBody(Json.toJson(prepopReq))
+        FakeRequest(POST, "/prepopulation/apply")
+          .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
+          .withBody(Json.toJson(prepopReq))
 
       val res: Future[Result] = controller.applyPrepopulation(req)
 
@@ -492,10 +540,22 @@ class ContractorSchemeControllerSpec extends AnyFreeSpec with Matchers with Scal
     implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.global
     private val cc: ControllerComponents = stubControllerComponents()
     private val parsers: PlayBodyParsers = cc.parsers
-    private val fakeAuthAction           = new FakeAuthAction(parsers)
 
     val mockService: ContractorSchemeService = mock[ContractorSchemeService]
-    val controller                           = new ContractorSchemeController(fakeAuthAction, mockService, cc)
+
+    private val resource                             = Resource.from("formp-proxy", "formp-proxy/cis/contractor-schemes")
+    val readContractorSchemes: Predicate.Permission  = Predicate.Permission(resource, IAAction("READ"))
+    val writeContractorSchemes: Predicate.Permission = Predicate.Permission(resource, IAAction("WRITE"))
+    val internalAuth: StubBehaviour                  = mock[StubBehaviour]
+    val backendAuth: BackendAuthComponents           = BackendAuthComponentsStub(internalAuth)(cc, ec)
+    val mockAuthConnector: AuthConnector             = mock[AuthConnector]
+    val authOrInternalAuth: AuthOrInternalAuthAction =
+      new AuthOrInternalAuthAction(mockAuthConnector, backendAuth, new BodyParsers.Default(parsers))
+
+    when(internalAuth.stubAuth(Some(readContractorSchemes), Retrieval.EmptyRetrieval)).thenReturn(Future.unit)
+    when(internalAuth.stubAuth(Some(writeContractorSchemes), Retrieval.EmptyRetrieval)).thenReturn(Future.unit)
+
+    val controller = new ContractorSchemeController(authOrInternalAuth, mockService, cc)
 
     val testScheme: ContractorScheme = ContractorScheme(
       schemeId = 789,

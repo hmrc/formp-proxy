@@ -19,24 +19,28 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.formpproxy.actions.AuthAction
+import uk.gov.hmrc.formpproxy.actions.AuthOrInternalAuthAction
 import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateSubmissionRequest, UpdateSubmissionRequest}
 import uk.gov.hmrc.formpproxy.cis.services.SubmissionService
+import uk.gov.hmrc.internalauth.client.{IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class SubmissionController @Inject() (
-  authorise: AuthAction,
+  authOrInternalAuth: AuthOrInternalAuthAction,
   service: SubmissionService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
+  private val submissions      = Resource.from("formp-proxy", "formp-proxy/cis/submissions")
+  private val writeSubmissions = authOrInternalAuth(Predicate.Permission(submissions, IAAction("WRITE")))
+
   def createSubmission(): Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    writeSubmissions.async(parse.json) { implicit request =>
       request.body
         .validate[CreateSubmissionRequest]
         .fold(
@@ -54,7 +58,7 @@ class SubmissionController @Inject() (
     }
 
   def updateSubmission(): Action[JsValue] =
-    Action.async(parse.json) { implicit request =>
+    writeSubmissions.async(parse.json) { implicit request =>
       request.body
         .validate[UpdateSubmissionRequest]
         .fold(

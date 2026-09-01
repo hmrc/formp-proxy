@@ -21,7 +21,7 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.http.Status.*
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, AuthStub}
+import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, AuthStub, InternalAuthStub}
 
 class MonthlyReturnControllerIntegrationSpec
   extends Matchers
@@ -52,6 +52,7 @@ class MonthlyReturnControllerIntegrationSpec
 
     "return 401 when there is no active session" in {
       AuthStub.unauthorised()
+      InternalAuthStub.unauthorised()
 
       val res = postAwait(endpoint, Json.obj("instanceId" -> "abc-123"))
       res.status mustBe UNAUTHORIZED
@@ -76,6 +77,7 @@ class MonthlyReturnControllerIntegrationSpec
 
     "return 401 when there is no active session" in {
       AuthStub.unauthorised()
+      InternalAuthStub.unauthorised()
 
       val res = postAwait("/cis/retrieve-submitted-monthly-returns", Json.obj("instanceId" -> "abc-123"))
       res.status mustBe UNAUTHORIZED

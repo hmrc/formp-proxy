@@ -19,25 +19,30 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
-import uk.gov.hmrc.formpproxy.actions.AuthAction
-import uk.gov.hmrc.formpproxy.cis.services.VerificationService
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import uk.gov.hmrc.formpproxy.actions.AuthOrInternalAuthAction
 import uk.gov.hmrc.formpproxy.cis.models.requests._
+import uk.gov.hmrc.formpproxy.cis.services.VerificationService
+import uk.gov.hmrc.internalauth.client.{IAAction, Predicate, Resource}
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 class VerificationController @Inject() (
-  authorise: AuthAction,
+  authOrInternalAuth: AuthOrInternalAuthAction,
   service: VerificationService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
+  private val verifications      = Resource.from("formp-proxy", "formp-proxy/cis/verifications")
+  private val readVerifications  = authOrInternalAuth(Predicate.Permission(verifications, IAAction("READ")))
+  private val writeVerifications = authOrInternalAuth(Predicate.Permission(verifications, IAAction("WRITE")))
+
   def getNewestVerificationBatch(instanceId: String): Action[AnyContent] =
-    authorise.async { implicit request =>
+    readVerifications.async { implicit request =>
       service
         .getNewestVerificationBatch(instanceId)
         .map(res => Ok(Json.toJson(res)))
@@ -48,7 +53,7 @@ class VerificationController @Inject() (
     }
 
   def getCurrentVerificationBatch(instanceId: String): Action[AnyContent] =
-    authorise.async { implicit request =>
+    readVerifications.async { implicit request =>
       service
         .getCurrentVerificationBatch(instanceId)
         .map(res => Ok(Json.toJson(res)))
@@ -59,7 +64,7 @@ class VerificationController @Inject() (
     }
 
   def getLastSubmittedVerificationBatch(instanceId: String): Action[AnyContent] =
-    authorise.async { implicit request =>
+    readVerifications.async { implicit request =>
       service
         .getLastSubmittedVerificationBatch(instanceId)
         .map(res => Ok(Json.toJson(res)))
@@ -70,7 +75,7 @@ class VerificationController @Inject() (
     }
 
   def createVerificationBatchAndVerifications(): Action[JsValue] =
-    authorise(parse.json).async { implicit request =>
+    writeVerifications.async(parse.json) { implicit request =>
       request.body
         .validate[CreateVerificationBatchAndVerificationsRequest]
         .fold(
@@ -88,7 +93,7 @@ class VerificationController @Inject() (
     }
 
   def modifyVerifications(): Action[JsValue] =
-    authorise(parse.json).async { implicit request =>
+    writeVerifications.async(parse.json) { implicit request =>
       request.body
         .validate[ModifyVerificationsRequest]
         .fold(
@@ -106,7 +111,7 @@ class VerificationController @Inject() (
     }
 
   def createSubmissionAndUpdateVerifications(): Action[JsValue] =
-    authorise(parse.json).async { implicit request =>
+    writeVerifications.async(parse.json) { implicit request =>
       request.body
         .validate[CreateSubmissionAndUpdateVerificationsRequest]
         .fold(
@@ -124,7 +129,7 @@ class VerificationController @Inject() (
     }
 
   def updateVerificationSubmission(): Action[JsValue] =
-    Action(parse.json).async { implicit request =>
+    writeVerifications.async(parse.json) { implicit request =>
       request.body
         .validate[UpdateVerificationSubmissionRequest]
         .fold(
@@ -142,7 +147,7 @@ class VerificationController @Inject() (
     }
 
   def processVerificationResponseFromChris(): Action[JsValue] =
-    Action(parse.json).async { implicit request =>
+    writeVerifications.async(parse.json) { implicit request =>
       request.body
         .validate[ProcessVerificationResponseFromChrisRequest]
         .fold(
@@ -163,7 +168,7 @@ class VerificationController @Inject() (
     instanceId: String,
     verificationBatchResourceRef: Long
   ): Action[AnyContent] =
-    Action.async { implicit request =>
+    readVerifications.async { implicit request =>
       if (instanceId.isBlank)
         Future.successful(
           BadRequest(
@@ -180,7 +185,7 @@ class VerificationController @Inject() (
     }
 
   def getSubmissionWithVerificationBatch: Action[JsValue] =
-    Action(parse.json).async { implicit request =>
+    readVerifications.async(parse.json) { implicit request =>
       request.body
         .validate[GetSubmissionWithVerificationBatchRequest]
         .fold(
@@ -215,7 +220,7 @@ class VerificationController @Inject() (
       }
 
   def getSubmittedVerifications(): Action[JsValue] =
-    authorise(parse.json).async { implicit request =>
+    readVerifications.async(parse.json) { implicit request =>
       request.body
         .validate[GetSubmittedVerificationsRequest]
         .fold(
@@ -233,7 +238,7 @@ class VerificationController @Inject() (
     }
 
   def proceedInsufficientVerification(): Action[JsValue] =
-    Action(parse.json).async { implicit request =>
+    writeVerifications.async(parse.json) { implicit request =>
       request.body
         .validate[ProceedInsufficientVerificationRequest]
         .fold(

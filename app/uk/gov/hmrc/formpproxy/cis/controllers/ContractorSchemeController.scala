@@ -18,28 +18,33 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
-import uk.gov.hmrc.formpproxy.actions.AuthAction
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import uk.gov.hmrc.formpproxy.actions.AuthOrInternalAuthAction
 import uk.gov.hmrc.formpproxy.cis.models.requests.{ApplyPrepopulationRequest, UpdateSchemeVersionRequest}
 import uk.gov.hmrc.formpproxy.cis.models.{CreateContractorSchemeParams, UpdateContractorSchemeParams}
 import uk.gov.hmrc.formpproxy.cis.services.ContractorSchemeService
 import uk.gov.hmrc.formpproxy.cis.utils.JsResultUtils.*
 import uk.gov.hmrc.http.UpstreamErrorResponse
+import uk.gov.hmrc.internalauth.client.{IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
 import scala.concurrent.ExecutionContext
 
 class ContractorSchemeController @Inject() (
-  authorise: AuthAction,
+  authOrInternalAuth: AuthOrInternalAuthAction,
   service: ContractorSchemeService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
+  private val contractorSchemes      = Resource.from("formp-proxy", "formp-proxy/cis/contractor-schemes")
+  private val readContractorSchemes  = authOrInternalAuth(Predicate.Permission(contractorSchemes, IAAction("READ")))
+  private val writeContractorSchemes = authOrInternalAuth(Predicate.Permission(contractorSchemes, IAAction("WRITE")))
+
   def getScheme(instanceId: String): Action[AnyContent] =
-    authorise.async { implicit request =>
+    readContractorSchemes.async { implicit request =>
       service
         .getScheme(instanceId)
         .map {
@@ -55,7 +60,7 @@ class ContractorSchemeController @Inject() (
     }
 
   def createScheme: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    writeContractorSchemes.async(parse.json) { implicit request =>
       request.body
         .validate[CreateContractorSchemeParams]
         .foldErrorsIntoBadRequest(contractorScheme =>
@@ -72,7 +77,7 @@ class ContractorSchemeController @Inject() (
     }
 
   def updateScheme: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    writeContractorSchemes.async(parse.json) { implicit request =>
       request.body
         .validate[UpdateContractorSchemeParams]
         .foldErrorsIntoBadRequest(contractorScheme =>
@@ -89,7 +94,7 @@ class ContractorSchemeController @Inject() (
     }
 
   def updateSchemeVersion: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    writeContractorSchemes.async(parse.json) { implicit request =>
       request.body
         .validate[UpdateSchemeVersionRequest]
         .foldErrorsIntoBadRequest { case UpdateSchemeVersionRequest(instanceId, version) =>
@@ -106,7 +111,7 @@ class ContractorSchemeController @Inject() (
     }
 
   def applyPrepopulation: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    writeContractorSchemes.async(parse.json) { implicit request =>
       request.body
         .validate[ApplyPrepopulationRequest]
         .foldErrorsIntoBadRequest { prepopReq =>

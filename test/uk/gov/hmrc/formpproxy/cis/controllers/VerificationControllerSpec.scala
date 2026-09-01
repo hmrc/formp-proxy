@@ -19,14 +19,18 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 import org.mockito.ArgumentMatchers.eq as eqTo
 import org.mockito.Mockito.*
 import play.api.libs.json.Json
+import play.api.mvc.{BodyParsers, PlayBodyParsers}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
+import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.formpproxy.actions.AuthOrInternalAuthAction
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, CreateVerifications, DeleteVerifications, MonthlyReturn, Subcontractor, Submission, Verification, VerificationBatch}
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.services.VerificationService
+import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource, Retrieval}
+import uk.gov.hmrc.internalauth.client.test.{BackendAuthComponentsStub, StubBehaviour}
 
 import java.time.LocalDateTime
 import scala.concurrent.Future
@@ -35,16 +39,22 @@ class VerificationControllerSpec extends SpecBase {
 
   trait Setup {
     val mockService: VerificationService = mock[VerificationService]
-    val auth                             = new FakeAuthAction(cc.parsers)
-    val mockAuth: AuthAction             = mock[AuthAction]
+
+    private val parsers: PlayBodyParsers             = cc.parsers
+    private val resource                             = Resource.from("formp-proxy", "formp-proxy/cis/verifications")
+    val readVerifications: Predicate.Permission      = Predicate.Permission(resource, IAAction("READ"))
+    val writeVerifications: Predicate.Permission     = Predicate.Permission(resource, IAAction("WRITE"))
+    val internalAuth: StubBehaviour                  = mock[StubBehaviour]
+    val backendAuth: BackendAuthComponents           = BackendAuthComponentsStub(internalAuth)(cc, ec)
+    val mockAuthConnector: AuthConnector             = mock[AuthConnector]
+    val authOrInternalAuth: AuthOrInternalAuthAction =
+      new AuthOrInternalAuthAction(mockAuthConnector, backendAuth, new BodyParsers.Default(parsers))
+
+    when(internalAuth.stubAuth(Some(readVerifications), Retrieval.EmptyRetrieval)).thenReturn(Future.unit)
+    when(internalAuth.stubAuth(Some(writeVerifications), Retrieval.EmptyRetrieval)).thenReturn(Future.unit)
 
     lazy val controller =
-      new VerificationController(auth, mockService, cc)(
-        scala.concurrent.ExecutionContext.Implicits.global
-      )
-
-    lazy val scheduledController =
-      new VerificationController(mockAuth, mockService, cc)(
+      new VerificationController(authOrInternalAuth, mockService, cc)(
         scala.concurrent.ExecutionContext.Implicits.global
       )
   }
@@ -71,6 +81,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.successful(response))
 
       val req    = FakeRequest(GET, s"/cis/verification-batch/newest/$instanceId")
+        .withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
       val result = controller.getNewestVerificationBatch(instanceId).apply(req)
 
       status(result) mustBe OK
@@ -90,6 +101,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req    = FakeRequest(GET, s"/cis/verification-batch/newest/$instanceId")
+        .withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
       val result = controller.getNewestVerificationBatch(instanceId).apply(req)
 
       status(result) mustBe INTERNAL_SERVER_ERROR
@@ -264,6 +276,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.successful(response))
 
       val req    = FakeRequest(GET, s"/cis/verification-batch/newest/$instId")
+        .withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
       val result = controller.getNewestVerificationBatch(instId).apply(req)
 
       status(result) mustBe OK
@@ -294,6 +307,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.successful(response))
 
       val req    = FakeRequest(GET, s"/cis/verification-batch/current/$instanceId")
+        .withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
       val result = controller.getCurrentVerificationBatch(instanceId).apply(req)
 
       status(result) mustBe OK
@@ -314,6 +328,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req    = FakeRequest(GET, s"/cis/verification-batch/current/$instanceId")
+        .withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
       val result = controller.getCurrentVerificationBatch(instanceId).apply(req)
 
       status(result) mustBe INTERNAL_SERVER_ERROR
@@ -344,6 +359,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.successful(response))
 
       val req    = FakeRequest(GET, s"/cis/verification-batch/last/$instanceId")
+        .withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
       val result = controller.getLastSubmittedVerificationBatch(instanceId).apply(req)
 
       status(result) mustBe OK
@@ -364,6 +380,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req    = FakeRequest(GET, s"/cis/verification-batch/last/$instanceId")
+        .withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
       val result = controller.getLastSubmittedVerificationBatch(instanceId).apply(req)
 
       status(result) mustBe INTERNAL_SERVER_ERROR
@@ -500,6 +517,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.successful(response))
 
       val req    = FakeRequest(GET, s"/cis/verification-batch/last/$instId")
+        .withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
       val result = controller.getLastSubmittedVerificationBatch(instId).apply(req)
 
       status(result) mustBe OK
@@ -535,7 +553,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.successful(responseModel))
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(requestJson)
 
       val result = controller.createVerificationBatchAndVerifications().apply(req)
@@ -558,7 +576,7 @@ class VerificationControllerSpec extends SpecBase {
       )
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(badJson)
 
       val result = controller.createVerificationBatchAndVerifications().apply(req)
@@ -589,7 +607,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(requestJson)
 
       val result = controller.createVerificationBatchAndVerifications().apply(req)
@@ -633,7 +651,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.successful(()))
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(requestJson)
 
       val result = controller.modifyVerifications().apply(req)
@@ -652,7 +670,7 @@ class VerificationControllerSpec extends SpecBase {
       val badJson = Json.obj()
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(badJson)
 
       val result = controller.modifyVerifications().apply(req)
@@ -693,7 +711,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(requestJson)
 
       val result = controller.modifyVerifications().apply(req)
@@ -737,7 +755,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.successful(responseModel))
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(Json.toJson(requestModel))
 
       val result = controller.createSubmissionAndUpdateVerifications().apply(req)
@@ -759,7 +777,7 @@ class VerificationControllerSpec extends SpecBase {
       )
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(badJson)
 
       val result = controller.createSubmissionAndUpdateVerifications().apply(req)
@@ -798,7 +816,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(Json.toJson(requestModel))
 
       val result = controller.createSubmissionAndUpdateVerifications().apply(req)
@@ -835,7 +853,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.successful(()))
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(Json.toJson(requestModel))
 
       val result = controller.updateVerificationSubmission().apply(req)
@@ -854,7 +872,7 @@ class VerificationControllerSpec extends SpecBase {
       val badJson = Json.obj("instanceId" -> "abc-123")
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(badJson)
 
       val result = controller.updateVerificationSubmission().apply(req)
@@ -888,7 +906,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(Json.toJson(requestModel))
 
       val result = controller.updateVerificationSubmission().apply(req)
@@ -932,7 +950,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.successful(()))
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(Json.toJson(requestModel))
 
       val result = controller.processVerificationResponseFromChris().apply(req)
@@ -951,7 +969,7 @@ class VerificationControllerSpec extends SpecBase {
       val badJson = Json.obj("instanceId" -> "abc-123")
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(badJson)
 
       val result = controller.processVerificationResponseFromChris().apply(req)
@@ -992,7 +1010,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(Json.toJson(requestModel))
 
       val result = controller.processVerificationResponseFromChris().apply(req)
@@ -1037,7 +1055,7 @@ class VerificationControllerSpec extends SpecBase {
 
       val req =
         FakeRequest(POST, url)
-          .withHeaders(CONTENT_TYPE -> JSON)
+          .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
           .withBody(Json.toJson(requestModel))
 
       val result =
@@ -1066,7 +1084,7 @@ class VerificationControllerSpec extends SpecBase {
 
       val req =
         FakeRequest(POST, url)
-          .withHeaders(CONTENT_TYPE -> JSON)
+          .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
           .withBody(invalidJson)
 
       val result =
@@ -1104,7 +1122,7 @@ class VerificationControllerSpec extends SpecBase {
 
       val req =
         FakeRequest(POST, url)
-          .withHeaders(CONTENT_TYPE -> JSON)
+          .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
           .withBody(Json.toJson(requestModel))
 
       val result =
@@ -1134,7 +1152,7 @@ class VerificationControllerSpec extends SpecBase {
     val getUrl =
       s"/cis/verification/submission-batch/${requestModel.instanceId}/${requestModel.verificationBatchResourceRef}"
 
-    "returns 200 OK without authentication when service succeeds" in {
+    "returns 200 OK with internal auth when service succeeds" in {
       val s = setup
       import s.*
 
@@ -1154,13 +1172,13 @@ class VerificationControllerSpec extends SpecBase {
       ).thenReturn(Future.successful(responseModel))
 
       val result =
-        scheduledController
+        controller
           .getSubmissionWithVerificationBatchByRefs(
             requestModel.instanceId,
             requestModel.verificationBatchResourceRef
           )
           .apply(
-            FakeRequest(GET, getUrl)
+            FakeRequest(GET, getUrl).withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
           )
 
       status(result) mustBe OK
@@ -1171,10 +1189,9 @@ class VerificationControllerSpec extends SpecBase {
         .getSubmissionWithVerificationBatch(eqTo(requestModel))
 
       verifyNoMoreInteractions(mockService)
-      verifyNoInteractions(mockAuth)
     }
 
-    "returns 500 InternalServerError without authentication when service fails" in {
+    "returns 500 InternalServerError with internal auth when service fails" in {
       val s = setup
       import s.*
 
@@ -1188,13 +1205,13 @@ class VerificationControllerSpec extends SpecBase {
       ).thenReturn(Future.failed(exception))
 
       val result =
-        scheduledController
+        controller
           .getSubmissionWithVerificationBatchByRefs(
             requestModel.instanceId,
             requestModel.verificationBatchResourceRef
           )
           .apply(
-            FakeRequest(GET, getUrl)
+            FakeRequest(GET, getUrl).withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
           )
 
       status(result) mustBe INTERNAL_SERVER_ERROR
@@ -1206,10 +1223,9 @@ class VerificationControllerSpec extends SpecBase {
         .getSubmissionWithVerificationBatch(eqTo(requestModel))
 
       verifyNoMoreInteractions(mockService)
-      verifyNoInteractions(mockAuth)
     }
 
-    "returns 400 BadRequest without authentication when instanceId is blank" in {
+    "returns 400 BadRequest with internal auth when instanceId is blank" in {
       val s = setup
       import s.*
 
@@ -1217,13 +1233,13 @@ class VerificationControllerSpec extends SpecBase {
         s"/cis/verification/submission-batch/%20/${requestModel.verificationBatchResourceRef}"
 
       val result =
-        scheduledController
+        controller
           .getSubmissionWithVerificationBatchByRefs(
             "   ",
             requestModel.verificationBatchResourceRef
           )
           .apply(
-            FakeRequest(GET, blankInstanceIdUrl)
+            FakeRequest(GET, blankInstanceIdUrl).withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
           )
 
       status(result) mustBe BAD_REQUEST
@@ -1232,7 +1248,6 @@ class VerificationControllerSpec extends SpecBase {
         Json.obj("message" -> "instanceId must not be blank")
 
       verifyNoInteractions(mockService)
-      verifyNoInteractions(mockAuth)
     }
   }
 
@@ -1256,7 +1271,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.successful(responseModel))
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(Json.toJson(requestModel))
 
       val result = controller.getSubmittedVerifications().apply(req)
@@ -1276,7 +1291,7 @@ class VerificationControllerSpec extends SpecBase {
       val badJson = Json.obj("wrong" -> "value")
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(badJson)
 
       val result = controller.getSubmittedVerifications().apply(req)
@@ -1301,7 +1316,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(Json.toJson(requestModel))
 
       val result = controller.getSubmittedVerifications().apply(req)
@@ -1334,7 +1349,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.successful(()))
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(Json.toJson(requestModel))
 
       val result = controller.proceedInsufficientVerification().apply(req)
@@ -1353,7 +1368,7 @@ class VerificationControllerSpec extends SpecBase {
       val badJson = Json.obj("instanceId" -> "abc-123")
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(badJson)
 
       val result = controller.proceedInsufficientVerification().apply(req)
@@ -1382,7 +1397,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(Json.toJson(requestModel))
 
       val result = controller.proceedInsufficientVerification().apply(req)

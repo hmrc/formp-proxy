@@ -26,7 +26,11 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{ControllerComponents, PlayBodyParsers, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import uk.gov.hmrc.formpproxy.actions.{AuthAction, FakeAuthAction}
+import play.api.mvc.{BodyParsers, PlayBodyParsers}
+import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.formpproxy.actions.AuthOrInternalAuthAction
+import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource, Retrieval}
+import uk.gov.hmrc.internalauth.client.test.{BackendAuthComponentsStub, StubBehaviour}
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, MonthlyReturn, SubmittedMonthlyReturn, SubmittedMonthlyReturns, UnsubmittedMonthlyReturns, UserMonthlyReturns, requests}
@@ -124,7 +128,9 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
 
       // Typed request body matches Action[CreateNilMonthlyReturnRequest]
       val req: FakeRequest[CreateNilMonthlyReturnRequest] =
-        FakeRequest(POST, "/formp-proxy/cis/monthly-return/nil/create").withBody(request)
+        FakeRequest(POST, "/formp-proxy/cis/monthly-return/nil/create")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(request)
 
       val res: Future[Result] = controller.createNilMonthlyReturn(req)
 
@@ -150,7 +156,9 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         .thenReturn(Future.failed(err))
 
       val req: FakeRequest[CreateNilMonthlyReturnRequest] =
-        FakeRequest(POST, "/formp-proxy/cis/monthly-return/nil/create").withBody(request)
+        FakeRequest(POST, "/formp-proxy/cis/monthly-return/nil/create")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(request)
 
       val res = controller.createNilMonthlyReturn(req)
 
@@ -181,7 +189,9 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         .thenReturn(Future.successful(()))
 
       val req: FakeRequest[UpdateMonthlyReturnRequest] =
-        FakeRequest(POST, "/formp-proxy/cis/monthly-return/update").withBody(request)
+        FakeRequest(POST, "/formp-proxy/cis/monthly-return/update")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(request)
 
       val res: Future[Result] = controller.updateMonthlyReturn(req)
 
@@ -210,7 +220,9 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         .thenReturn(Future.failed(err))
 
       val req: FakeRequest[UpdateMonthlyReturnRequest] =
-        FakeRequest(POST, "/formp-proxy/cis/monthly-return/update").withBody(request)
+        FakeRequest(POST, "/formp-proxy/cis/monthly-return/update")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(request)
 
       val res: Future[Result] = controller.updateMonthlyReturn(req)
 
@@ -238,7 +250,9 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req: FakeRequest[UpdateMonthlyReturnRequest] =
-        FakeRequest(POST, "/formp-proxy/cis/monthly-return/update").withBody(request)
+        FakeRequest(POST, "/formp-proxy/cis/monthly-return/update")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(request)
 
       val res: Future[Result] = controller.updateMonthlyReturn(req)
 
@@ -270,7 +284,9 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         .thenReturn(Future.successful(()))
 
       val req: FakeRequest[UpdateMonthlyReturnItemRequest] =
-        FakeRequest(POST, "/formp-proxy/cis/monthly-return-item/update").withBody(requestBody)
+        FakeRequest(POST, "/formp-proxy/cis/monthly-return-item/update")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(requestBody)
 
       val res = controller.updateMonthlyReturnItem()(req)
 
@@ -301,7 +317,9 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         .thenReturn(Future.failed(err))
 
       val req: FakeRequest[UpdateMonthlyReturnItemRequest] =
-        FakeRequest(POST, "/formp-proxy/cis/monthly-return-item/update").withBody(requestBody)
+        FakeRequest(POST, "/formp-proxy/cis/monthly-return-item/update")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(requestBody)
 
       val res = controller.updateMonthlyReturnItem()(req)
 
@@ -330,7 +348,9 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req: FakeRequest[UpdateMonthlyReturnItemRequest] =
-        FakeRequest(POST, "/formp-proxy/cis/monthly-return-item/update").withBody(requestBody)
+        FakeRequest(POST, "/formp-proxy/cis/monthly-return-item/update")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(requestBody)
 
       val res = controller.updateMonthlyReturnItem()(req)
 
@@ -348,7 +368,9 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
       when(mockService.getSchemeEmail(eqTo("abc-123"))).thenReturn(Future.successful(Some("x@y.com")))
 
       val req: FakeRequest[InstanceIdRequest] =
-        FakeRequest(POST, "/formp-proxy/scheme/email").withBody(requests.InstanceIdRequest("abc-123"))
+        FakeRequest(POST, "/formp-proxy/scheme/email")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(requests.InstanceIdRequest("abc-123"))
       val res: Future[Result]                 = controller.getSchemeEmail(req)
 
       status(res) mustBe OK
@@ -361,7 +383,9 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
       when(mockService.getSchemeEmail(eqTo("abc-123"))).thenReturn(Future.successful(None))
 
       val req: FakeRequest[InstanceIdRequest] =
-        FakeRequest(POST, "/formp-proxy/scheme/email").withBody(requests.InstanceIdRequest("abc-123"))
+        FakeRequest(POST, "/formp-proxy/scheme/email")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(requests.InstanceIdRequest("abc-123"))
       val res                                 = controller.getSchemeEmail(req)
 
       status(res) mustBe OK
@@ -373,7 +397,9 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
       when(mockService.getSchemeEmail(eqTo("abc-123"))).thenReturn(Future.failed(err))
 
       val req: FakeRequest[InstanceIdRequest] =
-        FakeRequest(POST, "/formp-proxy/scheme/email").withBody(requests.InstanceIdRequest("abc-123"))
+        FakeRequest(POST, "/formp-proxy/scheme/email")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(requests.InstanceIdRequest("abc-123"))
       val res                                 = controller.getSchemeEmail(req)
 
       status(res) mustBe BAD_GATEWAY
@@ -394,7 +420,9 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         .thenReturn(Future.successful(()))
 
       val req: FakeRequest[CreateMonthlyReturnRequest] =
-        FakeRequest(POST, "/formp-proxy/monthly-return/create").withBody(request)
+        FakeRequest(POST, "/formp-proxy/monthly-return/create")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(request)
 
       val res: Future[Result] = controller.createMonthlyReturn(req)
 
@@ -417,7 +445,9 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         .thenReturn(Future.failed(err))
 
       val req: FakeRequest[CreateMonthlyReturnRequest] =
-        FakeRequest(POST, "/formp-proxy/monthly-return/create").withBody(request)
+        FakeRequest(POST, "/formp-proxy/monthly-return/create")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(request)
 
       val res: Future[Result] = controller.createMonthlyReturn(req)
 
@@ -439,7 +469,9 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req: FakeRequest[CreateMonthlyReturnRequest] =
-        FakeRequest(POST, "/formp-proxy/monthly-return/create").withBody(request)
+        FakeRequest(POST, "/formp-proxy/monthly-return/create")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(request)
 
       val res: Future[Result] = controller.createMonthlyReturn(req)
 
@@ -472,7 +504,7 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
 
       val req: FakeRequest[JsValue] =
         FakeRequest(POST, "/formp-proxy/monthly-return")
-          .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
+          .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
           .withBody(Json.obj("instanceId" -> "abc-123"))
 
       val res: Future[Result] = controller.retrieveUnsubmittedMonthlyReturns(req)
@@ -485,7 +517,7 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
     "returns 400 when JSON body is missing" in new Setup {
       val req: FakeRequest[JsValue] =
         FakeRequest(POST, "/formp-proxy/monthly-return")
-          .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
+          .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
           .withBody(Json.obj())
 
       val res: Future[Result] = controller.retrieveUnsubmittedMonthlyReturns(req)
@@ -500,7 +532,7 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
 
       val req: FakeRequest[JsValue] =
         FakeRequest(POST, "/formp-proxy/monthly-return")
-          .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
+          .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
           .withBody(Json.obj("instanceId" -> "abc-123"))
 
       val res: Future[Result] = controller.retrieveUnsubmittedMonthlyReturns(req)
@@ -532,7 +564,7 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
 
       val req: FakeRequest[JsValue] =
         FakeRequest(POST, "/cis/retrieve-submitted-monthly-returns")
-          .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
+          .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
           .withBody(Json.obj("instanceId" -> "abc-123"))
 
       val res: Future[Result] = controller.retrieveSubmittedMonthlyReturns(req)
@@ -547,7 +579,7 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
     "returns 400 when JSON body is missing" in new Setup {
       val req: FakeRequest[JsValue] =
         FakeRequest(POST, "/cis/retrieve-submitted-monthly-returns")
-          .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
+          .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
           .withBody(Json.obj())
 
       val res: Future[Result] = controller.retrieveSubmittedMonthlyReturns(req)
@@ -562,7 +594,7 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
 
       val req: FakeRequest[JsValue] =
         FakeRequest(POST, "/cis/retrieve-submitted-monthly-returns")
-          .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
+          .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
           .withBody(Json.obj("instanceId" -> "abc-123"))
 
       val res: Future[Result] = controller.retrieveSubmittedMonthlyReturns(req)
@@ -666,7 +698,9 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         .thenReturn(Future.successful(()))
 
       val req: FakeRequest[SyncMonthlyReturnItemsRequest] =
-        FakeRequest(POST, "/formp-proxy/cis/monthly-return-item/sync").withBody(requestBody)
+        FakeRequest(POST, "/formp-proxy/cis/monthly-return-item/sync")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(requestBody)
 
       val res: Future[Result] = controller.syncMonthlyReturnItems(req)
 
@@ -691,7 +725,9 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req: FakeRequest[SyncMonthlyReturnItemsRequest] =
-        FakeRequest(POST, "/formp-proxy/cis/monthly-return-item/sync").withBody(requestBody)
+        FakeRequest(POST, "/formp-proxy/cis/monthly-return-item/sync")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(requestBody)
 
       val res: Future[Result] = controller.syncMonthlyReturnItems(req)
 
@@ -718,7 +754,9 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         .thenReturn(Future.successful(()))
 
       val req: FakeRequest[DeleteMonthlyReturnItemRequest] =
-        FakeRequest(POST, "/formp-proxy/cis/monthly-return-item/delete").withBody(requestBody)
+        FakeRequest(POST, "/formp-proxy/cis/monthly-return-item/delete")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(requestBody)
 
       val res: Future[Result] = controller.deleteMonthlyReturnItem(req)
 
@@ -742,7 +780,9 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req: FakeRequest[DeleteMonthlyReturnItemRequest] =
-        FakeRequest(POST, "/formp-proxy/cis/monthly-return-item/delete").withBody(requestBody)
+        FakeRequest(POST, "/formp-proxy/cis/monthly-return-item/delete")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(requestBody)
 
       val res: Future[Result] = controller.deleteMonthlyReturnItem(req)
 
@@ -768,7 +808,9 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         .thenReturn(Future.successful(()))
 
       val req: FakeRequest[DeleteUnsubmittedMonthlyReturnRequest] =
-        FakeRequest(POST, "/formp-proxy/cis/monthly-returns/unsubmitted/delete").withBody(requestBody)
+        FakeRequest(POST, "/formp-proxy/cis/monthly-returns/unsubmitted/delete")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(requestBody)
 
       val res: Future[Result] = controller.deleteUnsubmittedMonthlyReturn(req)
 
@@ -791,7 +833,9 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req: FakeRequest[DeleteUnsubmittedMonthlyReturnRequest] =
-        FakeRequest(POST, "/formp-proxy/cis/monthly-returns/unsubmitted/delete").withBody(requestBody)
+        FakeRequest(POST, "/formp-proxy/cis/monthly-returns/unsubmitted/delete")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(requestBody)
 
       val res: Future[Result] = controller.deleteUnsubmittedMonthlyReturn(req)
 
@@ -851,14 +895,28 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
     implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.global
     private val cc: ControllerComponents = stubControllerComponents()
     private val parsers: PlayBodyParsers = cc.parsers
-    private def fakeAuth: AuthAction     = new FakeAuthAction(parsers)
 
     val mockService: MonthlyReturnService = mock[MonthlyReturnService]
-    val controller                        = new MonthlyReturnController(fakeAuth, mockService, cc)
+
+    private val resource                             = Resource.from("formp-proxy", "formp-proxy/cis/monthly-returns")
+    val readMonthlyReturns: Predicate.Permission     = Predicate.Permission(resource, IAAction("READ"))
+    val writeMonthlyReturns: Predicate.Permission    = Predicate.Permission(resource, IAAction("WRITE"))
+    val deleteMonthlyReturns: Predicate.Permission   = Predicate.Permission(resource, IAAction("DELETE"))
+    val internalAuth: StubBehaviour                  = mock[StubBehaviour]
+    val backendAuth: BackendAuthComponents           = BackendAuthComponentsStub(internalAuth)(cc, ec)
+    val mockAuthConnector: AuthConnector             = mock[AuthConnector]
+    val authOrInternalAuth: AuthOrInternalAuthAction =
+      new AuthOrInternalAuthAction(mockAuthConnector, backendAuth, new BodyParsers.Default(parsers))
+
+    when(internalAuth.stubAuth(Some(readMonthlyReturns), Retrieval.EmptyRetrieval)).thenReturn(Future.unit)
+    when(internalAuth.stubAuth(Some(writeMonthlyReturns), Retrieval.EmptyRetrieval)).thenReturn(Future.unit)
+    when(internalAuth.stubAuth(Some(deleteMonthlyReturns), Retrieval.EmptyRetrieval)).thenReturn(Future.unit)
+
+    val controller = new MonthlyReturnController(authOrInternalAuth, mockService, cc)
 
     def makeJsonRequest(body: JsValue) =
       FakeRequest(POST, "/formp-proxy/monthly-returns")
-        .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(body)
 
     def mkReturn(id: Long, month: Int, year: Int = 2025): MonthlyReturn =

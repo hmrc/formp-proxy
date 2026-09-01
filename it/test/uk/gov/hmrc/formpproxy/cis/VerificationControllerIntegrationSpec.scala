@@ -26,7 +26,7 @@ import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsNull, Json}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
-import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, AuthStub}
+import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, AuthStub, InternalAuthStub}
 
 import scala.concurrent.Future
 
@@ -52,6 +52,7 @@ class VerificationControllerIntegrationSpec
 
     "return 401 when there is no active session" in {
       AuthStub.unauthorised()
+      InternalAuthStub.unauthorised()
 
       val res = getResponse("cis/verification-batch/current/abc-123").futureValue
 
@@ -81,6 +82,7 @@ class VerificationControllerIntegrationSpec
 
     "return 401 when there is no active session" in {
       AuthStub.unauthorised()
+      InternalAuthStub.unauthorised()
 
       val res = postAwait(
         endpoint,
@@ -157,6 +159,7 @@ class VerificationControllerIntegrationSpec
 
     "return 204 without an authenticated session" in {
       AuthStub.unauthorised()
+      InternalAuthStub.authorised()
 
       val res = postAwait(
         endpoint,
