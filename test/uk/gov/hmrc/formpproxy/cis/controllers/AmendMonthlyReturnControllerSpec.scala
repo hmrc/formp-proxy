@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.formpproxy.cis.controllers
 
-import org.mockito.Mockito.*
 import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.*
 import play.api.libs.json.Json
-import play.api.mvc.{BodyParsers, ControllerComponents, PlayBodyParsers, Result}
+import play.api.mvc.{BodyParsers, PlayBodyParsers, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import uk.gov.hmrc.auth.core.AuthConnector
@@ -27,8 +27,8 @@ import uk.gov.hmrc.formpproxy.actions.AuthOrInternalAuthAction
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.requests.CreateAmendedMonthlyReturnRequest
 import uk.gov.hmrc.formpproxy.cis.services.AmendMonthlyReturnService
-import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource, Retrieval}
 import uk.gov.hmrc.internalauth.client.test.{BackendAuthComponentsStub, StubBehaviour}
+import uk.gov.hmrc.internalauth.client.*
 
 import scala.concurrent.Future
 

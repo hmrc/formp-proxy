@@ -162,7 +162,7 @@ class SubcontractorController @Inject() (
     }
 
   def updateSubcontractorForEdit: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    writeSubcontractors.async(parse.json) { implicit request =>
       val submittedFields: Set[String] =
         (request.body \ "subcontractor")
           .asOpt[JsObject]
