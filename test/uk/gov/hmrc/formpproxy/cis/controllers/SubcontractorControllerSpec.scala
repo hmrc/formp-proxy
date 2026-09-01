@@ -713,7 +713,7 @@ class SubcontractorControllerSpec extends SpecBase {
 
       val result =
         controller.updateSubcontractorForEdit.apply(
-          postJson("/cis/subcontractor/update-for-edit", json)
+          postJson("/cis/subcontractor/update-for-edit", json).withHeaders(AUTHORIZATION -> "Token internal-auth")
         )
 
       status(result) mustBe OK
@@ -739,7 +739,7 @@ class SubcontractorControllerSpec extends SpecBase {
 
       val result =
         controller.updateSubcontractorForEdit.apply(
-          postJson("/cis/subcontractor/update-for-edit", badJson)
+          postJson("/cis/subcontractor/update-for-edit", badJson).withHeaders(AUTHORIZATION -> "Token internal-auth")
         )
 
       status(result) mustBe BAD_REQUEST
@@ -772,7 +772,7 @@ class SubcontractorControllerSpec extends SpecBase {
 
       val result =
         controller.updateSubcontractorForEdit.apply(
-          postJson("/cis/subcontractor/update-for-edit", json)
+          postJson("/cis/subcontractor/update-for-edit", json).withHeaders(AUTHORIZATION -> "Token internal-auth")
         )
 
       status(result) mustBe BAD_REQUEST
@@ -827,7 +827,7 @@ class SubcontractorControllerSpec extends SpecBase {
 
       val result =
         controller.updateSubcontractorForEdit.apply(
-          postJson("/cis/subcontractor/update-for-edit", json)
+          postJson("/cis/subcontractor/update-for-edit", json).withHeaders(AUTHORIZATION -> "Token internal-auth")
         )
 
       status(result) mustBe INTERNAL_SERVER_ERROR
