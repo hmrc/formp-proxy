@@ -18,22 +18,37 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 
 import org.mockito.ArgumentMatchers.*
 import org.mockito.Mockito.*
-import org.scalatest.freespec.AnyFreeSpec
 import play.api.http.Status.CREATED
 import play.api.libs.json.Json
+import play.api.mvc.{BodyParsers, PlayBodyParsers}
 import play.api.test.Helpers.*
-import uk.gov.hmrc.formpproxy.actions.FakeAuthAction
+import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.formpproxy.actions.AuthOrInternalAuthAction
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.requests._
 import uk.gov.hmrc.formpproxy.cis.services.SubmissionService
+import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource, Retrieval}
+import uk.gov.hmrc.internalauth.client.test.{BackendAuthComponentsStub, StubBehaviour}
 
 import scala.concurrent.Future
 
 class SubmissionControllerSpec extends SpecBase {
   trait Setup {
     val service: SubmissionService = mock[SubmissionService]
-    val auth: FakeAuthAction       = new FakeAuthAction(cc.parsers)
-    lazy val controller            = new SubmissionController(auth, service, cc)
+
+    private val parsers: PlayBodyParsers = cc.parsers
+
+    private val resource                             = Resource.from("formp-proxy", "formp-proxy/cis/submissions")
+    val writeSubmissions: Predicate.Permission       = Predicate.Permission(resource, IAAction("WRITE"))
+    val internalAuth: StubBehaviour                  = mock[StubBehaviour]
+    val backendAuth: BackendAuthComponents           = BackendAuthComponentsStub(internalAuth)(cc, ec)
+    val mockAuthConnector: AuthConnector             = mock[AuthConnector]
+    val authOrInternalAuth: AuthOrInternalAuthAction =
+      new AuthOrInternalAuthAction(mockAuthConnector, backendAuth, new BodyParsers.Default(parsers))
+
+    when(internalAuth.stubAuth(Some(writeSubmissions), Retrieval.EmptyRetrieval)).thenReturn(Future.unit)
+
+    lazy val controller = new SubmissionController(authOrInternalAuth, service, cc)
   }
 
   def setup: Setup = new Setup {}
@@ -60,7 +75,7 @@ class SubmissionControllerSpec extends SpecBase {
       val result = controller
         .createSubmission()
         .apply(
-          postJson("/submissions", json)
+          postJson("/submissions", json).withHeaders(AUTHORIZATION -> "Token internal-auth")
         )
 
       status(result) mustBe CREATED
@@ -75,7 +90,7 @@ class SubmissionControllerSpec extends SpecBase {
       val result = controller
         .createSubmission()
         .apply(
-          postJson("/submissions", bad)
+          postJson("/submissions", bad).withHeaders(AUTHORIZATION -> "Token internal-auth")
         )
 
       status(result) mustBe BAD_REQUEST
@@ -94,7 +109,7 @@ class SubmissionControllerSpec extends SpecBase {
       val result = controller
         .createSubmission()
         .apply(
-          postJson("/submissions", json)
+          postJson("/submissions", json).withHeaders(AUTHORIZATION -> "Token internal-auth")
         )
 
       status(result) mustBe INTERNAL_SERVER_ERROR
@@ -124,7 +139,7 @@ class SubmissionControllerSpec extends SpecBase {
       val result = controller
         .updateSubmission()
         .apply(
-          postJson("/submissions/update", json)
+          postJson("/submissions/update", json).withHeaders(AUTHORIZATION -> "Token internal-auth")
         )
 
       status(result) mustBe NO_CONTENT
@@ -139,7 +154,7 @@ class SubmissionControllerSpec extends SpecBase {
       val result = controller
         .updateSubmission()
         .apply(
-          postJson("/submissions/update", bad)
+          postJson("/submissions/update", bad).withHeaders(AUTHORIZATION -> "Token internal-auth")
         )
 
       status(result) mustBe BAD_REQUEST
@@ -167,7 +182,7 @@ class SubmissionControllerSpec extends SpecBase {
       val result = controller
         .updateSubmission()
         .apply(
-          postJson("/submissions/update", json)
+          postJson("/submissions/update", json).withHeaders(AUTHORIZATION -> "Token internal-auth")
         )
 
       status(result) mustBe INTERNAL_SERVER_ERROR

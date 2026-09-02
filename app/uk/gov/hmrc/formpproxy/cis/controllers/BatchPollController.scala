@@ -19,20 +19,26 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import uk.gov.hmrc.formpproxy.actions.AuthOrInternalAuthAction
 import uk.gov.hmrc.formpproxy.cis.services.BatchPollService
+import uk.gov.hmrc.internalauth.client.{IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
 import scala.concurrent.ExecutionContext
 
 class BatchPollController @Inject() (
+  authOrInternalAuth: AuthOrInternalAuthAction,
   service: BatchPollService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
-  def getBatchPollSubmissions(): Action[AnyContent] = Action.async { implicit request =>
+  private val batchpoll     = Resource.from("formp-proxy", "formp-proxy/cis/batchpoll")
+  private val readBatchPoll = authOrInternalAuth(Predicate.Permission(batchpoll, IAAction("READ")))
+
+  def getBatchPollSubmissions(): Action[AnyContent] = readBatchPoll.async { implicit request =>
     service
       .getBatchPollSubmissions()
       .map(response => Ok(Json.toJson(response)))

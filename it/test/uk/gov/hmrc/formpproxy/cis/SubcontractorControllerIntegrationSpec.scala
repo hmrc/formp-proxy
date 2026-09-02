@@ -20,7 +20,7 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.must.Matchers
 import play.api.http.Status.*
 import play.api.libs.json.Json
-import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, AuthStub}
+import uk.gov.hmrc.formpproxy.itutil.{ApplicationWithWiremock, AuthStub, InternalAuthStub}
 
 final class SubcontractorControllerIntegrationSpec
     extends Matchers
@@ -45,6 +45,7 @@ final class SubcontractorControllerIntegrationSpec
 
       "returns 401 when there is no active session" in {
         AuthStub.unauthorised()
+        InternalAuthStub.unauthorised()
 
         val json = Json.obj(
           "cisId"                -> "1234567890",
