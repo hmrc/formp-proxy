@@ -2063,54 +2063,18 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   override def updateSubcontractor(
     request: UpdateSubcontractorRequest,
     submittedFields: Set[String]
-  ): Future[UpdateSubcontractorResponse] =
-    Future {
-      logger.info(
-        s"[CIS] updateSubcontractor(cisId=${request.cisId}, subbieResourceRef=${request.subcontractor.subbieResourceRef})"
-      )
+  ): Future[UpdateSubcontractorResponse] = {
 
-      db.withTransaction { conn =>
-        val scheme =
-          loadScheme(conn, request.cisId)
+    logger.info(
+      s"[CIS] updateSubcontractor(cisId=${request.cisId}, subbieResourceRef=${request.subcontractor.subbieResourceRef})"
+    )
 
-        val subbieResourceRef =
-          request.subcontractor.subbieResourceRef.getOrElse(
-            throw new IllegalArgumentException("subbieResourceRef is required")
-          )
-
-        val existingSubcontractor =
-          getExistingSubcontractorForUpdate(
-            conn = conn,
-            cisId = request.cisId,
-            subbieResourceRef = subbieResourceRef
-          )
-
-        val mergedSubcontractor =
-          mergeSubcontractorForUpdate(
-            existing = existingSubcontractor,
-            incoming = request.subcontractor,
-            submittedFields = submittedFields
-          )
-
-        val updatedSubcontractorVersion =
-          callUpdateExistingSubcontractor(
-            conn = conn,
-            schemeId = scheme.schemeId,
-            subbieResourceRef = subbieResourceRef,
-            subcontractor = mergedSubcontractor
-          )
-
-        callUpdateSchemeVersion(
-          conn,
-          request.cisId,
-          scheme.version.getOrElse(0)
-        )
-
-        UpdateSubcontractorResponse(
-          version = updatedSubcontractorVersion
-        )
-      }
-    }
+    updateSubcontractorInternal(
+      request,
+      submittedFields,
+      callUpdateExistingSubcontractor
+    )
+  }
 
   private def callUpdateExistingSubcontractor(
     conn: Connection,
@@ -2359,13 +2323,32 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   override def updateSubcontractorForEdit(
     request: UpdateSubcontractorRequest,
     submittedFields: Set[String]
+  ): Future[UpdateSubcontractorResponse] = {
+
+    logger.info(
+      s"[CIS] updateSubcontractorForEdit(cisId=${request.cisId}, subbieResourceRef=${request.subcontractor.subbieResourceRef})"
+    )
+
+    updateSubcontractorInternal(
+      request,
+      submittedFields,
+      callUpdateSubcontractorForEdit
+    )
+  }
+
+  private def updateSubcontractorInternal(
+    request: UpdateSubcontractorRequest,
+    submittedFields: Set[String],
+    updateFn: (
+      Connection,
+      Long,
+      Long,
+      Subcontractor
+    ) => Int
   ): Future[UpdateSubcontractorResponse] =
     Future {
-      logger.info(
-        s"[CIS] updateSubcontractorForEdit(cisId=${request.cisId}, subbieResourceRef=${request.subcontractor.subbieResourceRef})"
-      )
-
       db.withTransaction { conn =>
+
         val scheme =
           loadScheme(conn, request.cisId)
 
@@ -2376,24 +2359,24 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
         val existingSubcontractor =
           getExistingSubcontractorForUpdate(
-            conn = conn,
-            cisId = request.cisId,
-            subbieResourceRef = subbieResourceRef
+            conn,
+            request.cisId,
+            subbieResourceRef
           )
 
         val mergedSubcontractor =
           mergeSubcontractorForUpdate(
-            existing = existingSubcontractor,
-            incoming = request.subcontractor,
-            submittedFields = submittedFields
+            existingSubcontractor,
+            request.subcontractor,
+            submittedFields
           )
 
-        val updatedSubcontractorVersion =
-          callUpdateSubcontractorForEdit(
-            conn = conn,
-            schemeId = scheme.schemeId,
-            subbieResourceRef = subbieResourceRef,
-            subcontractor = mergedSubcontractor
+        val updatedVersion =
+          updateFn(
+            conn,
+            scheme.schemeId,
+            subbieResourceRef,
+            mergedSubcontractor
           )
 
         callUpdateSchemeVersion(
@@ -2402,9 +2385,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           scheme.version.getOrElse(0)
         )
 
-        UpdateSubcontractorResponse(
-          version = updatedSubcontractorVersion
-        )
+        UpdateSubcontractorResponse(updatedVersion)
       }
     }
 
