@@ -744,7 +744,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.successful(responseModel))
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(Json.toJson(requestModel))
 
       val result = controller.deleteVerification().apply(req)
@@ -764,7 +764,7 @@ class VerificationControllerSpec extends SpecBase {
       val badJson = Json.obj("instanceId" -> "abc-123")
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(badJson)
 
       val result = controller.deleteVerification().apply(req)
@@ -792,7 +792,7 @@ class VerificationControllerSpec extends SpecBase {
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req = FakeRequest(POST, url)
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(Json.toJson(requestModel))
 
       val result = controller.deleteVerification().apply(req)

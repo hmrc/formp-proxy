@@ -111,7 +111,7 @@ class VerificationController @Inject() (
     }
 
   def deleteVerification(): Action[JsValue] =
-    authorise(parse.json).async { implicit request =>
+    writeVerifications.async(parse.json) { implicit request =>
       request.body
         .validate[DeleteVerificationRequest]
         .fold(
