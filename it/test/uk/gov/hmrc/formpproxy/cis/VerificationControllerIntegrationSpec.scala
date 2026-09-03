@@ -161,6 +161,7 @@ class VerificationControllerIntegrationSpec
 
     "return 401 when there is no active session" in {
       AuthStub.unauthorised()
+      InternalAuthStub.unauthorised()
 
       val res = postAwait(
         endpoint,
