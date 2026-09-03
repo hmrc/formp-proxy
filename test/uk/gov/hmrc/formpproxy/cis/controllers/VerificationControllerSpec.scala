@@ -725,6 +725,87 @@ class VerificationControllerSpec extends SpecBase {
     }
   }
 
+  "POST /cis/verification/delete (deleteVerification)" - {
+
+    val url = "/cis/verification/delete"
+
+    "returns 200 Ok with remaining verifications counter when service succeeds" in {
+      val s = setup;
+      import s.*
+
+      val requestModel = DeleteVerificationRequest(
+        instanceId = "abc-123",
+        verificationResourceRef = 111L
+      )
+
+      val responseModel = DeleteVerificationResponse(Some(2L))
+
+      when(mockService.deleteVerification(eqTo(requestModel)))
+        .thenReturn(Future.successful(responseModel))
+
+      val req = FakeRequest(POST, url)
+        .withHeaders(CONTENT_TYPE -> JSON)
+        .withBody(Json.toJson(requestModel))
+
+      val result = controller.deleteVerification().apply(req)
+
+      status(result) mustBe OK
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.toJson(responseModel)
+
+      verify(mockService).deleteVerification(eqTo(requestModel))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 400 BadRequest with error payload when JSON is invalid" in {
+      val s = setup;
+      import s.*
+
+      val badJson = Json.obj("instanceId" -> "abc-123")
+
+      val req = FakeRequest(POST, url)
+        .withHeaders(CONTENT_TYPE -> JSON)
+        .withBody(badJson)
+
+      val result = controller.deleteVerification().apply(req)
+
+      status(result) mustBe BAD_REQUEST
+      contentType(result) mustBe Some(JSON)
+
+      val body = contentAsJson(result)
+      (body \ "message").as[String] mustBe "Invalid payload"
+      (body \ "errors").isDefined mustBe true
+
+      verifyNoInteractions(mockService)
+    }
+
+    "returns 500 InternalServerError with error body when service fails" in {
+      val s = setup;
+      import s.*
+
+      val requestModel = DeleteVerificationRequest(
+        instanceId = "abc-123",
+        verificationResourceRef = 111L
+      )
+
+      when(mockService.deleteVerification(eqTo(requestModel)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val req = FakeRequest(POST, url)
+        .withHeaders(CONTENT_TYPE -> JSON)
+        .withBody(Json.toJson(requestModel))
+
+      val result = controller.deleteVerification().apply(req)
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentType(result) mustBe Some(JSON)
+      contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
+
+      verify(mockService).deleteVerification(eqTo(requestModel))
+      verifyNoMoreInteractions(mockService)
+    }
+  }
+
   "POST /cis/verification/submission/create (createSubmissionForVerification)" - {
 
     val url = "/cis/verification/submission/create"
