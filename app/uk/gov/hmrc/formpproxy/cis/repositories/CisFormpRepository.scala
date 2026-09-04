@@ -2113,7 +2113,8 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     request: FinalValidationUpdateSubcontractorRequest
   ): Future[Unit] =
     Future {
-      val submittedFields = submittedFieldsForFinalValidation(request.changeTarget)
+      val submittedFields =
+        request.changeTargets.flatMap(submittedFieldsForFinalValidation)
 
       db.withTransaction { conn =>
         val scheme   = loadScheme(conn, request.instanceId)

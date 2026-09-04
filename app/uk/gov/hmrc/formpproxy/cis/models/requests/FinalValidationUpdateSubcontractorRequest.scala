@@ -23,7 +23,7 @@ final case class FinalValidationUpdateSubcontractorRequest(
   instanceId: String,
   subcontractorId: Long,
   subbieResourceRef: Long,
-  changeTarget: String,
+  changeTargets: Set[String],
   patch: FinalValidationSubcontractorPatch
 )
 
