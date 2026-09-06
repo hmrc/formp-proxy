@@ -2105,7 +2105,8 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     updateSubcontractorInternal(
       request,
       submittedFields,
-      callUpdateExistingSubcontractor
+      callUpdateExistingSubcontractor,
+      applyVerificationRestrictions = true
     )
   }
 
@@ -2193,7 +2194,8 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   private def mergeSubcontractorForUpdate(
     existing: Subcontractor,
     incoming: Subcontractor,
-    submittedFields: Set[String]
+    submittedFields: Set[String],
+    applyVerificationRestrictions: Boolean
   ): Subcontractor = {
 
     val existingType =
@@ -2206,7 +2208,10 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       existing.pendingVerifications.exists(_ > 0)
 
     val treatedAsVerified =
-      hasCompletedVerification || hasPendingVerification
+      applyVerificationRestrictions && (
+        hasCompletedVerification ||
+          hasPendingVerification
+      )
 
     val commonEditableFields =
       Set(
@@ -2365,7 +2370,8 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     updateSubcontractorInternal(
       request,
       submittedFields,
-      callUpdateSubcontractorForEdit
+      callUpdateSubcontractorForEdit,
+      applyVerificationRestrictions = false
     )
   }
 
@@ -2377,7 +2383,8 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       Long,
       Long,
       Subcontractor
-    ) => Int
+    ) => Int,
+    applyVerificationRestrictions: Boolean
   ): Future[UpdateSubcontractorResponse] =
     Future {
       db.withTransaction { conn =>
@@ -2401,7 +2408,8 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           mergeSubcontractorForUpdate(
             existingSubcontractor,
             request.subcontractor,
-            submittedFields
+            submittedFields,
+            applyVerificationRestrictions
           )
 
         val updatedVersion =
