@@ -105,6 +105,11 @@ trait CisMonthlyReturnSource {
 
   def getSubcontractor(cisId: String, subbieResourceRef: Long): Future[GetSubcontractorResponse]
 
+  def updateSubcontractorForEdit(
+    request: UpdateSubcontractorRequest,
+    submittedFields: Set[String]
+  ): Future[UpdateSubcontractorResponse]
+
   def updateSubcontractor(
     request: UpdateSubcontractorRequest,
     submittedFields: Set[String]
@@ -2088,54 +2093,19 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   override def updateSubcontractor(
     request: UpdateSubcontractorRequest,
     submittedFields: Set[String]
-  ): Future[UpdateSubcontractorResponse] =
-    Future {
-      logger.info(
-        s"[CIS] updateSubcontractor(cisId=${request.cisId}, subbieResourceRef=${request.subcontractor.subbieResourceRef})"
-      )
+  ): Future[UpdateSubcontractorResponse] = {
 
-      db.withTransaction { conn =>
-        val scheme =
-          loadScheme(conn, request.cisId)
+    logger.info(
+      s"[CIS] updateSubcontractor(cisId=${request.cisId}, subbieResourceRef=${request.subcontractor.subbieResourceRef})"
+    )
 
-        val subbieResourceRef =
-          request.subcontractor.subbieResourceRef.getOrElse(
-            throw new IllegalArgumentException("subbieResourceRef is required")
-          )
-
-        val existingSubcontractor =
-          getExistingSubcontractorForUpdate(
-            conn = conn,
-            cisId = request.cisId,
-            subbieResourceRef = subbieResourceRef
-          )
-
-        val mergedSubcontractor =
-          mergeSubcontractorForUpdate(
-            existing = existingSubcontractor,
-            incoming = request.subcontractor,
-            submittedFields = submittedFields
-          )
-
-        val updatedSubcontractorVersion =
-          callUpdateExistingSubcontractor(
-            conn = conn,
-            schemeId = scheme.schemeId,
-            subbieResourceRef = subbieResourceRef,
-            subcontractor = mergedSubcontractor
-          )
-
-        callUpdateSchemeVersion(
-          conn,
-          request.cisId,
-          scheme.version.getOrElse(0)
-        )
-
-        UpdateSubcontractorResponse(
-          version = updatedSubcontractorVersion
-        )
-      }
-    }
+    updateSubcontractorInternal(
+      request,
+      submittedFields,
+      callUpdateExistingSubcontractor,
+      applyVerificationRestrictions = true
+    )
+  }
 
   private def callUpdateExistingSubcontractor(
     conn: Connection,
@@ -2221,7 +2191,8 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   private def mergeSubcontractorForUpdate(
     existing: Subcontractor,
     incoming: Subcontractor,
-    submittedFields: Set[String]
+    submittedFields: Set[String],
+    applyVerificationRestrictions: Boolean
   ): Subcontractor = {
 
     val existingType =
@@ -2234,7 +2205,10 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       existing.pendingVerifications.exists(_ > 0)
 
     val treatedAsVerified =
-      hasCompletedVerification || hasPendingVerification
+      applyVerificationRestrictions && (
+        hasCompletedVerification ||
+          hasPendingVerification
+      )
 
     val commonEditableFields =
       Set(
@@ -2380,5 +2354,122 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       version = existing.version
     )
   }
+
+  override def updateSubcontractorForEdit(
+    request: UpdateSubcontractorRequest,
+    submittedFields: Set[String]
+  ): Future[UpdateSubcontractorResponse] = {
+
+    logger.info(
+      s"[CIS] updateSubcontractorForEdit(cisId=${request.cisId}, subbieResourceRef=${request.subcontractor.subbieResourceRef})"
+    )
+
+    updateSubcontractorInternal(
+      request,
+      submittedFields,
+      callUpdateSubcontractorForEdit,
+      applyVerificationRestrictions = false
+    )
+  }
+
+  private def updateSubcontractorInternal(
+    request: UpdateSubcontractorRequest,
+    submittedFields: Set[String],
+    updateFn: (
+      Connection,
+      Long,
+      Long,
+      Subcontractor
+    ) => Int,
+    applyVerificationRestrictions: Boolean
+  ): Future[UpdateSubcontractorResponse] =
+    Future {
+      db.withTransaction { conn =>
+
+        val scheme =
+          loadScheme(conn, request.cisId)
+
+        val subbieResourceRef =
+          request.subcontractor.subbieResourceRef.getOrElse(
+            throw new IllegalArgumentException("subbieResourceRef is required")
+          )
+
+        val existingSubcontractor =
+          getExistingSubcontractorForUpdate(
+            conn,
+            request.cisId,
+            subbieResourceRef
+          )
+
+        val mergedSubcontractor =
+          mergeSubcontractorForUpdate(
+            existingSubcontractor,
+            request.subcontractor,
+            submittedFields,
+            applyVerificationRestrictions
+          )
+
+        val updatedVersion =
+          updateFn(
+            conn,
+            scheme.schemeId,
+            subbieResourceRef,
+            mergedSubcontractor
+          )
+
+        callUpdateSchemeVersion(
+          conn,
+          request.cisId,
+          scheme.version.getOrElse(0)
+        )
+
+        UpdateSubcontractorResponse(updatedVersion)
+      }
+    }
+
+  private def callUpdateSubcontractorForEdit(
+    conn: Connection,
+    schemeId: Long,
+    subbieResourceRef: Long,
+    subcontractor: Subcontractor
+  ): Int =
+    withCall(conn, CallUpdateSubcontractorForEdit) { cs =>
+      cs.setLong(1, schemeId)
+      cs.setLong(2, subbieResourceRef)
+
+      cs.setOptionalString(3, subcontractor.utr)
+      cs.setOptionalInt(4, subcontractor.pageVisited)
+      cs.setOptionalString(5, subcontractor.partnerUtr)
+      cs.setOptionalString(6, subcontractor.crn)
+
+      cs.setOptionalString(7, subcontractor.firstName)
+      cs.setOptionalString(8, subcontractor.nino)
+      cs.setOptionalString(9, subcontractor.secondName)
+      cs.setOptionalString(10, subcontractor.surname)
+
+      cs.setOptionalString(11, subcontractor.partnershipTradingName)
+      cs.setOptionalString(12, subcontractor.tradingName)
+
+      cs.setOptionalString(13, subcontractor.addressLine1)
+      cs.setOptionalString(14, subcontractor.addressLine2)
+      cs.setOptionalString(15, subcontractor.addressLine3)
+      cs.setOptionalString(16, subcontractor.addressLine4)
+      cs.setOptionalString(17, subcontractor.country)
+      cs.setOptionalString(18, subcontractor.postcode)
+
+      cs.setOptionalString(19, subcontractor.emailAddress)
+      cs.setOptionalString(20, subcontractor.phoneNumber)
+      cs.setOptionalString(21, subcontractor.mobilePhoneNumber)
+      cs.setOptionalString(22, subcontractor.worksReferenceNumber)
+
+      cs.setOptionalString(23, subcontractor.matched)
+      cs.setOptionalString(24, subcontractor.autoVerified)
+
+      cs.setOptionalInt(25, subcontractor.version)
+      cs.registerOutParameter(25, Types.INTEGER)
+
+      cs.execute()
+      cs.getInt(25)
+    }
 
 }
