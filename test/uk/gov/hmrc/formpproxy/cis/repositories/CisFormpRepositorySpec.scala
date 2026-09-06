@@ -5468,7 +5468,7 @@ final class CisFormpRepositorySpec extends SpecBase {
 
   "updateSubcontractorForEdit" - {
 
-    "preserves existing subcontractor fields when fields are missing from the edit payload" in {
+    "preserves fields absent from the edit payload, clears explicitly submitted null fields and updates submitted values" in {
       val db   = mock[Database]
       val conn = mock[Connection]
 
@@ -5658,29 +5658,33 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdateSubForEdit).setLong(1, 123L)
       verify(csUpdateSubForEdit).setLong(2, 10L)
 
-      verify(csUpdateSubForEdit).setString(3, "1234567890")
+      // Explicitly submitted as null, so these values are cleared.
+      verify(csUpdateSubForEdit).setNull(3, Types.VARCHAR)
+      verify(csUpdateSubForEdit).setNull(9, Types.VARCHAR)
+      verify(csUpdateSubForEdit).setNull(10, Types.VARCHAR)
+      verify(csUpdateSubForEdit).setNull(12, Types.VARCHAR)
+      verify(csUpdateSubForEdit).setNull(13, Types.VARCHAR)
+      verify(csUpdateSubForEdit).setNull(19, Types.VARCHAR)
+      verify(csUpdateSubForEdit).setNull(20, Types.VARCHAR)
+
+      // Explicitly submitted with a new value, so it is updated.
+      verify(csUpdateSubForEdit).setString(7, "Gary")
+
+      // Absent from submittedFields, so existing values are preserved.
       verify(csUpdateSubForEdit).setInt(4, 1)
       verify(csUpdateSubForEdit).setString(5, "2222222222")
       verify(csUpdateSubForEdit).setString(6, "CRN123")
-      verify(csUpdateSubForEdit).setString(7, "Old John")
       verify(csUpdateSubForEdit).setString(8, "AA123456A")
-      verify(csUpdateSubForEdit).setString(9, "Q")
-      verify(csUpdateSubForEdit).setString(10, "Smith")
       verify(csUpdateSubForEdit).setString(11, "Old Partnership")
-      verify(csUpdateSubForEdit).setString(12, "Old Trading Name")
-
-      verify(csUpdateSubForEdit).setNull(13, Types.VARCHAR)
       verify(csUpdateSubForEdit).setString(14, "Flat 2")
       verify(csUpdateSubForEdit).setString(15, "London")
       verify(csUpdateSubForEdit).setString(16, "Greater London")
       verify(csUpdateSubForEdit).setString(17, "GB")
       verify(csUpdateSubForEdit).setString(18, "AA1 1AA")
-
-      verify(csUpdateSubForEdit).setNull(19, Types.VARCHAR)
-      verify(csUpdateSubForEdit).setNull(20, Types.VARCHAR)
       verify(csUpdateSubForEdit).setString(21, "07123456789")
       verify(csUpdateSubForEdit).setString(22, "WR-123")
 
+      // System-managed fields remain unchanged.
       verify(csUpdateSubForEdit).setString(23, "Y")
       verify(csUpdateSubForEdit).setString(24, "N")
 
@@ -5709,7 +5713,8 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csVersion).close()
     }
 
-    "does not update non-editable fields for a verified sole trader but allows editable fields to be cleared" in {
+    "allows identity fields to be updated when pending verifications exist in edit journey" in {
+
       val db   = mock[Database]
       val conn = mock[Connection]
 
@@ -5872,22 +5877,33 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       result mustBe UpdateSubcontractorResponse(version = 6)
 
-      // non-editable because verified sole trader
-      verify(csUpdateSubForEdit).setString(3, "1234567890")
-      verify(csUpdateSubForEdit).setString(7, "Old John")
-      verify(csUpdateSubForEdit).setString(10, "Smith")
-      verify(csUpdateSubForEdit).setString(12, "Old Trading Name")
+      // Pending verifications no longer prevent edits in edit journey
+      verify(csUpdateSubForEdit).setString(3, "9999999999")
+      verify(csUpdateSubForEdit).setString(7, "Gary")
+      verify(csUpdateSubForEdit).setString(10, "Changed")
+      verify(csUpdateSubForEdit).setString(12, "Changed Trading")
 
-      verify(csUpdateSubForEdit, never())
-        .setString(eqTo(12), eqTo("Changed Trading"))
-
-      // editable fields
+      // Submitted editable fields
       verify(csUpdateSubForEdit).setString(13, "99 New Street")
       verify(csUpdateSubForEdit).setNull(19, Types.VARCHAR)
       verify(csUpdateSubForEdit).setString(20, "02070000000")
 
-      // preserved values
+      // Preserved because not submitted
       verify(csUpdateSubForEdit).setInt(4, 1)
+      verify(csUpdateSubForEdit).setNull(5, Types.VARCHAR)
+      verify(csUpdateSubForEdit).setNull(6, Types.VARCHAR)
+      verify(csUpdateSubForEdit).setString(8, "AA123456A")
+      verify(csUpdateSubForEdit).setString(9, "Q")
+      verify(csUpdateSubForEdit).setNull(11, Types.VARCHAR)
+      verify(csUpdateSubForEdit).setString(14, "Flat 2")
+      verify(csUpdateSubForEdit).setString(15, "London")
+      verify(csUpdateSubForEdit).setString(16, "Greater London")
+      verify(csUpdateSubForEdit).setString(17, "GB")
+      verify(csUpdateSubForEdit).setString(18, "AA1 1AA")
+      verify(csUpdateSubForEdit).setString(21, "07123456789")
+      verify(csUpdateSubForEdit).setString(22, "WR-123")
+
+      // System-managed fields remain unchanged
       verify(csUpdateSubForEdit).setString(23, "Y")
       verify(csUpdateSubForEdit).setString(24, "N")
 
@@ -5895,11 +5911,9 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdateSubForEdit).registerOutParameter(25, Types.INTEGER)
       verify(csUpdateSubForEdit).execute()
       verify(csUpdateSubForEdit).getInt(25)
-
-      verify(csVersion).execute()
     }
 
-    "treats a subcontractor with pending verifications as verified even when the verified flag is not Y" in {
+    "ignores verification restrictions in the edit journey and allows verified sole trader identity fields to be updated" in {
       val db   = mock[Database]
       val conn = mock[Connection]
 
@@ -5914,10 +5928,8 @@ final class CisFormpRepositorySpec extends SpecBase {
       val csUpdateSubForEdit = mock[CallableStatement]
       val csVersion          = mock[CallableStatement]
 
-      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { invocation =>
-        invocation
-          .getArgument(0, classOf[Connection => Any])
-          .apply(conn)
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
       }
 
       when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetScheme)))
@@ -5935,14 +5947,9 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetSubcontractor)))
         .thenReturn(csGetSub)
 
-      when(csGetSub.getObject(eqTo(3), eqTo(classOf[ResultSet])))
-        .thenReturn(rsScheme2)
-
-      when(csGetSub.getObject(eqTo(4), eqTo(classOf[ResultSet])))
-        .thenReturn(rsSub)
-
-      when(csGetSub.getObject(eqTo(5), eqTo(classOf[ResultSet])))
-        .thenReturn(rsOther)
+      when(csGetSub.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsScheme2)
+      when(csGetSub.getObject(eqTo(4), eqTo(classOf[ResultSet]))).thenReturn(rsSub)
+      when(csGetSub.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsOther)
 
       when(rsScheme2.next()).thenReturn(false)
       when(rsOther.next()).thenReturn(false)
@@ -5969,21 +5976,25 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsSub.getString("postcode")).thenReturn("AA1 1AA")
       when(rsSub.getString("email_address")).thenReturn("old@test.com")
       when(rsSub.getString("phone_number")).thenReturn("01234567890")
-      when(rsSub.getString("mobile_phone_number"))
-        .thenReturn("07123456789")
+      when(rsSub.getString("mobile_phone_number")).thenReturn("07123456789")
       when(rsSub.getString("works_reference_number")).thenReturn("WR-123")
       when(rsSub.getInt("version")).thenReturn(5)
+
       when(rsSub.getString("tax_treatment")).thenReturn("NET")
       when(rsSub.getString("updated_tax_treatment")).thenReturn("NET")
       when(rsSub.getString("verification_number")).thenReturn("V123456")
+
       when(rsSub.getTimestamp("create_date")).thenReturn(null)
       when(rsSub.getTimestamp("last_update")).thenReturn(null)
+
       when(rsSub.getString("matched")).thenReturn("Y")
-      when(rsSub.getString("verified")).thenReturn("N")
+      when(rsSub.getString("verified")).thenReturn("Y")
       when(rsSub.getString("auto_verified")).thenReturn("N")
+
       when(rsSub.getTimestamp("verification_date")).thenReturn(null)
       when(rsSub.getTimestamp("last_monthly_return_date")).thenReturn(null)
-      when(rsSub.getInt("pending_verifications")).thenReturn(1)
+
+      when(rsSub.getInt("pending_verifications")).thenReturn(0)
       when(rsSub.wasNull()).thenReturn(false)
 
       when(
@@ -5999,8 +6010,7 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       when(csVersion.getInt(2)).thenReturn(6)
 
-      val repo =
-        new CisFormpRepository(db)
+      val repo = new CisFormpRepository(db)
 
       val request =
         UpdateSubcontractorRequest(
@@ -6066,52 +6076,30 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       result mustBe UpdateSubcontractorResponse(version = 6)
 
-      verify(conn).prepareCall(eqTo(CisStoredProcedures.CallGetScheme))
-      verify(csGetScheme).setString(1, "abc-123")
-      verify(csGetScheme).registerOutParameter(2, Types.REF_CURSOR)
-      verify(csGetScheme).execute()
+      // Identity fields are now editable in edit journey even when verified
+      verify(csUpdateSubForEdit).setString(3, "9999999999")
+      verify(csUpdateSubForEdit).setString(7, "Gary")
+      verify(csUpdateSubForEdit).setString(10, "Changed")
+      verify(csUpdateSubForEdit).setString(12, "Changed Trading")
 
-      verify(conn).prepareCall(
-        eqTo(CisStoredProcedures.CallGetSubcontractor)
-      )
-      verify(csGetSub).setString(1, "abc-123")
-      verify(csGetSub).setLong(2, 10L)
-      verify(csGetSub).registerOutParameter(3, OracleTypes.CURSOR)
-      verify(csGetSub).registerOutParameter(4, OracleTypes.CURSOR)
-      verify(csGetSub).registerOutParameter(5, OracleTypes.CURSOR)
-      verify(csGetSub).execute()
+      // Editable contact/address fields
+      verify(csUpdateSubForEdit).setString(13, "99 New Street")
+      verify(csUpdateSubForEdit).setNull(19, Types.VARCHAR)
+      verify(csUpdateSubForEdit).setString(20, "02070000000")
 
-      verify(conn).prepareCall(
-        eqTo(CisStoredProcedures.CallUpdateSubcontractorForEdit)
-      )
-
-      verify(csUpdateSubForEdit).setLong(1, 123L)
-      verify(csUpdateSubForEdit).setLong(2, 10L)
-
-      verify(csUpdateSubForEdit).setString(3, "1234567890")
+      // Preserved fields that were not submitted
       verify(csUpdateSubForEdit).setInt(4, 1)
-      verify(csUpdateSubForEdit).setNull(5, Types.VARCHAR)
-      verify(csUpdateSubForEdit).setNull(6, Types.VARCHAR)
-
-      verify(csUpdateSubForEdit).setString(7, "Old John")
       verify(csUpdateSubForEdit).setString(8, "AA123456A")
       verify(csUpdateSubForEdit).setString(9, "Q")
-      verify(csUpdateSubForEdit).setString(10, "Smith")
-      verify(csUpdateSubForEdit).setNull(11, Types.VARCHAR)
-      verify(csUpdateSubForEdit).setString(12, "Old Trading Name")
-
-      verify(csUpdateSubForEdit).setString(13, "99 New Street")
       verify(csUpdateSubForEdit).setString(14, "Flat 2")
       verify(csUpdateSubForEdit).setString(15, "London")
       verify(csUpdateSubForEdit).setString(16, "Greater London")
       verify(csUpdateSubForEdit).setString(17, "GB")
       verify(csUpdateSubForEdit).setString(18, "AA1 1AA")
-
-      verify(csUpdateSubForEdit).setNull(19, Types.VARCHAR)
-      verify(csUpdateSubForEdit).setString(20, "02070000000")
       verify(csUpdateSubForEdit).setString(21, "07123456789")
       verify(csUpdateSubForEdit).setString(22, "WR-123")
 
+      // System-managed fields remain unchanged
       verify(csUpdateSubForEdit).setString(23, "Y")
       verify(csUpdateSubForEdit).setString(24, "N")
 
@@ -6120,36 +6108,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdateSubForEdit).execute()
       verify(csUpdateSubForEdit).getInt(25)
 
-      verify(csUpdateSubForEdit, never())
-        .setString(eqTo(3), eqTo("9999999999"))
-
-      verify(csUpdateSubForEdit, never())
-        .setString(eqTo(7), eqTo("Gary"))
-
-      verify(csUpdateSubForEdit, never())
-        .setString(eqTo(10), eqTo("Changed"))
-
-      verify(csUpdateSubForEdit, never())
-        .setString(eqTo(12), eqTo("Changed Trading"))
-
-      verify(conn).prepareCall(
-        eqTo(CisStoredProcedures.CallUpdateSchemeVersion)
-      )
-      verify(csVersion).setString(1, "abc-123")
-      verify(csVersion).setInt(2, 5)
-      verify(csVersion).registerOutParameter(2, Types.INTEGER)
       verify(csVersion).execute()
-      verify(csVersion).getInt(2)
-
-      verify(rsScheme).close()
-      verify(rsScheme2).close()
-      verify(rsSub).close()
-      verify(rsOther).close()
-
-      verify(csGetScheme).close()
-      verify(csGetSub).close()
-      verify(csUpdateSubForEdit).close()
-      verify(csVersion).close()
     }
   }
 }
