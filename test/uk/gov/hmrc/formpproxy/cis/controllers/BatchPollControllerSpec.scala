@@ -17,29 +17,39 @@
 package uk.gov.hmrc.formpproxy.cis.controllers
 
 import org.mockito.Mockito.*
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.Json
-import play.api.mvc.ControllerComponents
+import play.api.mvc.{BodyParsers, ControllerComponents, PlayBodyParsers}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
+import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.formpproxy.actions.AuthOrInternalAuthAction
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.services.BatchPollService
+import uk.gov.hmrc.http.UpstreamErrorResponse
+import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource, Retrieval}
+import uk.gov.hmrc.internalauth.client.test.{BackendAuthComponentsStub, StubBehaviour}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class BatchPollControllerSpec extends AnyFreeSpec with Matchers with MockitoSugar {
+class BatchPollControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures with MockitoSugar {
 
   "BatchPollController getBatchPollSubmissions" - {
 
     "must return 200 with submissions to poll" in new Setup {
+      when(internalAuth.stubAuth(Some(readBatchPoll), Retrieval.EmptyRetrieval)).thenReturn(Future.unit)
       when(mockService.getBatchPollSubmissions())
         .thenReturn(Future.successful(nonEmptyResponse))
 
       val result = controller
         .getBatchPollSubmissions()
-        .apply(FakeRequest(GET, "/cis/batchpoll-submissions"))
+        .apply(
+          FakeRequest(GET, "/cis/batchpoll-submissions")
+            .withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
+        )
 
       status(result) mustBe OK
       contentType(result) mustBe Some(JSON)
@@ -50,12 +60,16 @@ class BatchPollControllerSpec extends AnyFreeSpec with Matchers with MockitoSuga
     }
 
     "must return 200 with empty lists when no submissions are returned" in new Setup {
+      when(internalAuth.stubAuth(Some(readBatchPoll), Retrieval.EmptyRetrieval)).thenReturn(Future.unit)
       when(mockService.getBatchPollSubmissions())
         .thenReturn(Future.successful(emptyResponse))
 
       val result = controller
         .getBatchPollSubmissions()
-        .apply(FakeRequest(GET, "/cis/batchpoll-submissions"))
+        .apply(
+          FakeRequest(GET, "/cis/batchpoll-submissions")
+            .withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
+        )
 
       status(result) mustBe OK
       contentAsJson(result) mustBe Json.toJson(emptyResponse)
@@ -65,12 +79,16 @@ class BatchPollControllerSpec extends AnyFreeSpec with Matchers with MockitoSuga
     }
 
     "must return 500 when service fails" in new Setup {
+      when(internalAuth.stubAuth(Some(readBatchPoll), Retrieval.EmptyRetrieval)).thenReturn(Future.unit)
       when(mockService.getBatchPollSubmissions())
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val result = controller
         .getBatchPollSubmissions()
-        .apply(FakeRequest(GET, "/cis/batchpoll-submissions"))
+        .apply(
+          FakeRequest(GET, "/cis/batchpoll-submissions")
+            .withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
+        )
 
       status(result) mustBe INTERNAL_SERVER_ERROR
       contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
@@ -78,20 +96,43 @@ class BatchPollControllerSpec extends AnyFreeSpec with Matchers with MockitoSuga
       verify(mockService).getBatchPollSubmissions()
       verifyNoMoreInteractions(mockService)
     }
+
+    "turns a caller away when internal-auth has not granted permission" in new Setup {
+      when(internalAuth.stubAuth(Some(readBatchPoll), Retrieval.EmptyRetrieval))
+        .thenReturn(Future.failed(UpstreamErrorResponse("Unauthorized", UNAUTHORIZED)))
+
+      val rejection: UpstreamErrorResponse = intercept[UpstreamErrorResponse] {
+        await(
+          controller
+            .getBatchPollSubmissions()
+            .apply(
+              FakeRequest(GET, "/cis/batchpoll-submissions")
+                .withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
+            )
+        )
+      }
+      rejection.statusCode mustBe UNAUTHORIZED
+      verifyNoInteractions(mockService)
+    }
   }
 
   private trait Setup {
 
-    implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.global
-
+    implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.global
     private val cc: ControllerComponents = stubControllerComponents()
+    private val parsers: PlayBodyParsers = cc.parsers
 
     val mockService: BatchPollService = mock[BatchPollService]
 
-    val controller = new BatchPollController(
-      service = mockService,
-      cc = cc
-    )
+    private val resource                             = Resource.from("formp-proxy", "formp-proxy/cis/batchpoll")
+    val readBatchPoll: Predicate.Permission          = Predicate.Permission(resource, IAAction("READ"))
+    val internalAuth: StubBehaviour                  = mock[StubBehaviour]
+    val backendAuth: BackendAuthComponents           = BackendAuthComponentsStub(internalAuth)(cc, ec)
+    val mockAuthConnector: AuthConnector             = mock[AuthConnector]
+    val authOrInternalAuth: AuthOrInternalAuthAction =
+      new AuthOrInternalAuthAction(mockAuthConnector, backendAuth, new BodyParsers.Default(parsers))
+
+    val controller = new BatchPollController(authOrInternalAuth, mockService, cc)
 
     val verificationSubmission: VerificationSubmissionToPoll =
       VerificationSubmissionToPoll(

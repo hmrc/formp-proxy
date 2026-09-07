@@ -19,9 +19,12 @@ package uk.gov.hmrc.formpproxy.cis.controllers
 import play.api.Logging
 import play.api.libs.json.{JsError, JsObject, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.formpproxy.actions.AuthAction
+import uk.gov.hmrc.formpproxy.actions.AuthOrInternalAuthAction
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest, UpdateSubcontractorRequest}
+import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorResponse
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
+import uk.gov.hmrc.internalauth.client.{IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorResponse
 import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest, FinalValidationUpdateSubcontractorRequest, UpdateSubcontractorRequest}
@@ -31,15 +34,20 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 class SubcontractorController @Inject() (
-  authorise: AuthAction,
+  authOrInternalAuth: AuthOrInternalAuthAction,
   service: SubcontractorService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
+  private val subcontractors       = Resource.from("formp-proxy", "formp-proxy/cis/subcontractors")
+  private val readSubcontractors   = authOrInternalAuth(Predicate.Permission(subcontractors, IAAction("READ")))
+  private val writeSubcontractors  = authOrInternalAuth(Predicate.Permission(subcontractors, IAAction("WRITE")))
+  private val deleteSubcontractors = authOrInternalAuth(Predicate.Permission(subcontractors, IAAction("DELETE")))
+
   def createAndUpdateSubcontractor(): Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    writeSubcontractors.async(parse.json) { implicit request =>
       request.body
         .validate[CreateAndUpdateSubcontractorRequest]
         .fold(
@@ -57,7 +65,7 @@ class SubcontractorController @Inject() (
     }
 
   def getSubcontractorList(cisId: String): Action[AnyContent] =
-    authorise.async { implicit request =>
+    readSubcontractors.async { implicit request =>
       service
         .getSubcontractorList(GetSubcontractorList(cisId))
         .map(res => Ok(Json.toJson(res)))
@@ -71,7 +79,7 @@ class SubcontractorController @Inject() (
     cisId: String,
     subbieResourceRef: Long
   ): Action[AnyContent] =
-    authorise.async { implicit request =>
+    readSubcontractors.async { implicit request =>
       service
         .getSubcontractorForDelete(cisId, subbieResourceRef)
         .map(res => Ok(Json.toJson(res)))
@@ -88,7 +96,7 @@ class SubcontractorController @Inject() (
     cisId: String,
     subbieResourceRef: Long
   ): Action[AnyContent] =
-    authorise.async { implicit request =>
+    readSubcontractors.async { implicit request =>
       service
         .getSubcontractor(cisId, subbieResourceRef)
         .map(response => Ok(Json.toJson(response)))
@@ -102,7 +110,7 @@ class SubcontractorController @Inject() (
     }
 
   def deleteSubcontractor: Action[DeleteSubcontractorRequest] =
-    authorise.async(parse.json[DeleteSubcontractorRequest]) { implicit request =>
+    deleteSubcontractors.async(parse.json[DeleteSubcontractorRequest]) { implicit request =>
       service
         .deleteSubcontractor(request.body)
         .map(_ => NoContent)
@@ -113,7 +121,7 @@ class SubcontractorController @Inject() (
     }
 
   def updateSubcontractor: Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    writeSubcontractors.async(parse.json) { implicit request =>
       val submittedFields: Set[String] =
         (request.body \ "subcontractor")
           .asOpt[JsObject]
@@ -156,7 +164,7 @@ class SubcontractorController @Inject() (
     }
 
   def updateSubcontractorForFinalValidation(): Action[JsValue] =
-    authorise.async(parse.json) { implicit request =>
+    writeSubcontractors.async(parse.json) { implicit request =>
       request.body
         .validate[FinalValidationUpdateSubcontractorRequest]
         .fold(

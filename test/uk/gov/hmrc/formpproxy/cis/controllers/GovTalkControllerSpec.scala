@@ -23,14 +23,18 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{ControllerComponents, Result}
+import play.api.mvc.{BodyParsers, ControllerComponents, PlayBodyParsers, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
+import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.formpproxy.actions.AuthOrInternalAuthAction
 import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.UpdateGovTalkStatusCorrelationIdRequest
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.services.GovTalkService
 import uk.gov.hmrc.http.UpstreamErrorResponse
+import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource, Retrieval}
+import uk.gov.hmrc.internalauth.client.test.{BackendAuthComponentsStub, StubBehaviour}
 
 import java.time.LocalDateTime
 import scala.concurrent.{ExecutionContext, Future}
@@ -114,6 +118,7 @@ class GovTalkControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
 
       val req: FakeRequest[UpdateGovTalkStatusCorrelationIdRequest] =
         FakeRequest(POST, "/formp-proxy/cis/govtalkstatus/update-correlationID")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
           .withBody(body)
 
       val res: Future[Result] = controller.updateGovTalkStatusCorrelationId(req)
@@ -137,6 +142,7 @@ class GovTalkControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
 
       val req: FakeRequest[UpdateGovTalkStatusCorrelationIdRequest] =
         FakeRequest(POST, "/formp-proxy/cis/govtalkstatus/update-correlationID")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
           .withBody(body)
 
       val res: Future[Result] = controller.updateGovTalkStatusCorrelationId(req)
@@ -632,13 +638,27 @@ class GovTalkControllerSpec extends AnyFreeSpec with Matchers with ScalaFutures 
   private trait Setup {
     implicit val ec: ExecutionContext    = scala.concurrent.ExecutionContext.global
     private val cc: ControllerComponents = stubControllerComponents()
+    private val parsers: PlayBodyParsers = cc.parsers
 
     val mockService: GovTalkService = mock[GovTalkService]
-    val controller                  = new GovTalkController(mockService, cc)
+
+    private val resource                             = Resource.from("formp-proxy", "formp-proxy/cis/govtalk")
+    val readGovTalk: Predicate.Permission            = Predicate.Permission(resource, IAAction("READ"))
+    val writeGovTalk: Predicate.Permission           = Predicate.Permission(resource, IAAction("WRITE"))
+    val internalAuth: StubBehaviour                  = mock[StubBehaviour]
+    val backendAuth: BackendAuthComponents           = BackendAuthComponentsStub(internalAuth)(cc, ec)
+    val mockAuthConnector: AuthConnector             = mock[AuthConnector]
+    val authOrInternalAuth: AuthOrInternalAuthAction =
+      new AuthOrInternalAuthAction(mockAuthConnector, backendAuth, new BodyParsers.Default(parsers))
+
+    when(internalAuth.stubAuth(Some(readGovTalk), Retrieval.EmptyRetrieval)).thenReturn(Future.unit)
+    when(internalAuth.stubAuth(Some(writeGovTalk), Retrieval.EmptyRetrieval)).thenReturn(Future.unit)
+
+    val controller = new GovTalkController(authOrInternalAuth, mockService, cc)
 
     def makeJsonRequest(body: JsValue): FakeRequest[JsValue] =
       FakeRequest(POST, "/formp-proxy/cis/govtalkstatus/get")
-        .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON)
+        .withHeaders(CONTENT_TYPE -> JSON, ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(body)
 
     private def mkRecord(protocol: String, numPolls: Int, pollInterval: Int): GovTalkStatusRecord =
