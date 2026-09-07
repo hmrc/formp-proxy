@@ -26,8 +26,7 @@ import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorResponse
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 import uk.gov.hmrc.internalauth.client.{IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorResponse
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest, FinalValidationUpdateSubcontractorRequest, UpdateSubcontractorRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.FinalValidationUpdateSubcontractorRequest
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
