@@ -1411,34 +1411,35 @@ class VerificationControllerSpec extends SpecBase {
     }
   }
 
-  "POST /cis/verification-batch/proceed-with-insufficient-data (proceedInsufficientVerification)" - {
+  "POST /cis/verification/proceed-verification (proceedVerification)" - {
 
-    val url = "/cis/verification-batch/proceed-with-insufficient-data"
+    val url = "/cis/verification/proceed"
 
-    "returns 204 when service succeeds" in {
+    "returns 200 when service succeeds" in {
       val s = setup
       import s.*
 
-      val requestModel = ProceedInsufficientVerificationRequest(
+      val requestModel = ProceedVerificationRequest(
         instanceId = "1",
         verificationBatchResourceRef = 9L,
         verificationResourceRef = 10L,
-        proceed = "Y"
+        proceed = true,
+        taxTreatment = None
       )
 
-      when(mockService.proceedInsufficientVerification(eqTo(requestModel)))
+      when(mockService.proceedVerification(eqTo(requestModel)))
         .thenReturn(Future.successful(()))
 
       val req = FakeRequest(POST, url)
         .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(Json.toJson(requestModel))
 
-      val result = controller.proceedInsufficientVerification().apply(req)
+      val result = controller.proceedVerification().apply(req)
 
       status(result) mustBe NO_CONTENT
       contentAsString(result) mustBe ""
 
-      verify(mockService).proceedInsufficientVerification(eqTo(requestModel))
+      verify(mockService).proceedVerification(eqTo(requestModel))
       verifyNoMoreInteractions(mockService)
     }
 
@@ -1452,7 +1453,7 @@ class VerificationControllerSpec extends SpecBase {
         .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(badJson)
 
-      val result = controller.proceedInsufficientVerification().apply(req)
+      val result = controller.proceedVerification().apply(req)
 
       status(result) mustBe BAD_REQUEST
       contentType(result) mustBe Some(JSON)
@@ -1467,27 +1468,28 @@ class VerificationControllerSpec extends SpecBase {
       val s = setup
       import s.*
 
-      val requestModel = ProceedInsufficientVerificationRequest(
+      val requestModel = ProceedVerificationRequest(
         instanceId = "1",
-        verificationBatchResourceRef = 10L,
-        verificationResourceRef = 9L,
-        proceed = "Y"
+        verificationBatchResourceRef = 9L,
+        verificationResourceRef = 10L,
+        proceed = true,
+        taxTreatment = None
       )
 
-      when(mockService.proceedInsufficientVerification(eqTo(requestModel)))
+      when(mockService.proceedVerification(eqTo(requestModel)))
         .thenReturn(Future.failed(new RuntimeException("boom")))
 
       val req = FakeRequest(POST, url)
         .withHeaders(CONTENT_TYPE -> JSON, AUTHORIZATION -> "Token internal-auth")
         .withBody(Json.toJson(requestModel))
 
-      val result = controller.proceedInsufficientVerification().apply(req)
+      val result = controller.proceedVerification().apply(req)
 
       status(result) mustBe INTERNAL_SERVER_ERROR
       contentType(result) mustBe Some(JSON)
       contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
 
-      verify(mockService).proceedInsufficientVerification(eqTo(requestModel))
+      verify(mockService).proceedVerification(eqTo(requestModel))
       verifyNoMoreInteractions(mockService)
     }
   }
