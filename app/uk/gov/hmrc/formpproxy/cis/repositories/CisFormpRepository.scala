@@ -88,6 +88,7 @@ trait CisMonthlyReturnSource {
   ): Future[GetSubmittedMonthlyReturnsDataResponse]
   def createAmendedMonthlyReturn(request: CreateAmendedMonthlyReturnRequest): Future[Unit]
   def modifyVerifications(req: ModifyVerificationsRequest): Future[Unit]
+  def deleteVerification(req: DeleteVerificationRequest): Future[DeleteVerificationResponse]
   def getBatchPollSubmissions(): Future[GetBatchPollSubmissionsResponse]
   def updateVerificationSubmission(req: UpdateVerificationSubmissionRequest): Future[Unit]
   def processVerificationResponseFromChris(req: ProcessVerificationResponseFromChrisRequest): Future[Unit]
@@ -1261,35 +1262,39 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   override def getCurrentVerificationBatch(instanceId: String): Future[GetCurrentVerificationBatchResponse] = {
     logger.info(s"[CIS] getCurrentVerificationBatch(instanceId=$instanceId)")
     Future {
-      db.withConnection { conn =>
-        withCall(conn, CallGetCurrentVerificationBatch) { cs =>
-          cs.setString(1, instanceId)
-
-          cs.registerOutParameter(2, OracleTypes.CURSOR) // scheme
-          cs.registerOutParameter(3, OracleTypes.CURSOR) // subcontractors
-          cs.registerOutParameter(4, OracleTypes.CURSOR) // verification_batch
-          cs.registerOutParameter(5, OracleTypes.CURSOR) // verifications
-          cs.registerOutParameter(6, OracleTypes.CURSOR) // submission
-
-          cs.execute()
-
-          val scheme            = withCursor(cs, 2)(collectSchemes).headOption
-          val subcontractors    = withCursor(cs, 3)(collectSubcontractors)
-          val verificationBatch = withCursor(cs, 4)(collectVerificationBatches).headOption
-          val verifications     = withCursor(cs, 5)(collectVerifications)
-          val submission        = withCursor(cs, 6)(collectSubmissionsForGetVerificationBatch).headOption
-
-          GetCurrentVerificationBatchResponse(
-            scheme = scheme,
-            subcontractors = subcontractors,
-            verificationBatch = verificationBatch,
-            verifications = verifications,
-            submission = submission
-          )
-        }
-      }
+      db.withConnection(conn => callGetCurrentVerificationBatch(conn, instanceId))
     }
   }
+
+  private def callGetCurrentVerificationBatch(
+    conn: Connection,
+    instanceId: String
+  ): GetCurrentVerificationBatchResponse =
+    withCall(conn, CallGetCurrentVerificationBatch) { cs =>
+      cs.setString(1, instanceId)
+
+      cs.registerOutParameter(2, OracleTypes.CURSOR) // scheme
+      cs.registerOutParameter(3, OracleTypes.CURSOR) // subcontractors
+      cs.registerOutParameter(4, OracleTypes.CURSOR) // verification_batch
+      cs.registerOutParameter(5, OracleTypes.CURSOR) // verifications
+      cs.registerOutParameter(6, OracleTypes.CURSOR) // submission
+
+      cs.execute()
+
+      val scheme            = withCursor(cs, 2)(collectSchemes).headOption
+      val subcontractors    = withCursor(cs, 3)(collectSubcontractors)
+      val verificationBatch = withCursor(cs, 4)(collectVerificationBatches).headOption
+      val verifications     = withCursor(cs, 5)(collectVerifications)
+      val submission        = withCursor(cs, 6)(collectSubmissionsForGetVerificationBatch).headOption
+
+      GetCurrentVerificationBatchResponse(
+        scheme = scheme,
+        subcontractors = subcontractors,
+        verificationBatch = verificationBatch,
+        verifications = verifications,
+        submission = submission
+      )
+    }
 
   override def getLastSubmittedVerificationBatch(
     instanceId: String
@@ -1553,6 +1558,31 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         callUpdateSchemeVersion(conn, request.instanceId, schemeVersionBefore)
       }
     }
+
+  override def deleteVerification(req: DeleteVerificationRequest): Future[DeleteVerificationResponse] = {
+    logger.info(
+      s"[CIS] deleteVerification(instanceId=${req.instanceId}, verificationResourceRef=${req.verificationResourceRef})"
+    )
+
+    Future {
+      db.withTransaction { conn =>
+        val schemeVersionBefore = getSchemeVersion(conn, req.instanceId)
+
+        callDeleteVerifications(
+          conn = conn,
+          instanceId = req.instanceId,
+          verificationResourceRef = req.verificationResourceRef
+        )
+
+        callUpdateSchemeVersion(conn, req.instanceId, schemeVersionBefore)
+
+        val currentBatch = callGetCurrentVerificationBatch(conn, req.instanceId)
+        DeleteVerificationResponse(
+          verificationsCounter = currentBatch.verificationBatch.flatMap(_.verificationsCounter)
+        )
+      }
+    }
+  }
 
   override def getBatchPollSubmissions(): Future[GetBatchPollSubmissionsResponse]                                     = {
     logger.info("[CIS][getBatchPollSubmissions] Calling GET_SUBMISSIONS_FOR_POLLING")

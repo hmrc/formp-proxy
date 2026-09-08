@@ -306,6 +306,50 @@ class VerificationServiceSpec extends SpecBase {
         .modifyVerifications(any[ModifyVerificationsRequest])
     }
   }
+
+  "VerificationService#deleteVerification" - {
+
+    "delegates to repository" in {
+      val c = Ctx()
+      import c.*
+
+      val request = DeleteVerificationRequest(
+        instanceId = "abc-123",
+        verificationResourceRef = 111L
+      )
+
+      val response = DeleteVerificationResponse(Some(2L))
+
+      when(repo.deleteVerification(eqTo(request)))
+        .thenReturn(Future.successful(response))
+
+      service.deleteVerification(request).futureValue mustBe response
+
+      verify(repo).deleteVerification(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failure from repository" in {
+      val c = Ctx()
+      import c.*
+
+      val request = DeleteVerificationRequest(
+        instanceId = "abc-123",
+        verificationResourceRef = 111L
+      )
+
+      val boom = new RuntimeException("boom")
+
+      when(repo.deleteVerification(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      service.deleteVerification(request).failed.futureValue mustBe boom
+
+      verify(repo).deleteVerification(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
   "VerificationService#createSubmissionForVerification" - {
 
     "delegates to repository" in {
