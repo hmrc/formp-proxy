@@ -5609,4 +5609,185 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csVersion).execute()
     }
   }
+
+  "updateSubcontractorForFinalValidation" - {
+
+    "update the changed field and scheme version" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csGetScheme = mock[CallableStatement]
+      val rsScheme    = mock[ResultSet]
+
+      val csGetSub  = mock[CallableStatement]
+      val rsScheme2 = mock[ResultSet]
+      val rsSub     = mock[ResultSet]
+      val rsOther   = mock[ResultSet]
+
+      val csUpdateSub = mock[CallableStatement]
+      val csVersion   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      when(conn.prepareCall(CisStoredProcedures.CallGetScheme))
+        .thenReturn(csGetScheme)
+
+      when(csGetScheme.getObject(2, classOf[ResultSet]))
+        .thenReturn(rsScheme)
+
+      when(rsScheme.next()).thenReturn(true, false)
+      when(rsScheme.getLong("scheme_id")).thenReturn(123L)
+      when(rsScheme.getInt("version")).thenReturn(5)
+      when(rsScheme.getString("email_address")).thenReturn(null)
+      when(rsScheme.wasNull()).thenReturn(false)
+
+      when(conn.prepareCall(CisStoredProcedures.CallGetSubcontractor))
+        .thenReturn(csGetSub)
+
+      when(csGetSub.getObject(3, classOf[ResultSet])).thenReturn(rsScheme2)
+      when(csGetSub.getObject(4, classOf[ResultSet])).thenReturn(rsSub)
+      when(csGetSub.getObject(5, classOf[ResultSet])).thenReturn(rsOther)
+
+      when(rsScheme2.next()).thenReturn(false)
+      when(rsOther.next()).thenReturn(false)
+
+      stubSubcontractorRow(rsSub)
+
+      when(conn.prepareCall(CisStoredProcedures.CallUpdateSubcontractor))
+        .thenReturn(csUpdateSub)
+
+      when(conn.prepareCall(CisStoredProcedures.CallUpdateSchemeVersion))
+        .thenReturn(csVersion)
+
+      val repo =
+        new CisFormpRepository(db)
+
+      val request =
+        FinalValidationUpdateSubcontractorRequest(
+          instanceId = "abc-123",
+          subcontractorId = 999L,
+          subbieResourceRef = 456L,
+          changeTargets = Set("phoneNumber"),
+          patch = FinalValidationSubcontractorPatch(
+            phoneNumber = Some("02070000000")
+          )
+        )
+
+      repo
+        .updateSubcontractorForFinalValidation(request)
+        .futureValue
+
+      verify(csUpdateSub).setString(7, "John")
+      verify(csUpdateSub).setString(20, "02070000000")
+      verify(csUpdateSub).execute()
+
+      verify(csVersion).setString(1, "abc-123")
+      verify(csVersion).setInt(2, 5)
+      verify(csVersion).execute()
+    }
+
+    "fail when the subcontractor id does not match" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csGetScheme = mock[CallableStatement]
+      val rsScheme    = mock[ResultSet]
+
+      val csGetSub  = mock[CallableStatement]
+      val rsScheme2 = mock[ResultSet]
+      val rsSub     = mock[ResultSet]
+      val rsOther   = mock[ResultSet]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      when(conn.prepareCall(CisStoredProcedures.CallGetScheme))
+        .thenReturn(csGetScheme)
+
+      when(csGetScheme.getObject(2, classOf[ResultSet]))
+        .thenReturn(rsScheme)
+
+      when(rsScheme.next()).thenReturn(true, false)
+      when(rsScheme.getLong("scheme_id")).thenReturn(123L)
+      when(rsScheme.getInt("version")).thenReturn(5)
+      when(rsScheme.getString("email_address")).thenReturn(null)
+      when(rsScheme.wasNull()).thenReturn(false)
+
+      when(conn.prepareCall(CisStoredProcedures.CallGetSubcontractor))
+        .thenReturn(csGetSub)
+
+      when(csGetSub.getObject(3, classOf[ResultSet])).thenReturn(rsScheme2)
+      when(csGetSub.getObject(4, classOf[ResultSet])).thenReturn(rsSub)
+      when(csGetSub.getObject(5, classOf[ResultSet])).thenReturn(rsOther)
+
+      when(rsScheme2.next()).thenReturn(false)
+      when(rsOther.next()).thenReturn(false)
+
+      stubSubcontractorRow(rsSub)
+
+      val repo =
+        new CisFormpRepository(db)
+
+      val request =
+        FinalValidationUpdateSubcontractorRequest(
+          instanceId = "abc-123",
+          subcontractorId = 1000L,
+          subbieResourceRef = 456L,
+          changeTargets = Set("phoneNumber"),
+          patch = FinalValidationSubcontractorPatch(
+            phoneNumber = Some("02070000000")
+          )
+        )
+
+      val exception =
+        repo
+          .updateSubcontractorForFinalValidation(request)
+          .failed
+          .futureValue
+
+      exception mustBe a[IllegalArgumentException]
+
+      exception.getMessage mustBe
+        "Subcontractor ID mismatch: existing=999, request=1000"
+
+      verify(conn, never())
+        .prepareCall(CisStoredProcedures.CallUpdateSubcontractor)
+
+      verify(conn, never())
+        .prepareCall(CisStoredProcedures.CallUpdateSchemeVersion)
+    }
+
+    "fail for an unknown change target" in {
+      val db =
+        mock[Database]
+
+      val repo =
+        new CisFormpRepository(db)
+
+      val request =
+        FinalValidationUpdateSubcontractorRequest(
+          instanceId = "abc-123",
+          subcontractorId = 999L,
+          subbieResourceRef = 456L,
+          changeTargets = Set("unknown"),
+          patch = FinalValidationSubcontractorPatch()
+        )
+
+      val exception =
+        repo
+          .updateSubcontractorForFinalValidation(request)
+          .failed
+          .futureValue
+
+      exception mustBe a[IllegalArgumentException]
+
+      exception.getMessage mustBe
+        "Unknown change target: unknown"
+
+      verifyNoInteractions(db)
+    }
+  }
 }
