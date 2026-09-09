@@ -20,13 +20,10 @@ import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.{any, eq as eqTo}
 import org.mockito.Mockito.*
 import uk.gov.hmrc.formpproxy.base.SpecBase
-import uk.gov.hmrc.formpproxy.cis.models.{Company, Partnership, SoleTrader, Trust}
-import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
-import uk.gov.hmrc.formpproxy.cis.models.CreateAndUpdateSubcontractorDatabaseRecord
+import uk.gov.hmrc.formpproxy.cis.models.{Company, CreateAndUpdateSubcontractorDatabaseRecord, FinalValidationSubcontractorPatch, GetSubcontractorList, Partnership, SoleTrader, Subcontractor, Trust}
 import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorForDeleteResponse, GetSubcontractorListResponse, GetSubcontractorResponse, UpdateSubcontractorResponse}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest, UpdateSubcontractorRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest, FinalValidationUpdateSubcontractorRequest, UpdateSubcontractorRequest}
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
-import uk.gov.hmrc.formpproxy.cis.models.Subcontractor
 
 import scala.concurrent.Future
 
@@ -569,6 +566,50 @@ class SubcontractorServiceSpec extends SpecBase {
       ex mustBe boom
 
       verify(repo).deleteSubcontractor(eqTo(req))
+      verifyNoMoreInteractions(repo)
+    }
+  }
+
+  "SubcontractorService#updateSubcontractorForFinalValidation" - {
+
+    val request = FinalValidationUpdateSubcontractorRequest(
+      instanceId = "instance-123",
+      subcontractorId = 42L,
+      subbieResourceRef = 10L,
+      changeTargets = Set("utr", "subcontractorName"),
+      patch = FinalValidationSubcontractorPatch(
+        utr = Some("1234567890"),
+        firstName = Some("John"),
+        surname = Some("Smith")
+      )
+    )
+
+    "delegates to repo and returns Unit" in {
+      val c = Ctx();
+      import c.*
+
+      when(repo.updateSubcontractorForFinalValidation(eqTo(request)))
+        .thenReturn(Future.successful(()))
+
+      service.updateSubcontractorForFinalValidation(request).futureValue mustBe ((): Unit)
+
+      verify(repo).updateSubcontractorForFinalValidation(eqTo(request))
+      verifyNoMoreInteractions(repo)
+    }
+
+    "propagates failure from repo" in {
+      val c = Ctx();
+      import c.*
+
+      val boom = new RuntimeException("boom")
+
+      when(repo.updateSubcontractorForFinalValidation(eqTo(request)))
+        .thenReturn(Future.failed(boom))
+
+      val ex = service.updateSubcontractorForFinalValidation(request).failed.futureValue
+      ex mustBe boom
+
+      verify(repo).updateSubcontractorForFinalValidation(eqTo(request))
       verifyNoMoreInteractions(repo)
     }
   }

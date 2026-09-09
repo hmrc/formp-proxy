@@ -27,11 +27,10 @@ import uk.gov.hmrc.formpproxy.actions.AuthOrInternalAuthAction
 import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource, Retrieval}
 import uk.gov.hmrc.internalauth.client.test.{BackendAuthComponentsStub, StubBehaviour}
 import uk.gov.hmrc.formpproxy.base.SpecBase
-import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
-import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, Subcontractor}
+import uk.gov.hmrc.formpproxy.cis.models.{ContractorScheme, FinalValidationSubcontractorPatch, GetSubcontractorList, Subcontractor}
 import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorResponse
 import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorForDeleteResponse, GetSubcontractorListResponse, UpdateSubcontractorResponse}
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest, UpdateSubcontractorRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest, FinalValidationUpdateSubcontractorRequest, UpdateSubcontractorRequest}
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 
 import scala.concurrent.Future
@@ -714,6 +713,92 @@ class SubcontractorControllerSpec extends SpecBase {
       contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
 
       verify(mockService).deleteSubcontractor(eqTo(requestBody))
+      verifyNoMoreInteractions(mockService)
+    }
+  }
+
+  "SubcontractorController updateSubcontractorForFinalValidation" - {
+
+    "returns 204 NoContent when service succeeds" in {
+      val s = setup;
+      import s.*
+
+      val request = FinalValidationUpdateSubcontractorRequest(
+        instanceId = "instance-123",
+        subcontractorId = 42L,
+        subbieResourceRef = 10L,
+        changeTargets = Set("utr", "subcontractorName"),
+        patch = FinalValidationSubcontractorPatch(
+          utr = Some("1234567890"),
+          firstName = Some("John"),
+          surname = Some("Smith")
+        )
+      )
+
+      when(mockService.updateSubcontractorForFinalValidation(eqTo(request)))
+        .thenReturn(Future.successful(()))
+
+      val result =
+        controller
+          .updateSubcontractorForFinalValidation()
+          .apply(
+            postJson("/cis/subcontractor/final-validation/update", Json.toJson(request))
+              .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          )
+
+      status(result) mustBe NO_CONTENT
+
+      verify(mockService).updateSubcontractorForFinalValidation(eqTo(request))
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 400 BadRequest when payload is invalid" in {
+      val s = setup;
+      import s.*
+
+      val badJson = Json.obj("bad" -> "payload")
+
+      val result =
+        controller
+          .updateSubcontractorForFinalValidation()
+          .apply(
+            postJson("/cis/subcontractor/final-validation/update", badJson)
+              .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          )
+
+      status(result) mustBe BAD_REQUEST
+      (contentAsJson(result) \ "message").as[String] mustBe "Invalid payload"
+
+      verify(mockService, never()).updateSubcontractorForFinalValidation(any[FinalValidationUpdateSubcontractorRequest])
+    }
+
+    "returns 500 InternalServerError when service fails" in {
+      val s = setup;
+      import s.*
+
+      val request = FinalValidationUpdateSubcontractorRequest(
+        instanceId = "instance-123",
+        subcontractorId = 42L,
+        subbieResourceRef = 10L,
+        changeTargets = Set("utr"),
+        patch = FinalValidationSubcontractorPatch(utr = Some("1234567890"))
+      )
+
+      when(mockService.updateSubcontractorForFinalValidation(eqTo(request)))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val result =
+        controller
+          .updateSubcontractorForFinalValidation()
+          .apply(
+            postJson("/cis/subcontractor/final-validation/update", Json.toJson(request))
+              .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          )
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentAsJson(result) mustBe Json.obj("message" -> "Unexpected error")
+
+      verify(mockService).updateSubcontractorForFinalValidation(eqTo(request))
       verifyNoMoreInteractions(mockService)
     }
   }
