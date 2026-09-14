@@ -1537,7 +1537,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
   override def proceedVerification(request: ProceedVerificationRequest): Future[Unit] =
     logger.info(
-      s"[CIS] proceedInsufficientVerification(instanceId=${request.instanceId}, verificationBatchResourceRef=${request.verificationBatchResourceRef}, verificationResourceRef=${request.verificationResourceRef})"
+      s"[CIS] proceedVerification(instanceId=${request.instanceId}, verificationBatchResourceRef=${request.verificationBatchResourceRef}, verificationResourceRef=${request.verificationResourceRef})"
     )
     Future {
       db.withTransaction { conn =>
