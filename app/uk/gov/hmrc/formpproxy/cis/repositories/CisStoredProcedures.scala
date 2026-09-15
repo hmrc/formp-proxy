@@ -93,4 +93,7 @@ object CisStoredProcedures {
 
   val CallGetSubcontractor =
     "{ call SUBCONTRACTOR_PROCS.Get_Subcontractor(?, ?, ?, ?, ?) }"
+
+  val CallUpdateSubcontractorForEdit =
+    "{ call SUBCONTRACTOR_PROCS.Update_Subcontractor_For_Edit(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
 }
