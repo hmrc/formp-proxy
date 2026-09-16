@@ -3354,9 +3354,9 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         stornId = "STORN12345",
         returnResourceRef = "100001",
         residency = ResidencyPayload(
-          isNonUkResidents = "NO",
-          isCompany = "NO",
-          isCrownRelief = "NO"
+          isNonUkResidents = "no",
+          isCompany = Some("no"),
+          isCrownRelief = Some("no")
         )
       )
 
@@ -3367,9 +3367,9 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(conn).prepareCall("{ call RESIDENCY_PROCS.CREATE_RESIDENCY(?, ?, ?, ?, ?) }")
       verify(cs).setString(1, "STORN12345")
       verify(cs).setLong(2, 100001L)
-      verify(cs).setString(3, "NO")
-      verify(cs).setString(4, "NO")
-      verify(cs).setString(5, "NO")
+      verify(cs).setString(3, "no")
+      verify(cs).setString(4, "no")
+      verify(cs).setString(5, "no")
       verify(cs).execute()
       verify(cs).close()
     }
@@ -3391,9 +3391,9 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         stornId = "STORN99999",
         returnResourceRef = "100002",
         residency = ResidencyPayload(
-          isNonUkResidents = "YES",
-          isCompany = "YES",
-          isCrownRelief = "YES"
+          isNonUkResidents = "yes",
+          isCompany = Some("yes"),
+          isCrownRelief = Some("yes")
         )
       )
 
@@ -3403,9 +3403,9 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       verify(cs).setString(1, "STORN99999")
       verify(cs).setLong(2, 100002L)
-      verify(cs).setString(3, "YES")
-      verify(cs).setString(4, "YES")
-      verify(cs).setString(5, "YES")
+      verify(cs).setString(3, "yes")
+      verify(cs).setString(4, "yes")
+      verify(cs).setString(5, "yes")
       verify(cs).execute()
     }
 
@@ -3426,9 +3426,9 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         stornId = "STORN88888",
         returnResourceRef = "100003",
         residency = ResidencyPayload(
-          isNonUkResidents = "YES",
-          isCompany = "NO",
-          isCrownRelief = "YES"
+          isNonUkResidents = "yes",
+          isCompany = Some("no"),
+          isCrownRelief = Some("yes")
         )
       )
 
@@ -3438,9 +3438,9 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       verify(cs).setString(1, "STORN88888")
       verify(cs).setLong(2, 100003L)
-      verify(cs).setString(3, "YES")
-      verify(cs).setString(4, "NO")
-      verify(cs).setString(5, "YES")
+      verify(cs).setString(3, "yes")
+      verify(cs).setString(4, "no")
+      verify(cs).setString(5, "yes")
       verify(cs).execute()
     }
   }
@@ -3465,9 +3465,9 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         stornId = "STORN12345",
         returnResourceRef = "100001",
         residency = ResidencyPayload(
-          isNonUkResidents = "NO",
-          isCompany = "NO",
-          isCrownRelief = "NO"
+          isNonUkResidents = "no",
+          isCompany = Some("no"),
+          isCrownRelief = Some("no")
         )
       )
 
@@ -3478,9 +3478,9 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       verify(conn).prepareCall("{ call RESIDENCY_PROCS.UPDATE_RESIDENCY(?, ?, ?, ?, ?) }")
       verify(cs).setString(1, "STORN12345")
       verify(cs).setLong(2, 100001L)
-      verify(cs).setString(3, "NO")
-      verify(cs).setString(4, "NO")
-      verify(cs).setString(5, "NO")
+      verify(cs).setString(3, "no")
+      verify(cs).setString(4, "no")
+      verify(cs).setString(5, "no")
       verify(cs).execute()
       verify(cs).close()
     }
@@ -3502,9 +3502,9 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         stornId = "STORN99999",
         returnResourceRef = "100002",
         residency = ResidencyPayload(
-          isNonUkResidents = "YES",
-          isCompany = "YES",
-          isCrownRelief = "YES"
+          isNonUkResidents = "yes",
+          isCompany = Some("yes"),
+          isCrownRelief = Some("yes")
         )
       )
 
@@ -3514,9 +3514,9 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       verify(cs).setString(1, "STORN99999")
       verify(cs).setLong(2, 100002L)
-      verify(cs).setString(3, "YES")
-      verify(cs).setString(4, "YES")
-      verify(cs).setString(5, "YES")
+      verify(cs).setString(3, "yes")
+      verify(cs).setString(4, "yes")
+      verify(cs).setString(5, "yes")
       verify(cs).execute()
     }
 
@@ -3537,9 +3537,9 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         stornId = "STORN88888",
         returnResourceRef = "100003",
         residency = ResidencyPayload(
-          isNonUkResidents = "NO",
-          isCompany = "YES",
-          isCrownRelief = "NO"
+          isNonUkResidents = "no",
+          isCompany = Some("yes"),
+          isCrownRelief = Some("no")
         )
       )
 
@@ -3549,9 +3549,44 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
 
       verify(cs).setString(1, "STORN88888")
       verify(cs).setLong(2, 100003L)
-      verify(cs).setString(3, "NO")
-      verify(cs).setString(4, "YES")
-      verify(cs).setString(5, "NO")
+      verify(cs).setString(3, "no")
+      verify(cs).setString(4, "yes")
+      verify(cs).setString(5, "no")
+      verify(cs).execute()
+    }
+
+    "call UPDATE_RESIDENCY with data missing" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      val repo = new SdltFormpRepository(db)
+
+      val request = UpdateResidencyRequest(
+        stornId = "STORN88888",
+        returnResourceRef = "100003",
+        residency = ResidencyPayload(
+          isNonUkResidents = "no",
+          isCompany = None,
+          isCrownRelief = None
+        )
+      )
+
+      val result = repo.sdltUpdateResidency(request).futureValue
+
+      result.updated mustBe true
+
+      verify(cs).setString(1, "STORN88888")
+      verify(cs).setLong(2, 100003L)
+      verify(cs).setString(3, "no")
+      verify(cs).setNull(4, Types.VARCHAR)
+      verify(cs).setNull(5, Types.VARCHAR)
       verify(cs).execute()
     }
   }

@@ -55,9 +55,9 @@ class ResidencyReturnsControllerSpec extends AnyFreeSpec with Matchers with Scal
     "returns 201 with all YES flags" in new Setup {
       val allYesRequest: CreateResidencyRequest = testCreateRequest.copy(
         residency = ResidencyPayload(
-          isNonUkResidents = "YES",
-          isCompany = "YES",
-          isCrownRelief = "YES"
+          isNonUkResidents = "yes",
+          isCompany = Some("yes"),
+          isCrownRelief = Some("yes")
         )
       )
 
@@ -168,9 +168,9 @@ class ResidencyReturnsControllerSpec extends AnyFreeSpec with Matchers with Scal
     "returns 200 with all YES flags" in new Setup {
       val allYesRequest: UpdateResidencyRequest = testUpdateRequest.copy(
         residency = ResidencyPayload(
-          isNonUkResidents = "YES",
-          isCompany = "YES",
-          isCrownRelief = "YES"
+          isNonUkResidents = "yes",
+          isCompany = Some("yes"),
+          isCrownRelief = Some("yes")
         )
       )
 
@@ -341,9 +341,9 @@ class ResidencyReturnsControllerSpec extends AnyFreeSpec with Matchers with Scal
         .withBody(body)
 
     val testResidencyPayload: ResidencyPayload = ResidencyPayload(
-      isNonUkResidents = "NO",
-      isCompany = "NO",
-      isCrownRelief = "NO"
+      isNonUkResidents = "no",
+      isCompany = Some("no"),
+      isCrownRelief = Some("no")
     )
 
     val testCreateRequest: CreateResidencyRequest = CreateResidencyRequest(

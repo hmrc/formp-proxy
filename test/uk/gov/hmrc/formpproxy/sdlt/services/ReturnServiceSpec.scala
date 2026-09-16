@@ -2219,9 +2219,9 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
         stornId = "STORN12345",
         returnResourceRef = "100001",
         residency = ResidencyPayload(
-          isNonUkResidents = "NO",
-          isCompany = "NO",
-          isCrownRelief = "NO"
+          isNonUkResidents = "no",
+          isCompany = Some("no"),
+          isCrownRelief = Some("no")
         )
       )
       val expectedResponse: CreateResidencyReturn = CreateResidencyReturn(created = true)
@@ -2243,9 +2243,9 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
         stornId = "STORN99999",
         returnResourceRef = "100002",
         residency = ResidencyPayload(
-          isNonUkResidents = "YES",
-          isCompany = "YES",
-          isCrownRelief = "YES"
+          isNonUkResidents = "yes",
+          isCompany = Some("yes"),
+          isCrownRelief = Some("yes")
         )
       )
       val expectedResponse: CreateResidencyReturn = CreateResidencyReturn(created = true)
@@ -2267,9 +2267,9 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
         stornId = "STORN88888",
         returnResourceRef = "100003",
         residency = ResidencyPayload(
-          isNonUkResidents = "YES",
-          isCompany = "NO",
-          isCrownRelief = "YES"
+          isNonUkResidents = "yes",
+          isCompany = Some("no"),
+          isCrownRelief = Some("yes")
         )
       )
       val expectedResponse: CreateResidencyReturn = CreateResidencyReturn(created = true)
@@ -2291,9 +2291,9 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
         stornId = "STORN12345",
         returnResourceRef = "100001",
         residency = ResidencyPayload(
-          isNonUkResidents = "NO",
-          isCompany = "NO",
-          isCrownRelief = "NO"
+          isNonUkResidents = "no",
+          isCompany = Some("no"),
+          isCrownRelief = Some("no")
         )
       )
       val boom                            = new RuntimeException("database connection failed")
@@ -2318,9 +2318,9 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
         stornId = "STORN12345",
         returnResourceRef = "100001",
         residency = ResidencyPayload(
-          isNonUkResidents = "NO",
-          isCompany = "NO",
-          isCrownRelief = "NO"
+          isNonUkResidents = "no",
+          isCompany = Some("no"),
+          isCrownRelief = Some("no")
         )
       )
       val expectedResponse: UpdateResidencyReturn = UpdateResidencyReturn(updated = true)
@@ -2342,9 +2342,9 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
         stornId = "STORN99999",
         returnResourceRef = "100002",
         residency = ResidencyPayload(
-          isNonUkResidents = "NO",
-          isCompany = "NO",
-          isCrownRelief = "NO"
+          isNonUkResidents = "no",
+          isCompany = Some("no"),
+          isCrownRelief = Some("no")
         )
       )
       val expectedResponse: UpdateResidencyReturn = UpdateResidencyReturn(updated = false)
@@ -2366,9 +2366,9 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
         stornId = "STORN88888",
         returnResourceRef = "100003",
         residency = ResidencyPayload(
-          isNonUkResidents = "YES",
-          isCompany = "YES",
-          isCrownRelief = "YES"
+          isNonUkResidents = "yes",
+          isCompany = Some("yes"),
+          isCrownRelief = Some("yes")
         )
       )
       val expectedResponse: UpdateResidencyReturn = UpdateResidencyReturn(updated = true)
@@ -2390,9 +2390,9 @@ final class ReturnServiceSpec extends SpecBase with SdltFormpRepoDataHelper {
         stornId = "STORN12345",
         returnResourceRef = "100001",
         residency = ResidencyPayload(
-          isNonUkResidents = "NO",
-          isCompany = "NO",
-          isCrownRelief = "NO"
+          isNonUkResidents = "no",
+          isCompany = Some("no"),
+          isCrownRelief = Some("no")
         )
       )
       val boom                            = new RuntimeException("database timeout")
