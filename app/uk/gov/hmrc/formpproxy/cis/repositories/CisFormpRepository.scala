@@ -2126,7 +2126,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         validateFinalValidationSubcontractor(existing, request)
 
         val incoming = applyFinalValidationPatch(existing, request.patch)
-        val merged   = mergeSubcontractorForUpdate(existing, incoming, submittedFields)
+        val merged   = mergeSubcontractorForUpdate(existing, incoming, submittedFields, false)
 
         callUpdateExistingSubcontractor(conn, scheme.schemeId, request.subbieResourceRef, merged)
         callUpdateSchemeVersion(conn, request.instanceId, scheme.version.getOrElse(0))
