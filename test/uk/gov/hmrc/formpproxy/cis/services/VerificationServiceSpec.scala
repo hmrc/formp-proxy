@@ -102,7 +102,7 @@ class VerificationServiceSpec extends SpecBase {
   "VerificationService#getCurrentVerificationBatch" - {
 
     "return successful response from repo" in {
-      val c = Ctx();
+      val c = Ctx()
       import c.*
 
       val instanceId = "abc-123"
@@ -124,7 +124,7 @@ class VerificationServiceSpec extends SpecBase {
     }
 
     "propagates failure from repo" in {
-      val c = Ctx();
+      val c = Ctx()
       import c.*
 
       val instanceId = "abc-123"
@@ -353,7 +353,7 @@ class VerificationServiceSpec extends SpecBase {
   "VerificationService#createSubmissionForVerification" - {
 
     "delegates to repository" in {
-      val c = Ctx();
+      val c = Ctx()
       import c.*
 
       val req = CreateSubmissionAndUpdateVerificationsRequest(
@@ -389,7 +389,7 @@ class VerificationServiceSpec extends SpecBase {
     }
 
     "propagates failure from repository" in {
-      val c = Ctx();
+      val c = Ctx()
       import c.*
 
       val req = CreateSubmissionAndUpdateVerificationsRequest(
@@ -490,7 +490,7 @@ class VerificationServiceSpec extends SpecBase {
   "VerificationService#updateVerificationSubmission" - {
 
     "delegates to repository" in {
-      val c = Ctx();
+      val c = Ctx()
       import c.*
 
       val req = UpdateVerificationSubmissionRequest(
@@ -514,7 +514,7 @@ class VerificationServiceSpec extends SpecBase {
     }
 
     "propagates failure from repository" in {
-      val c = Ctx();
+      val c = Ctx()
       import c.*
 
       val req = UpdateVerificationSubmissionRequest(
@@ -641,47 +641,49 @@ class VerificationServiceSpec extends SpecBase {
     }
   }
 
-  "VerificationService#proceedInsufficientVerification" - {
+  "VerificationService#proceedVerification" - {
 
     "delegates to repository" in {
-      val c = Ctx();
+      val c = Ctx()
       import c.*
 
-      val req = ProceedInsufficientVerificationRequest(
+      val req = ProceedVerificationRequest(
         instanceId = "1",
         verificationBatchResourceRef = 9L,
         verificationResourceRef = 10L,
-        proceed = "Y"
+        proceed = true,
+        taxTreatment = None
       )
 
-      when(repo.proceedInsufficientVerification(eqTo(req)))
+      when(repo.proceedVerification(eqTo(req)))
         .thenReturn(Future.successful(()))
 
-      service.proceedInsufficientVerification(req).futureValue mustBe ()
+      service.proceedVerification(req).futureValue mustBe ()
 
-      verify(repo).proceedInsufficientVerification(eqTo(req))
+      verify(repo).proceedVerification(eqTo(req))
       verifyNoMoreInteractions(repo)
     }
 
     "propagates failure from repository" in {
-      val c = Ctx();
+      val c = Ctx()
       import c.*
 
-      val req = ProceedInsufficientVerificationRequest(
+      val req = ProceedVerificationRequest(
         instanceId = "1",
         verificationBatchResourceRef = 9L,
         verificationResourceRef = 10L,
-        proceed = "Y"
+        proceed = true,
+        taxTreatment = None
       )
 
       val boom = new RuntimeException("boom")
 
-      when(repo.proceedInsufficientVerification(eqTo(req)))
+      when(repo.proceedVerification(eqTo(req)))
         .thenReturn(Future.failed(boom))
 
-      service.proceedInsufficientVerification(req).failed.futureValue mustBe boom
+      service.proceedVerification(req).failed.futureValue mustBe boom
 
-      verify(repo).proceedInsufficientVerification(eqTo(req))
+      verify(repo).proceedVerification(eqTo(req))
       verifyNoMoreInteractions(repo)
     }
   }

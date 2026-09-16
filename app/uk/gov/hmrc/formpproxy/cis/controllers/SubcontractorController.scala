@@ -22,7 +22,7 @@ import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthOrInternalAuthAction
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
 import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest, UpdateSubcontractorRequest}
-import uk.gov.hmrc.formpproxy.cis.models.response.GetSubcontractorResponse
+import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorResponse, UpdateSubcontractorResponse}
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 import uk.gov.hmrc.internalauth.client.{IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -120,8 +120,24 @@ class SubcontractorController @Inject() (
     }
 
   def updateSubcontractor: Action[JsValue] =
+    updateSubcontractorInternal(
+      service.updateSubcontractor,
+      "updateSubcontractor"
+    )
+
+  def updateSubcontractorForEdit: Action[JsValue] =
+    updateSubcontractorInternal(
+      service.updateSubcontractorForEdit,
+      "updateSubcontractorForEdit"
+    )
+
+  private def updateSubcontractorInternal(
+    updateFn: (UpdateSubcontractorRequest, Set[String]) => Future[UpdateSubcontractorResponse],
+    operationName: String
+  ): Action[JsValue] =
     writeSubcontractors.async(parse.json) { implicit request =>
-      val submittedFields: Set[String] =
+
+      val submittedFields =
         (request.body \ "subcontractor")
           .asOpt[JsObject]
           .map(_.keys.toSet)
@@ -141,6 +157,7 @@ class SubcontractorController @Inject() (
             ),
           body =>
             body.subcontractor.subbieResourceRef match {
+
               case None =>
                 Future.successful(
                   BadRequest(
@@ -151,12 +168,16 @@ class SubcontractorController @Inject() (
                 )
 
               case Some(_) =>
-                service
-                  .updateSubcontractor(body, submittedFields)
+                updateFn(body, submittedFields)
                   .map(response => Ok(Json.toJson(response)))
                   .recover { case NonFatal(e) =>
-                    logger.error("[updateSubcontractor] failed", e)
-                    InternalServerError(Json.obj("message" -> "Unexpected error"))
+                    logger.error(s"[$operationName] failed", e)
+
+                    InternalServerError(
+                      Json.obj(
+                        "message" -> "Unexpected error"
+                      )
+                    )
                   }
             }
         )
