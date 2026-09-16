@@ -27,51 +27,51 @@ class ResidencyModelsSpec extends AnyFreeSpec with Matchers {
 
     "must serialize to JSON correctly" in {
       val payload = ResidencyPayload(
-        isNonUkResidents = "YES",
-        isCompany = "NO",
-        isCrownRelief = "YES"
+        isNonUkResidents = "yes",
+        isCompany = Some("no"),
+        isCrownRelief = Some("yes")
       )
 
       val json = Json.toJson(payload)
 
-      (json \ "isNonUkResidents").as[String] mustBe "YES"
-      (json \ "isCompany").as[String] mustBe "NO"
-      (json \ "isCrownRelief").as[String] mustBe "YES"
+      (json \ "isNonUkResidents").as[String] mustBe "yes"
+      (json \ "isCompany").as[String] mustBe "no"
+      (json \ "isCrownRelief").as[String] mustBe "yes"
     }
 
     "must serialize to JSON correctly with all NO values" in {
       val payload = ResidencyPayload(
-        isNonUkResidents = "NO",
-        isCompany = "NO",
-        isCrownRelief = "NO"
+        isNonUkResidents = "no",
+        isCompany = Some("no"),
+        isCrownRelief = Some("no")
       )
 
       val json = Json.toJson(payload)
 
-      (json \ "isNonUkResidents").as[String] mustBe "NO"
-      (json \ "isCompany").as[String] mustBe "NO"
-      (json \ "isCrownRelief").as[String] mustBe "NO"
+      (json \ "isNonUkResidents").as[String] mustBe "no"
+      (json \ "isCompany").as[String] mustBe "no"
+      (json \ "isCrownRelief").as[String] mustBe "no"
     }
 
     "must serialize to JSON correctly with all YES values" in {
       val payload = ResidencyPayload(
-        isNonUkResidents = "YES",
-        isCompany = "YES",
-        isCrownRelief = "YES"
+        isNonUkResidents = "yes",
+        isCompany = Some("yes"),
+        isCrownRelief = Some("yes")
       )
 
       val json = Json.toJson(payload)
 
-      (json \ "isNonUkResidents").as[String] mustBe "YES"
-      (json \ "isCompany").as[String] mustBe "YES"
-      (json \ "isCrownRelief").as[String] mustBe "YES"
+      (json \ "isNonUkResidents").as[String] mustBe "yes"
+      (json \ "isCompany").as[String] mustBe "yes"
+      (json \ "isCrownRelief").as[String] mustBe "yes"
     }
 
     "must deserialize from JSON correctly" in {
       val json = Json.obj(
-        "isNonUkResidents" -> "YES",
-        "isCompany"        -> "NO",
-        "isCrownRelief"    -> "YES"
+        "isNonUkResidents" -> "yes",
+        "isCompany"        -> "no",
+        "isCrownRelief"    -> "yes"
       )
 
       val result = json.validate[ResidencyPayload]
@@ -79,15 +79,15 @@ class ResidencyModelsSpec extends AnyFreeSpec with Matchers {
       result mustBe a[JsSuccess[_]]
       val payload = result.get
 
-      payload.isNonUkResidents mustBe "YES"
-      payload.isCompany mustBe "NO"
-      payload.isCrownRelief mustBe "YES"
+      payload.isNonUkResidents mustBe "yes"
+      payload.isCompany mustBe Some("no")
+      payload.isCrownRelief mustBe Some("yes")
     }
 
     "must fail to deserialize when isNonUkResidents is missing" in {
       val json = Json.obj(
-        "isCompany"     -> "NO",
-        "isCrownRelief" -> "NO"
+        "isCompany"     -> "no",
+        "isCrownRelief" -> "no"
       )
 
       val result = json.validate[ResidencyPayload]
@@ -95,26 +95,26 @@ class ResidencyModelsSpec extends AnyFreeSpec with Matchers {
       result.isError mustBe true
     }
 
-    "must fail to deserialize when isCompany is missing" in {
+    "must deserialize when isCompany is missing" in {
       val json = Json.obj(
-        "isNonUkResidents" -> "NO",
-        "isCrownRelief"    -> "NO"
+        "isNonUkResidents" -> "no",
+        "isCrownRelief"    -> "no"
       )
 
       val result = json.validate[ResidencyPayload]
 
-      result.isError mustBe true
+      result.isError mustBe false
     }
 
-    "must fail to deserialize when isCrownRelief is missing" in {
+    "must deserialize when isCrownRelief is missing" in {
       val json = Json.obj(
-        "isNonUkResidents" -> "NO",
-        "isCompany"        -> "NO"
+        "isNonUkResidents" -> "no",
+        "isCompany"        -> "no"
       )
 
       val result = json.validate[ResidencyPayload]
 
-      result.isError mustBe true
+      result.isError mustBe false
     }
   }
 
@@ -125,9 +125,9 @@ class ResidencyModelsSpec extends AnyFreeSpec with Matchers {
         stornId = "STORN12345",
         returnResourceRef = "100001",
         residency = ResidencyPayload(
-          isNonUkResidents = "NO",
-          isCompany = "NO",
-          isCrownRelief = "NO"
+          isNonUkResidents = "no",
+          isCompany = Some("no"),
+          isCrownRelief = Some("no")
         )
       )
 
@@ -135,9 +135,9 @@ class ResidencyModelsSpec extends AnyFreeSpec with Matchers {
 
       (json \ "stornId").as[String] mustBe "STORN12345"
       (json \ "returnResourceRef").as[String] mustBe "100001"
-      (json \ "residency" \ "isNonUkResidents").as[String] mustBe "NO"
-      (json \ "residency" \ "isCompany").as[String] mustBe "NO"
-      (json \ "residency" \ "isCrownRelief").as[String] mustBe "NO"
+      (json \ "residency" \ "isNonUkResidents").as[String] mustBe "no"
+      (json \ "residency" \ "isCompany").as[String] mustBe "no"
+      (json \ "residency" \ "isCrownRelief").as[String] mustBe "no"
     }
 
     "must serialize to JSON correctly with all YES flags" in {
@@ -145,9 +145,9 @@ class ResidencyModelsSpec extends AnyFreeSpec with Matchers {
         stornId = "STORN99999",
         returnResourceRef = "100002",
         residency = ResidencyPayload(
-          isNonUkResidents = "YES",
-          isCompany = "YES",
-          isCrownRelief = "YES"
+          isNonUkResidents = "yes",
+          isCompany = Some("yes"),
+          isCrownRelief = Some("yes")
         )
       )
 
@@ -155,9 +155,9 @@ class ResidencyModelsSpec extends AnyFreeSpec with Matchers {
 
       (json \ "stornId").as[String] mustBe "STORN99999"
       (json \ "returnResourceRef").as[String] mustBe "100002"
-      (json \ "residency" \ "isNonUkResidents").as[String] mustBe "YES"
-      (json \ "residency" \ "isCompany").as[String] mustBe "YES"
-      (json \ "residency" \ "isCrownRelief").as[String] mustBe "YES"
+      (json \ "residency" \ "isNonUkResidents").as[String] mustBe "yes"
+      (json \ "residency" \ "isCompany").as[String] mustBe "yes"
+      (json \ "residency" \ "isCrownRelief").as[String] mustBe "yes"
     }
 
     "must deserialize from JSON correctly" in {
@@ -165,9 +165,9 @@ class ResidencyModelsSpec extends AnyFreeSpec with Matchers {
         "stornId"           -> "STORN12345",
         "returnResourceRef" -> "100001",
         "residency"         -> Json.obj(
-          "isNonUkResidents" -> "NO",
-          "isCompany"        -> "NO",
-          "isCrownRelief"    -> "NO"
+          "isNonUkResidents" -> "no",
+          "isCompany"        -> "no",
+          "isCrownRelief"    -> "no"
         )
       )
 
@@ -178,18 +178,18 @@ class ResidencyModelsSpec extends AnyFreeSpec with Matchers {
 
       request.stornId mustBe "STORN12345"
       request.returnResourceRef mustBe "100001"
-      request.residency.isNonUkResidents mustBe "NO"
-      request.residency.isCompany mustBe "NO"
-      request.residency.isCrownRelief mustBe "NO"
+      request.residency.isNonUkResidents mustBe "no"
+      request.residency.isCompany mustBe Some("no")
+      request.residency.isCrownRelief mustBe Some("no")
     }
 
     "must fail to deserialize when stornId is missing" in {
       val json = Json.obj(
         "returnResourceRef" -> "100001",
         "residency"         -> Json.obj(
-          "isNonUkResidents" -> "NO",
-          "isCompany"        -> "NO",
-          "isCrownRelief"    -> "NO"
+          "isNonUkResidents" -> "no",
+          "isCompany"        -> "no",
+          "isCrownRelief"    -> "no"
         )
       )
 
@@ -202,9 +202,9 @@ class ResidencyModelsSpec extends AnyFreeSpec with Matchers {
       val json = Json.obj(
         "stornId"   -> "STORN12345",
         "residency" -> Json.obj(
-          "isNonUkResidents" -> "NO",
-          "isCompany"        -> "NO",
-          "isCrownRelief"    -> "NO"
+          "isNonUkResidents" -> "no",
+          "isCompany"        -> "no",
+          "isCrownRelief"    -> "no"
         )
       )
 
@@ -277,9 +277,9 @@ class ResidencyModelsSpec extends AnyFreeSpec with Matchers {
         stornId = "STORN12345",
         returnResourceRef = "100001",
         residency = ResidencyPayload(
-          isNonUkResidents = "YES",
-          isCompany = "YES",
-          isCrownRelief = "NO"
+          isNonUkResidents = "yes",
+          isCompany = Some("yes"),
+          isCrownRelief = Some("no")
         )
       )
 
@@ -287,9 +287,9 @@ class ResidencyModelsSpec extends AnyFreeSpec with Matchers {
 
       (json \ "stornId").as[String] mustBe "STORN12345"
       (json \ "returnResourceRef").as[String] mustBe "100001"
-      (json \ "residency" \ "isNonUkResidents").as[String] mustBe "YES"
-      (json \ "residency" \ "isCompany").as[String] mustBe "YES"
-      (json \ "residency" \ "isCrownRelief").as[String] mustBe "NO"
+      (json \ "residency" \ "isNonUkResidents").as[String] mustBe "yes"
+      (json \ "residency" \ "isCompany").as[String] mustBe "yes"
+      (json \ "residency" \ "isCrownRelief").as[String] mustBe "no"
     }
 
     "must deserialize from JSON correctly" in {
@@ -297,9 +297,9 @@ class ResidencyModelsSpec extends AnyFreeSpec with Matchers {
         "stornId"           -> "STORN12345",
         "returnResourceRef" -> "100001",
         "residency"         -> Json.obj(
-          "isNonUkResidents" -> "YES",
-          "isCompany"        -> "YES",
-          "isCrownRelief"    -> "NO"
+          "isNonUkResidents" -> "yes",
+          "isCompany"        -> "yes",
+          "isCrownRelief"    -> "no"
         )
       )
 
@@ -310,18 +310,18 @@ class ResidencyModelsSpec extends AnyFreeSpec with Matchers {
 
       request.stornId mustBe "STORN12345"
       request.returnResourceRef mustBe "100001"
-      request.residency.isNonUkResidents mustBe "YES"
-      request.residency.isCompany mustBe "YES"
-      request.residency.isCrownRelief mustBe "NO"
+      request.residency.isNonUkResidents mustBe "yes"
+      request.residency.isCompany mustBe Some("yes")
+      request.residency.isCrownRelief mustBe Some("no")
     }
 
     "must fail to deserialize when stornId is missing" in {
       val json = Json.obj(
         "returnResourceRef" -> "100001",
         "residency"         -> Json.obj(
-          "isNonUkResidents" -> "NO",
-          "isCompany"        -> "NO",
-          "isCrownRelief"    -> "NO"
+          "isNonUkResidents" -> "no",
+          "isCompany"        -> "no",
+          "isCrownRelief"    -> "no"
         )
       )
 
@@ -334,9 +334,9 @@ class ResidencyModelsSpec extends AnyFreeSpec with Matchers {
       val json = Json.obj(
         "stornId"   -> "STORN12345",
         "residency" -> Json.obj(
-          "isNonUkResidents" -> "NO",
-          "isCompany"        -> "NO",
-          "isCrownRelief"    -> "NO"
+          "isNonUkResidents" -> "no",
+          "isCompany"        -> "no",
+          "isCrownRelief"    -> "no"
         )
       )
 
