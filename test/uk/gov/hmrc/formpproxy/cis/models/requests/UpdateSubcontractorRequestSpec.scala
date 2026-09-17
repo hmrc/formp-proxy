@@ -66,7 +66,8 @@ final class UpdateSubcontractorRequestSpec extends PlaySpec {
 
     val model = UpdateSubcontractorRequest(
       cisId = "abc-123",
-      subcontractor = subcontractor
+      subcontractor = subcontractor,
+      verificationForEdit = None
     )
 
     "serialize to JSON" in {
@@ -177,6 +178,56 @@ final class UpdateSubcontractorRequestSpec extends PlaySpec {
         .obj("cisId" -> "abc-123")
         .validate[UpdateSubcontractorRequest]
         .isError mustBe true
+    }
+
+    "serialize verificationForEdit when present" in {
+      val modelWithVerification =
+        model.copy(
+          verificationForEdit = Some(
+            UpdateVerificationForEditRequest(
+              verificationBatchResourceRef = 123L,
+              verificationResourceRef = 456L
+            )
+          )
+        )
+
+      val json = Json.toJson(modelWithVerification)
+
+      (json \ "verificationForEdit" \ "verificationBatchResourceRef").as[Long] mustBe 123L
+      (json \ "verificationForEdit" \ "verificationResourceRef").as[Long] mustBe 456L
+    }
+
+    "deserialize when verificationForEdit is present" in {
+      val json = Json.parse(
+        """
+          |{
+          |  "cisId": "abc-123",
+          |  "subcontractor": {
+          |    "subcontractorId": 999,
+          |    "subbieResourceRef": 10,
+          |    "subcontractorType": "soletrader",
+          |    "firstName": "John",
+          |    "surname": "Smith",
+          |    "version": 5
+          |  },
+          |  "verificationForEdit": {
+          |    "verificationBatchResourceRef": 123,
+          |    "verificationResourceRef": 456
+          |  }
+          |}
+          |""".stripMargin
+      )
+
+      val result = json.validate[UpdateSubcontractorRequest]
+
+      result.isSuccess mustBe true
+
+      result.get.verificationForEdit mustBe Some(
+        UpdateVerificationForEditRequest(
+          verificationBatchResourceRef = 123L,
+          verificationResourceRef = 456L
+        )
+      )
     }
   }
 }
