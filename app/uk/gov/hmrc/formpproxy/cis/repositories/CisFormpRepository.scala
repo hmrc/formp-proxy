@@ -106,7 +106,7 @@ trait CisMonthlyReturnSource {
   def getSubcontractor(cisId: String, subbieResourceRef: Long): Future[GetSubcontractorResponse]
 
   def updateSubcontractorForEdit(
-    request: UpdateSubcontractorRequest,
+    request: UpdateSubcontractorForEditRequest,
     submittedFields: Set[String]
   ): Future[UpdateSubcontractorResponse]
 
@@ -2381,7 +2381,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   }
 
   override def updateSubcontractorForEdit(
-    request: UpdateSubcontractorRequest,
+    request: UpdateSubcontractorForEditRequest,
     submittedFields: Set[String]
   ): Future[UpdateSubcontractorResponse] = {
 
