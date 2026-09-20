@@ -2140,6 +2140,8 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       case "subcontractorName"                                  => Set("firstName", "secondName", "surname")
       case "tradingName"                                        => Set("tradingName")
       case "partnershipTradingName"                             => Set("partnershipTradingName")
+      case "names"                                              =>
+        Set("firstName", "secondName", "surname", "tradingName")
       case "addressYesNo" | "address"                           =>
         Set("addressLine1", "addressLine2", "addressLine3", "addressLine4", "country", "postcode")
       case "contactDetailsYesNo"                                => Set("emailAddress", "phoneNumber", "mobilePhoneNumber")
