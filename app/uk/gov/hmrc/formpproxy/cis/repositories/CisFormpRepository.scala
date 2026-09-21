@@ -106,7 +106,7 @@ trait CisMonthlyReturnSource {
   def getSubcontractor(cisId: String, subbieResourceRef: Long): Future[GetSubcontractorResponse]
 
   def updateSubcontractorForEdit(
-    request: UpdateSubcontractorRequest,
+    request: UpdateSubcontractorForEditRequest,
     submittedFields: Set[String]
   ): Future[UpdateSubcontractorResponse]
 
@@ -1494,6 +1494,28 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.execute()
     }
 
+  private def callUpdateVerificationForEdit(
+    conn: Connection,
+    instanceId: String,
+    verificationBatchResourceRef: Long,
+    verificationResourceRef: Long
+  ): Unit =
+    withCall(conn, CallUpdateVerification) { cs =>
+      cs.setString(1, instanceId)
+      cs.setLong(2, verificationBatchResourceRef)
+      cs.setLong(3, verificationResourceRef)
+      cs.setNull(4, Types.CHAR)
+      cs.setNull(5, Types.VARCHAR)
+      cs.setString(6, "NotKnown")
+      cs.setString(7, "edit")
+      cs.setNull(8, Types.CHAR)
+      cs.setNull(9, Types.VARCHAR)
+      cs.setNull(10, Types.INTEGER)
+      cs.registerOutParameter(10, Types.INTEGER)
+
+      cs.execute()
+    }
+
   private def callDeleteVerifications(
     conn: Connection,
     instanceId: String,
@@ -2359,20 +2381,75 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
   }
 
   override def updateSubcontractorForEdit(
-    request: UpdateSubcontractorRequest,
+    request: UpdateSubcontractorForEditRequest,
     submittedFields: Set[String]
   ): Future[UpdateSubcontractorResponse] = {
 
     logger.info(
-      s"[CIS] updateSubcontractorForEdit(cisId=${request.cisId}, subbieResourceRef=${request.subcontractor.subbieResourceRef})"
+      s"[CIS] updateSubcontractorForEdit(" +
+        s"cisId=${request.cisId}, " +
+        s"subbieResourceRef=${request.subcontractor.subbieResourceRef}, " +
+        s"updateVerification=${request.verificationForEdit.isDefined})"
     )
 
-    updateSubcontractorInternal(
-      request,
-      submittedFields,
-      callUpdateSubcontractorForEdit,
-      applyVerificationRestrictions = false
-    )
+    Future {
+      db.withTransaction { conn =>
+        val scheme =
+          loadScheme(
+            conn = conn,
+            instanceId = request.cisId
+          )
+
+        val subbieResourceRef =
+          request.subcontractor.subbieResourceRef.getOrElse(
+            throw new IllegalArgumentException(
+              s"subbieResourceRef is required for cisId=${request.cisId}"
+            )
+          )
+
+        val existingSubcontractor =
+          getExistingSubcontractorForUpdate(
+            conn = conn,
+            cisId = request.cisId,
+            subbieResourceRef = subbieResourceRef
+          )
+
+        val mergedSubcontractor =
+          mergeSubcontractorForUpdate(
+            existing = existingSubcontractor,
+            incoming = request.subcontractor,
+            submittedFields = submittedFields,
+            applyVerificationRestrictions = false
+          )
+
+        val updatedSubcontractorVersion =
+          callUpdateSubcontractorForEdit(
+            conn = conn,
+            schemeId = scheme.schemeId,
+            subbieResourceRef = subbieResourceRef,
+            subcontractor = mergedSubcontractor
+          )
+
+        request.verificationForEdit.foreach { verification =>
+          callUpdateVerificationForEdit(
+            conn = conn,
+            instanceId = request.cisId,
+            verificationBatchResourceRef = verification.verificationBatchResourceRef,
+            verificationResourceRef = verification.verificationResourceRef
+          )
+        }
+
+        callUpdateSchemeVersion(
+          conn = conn,
+          instanceId = request.cisId,
+          currentVersion = scheme.version.getOrElse(0)
+        )
+
+        UpdateSubcontractorResponse(
+          version = updatedSubcontractorVersion
+        )
+      }
+    }
   }
 
   private def updateSubcontractorInternal(

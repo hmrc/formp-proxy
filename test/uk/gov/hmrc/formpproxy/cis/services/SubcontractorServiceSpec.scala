@@ -20,7 +20,7 @@ import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.{any, eq as eqTo}
 import org.mockito.Mockito.*
 import uk.gov.hmrc.formpproxy.base.SpecBase
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest, UpdateSubcontractorRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest, UpdateSubcontractorForEditRequest, UpdateSubcontractorRequest}
 import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorForDeleteResponse, GetSubcontractorListResponse, GetSubcontractorResponse, UpdateSubcontractorResponse}
 import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.cis.repositories.CisMonthlyReturnSource
@@ -530,7 +530,7 @@ class SubcontractorServiceSpec extends SpecBase {
   "SubcontractorService#updateSubcontractorForEdit" - {
 
     val request =
-      UpdateSubcontractorRequest(
+      UpdateSubcontractorForEditRequest(
         cisId = "abc-123",
         subcontractor = Subcontractor(
           subcontractorId = 999L,
