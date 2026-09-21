@@ -161,7 +161,7 @@ class SubcontractorService @Inject() (repo: CisMonthlyReturnSource) {
     repo.updateSubcontractor(request, submittedFields)
 
   def updateSubcontractorForEdit(
-    request: UpdateSubcontractorRequest,
+    request: UpdateSubcontractorForEditRequest,
     submittedFields: Set[String]
   ): Future[UpdateSubcontractorResponse] =
     repo.updateSubcontractorForEdit(request, submittedFields)

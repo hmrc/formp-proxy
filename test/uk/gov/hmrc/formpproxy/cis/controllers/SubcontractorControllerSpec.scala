@@ -688,7 +688,7 @@ class SubcontractorControllerSpec extends SpecBase {
         )
 
       val request =
-        json.as[UpdateSubcontractorRequest]
+        json.as[UpdateSubcontractorForEditRequest]
 
       val submittedFields =
         Set(
@@ -747,7 +747,7 @@ class SubcontractorControllerSpec extends SpecBase {
 
       verify(mockService, never())
         .updateSubcontractorForEdit(
-          any[UpdateSubcontractorRequest],
+          any[UpdateSubcontractorForEditRequest],
           any[Set[String]]
         )
     }
@@ -783,7 +783,7 @@ class SubcontractorControllerSpec extends SpecBase {
 
       verify(mockService, never())
         .updateSubcontractorForEdit(
-          any[UpdateSubcontractorRequest],
+          any[UpdateSubcontractorForEditRequest],
           any[Set[String]]
         )
     }
@@ -808,7 +808,7 @@ class SubcontractorControllerSpec extends SpecBase {
         )
 
       val request =
-        json.as[UpdateSubcontractorRequest]
+        json.as[UpdateSubcontractorForEditRequest]
 
       val submittedFields =
         Set(
@@ -835,6 +835,67 @@ class SubcontractorControllerSpec extends SpecBase {
       contentAsJson(result) mustBe Json.obj(
         "message" -> "Unexpected error"
       )
+
+      verify(mockService)
+        .updateSubcontractorForEdit(
+          eqTo(request),
+          eqTo(submittedFields)
+        )
+
+      verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 200 OK and passes verificationForEdit to service when present" in {
+      val s = setup
+      import s.*
+
+      val json =
+        Json.parse(
+          """
+            |{
+            |  "cisId": "abc-123",
+            |  "subcontractor": {
+            |    "subcontractorId": 999,
+            |    "subbieResourceRef": 10,
+            |    "subcontractorType": "company",
+            |    "version": 1
+            |  },
+            |  "verificationForEdit": {
+            |    "verificationBatchResourceRef": 123,
+            |    "verificationResourceRef": 456
+            |  }
+            |}
+            |""".stripMargin
+        )
+
+      val request = json.as[UpdateSubcontractorForEditRequest]
+
+      request.verificationForEdit mustBe Some(
+        UpdateVerificationForEditRequest(
+          verificationBatchResourceRef = 123L,
+          verificationResourceRef = 456L
+        )
+      )
+
+      val submittedFields =
+        Set("subcontractorId", "subbieResourceRef", "subcontractorType", "version")
+
+      val response = UpdateSubcontractorResponse(version = 3)
+
+      when(
+        mockService.updateSubcontractorForEdit(
+          eqTo(request),
+          eqTo(submittedFields)
+        )
+      ).thenReturn(Future.successful(response))
+
+      val result =
+        controller.updateSubcontractorForEdit.apply(
+          postJson("/cis/subcontractor/edit", json).withHeaders(AUTHORIZATION -> "Token internal-auth")
+        )
+
+      status(result) mustBe OK
+      (contentAsJson(result) \ "version").as[Int] mustBe 3
 
       verify(mockService)
         .updateSubcontractorForEdit(

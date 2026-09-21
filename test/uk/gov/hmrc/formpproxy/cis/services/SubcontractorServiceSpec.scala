@@ -530,7 +530,7 @@ class SubcontractorServiceSpec extends SpecBase {
   "SubcontractorService#updateSubcontractorForEdit" - {
 
     val request =
-      UpdateSubcontractorRequest(
+      UpdateSubcontractorForEditRequest(
         cisId = "abc-123",
         subcontractor = Subcontractor(
           subcontractorId = 999L,

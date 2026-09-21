@@ -696,7 +696,7 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       when(rsSubErr.next()).thenReturn(true, false)
       when(rsSubErr.getString("ERROR_DETAIL_ID")).thenReturn("E1")
       when(rsSubErr.getString("RETURN_ID")).thenReturn("100001")
-      when(rsSubErr.getString("POSITION")).thenReturn("FIELD:postcode")
+      when(rsSubErr.getString("POSITION")).thenReturn("0")
       when(rsSubErr.getString("ERROR_MESSAGE")).thenReturn("Invalid postcode format")
       when(rsSubErr.getString("STORN")).thenReturn("STORN12345")
       when(rsSubErr.getString("SUBMISSION_ID")).thenReturn("SUB123")
@@ -705,16 +705,20 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       val result = repo.sdltGetReturn("100001", "STORN12345").futureValue
 
       result.submissionErrorDetails mustBe defined
-      val e = result.submissionErrorDetails.value
+      result.submissionErrorDetails.value must have size 1
+
+      val e = result.submissionErrorDetails.value.head
       e.errorDetailID mustBe Some("E1")
       e.returnID mustBe Some("100001")
-      e.position mustBe Some("FIELD:postcode")
+      e.position mustBe Some("0")
       e.errorMessage mustBe Some("Invalid postcode format")
       e.storn mustBe Some("STORN12345")
       e.submissionID mustBe Some("SUB123")
+
+      verify(rsSubErr).close()
     }
 
-    "process SubmissionErrorDetails when multiple rows are returned (uses first row)" in {
+    "process all SubmissionErrorDetails when multiple rows are returned, preserving order" in {
       val db       = mock[Database]
       val conn     = mock[Connection]
       val cs       = mock[CallableStatement]
@@ -730,22 +734,62 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
         if (pos != 15) when(cs.getObject(eqTo(pos), eqTo(classOf[ResultSet]))).thenReturn(null)
       }
 
-      when(rsSubErr.next()).thenReturn(true, true, false)
-      when(rsSubErr.getString("ERROR_DETAIL_ID")).thenReturn("E1", "E2")
-      when(rsSubErr.getString("RETURN_ID")).thenReturn("100001", "100001")
-      when(rsSubErr.getString("POSITION")).thenReturn("FIELD:surname", "FIELD:address1")
-      when(rsSubErr.getString("ERROR_MESSAGE")).thenReturn("Surname missing", "Address line 1 required")
-      when(rsSubErr.getString("STORN")).thenReturn("STORN12345", "STORN12345")
-      when(rsSubErr.getString("SUBMISSION_ID")).thenReturn("SUB123", "SUB123")
+      when(rsSubErr.next()).thenReturn(true, true, true, false)
+      when(rsSubErr.getString("ERROR_DETAIL_ID")).thenReturn("E1", "E2", "E3")
+      when(rsSubErr.getString("RETURN_ID")).thenReturn("100001", "100001", "100001")
+      when(rsSubErr.getString("POSITION")).thenReturn("0", "1", "2")
+      when(rsSubErr.getString("ERROR_MESSAGE")).thenReturn(
+        "3001: Your submission failed due to business validation errors. Please see below for details.",
+        "421: As Box 52 part 2 has been completed No or left blank, part 4 must be left blank. Please delete",
+        "422: Another business rule failure"
+      )
+      when(rsSubErr.getString("STORN")).thenReturn("STORN12345", "STORN12345", "STORN12345")
+      when(rsSubErr.getString("SUBMISSION_ID")).thenReturn("SUB123", "SUB123", "SUB123")
 
       val repo   = new SdltFormpRepository(db)
       val result = repo.sdltGetReturn("100001", "STORN12345").futureValue
 
       result.submissionErrorDetails mustBe defined
-      val e = result.submissionErrorDetails.value
-      e.errorDetailID mustBe Some("E1")
-      e.position mustBe Some("FIELD:surname")
-      e.errorMessage mustBe Some("Surname missing")
+      val errors = result.submissionErrorDetails.value
+      errors must have size 3
+
+      errors.map(_.errorDetailID) mustBe Seq(Some("E1"), Some("E2"), Some("E3"))
+      errors.map(_.position) mustBe Seq(Some("0"), Some("1"), Some("2"))
+      errors.head.errorMessage mustBe Some(
+        "3001: Your submission failed due to business validation errors. Please see below for details."
+      )
+      errors(1).errorMessage mustBe Some(
+        "421: As Box 52 part 2 has been completed No or left blank, part 4 must be left blank. Please delete"
+      )
+      errors.last.errorMessage mustBe Some("422: Another business rule failure")
+
+      verify(rsSubErr).close()
+    }
+
+    "return None for SubmissionErrorDetails when the cursor has no rows" in {
+      val db       = mock[Database]
+      val conn     = mock[Connection]
+      val cs       = mock[CallableStatement]
+      val rsSubErr = mock[ResultSet]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+
+      when(cs.getObject(eqTo(15), eqTo(classOf[ResultSet]))).thenReturn(rsSubErr)
+      (3 to 16).foreach { pos =>
+        if (pos != 15) when(cs.getObject(eqTo(pos), eqTo(classOf[ResultSet]))).thenReturn(null)
+      }
+
+      when(rsSubErr.next()).thenReturn(false)
+
+      val repo   = new SdltFormpRepository(db)
+      val result = repo.sdltGetReturn("100001", "STORN12345").futureValue
+
+      result.submissionErrorDetails mustBe None
+
+      verify(rsSubErr).close()
     }
 
     "map null fields in SubmissionErrorDetails to None" in {
@@ -776,7 +820,9 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       val result = repo.sdltGetReturn("100001", "STORN12345").futureValue
 
       result.submissionErrorDetails mustBe defined
-      val e = result.submissionErrorDetails.value
+      result.submissionErrorDetails.value must have size 1
+
+      val e = result.submissionErrorDetails.value.head
       e.errorDetailID mustBe None
       e.returnID mustBe Some("100001")
       e.position mustBe None
@@ -784,7 +830,6 @@ final class SdltFormpRepositorySpec extends SpecBase with SdltFormpRepoDataHelpe
       e.storn mustBe Some("STORN12345")
       e.submissionID mustBe None
     }
-
   }
 
   "sdltGetReturns" - {

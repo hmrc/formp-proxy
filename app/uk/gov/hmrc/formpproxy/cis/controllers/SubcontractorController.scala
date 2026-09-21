@@ -17,11 +17,12 @@
 package uk.gov.hmrc.formpproxy.cis.controllers
 
 import play.api.Logging
-import play.api.libs.json.{JsError, JsObject, JsValue, Json}
+import play.api.libs.json.Format.GenericFormat
+import play.api.libs.json.{JsError, JsObject, JsValue, Json, Reads}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthOrInternalAuthAction
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
-import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest, UpdateSubcontractorRequest}
+import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest, UpdateSubcontractorForEditRequest, UpdateSubcontractorRequest}
 import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorResponse, UpdateSubcontractorResponse}
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 import uk.gov.hmrc.internalauth.client.{IAAction, Predicate, Resource}
@@ -120,21 +121,24 @@ class SubcontractorController @Inject() (
     }
 
   def updateSubcontractor: Action[JsValue] =
-    updateSubcontractorInternal(
-      service.updateSubcontractor,
-      "updateSubcontractor"
+    updateSubcontractorInternal[UpdateSubcontractorRequest](
+      updateFn = service.updateSubcontractor,
+      (request: UpdateSubcontractorRequest) => request.subcontractor.subbieResourceRef,
+      operationName = "updateSubcontractor"
     )
 
   def updateSubcontractorForEdit: Action[JsValue] =
-    updateSubcontractorInternal(
-      service.updateSubcontractorForEdit,
-      "updateSubcontractorForEdit"
+    updateSubcontractorInternal[UpdateSubcontractorForEditRequest](
+      updateFn = service.updateSubcontractorForEdit,
+      subbieResourceRefFn = (request: UpdateSubcontractorForEditRequest) => request.subcontractor.subbieResourceRef,
+      operationName = "updateSubcontractorForEdit"
     )
 
-  private def updateSubcontractorInternal(
-    updateFn: (UpdateSubcontractorRequest, Set[String]) => Future[UpdateSubcontractorResponse],
+  private def updateSubcontractorInternal[T](
+    updateFn: (T, Set[String]) => Future[UpdateSubcontractorResponse],
+    subbieResourceRefFn: T => Option[Long],
     operationName: String
-  ): Action[JsValue] =
+  )(implicit reads: Reads[T]): Action[JsValue] =
     writeSubcontractors.async(parse.json) { implicit request =>
 
       val submittedFields =
@@ -144,7 +148,7 @@ class SubcontractorController @Inject() (
           .getOrElse(Set.empty)
 
       request.body
-        .validate[UpdateSubcontractorRequest]
+        .validate[T]
         .fold(
           errs =>
             Future.successful(
@@ -156,7 +160,7 @@ class SubcontractorController @Inject() (
               )
             ),
           body =>
-            body.subcontractor.subbieResourceRef match {
+            subbieResourceRefFn(body) match {
 
               case None =>
                 Future.successful(
