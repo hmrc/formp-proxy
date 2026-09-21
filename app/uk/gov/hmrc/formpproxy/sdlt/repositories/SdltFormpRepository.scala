@@ -189,7 +189,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     } finally cs.close()
   }
 
-  override def sdltGetReturn(returnResourceRef: String, storn: String): Future[GetReturnRequest] = {
+  override def sdltGetReturn(returnResourceRef: String, storn: String): Future[GetReturnRequest]  = {
     logger.info(s"[SDLT] sdltGetReturn(returnResourceRef=$returnResourceRef, storn=$storn)")
     Future {
       db.withConnection { conn =>
@@ -229,7 +229,7 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
           val lease                  = processResultSet(cs, 12, processLease)
           val taxCalculation         = processResultSet(cs, 13, processTaxCalculation)
           val submission             = processResultSet(cs, 14, processSubmission)
-          val submissionErrorDetails = processResultSet(cs, 15, processSubmissionErrorDetails)
+          val submissionErrorDetails = processResultSetSeq(cs, 15, processSubmissionErrorDetails)
           val residency              = processResultSet(cs, 16, processResidency)
 
           GetReturnRequest(
@@ -247,14 +247,13 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
             lease = lease,
             taxCalculation = taxCalculation,
             submission = submission,
-            submissionErrorDetails = submissionErrorDetails,
+            submissionErrorDetails = if (submissionErrorDetails.isEmpty) None else Some(submissionErrorDetails),
             residency = residency
           )
         } finally cs.close()
       }
     }
   }
-
   override def sdltGetReturns(request: GetReturnRecordsRequest): Future[SdltReturnRecordResponse] = {
     logger.info(s"[SDLT] sdltGetReturns($request)")
     Future {
