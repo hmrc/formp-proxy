@@ -1977,8 +1977,8 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     p_storn: String,
     p_return_resource_ref: Long,
     p_is_non_uk_residents: String,
-    p_is_close_company: String,
-    p_is_crown_relief: String
+    p_is_close_company: Option[String],
+    p_is_crown_relief: Option[String]
   ): CreateResidencyReturn = {
 
     val cs = conn.prepareCall("{ call RESIDENCY_PROCS.CREATE_RESIDENCY(?, ?, ?, ?, ?) }")
@@ -1986,8 +1986,8 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       cs.setString(1, p_storn)
       cs.setLong(2, p_return_resource_ref)
       cs.setString(3, p_is_non_uk_residents)
-      cs.setString(4, p_is_close_company)
-      cs.setString(5, p_is_crown_relief)
+      cs.setOptionalString(4, p_is_close_company)
+      cs.setOptionalString(5, p_is_crown_relief)
 
       cs.execute()
 
@@ -2013,8 +2013,8 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
     p_storn: String,
     p_return_resource_ref: Long,
     p_is_non_uk_residents: String,
-    p_is_close_company: String,
-    p_is_crown_relief: String
+    p_is_close_company: Option[String],
+    p_is_crown_relief: Option[String]
   ): UpdateResidencyReturn = {
 
     val cs = conn.prepareCall("{ call RESIDENCY_PROCS.UPDATE_RESIDENCY(?, ?, ?, ?, ?) }")
@@ -2022,8 +2022,8 @@ class SdltFormpRepository @Inject() (@NamedDatabase("sdlt") db: Database)(implic
       cs.setString(1, p_storn)
       cs.setLong(2, p_return_resource_ref)
       cs.setString(3, p_is_non_uk_residents)
-      cs.setString(4, p_is_close_company)
-      cs.setString(5, p_is_crown_relief)
+      cs.setOptionalString(4, p_is_close_company)
+      cs.setOptionalString(5, p_is_crown_relief)
 
       cs.execute()
 
