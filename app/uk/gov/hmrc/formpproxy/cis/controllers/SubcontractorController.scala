@@ -27,6 +27,7 @@ import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorResponse, Upd
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 import uk.gov.hmrc.internalauth.client.{IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import uk.gov.hmrc.formpproxy.cis.models.requests.FinalValidationUpdateSubcontractorRequest
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -183,6 +184,31 @@ class SubcontractorController @Inject() (
                     )
                   }
             }
+        )
+    }
+
+  def updateSubcontractorForFinalValidation(): Action[JsValue] =
+    writeSubcontractors.async(parse.json) { implicit request =>
+      request.body
+        .validate[FinalValidationUpdateSubcontractorRequest]
+        .fold(
+          errs =>
+            Future.successful(
+              BadRequest(
+                Json.obj(
+                  "message" -> "Invalid payload",
+                  "errors"  -> JsError.toJson(errs)
+                )
+              )
+            ),
+          body =>
+            service
+              .updateSubcontractorForFinalValidation(body)
+              .map(_ => NoContent)
+              .recover { case NonFatal(e) =>
+                logger.error("[updateSubcontractorForFinalValidation] failed", e)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
+              }
         )
     }
 
