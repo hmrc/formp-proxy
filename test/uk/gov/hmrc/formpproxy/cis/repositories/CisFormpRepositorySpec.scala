@@ -3799,10 +3799,10 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       verify(csUpdateV2).setNull(4, Types.CHAR)
       verify(csUpdateV2).setNull(5, Types.VARCHAR)
-      verify(csUpdateV2).setNull(6, Types.VARCHAR)
+      verify(csUpdateV2).setString(6, "NotKnown")
 
       verify(csUpdateV2).setString(7, "MATCH")
-      verify(csUpdateV2).setString(8, "N")
+      verify(csUpdateV2).setNull(8, Types.VARCHAR)
       verify(csUpdateV2).setString(9, "BETA LTD")
 
       verify(csUpdateV2).setNull(10, Types.INTEGER)
