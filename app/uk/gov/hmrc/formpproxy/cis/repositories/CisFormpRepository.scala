@@ -1840,6 +1840,14 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     result: VerificationResult
   ): Unit =
     withCall(conn, CallUpdateSubcontractor) { cs =>
+      if (subcontractor.verificationNumber != result.verificationNumber) {
+        logger.warn(
+          s"For subbieResourceRef: $subbieResourceRef, verification numbers in batch do not match. " +
+            s"Verification number in DB: ${subcontractor.verificationNumber}, " +
+            s"verification number from CHRIS: ${result.verificationNumber}"
+        )
+      }
+
       cs.setLong(1, schemeId)
       cs.setLong(2, subbieResourceRef)
 
