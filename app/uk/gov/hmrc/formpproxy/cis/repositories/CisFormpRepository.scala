@@ -1753,7 +1753,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
             instanceId = req.instanceId,
             verificationBatchResourceRef = req.verificationBatchResourceRef,
             verification = verification,
-            result = result
+            result = result.copy(verificationNumber = result.verificationNumber.map(_.take(11)))
           )
 
           callUpdateVerificationBatchFromChris(
