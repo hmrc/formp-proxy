@@ -1753,14 +1753,22 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
             instanceId = req.instanceId,
             verificationBatchResourceRef = req.verificationBatchResourceRef,
             verification = verification,
-            result = result.copy(verificationNumber = result.verificationNumber.map(_.take(11)))
+            result = result
           )
+
+          if (subcontractor.verificationNumber != result.verificationNumber) {
+            logger.warn(
+              s"For subbieResourceRef: $subbieResourceRef, verification numbers in batch do not match. " +
+                s"Verification number in DB: ${subcontractor.verificationNumber}, " +
+                s"verification number from CHRIS: ${result.verificationNumber}"
+            )
+          }
 
           callUpdateVerificationBatchFromChris(
             conn = conn,
             verificationBatch = verificationBatch,
             submissionStatus = req.submissionStatus,
-            result = result
+            result = result.copy(verificationNumber = result.verificationNumber.map(_.take(11)))
           )
         }
 
@@ -1840,14 +1848,6 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     result: VerificationResult
   ): Unit =
     withCall(conn, CallUpdateSubcontractor) { cs =>
-      if (subcontractor.verificationNumber != result.verificationNumber) {
-        logger.warn(
-          s"For subbieResourceRef: $subbieResourceRef, verification numbers in batch do not match. " +
-            s"Verification number in DB: ${subcontractor.verificationNumber}, " +
-            s"verification number from CHRIS: ${result.verificationNumber}"
-        )
-      }
-
       cs.setLong(1, schemeId)
       cs.setLong(2, subbieResourceRef)
 
