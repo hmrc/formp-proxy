@@ -1880,7 +1880,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setOptionalString(24, subcontractor.autoVerified)
       cs.setOptionalString(25, result.verified)
       cs.setOptionalString(26, result.verificationNumber)
-      cs.setString(27, result.taxTreatment)
+      cs.setOptionalString(27, result.taxTreatment)
       cs.setOptionalString(28, subcontractor.updatedTaxTreatment)
       cs.setOptionalTimestamp(29, result.verifiedDate)
       cs.setOptionalInt(30, subcontractor.version)
@@ -1903,7 +1903,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
       cs.setOptionalString(4, result.matched)
       cs.setOptionalString(5, result.verificationNumber)
-      cs.setString(6, result.taxTreatment)
+      cs.setOptionalString(6, result.taxTreatment)
 
       cs.setOptionalString(7, verification.actionIndicator)
       cs.setOptionalString(8, verification.proceed)
