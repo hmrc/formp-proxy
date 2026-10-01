@@ -59,6 +59,19 @@ class NovaFormDataController @Inject() (
           }
     }
 
+  def deleteFormData(formId: Long, formDataIds: Seq[String], versionId: Long): Action[AnyContent] =
+    authorise.async { implicit request =>
+      if (formDataIds.isEmpty)
+        Future.successful(BadRequest(Json.obj("message" -> "formDataIds must not be empty")))
+      else if (formDataIds.exists(id => SafeFormDataIdPattern.findFirstIn(id).isEmpty))
+        Future.successful(BadRequest(Json.obj("message" -> "formDataIds contain invalid characters")))
+      else
+        service
+          .deleteFormData(formId, formDataIds, versionId)
+          .map(response => Ok(Json.toJson(response)))
+          .recover(handleFormErrors("deleteFormData", formId))
+    }
+
   def storeFormData(formId: Long, formDataId: String): Action[JsValue] =
     authorise.async(parse.json) { implicit request =>
       request.body

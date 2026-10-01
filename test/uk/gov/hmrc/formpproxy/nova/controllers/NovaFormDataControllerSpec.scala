@@ -110,6 +110,78 @@ class NovaFormDataControllerSpec extends SpecBase {
     }
   }
 
+  "deleteFormData" - {
+    "returns 200 with updated versionId" in {
+      val s = setup; import s.*
+      when(mockService.deleteFormData(eqTo(12345L), eqTo(Seq("/supplier/2/details")), eqTo(3L)))
+        .thenReturn(Future.successful(DeleteFormDataResponse(12345L, 4L)))
+
+      val result = controller.deleteFormData(12345L, Seq("/supplier/2/details"), 3L)(
+        FakeRequest(DELETE, "/nova/forms/12345/data?formDataIds=/supplier/2/details&versionId=3")
+      )
+
+      status(result) mustBe OK
+      (contentAsJson(result) \ "versionId").as[Long] mustBe 4L
+    }
+
+    "returns 404 when form not found (ORA-20001)" in {
+      val s = setup; import s.*
+      when(mockService.deleteFormData(any[Long], any[Seq[String]], any[Long]))
+        .thenReturn(Future.failed(FormNotFoundException("not found")))
+
+      val result = controller.deleteFormData(99999L, Seq("/supplier/2/details"), 1L)(
+        FakeRequest(DELETE, "/nova/forms/99999/data?formDataIds=/supplier/2/details&versionId=1")
+      )
+
+      status(result) mustBe NOT_FOUND
+    }
+
+    "returns 409 when version conflict (ORA-20000)" in {
+      val s = setup; import s.*
+      when(mockService.deleteFormData(any[Long], any[Seq[String]], any[Long]))
+        .thenReturn(Future.failed(FormAlreadyUpdatedException("stale")))
+
+      val result = controller.deleteFormData(12345L, Seq("/supplier/2/details"), 0L)(
+        FakeRequest(DELETE, "/nova/forms/12345/data?formDataIds=/supplier/2/details&versionId=0")
+      )
+
+      status(result) mustBe CONFLICT
+    }
+
+    "returns 400 when formDataIds is empty" in {
+      val s = setup; import s.*
+
+      val result = controller.deleteFormData(12345L, Seq.empty, 3L)(
+        FakeRequest(DELETE, "/nova/forms/12345/data?versionId=3")
+      )
+
+      status(result) mustBe BAD_REQUEST
+    }
+
+    "returns 400 when formDataIds contain unsafe characters" in {
+      val s = setup; import s.*
+
+      val result = controller.deleteFormData(12345L, Seq("' OR '1'='1"), 3L)(
+        FakeRequest(DELETE, "/nova/forms/12345/data?formDataIds=' OR '1'='1&versionId=3")
+      )
+
+      status(result) mustBe BAD_REQUEST
+      (contentAsJson(result) \ "message").as[String] must include("invalid characters")
+    }
+
+    "returns 500 when service throws unexpected error" in {
+      val s = setup; import s.*
+      when(mockService.deleteFormData(any[Long], any[Seq[String]], any[Long]))
+        .thenReturn(Future.failed(new RuntimeException("db error")))
+
+      val result = controller.deleteFormData(12345L, Seq("/supplier/2/details"), 3L)(
+        FakeRequest(DELETE, "/nova/forms/12345/data?formDataIds=/supplier/2/details&versionId=3")
+      )
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+    }
+  }
+
   "storeFormData" - {
     "returns 200 with updated versionId" in {
       val s = setup; import s.*
