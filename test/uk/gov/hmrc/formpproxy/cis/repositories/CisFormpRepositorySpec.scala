@@ -2842,25 +2842,25 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsScheme.getString("name")).thenReturn(null)
       when(rsScheme.getString("email_address")).thenReturn(null)
       when(rsScheme.getString("display_welcome_page")).thenReturn(null)
-      when(rsScheme.getInt("pre_pop_count")).thenReturn(0);
+      when(rsScheme.getInt("pre_pop_count")).thenReturn(0)
       when(rsScheme.wasNull()).thenReturn(true)
       when(rsScheme.getString("pre_pop_successful")).thenReturn(null)
-      when(rsScheme.getInt("subcontractor_counter")).thenReturn(0);
+      when(rsScheme.getInt("subcontractor_counter")).thenReturn(0)
       when(rsScheme.wasNull()).thenReturn(true)
-      when(rsScheme.getInt("verif_batch_counter")).thenReturn(0);
+      when(rsScheme.getInt("verif_batch_counter")).thenReturn(0)
       when(rsScheme.wasNull()).thenReturn(true)
       when(rsScheme.getTimestamp("create_date")).thenReturn(null)
       when(rsScheme.getTimestamp("last_update")).thenReturn(null)
-      when(rsScheme.getInt("version")).thenReturn(0);
+      when(rsScheme.getInt("version")).thenReturn(0)
       when(rsScheme.wasNull()).thenReturn(true)
 
       when(rsSubcontractors.next()).thenReturn(true, false)
       when(rsSubcontractors.getLong("subcontractor_id")).thenReturn(1L)
-      when(rsSubcontractors.getLong("subbie_resource_ref")).thenReturn(10L);
+      when(rsSubcontractors.getLong("subbie_resource_ref")).thenReturn(10L)
       when(rsSubcontractors.wasNull()).thenReturn(false)
       when(rsSubcontractors.getString("type")).thenReturn("soletrader")
       when(rsSubcontractors.getString("utr")).thenReturn("1111111111")
-      when(rsSubcontractors.getInt("page_visited")).thenReturn(2);
+      when(rsSubcontractors.getInt("page_visited")).thenReturn(2)
       when(rsSubcontractors.wasNull()).thenReturn(false)
       when(rsSubcontractors.getString("partner_utr")).thenReturn(null)
       when(rsSubcontractors.getString("crn")).thenReturn(null)
@@ -2880,7 +2880,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsSubcontractors.getString("phone_number")).thenReturn(null)
       when(rsSubcontractors.getString("mobile_phone_number")).thenReturn(null)
       when(rsSubcontractors.getString("works_reference_number")).thenReturn(null)
-      when(rsSubcontractors.getInt("version")).thenReturn(1);
+      when(rsSubcontractors.getInt("version")).thenReturn(1)
       when(rsSubcontractors.wasNull()).thenReturn(false)
       when(rsSubcontractors.getString("tax_treatment")).thenReturn(null)
       when(rsSubcontractors.getString("updated_tax_treatment")).thenReturn(null)
@@ -2892,15 +2892,15 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsSubcontractors.getString("auto_verified")).thenReturn(null)
       when(rsSubcontractors.getTimestamp("verification_date")).thenReturn(null)
       when(rsSubcontractors.getTimestamp("last_monthly_return_date")).thenReturn(null)
-      when(rsSubcontractors.getInt("pending_verifications")).thenReturn(0);
+      when(rsSubcontractors.getInt("pending_verifications")).thenReturn(0)
       when(rsSubcontractors.wasNull()).thenReturn(false)
 
       when(rsVerificationBatch.next()).thenReturn(true, false)
       when(rsVerificationBatch.getLong("verification_batch_id")).thenReturn(77L)
       when(rsVerificationBatch.getLong("scheme_id")).thenReturn(999L)
-      when(rsVerificationBatch.getLong("verifications_counter")).thenReturn(1L);
+      when(rsVerificationBatch.getLong("verifications_counter")).thenReturn(1L)
       when(rsVerificationBatch.wasNull()).thenReturn(false)
-      when(rsVerificationBatch.getLong("verif_batch_resource_ref")).thenReturn(202L);
+      when(rsVerificationBatch.getLong("verif_batch_resource_ref")).thenReturn(202L)
       when(rsVerificationBatch.wasNull()).thenReturn(false)
       when(rsVerificationBatch.getString("proceed_session")).thenReturn("Y")
       when(rsVerificationBatch.getString("confirm_arrangement")).thenReturn("Y")
@@ -2909,7 +2909,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsVerificationBatch.getString("verification_number")).thenReturn("VB456")
       when(rsVerificationBatch.getTimestamp("create_date")).thenReturn(Timestamp.valueOf("2026-04-01 10:00:00"))
       when(rsVerificationBatch.getTimestamp("last_update")).thenReturn(Timestamp.valueOf("2026-04-02 11:00:00"))
-      when(rsVerificationBatch.getInt("version")).thenReturn(1);
+      when(rsVerificationBatch.getInt("version")).thenReturn(1)
       when(rsVerificationBatch.wasNull()).thenReturn(false)
 
       when(rsVerifications.next()).thenReturn(true, false)
@@ -2918,25 +2918,25 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(rsVerifications.getString("verification_number")).thenReturn("V0002")
       when(rsVerifications.getString("tax_treatment")).thenReturn("NET")
       when(rsVerifications.getString("action_indicator")).thenReturn("A")
-      when(rsVerifications.getLong("verification_batch_id")).thenReturn(77L);
+      when(rsVerifications.getLong("verification_batch_id")).thenReturn(77L)
       when(rsVerifications.wasNull()).thenReturn(false)
-      when(rsVerifications.getLong("scheme_id")).thenReturn(999L);
+      when(rsVerifications.getLong("scheme_id")).thenReturn(999L)
       when(rsVerifications.wasNull()).thenReturn(false)
-      when(rsVerifications.getLong("subcontractor_id")).thenReturn(1L);
+      when(rsVerifications.getLong("subcontractor_id")).thenReturn(1L)
       when(rsVerifications.wasNull()).thenReturn(false)
       when(rsVerifications.getString("subcontractor_name")).thenReturn("ACME")
-      when(rsVerifications.getLong("verification_resource_ref")).thenReturn(778L);
+      when(rsVerifications.getLong("verification_resource_ref")).thenReturn(778L)
       when(rsVerifications.wasNull()).thenReturn(false)
       when(rsVerifications.getString("proceed")).thenReturn("Y")
       when(rsVerifications.getTimestamp("create_date")).thenReturn(Timestamp.valueOf("2026-04-01 10:00:00"))
       when(rsVerifications.getTimestamp("last_update")).thenReturn(Timestamp.valueOf("2026-04-02 11:00:00"))
-      when(rsVerifications.getInt("version")).thenReturn(1);
+      when(rsVerifications.getInt("version")).thenReturn(1)
       when(rsVerifications.wasNull()).thenReturn(false)
 
       when(rsSubmission.next()).thenReturn(true, false)
       when(rsSubmission.getLong("submission_id")).thenReturn(501L)
       when(rsSubmission.getString("submission_type")).thenReturn("VERIFICATIONS")
-      when(rsSubmission.getLong("active_object_id")).thenReturn(77L);
+      when(rsSubmission.getLong("active_object_id")).thenReturn(77L)
       when(rsSubmission.wasNull()).thenReturn(false)
       when(rsSubmission.getString("status")).thenReturn("ACCEPTED")
       when(rsSubmission.getString("hmrc_mark_generated")).thenReturn(null)
@@ -3799,10 +3799,10 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       verify(csUpdateV2).setNull(4, Types.CHAR)
       verify(csUpdateV2).setNull(5, Types.VARCHAR)
-      verify(csUpdateV2).setNull(6, Types.VARCHAR)
+      verify(csUpdateV2).setString(6, "NotKnown")
 
       verify(csUpdateV2).setString(7, "MATCH")
-      verify(csUpdateV2).setString(8, "N")
+      verify(csUpdateV2).setNull(8, Types.VARCHAR)
       verify(csUpdateV2).setString(9, "BETA LTD")
 
       verify(csUpdateV2).setNull(10, Types.INTEGER)
@@ -3978,7 +3978,7 @@ final class CisFormpRepositorySpec extends SpecBase {
             matched = Some("Y"),
             verified = Some("Y"),
             verificationNumber = Some("V123456"),
-            taxTreatment = "NET",
+            taxTreatment = Some("NET"),
             verifiedDate = Some(LocalDateTime.parse("2026-06-15T10:05:00"))
           )
         )
@@ -4105,8 +4105,8 @@ final class CisFormpRepositorySpec extends SpecBase {
             resourceRef = 456L,
             matched = Some("Y"),
             verified = Some("Y"),
-            verificationNumber = Some("V123456"),
-            taxTreatment = "NET",
+            verificationNumber = Some("V12345678990"),
+            taxTreatment = Some("NET"),
             verifiedDate = Some(LocalDateTime.parse("2026-06-15T10:05:00"))
           )
         )
@@ -4128,7 +4128,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdateSub).setString(23, "Y")
       verify(csUpdateSub).setString(24, "N")
       verify(csUpdateSub).setString(25, "Y")
-      verify(csUpdateSub).setString(26, "V123456")
+      verify(csUpdateSub).setString(26, "V12345678990")
       verify(csUpdateSub).setString(27, "NET")
       verify(csUpdateSub).setString(28, "NET")
       verify(csUpdateSub).execute()
@@ -4138,13 +4138,14 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdateBatch).setString(4, "Y")
       verify(csUpdateBatch).setString(5, "Y")
       verify(csUpdateBatch).setString(6, "ACCEPTED")
+      verify(csUpdateBatch).setString(7, "V1234567899")
       verify(csUpdateBatch).execute()
 
       verify(csUpdateVerification).setString(1, "abc-123")
       verify(csUpdateVerification).setLong(2, 222L)
       verify(csUpdateVerification).setLong(3, 456L)
       verify(csUpdateVerification).setString(4, "Y")
-      verify(csUpdateVerification).setString(5, "V123456")
+      verify(csUpdateVerification).setString(5, "V12345678990")
       verify(csUpdateVerification).setString(6, "NET")
       verify(csUpdateVerification).setString(7, "VERIFY")
       verify(csUpdateVerification).setString(8, "Y")
