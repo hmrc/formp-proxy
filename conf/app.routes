@@ -153,4 +153,5 @@ PUT        /nova/forms/:formId/status                               uk.gov.hmrc.
 DELETE     /nova/forms/:formId                                      uk.gov.hmrc.formpproxy.nova.controllers.NovaFormsController.deleteForm(formId: Long)
 POST       /nova/forms/:formId/notification-refs                    uk.gov.hmrc.formpproxy.nova.controllers.NovaFormDataController.getNovaNotificationRef(formId: Long)
 GET        /nova/forms/:formId/data                                 uk.gov.hmrc.formpproxy.nova.controllers.NovaFormDataController.getFormData(formId: Long, formDataIds: Seq[String])
+DELETE     /nova/forms/:formId/data                                 uk.gov.hmrc.formpproxy.nova.controllers.NovaFormDataController.deleteFormData(formId: Long, formDataIds: Seq[String], versionId: Long)
 PUT        /nova/forms/:formId/data/:formDataId                     uk.gov.hmrc.formpproxy.nova.controllers.NovaFormDataController.storeFormData(formId: Long, formDataId: String)

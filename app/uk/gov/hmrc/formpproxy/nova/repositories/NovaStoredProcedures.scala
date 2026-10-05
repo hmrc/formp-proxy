@@ -26,4 +26,5 @@ object NovaStoredProcedures {
     "{ call NOVA_DATA.NOVA_NOTIF_REF_GENERATOR.getNovaNotificationRef(?, ?, ?, ?, ?, ?) }"
   val CallGetFormData            = "{ call NOVA_DATA.COMMON_FORMS_PACKAGE.getFormData(?, ?, ?) }"
   val CallStoreFormData          = "{ call NOVA_DATA.COMMON_FORMS_PACKAGE.storeFormData(?, ?, ?, ?, ?) }"
+  val CallDeleteFormData         = "{ call NOVA_DATA.COMMON_FORMS_PACKAGE.deleteFormData(?, ?, ?, ?) }"
 }

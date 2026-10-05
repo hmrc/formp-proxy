@@ -39,6 +39,7 @@ trait NovaSource {
   def getNovaNotificationRef(formId: Long, request: NotificationRefsRequest): Future[NotificationRefsResponse]
   def getFormData(formId: Long, formDataIds: Seq[String]): Future[Option[FormDataResponse]]
   def storeFormData(formId: Long, formDataId: String, request: StoreFormDataRequest): Future[StoreFormDataResponse]
+  def deleteFormData(formId: Long, formDataIds: Seq[String], versionId: Long): Future[DeleteFormDataResponse]
 }
 
 @Singleton
@@ -249,6 +250,33 @@ class NovaFormpRepository @Inject() (@NamedDatabase("nova") db: Database)(implic
             formId = formId,
             formDataId = formDataId,
             versionId = cs.getLong(5)
+          )
+        }
+      }
+    }.recoverWith { case e: SQLException => Future.failed(mapOracleError(e)) }
+  }
+
+  override def deleteFormData(
+    formId: Long,
+    formDataIds: Seq[String],
+    versionId: Long
+  ): Future[DeleteFormDataResponse] = {
+    logger.info("[NOVA] deleteFormData")
+    Future {
+      db.withConnection { conn =>
+        Using.resource(conn.prepareCall(NovaStoredProcedures.CallDeleteFormData)) { cs =>
+          cs.setLong(1, formId)
+          val oracleConn = conn.unwrap(classOf[oracle.jdbc.OracleConnection])
+          val array      = oracleConn.createOracleArray("NOVA_DATA.FORMS_ARRAY_LIST", formDataIds.toArray)
+          cs.setArray(2, array)
+          cs.setLong(3, versionId)
+          cs.registerOutParameter(3, OracleTypes.NUMBER)
+          cs.registerOutParameter(4, OracleTypes.CURSOR)
+          cs.execute()
+
+          DeleteFormDataResponse(
+            formId = formId,
+            versionId = cs.getLong(3)
           )
         }
       }

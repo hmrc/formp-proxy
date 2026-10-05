@@ -27,6 +27,7 @@ import scala.concurrent.Future
 trait NovaFormDataService {
   def getFormData(formId: Long, formDataIds: Seq[String]): Future[Option[FormDataResponse]]
   def storeFormData(formId: Long, formDataId: String, request: StoreFormDataRequest): Future[StoreFormDataResponse]
+  def deleteFormData(formId: Long, formDataIds: Seq[String], versionId: Long): Future[DeleteFormDataResponse]
   def getNovaNotificationRef(formId: Long, request: NotificationRefsRequest): Future[NotificationRefsResponse]
 }
 
@@ -42,6 +43,9 @@ class NovaFormDataServiceImpl @Inject() (repo: NovaSource) extends NovaFormDataS
     request: StoreFormDataRequest
   ): Future[StoreFormDataResponse] =
     repo.storeFormData(formId, formDataId, request)
+
+  override def deleteFormData(formId: Long, formDataIds: Seq[String], versionId: Long): Future[DeleteFormDataResponse] =
+    repo.deleteFormData(formId, formDataIds, versionId)
 
   override def getNovaNotificationRef(
     formId: Long,

@@ -72,6 +72,27 @@ class NovaFormDataServiceSpec extends AnyFreeSpec with Matchers with ScalaFuture
     }
   }
 
+  "deleteFormData" - {
+    "delegates to repository" in new Setup {
+      when(mockRepo.deleteFormData(eqTo(12345L), eqTo(Seq("/supplier/2/details")), eqTo(3L)))
+        .thenReturn(Future.successful(DeleteFormDataResponse(12345L, 4L)))
+
+      service.deleteFormData(12345L, Seq("/supplier/2/details"), 3L).futureValue mustBe DeleteFormDataResponse(
+        12345L,
+        4L
+      )
+    }
+
+    "propagates failure" in new Setup {
+      when(mockRepo.deleteFormData(any[Long], any[Seq[String]], any[Long]))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      whenReady(service.deleteFormData(12345L, Seq("/supplier/2/details"), 1L).failed) { ex =>
+        ex.getMessage mustBe "boom"
+      }
+    }
+  }
+
   "getNovaNotificationRef" - {
     "delegates to repository" in new Setup {
       val request = NotificationRefsRequest(1, "cred-123", 3L)
