@@ -61,6 +61,15 @@ object StoreFormDataResponse {
   implicit val format: OFormat[StoreFormDataResponse] = Json.format[StoreFormDataResponse]
 }
 
+case class DeleteFormDataRequest(
+  formDataIds: Seq[String],
+  versionId: Long
+)
+
+object DeleteFormDataRequest {
+  implicit val format: OFormat[DeleteFormDataRequest] = Json.format[DeleteFormDataRequest]
+}
+
 case class DeleteFormDataResponse(
   formId: Long,
   versionId: Long

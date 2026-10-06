@@ -116,8 +116,24 @@ class NovaFormDataControllerSpec extends SpecBase {
       when(mockService.deleteFormData(eqTo(12345L), eqTo(Seq("/supplier/2/details")), eqTo(3L)))
         .thenReturn(Future.successful(DeleteFormDataResponse(12345L, 4L)))
 
-      val result = controller.deleteFormData(12345L, Seq("/supplier/2/details"), 3L)(
-        FakeRequest(DELETE, "/nova/forms/12345/data?formDataIds=/supplier/2/details&versionId=3")
+      val body   = DeleteFormDataRequest(Seq("/supplier/2/details"), 3L)
+      val result = controller.deleteFormData(12345L)(
+        withJson(FakeRequest(DELETE, "/nova/forms/12345/data"), body)
+      )
+
+      status(result) mustBe OK
+      (contentAsJson(result) \ "versionId").as[Long] mustBe 4L
+    }
+
+    "accepts a large number of formDataIds in the body, not as query params" in {
+      val s       = setup; import s.*
+      val manyIds = (1 to 200).map(n => s"/supplier/2/vehicle/$n/additional-information")
+      when(mockService.deleteFormData(eqTo(12345L), eqTo(manyIds), eqTo(3L)))
+        .thenReturn(Future.successful(DeleteFormDataResponse(12345L, 4L)))
+
+      val body   = DeleteFormDataRequest(manyIds, 3L)
+      val result = controller.deleteFormData(12345L)(
+        withJson(FakeRequest(DELETE, "/nova/forms/12345/data"), body)
       )
 
       status(result) mustBe OK
@@ -129,8 +145,9 @@ class NovaFormDataControllerSpec extends SpecBase {
       when(mockService.deleteFormData(any[Long], any[Seq[String]], any[Long]))
         .thenReturn(Future.failed(FormNotFoundException("not found")))
 
-      val result = controller.deleteFormData(99999L, Seq("/supplier/2/details"), 1L)(
-        FakeRequest(DELETE, "/nova/forms/99999/data?formDataIds=/supplier/2/details&versionId=1")
+      val body   = DeleteFormDataRequest(Seq("/supplier/2/details"), 1L)
+      val result = controller.deleteFormData(99999L)(
+        withJson(FakeRequest(DELETE, "/nova/forms/99999/data"), body)
       )
 
       status(result) mustBe NOT_FOUND
@@ -141,8 +158,9 @@ class NovaFormDataControllerSpec extends SpecBase {
       when(mockService.deleteFormData(any[Long], any[Seq[String]], any[Long]))
         .thenReturn(Future.failed(FormAlreadyUpdatedException("stale")))
 
-      val result = controller.deleteFormData(12345L, Seq("/supplier/2/details"), 0L)(
-        FakeRequest(DELETE, "/nova/forms/12345/data?formDataIds=/supplier/2/details&versionId=0")
+      val body   = DeleteFormDataRequest(Seq("/supplier/2/details"), 0L)
+      val result = controller.deleteFormData(12345L)(
+        withJson(FakeRequest(DELETE, "/nova/forms/12345/data"), body)
       )
 
       status(result) mustBe CONFLICT
@@ -151,8 +169,9 @@ class NovaFormDataControllerSpec extends SpecBase {
     "returns 400 when formDataIds is empty" in {
       val s = setup; import s.*
 
-      val result = controller.deleteFormData(12345L, Seq.empty, 3L)(
-        FakeRequest(DELETE, "/nova/forms/12345/data?versionId=3")
+      val body   = DeleteFormDataRequest(Seq.empty, 3L)
+      val result = controller.deleteFormData(12345L)(
+        withJson(FakeRequest(DELETE, "/nova/forms/12345/data"), body)
       )
 
       status(result) mustBe BAD_REQUEST
@@ -161,12 +180,26 @@ class NovaFormDataControllerSpec extends SpecBase {
     "returns 400 when formDataIds contain unsafe characters" in {
       val s = setup; import s.*
 
-      val result = controller.deleteFormData(12345L, Seq("' OR '1'='1"), 3L)(
-        FakeRequest(DELETE, "/nova/forms/12345/data?formDataIds=' OR '1'='1&versionId=3")
+      val body   = DeleteFormDataRequest(Seq("' OR '1'='1"), 3L)
+      val result = controller.deleteFormData(12345L)(
+        withJson(FakeRequest(DELETE, "/nova/forms/12345/data"), body)
       )
 
       status(result) mustBe BAD_REQUEST
       (contentAsJson(result) \ "message").as[String] must include("invalid characters")
+    }
+
+    "returns 400 when the request body does not match the expected shape" in {
+      val s = setup; import s.*
+
+      val result = controller.deleteFormData(12345L)(
+        FakeRequest(DELETE, "/nova/forms/12345/data")
+          .withBody(Json.obj("notFormDataIds" -> Seq("/supplier/2/details")))
+          .withHeaders(CONTENT_TYPE -> JSON)
+      )
+
+      status(result) mustBe BAD_REQUEST
+      (contentAsJson(result) \ "message").as[String] must include("Invalid request body")
     }
 
     "returns 500 when service throws unexpected error" in {
@@ -174,8 +207,9 @@ class NovaFormDataControllerSpec extends SpecBase {
       when(mockService.deleteFormData(any[Long], any[Seq[String]], any[Long]))
         .thenReturn(Future.failed(new RuntimeException("db error")))
 
-      val result = controller.deleteFormData(12345L, Seq("/supplier/2/details"), 3L)(
-        FakeRequest(DELETE, "/nova/forms/12345/data?formDataIds=/supplier/2/details&versionId=3")
+      val body   = DeleteFormDataRequest(Seq("/supplier/2/details"), 3L)
+      val result = controller.deleteFormData(12345L)(
+        withJson(FakeRequest(DELETE, "/nova/forms/12345/data"), body)
       )
 
       status(result) mustBe INTERNAL_SERVER_ERROR
