@@ -20,7 +20,7 @@ import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthAction
-import uk.gov.hmrc.formpproxy.nova.models.{NotificationRefsRequest, StoreFormDataRequest}
+import uk.gov.hmrc.formpproxy.nova.models.{DeleteFormDataRequest, NotificationRefsRequest, StoreFormDataRequest}
 import uk.gov.hmrc.formpproxy.nova.repositories.{FormAlreadyUpdatedException, FormNotFoundException}
 import uk.gov.hmrc.formpproxy.nova.services.NovaFormDataService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -59,17 +59,23 @@ class NovaFormDataController @Inject() (
           }
     }
 
-  def deleteFormData(formId: Long, formDataIds: Seq[String], versionId: Long): Action[AnyContent] =
-    authorise.async { implicit request =>
-      if (formDataIds.isEmpty)
-        Future.successful(BadRequest(Json.obj("message" -> "formDataIds must not be empty")))
-      else if (formDataIds.exists(id => SafeFormDataIdPattern.findFirstIn(id).isEmpty))
-        Future.successful(BadRequest(Json.obj("message" -> "formDataIds contain invalid characters")))
-      else
-        service
-          .deleteFormData(formId, formDataIds, versionId)
-          .map(response => Ok(Json.toJson(response)))
-          .recover(handleFormErrors("deleteFormData", formId))
+  def deleteFormData(formId: Long): Action[JsValue] =
+    authorise.async(parse.json) { implicit request =>
+      request.body
+        .validate[DeleteFormDataRequest]
+        .fold(
+          _ => Future.successful(BadRequest(Json.obj("message" -> "Invalid request body"))),
+          body =>
+            if (body.formDataIds.isEmpty)
+              Future.successful(BadRequest(Json.obj("message" -> "formDataIds must not be empty")))
+            else if (body.formDataIds.exists(id => SafeFormDataIdPattern.findFirstIn(id).isEmpty))
+              Future.successful(BadRequest(Json.obj("message" -> "formDataIds contain invalid characters")))
+            else
+              service
+                .deleteFormData(formId, body.formDataIds, body.versionId)
+                .map(response => Ok(Json.toJson(response)))
+                .recover(handleFormErrors("deleteFormData", formId))
+        )
     }
 
   def storeFormData(formId: Long, formDataId: String): Action[JsValue] =
