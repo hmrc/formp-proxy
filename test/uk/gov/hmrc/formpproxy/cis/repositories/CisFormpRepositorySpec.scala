@@ -1074,7 +1074,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       when(conn.prepareCall(eqTo("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }")))
         .thenReturn(csUpdateVer)
       when(csUpdateVer.getInt(2)).thenReturn(2)
-      when(csSub.getInt(30)).thenReturn(101, 102, 103)
+      when(csSub.getInt(30)).thenReturn(101, 102, 103, 104)
 
       val repo = new CisFormpRepository(db)
 
@@ -1108,7 +1108,8 @@ final class CisFormpRepositorySpec extends SpecBase {
         subcontractors = Seq(
           subcontractor(Some("1")),
           subcontractor(None),
-          subcontractor(Some("   "))
+          subcontractor(Some("   ")),
+          subcontractor(Some("null"))
         )
       )
 
@@ -1117,9 +1118,9 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csSub).setString(24, "Y")
       verify(csSub).setString(25, "Y")
       verify(csSub).setString(26, "1")
-      verify(csSub, times(2)).setNull(24, Types.VARCHAR)
-      verify(csSub, times(2)).setNull(25, Types.VARCHAR)
-      verify(csSub, times(2)).setNull(26, Types.VARCHAR)
+      verify(csSub, times(3)).setNull(24, Types.VARCHAR)
+      verify(csSub, times(3)).setNull(25, Types.VARCHAR)
+      verify(csSub, times(3)).setNull(26, Types.VARCHAR)
     }
   }
 
