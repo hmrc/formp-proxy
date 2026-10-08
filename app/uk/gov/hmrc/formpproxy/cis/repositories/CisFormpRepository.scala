@@ -29,7 +29,7 @@ import uk.gov.hmrc.formpproxy.shared.utils.ResultSetUtils.*
 
 import java.lang.Long
 import java.sql.*
-import java.time.LocalDateTime
+import java.time.{LocalDateTime, ZoneId}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Using
@@ -138,6 +138,10 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
   private def discardCursor(cs: CallableStatement, index: Int): Unit =
     withCursor(cs, index)(_ => ())
+
+  private val ukTimezone: ZoneId = ZoneId.of("Europe/London")
+
+  private def ukNow(): Timestamp = Timestamp.valueOf(LocalDateTime.now(ukTimezone))
 
   // Monthly Returns
 
@@ -609,13 +613,14 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     Future {
       db.withConnection { conn =>
         withCall(conn, CallResetGovTalkStatus) { cs =>
+          val now = ukNow()
           cs.setString(1, req.userIdentifier)
           cs.setString(2, req.formResultID)
           cs.setString(3, "empty")
           cs.setString(4, "N")
-          cs.setTimestamp(5, java.sql.Timestamp.valueOf(LocalDateTime.now()))
+          cs.setTimestamp(5, now)
           cs.setNull(6, Types.TIMESTAMP)
-          cs.setTimestamp(7, java.sql.Timestamp.valueOf(LocalDateTime.now()))
+          cs.setTimestamp(7, now)
           cs.setInt(8, 0)
           cs.setInt(9, 0)
           cs.setString(10, req.oldProtocolStatus)
@@ -669,13 +674,14 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     Future {
       db.withConnection { conn =>
         withCall(conn, CallCreateGovTalkStatus) { cs =>
+          val now = ukNow()
           cs.setString(1, req.userIdentifier)
           cs.setString(2, req.formResultID)
           cs.setString(3, req.correlationID)
           cs.setString(4, "N")
-          cs.setTimestamp(5, java.sql.Timestamp.valueOf(LocalDateTime.now()))
+          cs.setTimestamp(5, now)
           cs.setNull(6, Types.TIMESTAMP)
-          cs.setTimestamp(7, java.sql.Timestamp.valueOf(LocalDateTime.now()))
+          cs.setTimestamp(7, now)
           cs.setInt(8, 0)
           cs.setInt(9, 0)
           cs.setString(10, "initial")
