@@ -1050,6 +1050,77 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csSub).setString(12, "company")
       verify(csUpdateVer).execute()
     }
+
+    "sets verified flags from the verification number" in {
+      val db          = mock[Database]
+      val conn        = mock[Connection]
+      val csUpdate    = mock[CallableStatement]
+      val csSub       = mock[CallableStatement]
+      val csUpdateVer = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+
+      when(conn.prepareCall(eqTo("{ call SCHEME_PROCS.Update_Scheme(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }")))
+        .thenReturn(csUpdate)
+      when(
+        conn.prepareCall(
+          eqTo(
+            "{ call SUBCONTRACTOR_PROCS.Create_Subcontractor_Prepop(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }"
+          )
+        )
+      ).thenReturn(csSub)
+      when(conn.prepareCall(eqTo("{ call SCHEME_PROCS.Update_Version_Number(?, ?) }")))
+        .thenReturn(csUpdateVer)
+      when(csUpdateVer.getInt(2)).thenReturn(2)
+      when(csSub.getInt(30)).thenReturn(101, 102, 103)
+
+      val repo = new CisFormpRepository(db)
+
+      def subcontractor(verificationNumber: Option[String]): PrepopulationSubcontractor =
+        PrepopulationSubcontractor(
+          subcontractorType = Trust,
+          utr = "3333333330",
+          verificationNumber = verificationNumber,
+          firstName = None,
+          secondName = None,
+          surname = None,
+          tradingName = Some("JPW"),
+          partnershipTradingName = None,
+          verified = Some("Y"),
+          autoVerified = Some("Y")
+        )
+
+      val req = ApplyPrepopulationRequest(
+        schemeId = 10400,
+        instanceId = "abc-123",
+        accountsOfficeReference = "111111111",
+        taxOfficeNumber = "123",
+        taxOfficeReference = "AB456",
+        utr = Some("9876543210"),
+        name = "Test Contractor",
+        emailAddress = None,
+        displayWelcomePage = Some("Y"),
+        prePopCount = 0,
+        prePopSuccessful = "Y",
+        version = 1,
+        subcontractors = Seq(
+          subcontractor(Some("1")),
+          subcontractor(None),
+          subcontractor(Some("   "))
+        )
+      )
+
+      repo.applyPrepopulation(req).futureValue mustBe 2
+
+      verify(csSub).setString(24, "Y")
+      verify(csSub).setString(25, "Y")
+      verify(csSub).setString(26, "1")
+      verify(csSub, times(2)).setNull(24, Types.VARCHAR)
+      verify(csSub, times(2)).setNull(25, Types.VARCHAR)
+      verify(csSub, times(2)).setNull(26, Types.VARCHAR)
+    }
   }
 
   "createMonthlyReturn" - {

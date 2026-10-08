@@ -1089,9 +1089,11 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setOptionalString(21, None) // mobile_phone_number
       cs.setOptionalString(22, None) // works_reference_number
       cs.setOptionalString(23, None) // matched
-      cs.setOptionalString(24, subcontractor.autoVerified)
-      cs.setOptionalString(25, subcontractor.verified)
-      cs.setOptionalString(26, subcontractor.verificationNumber)
+      val verificationNumber = subcontractor.verificationNumber.map(_.trim).filter(_.nonEmpty)
+      val verifiedFlag       = verificationNumber.map(_ => "Y")
+      cs.setOptionalString(24, verifiedFlag)
+      cs.setOptionalString(25, verifiedFlag)
+      cs.setOptionalString(26, verificationNumber)
       cs.setOptionalString(27, None) // tax_treatment
       cs.setOptionalString(28, None) // updated_tax_treatment
       cs.setOptionalTimestamp(29, None) // verification_date
