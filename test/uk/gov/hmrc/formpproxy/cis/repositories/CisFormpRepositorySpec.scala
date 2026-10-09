@@ -31,7 +31,7 @@ import uk.gov.hmrc.formpproxy.cis.repositories.CisStoredProcedures.CallDeleteSub
 import uk.gov.hmrc.formpproxy.shared.utils.CallableStatementUtils.*
 
 import java.sql.*
-import java.time.{Instant, LocalDateTime}
+import java.time.{Duration, Instant, LocalDateTime, ZoneId}
 
 final class CisFormpRepositorySpec extends SpecBase {
 
@@ -2112,8 +2112,8 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(cs).execute()
       verify(cs).close()
 
-      tsCaptorCreateDate.getValue      must not be null
-      tsCaptorLastMessageDate.getValue must not be null
+      tsCaptorCreateDate.getValue mustBe tsCaptorLastMessageDate.getValue
+      assertIsUkLocalNow(tsCaptorCreateDate.getValue)
     }
   }
 
@@ -2203,8 +2203,8 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(cs).execute()
       verify(cs).close()
 
-      tsCaptorCreateDate.getValue      must not be null
-      tsCaptorLastMessageDate.getValue must not be null
+      tsCaptorCreateDate.getValue mustBe tsCaptorLastMessageDate.getValue
+      assertIsUkLocalNow(tsCaptorCreateDate.getValue)
     }
   }
 
@@ -6503,5 +6503,12 @@ final class CisFormpRepositorySpec extends SpecBase {
 
       verifyNoInteractions(db)
     }
+  }
+
+  private def assertIsUkLocalNow(timestamp: Timestamp): Unit = {
+    val ukNow        = LocalDateTime.now(ZoneId.of("Europe/London"))
+    val driftSeconds = Duration.between(timestamp.toLocalDateTime, ukNow).abs.getSeconds
+
+    driftSeconds must be < 5L
   }
 }
