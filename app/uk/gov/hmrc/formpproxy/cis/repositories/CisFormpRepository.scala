@@ -1773,14 +1773,15 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
                 s"verification number from CHRIS: ${result.verificationNumber}"
             )
           }
-
-          callUpdateVerificationBatchFromChris(
-            conn = conn,
-            verificationBatch = verificationBatch,
-            submissionStatus = req.submissionStatus,
-            result = result.copy(verificationNumber = result.verificationNumber.map(_.take(11)))
-          )
         }
+
+        val firstResult = req.verificationResults.head
+        callUpdateVerificationBatchFromChris(
+          conn = conn,
+          verificationBatch = verificationBatch,
+          submissionStatus = req.submissionStatus,
+          result = firstResult.copy(verificationNumber = firstResult.verificationNumber.map(_.take(11)))
+        )
 
         callUpdateSubmissionFromChris(
           conn = conn,
