@@ -4236,6 +4236,159 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(csUpdateSubmission).execute()
     }
 
+    "uses verification number from the first subcontractor in ChRIS response to update verification batch when multiple results are present" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csGetExisting         = mock[CallableStatement]
+      val rsSubmission          = mock[ResultSet]
+      val rsVerificationBatch   = mock[ResultSet]
+      val rsVerifications       = mock[ResultSet]
+      val rsSubcontractors      = mock[ResultSet]
+      val rsScheme              = mock[ResultSet]
+      val csUpdateSub1          = mock[CallableStatement]
+      val csUpdateSub2          = mock[CallableStatement]
+      val csUpdateBatch         = mock[CallableStatement]
+      val csUpdateVerification1 = mock[CallableStatement]
+      val csUpdateVerification2 = mock[CallableStatement]
+      val csUpdateSubmission    = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetSubmissionWithVerificationBatch))).thenReturn(csGetExisting)
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateSubcontractor))).thenReturn(csUpdateSub1, csUpdateSub2)
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateVerificationBatch))).thenReturn(csUpdateBatch)
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateVerification)))
+        .thenReturn(csUpdateVerification1, csUpdateVerification2)
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateSubmission))).thenReturn(csUpdateSubmission)
+
+      when(csGetExisting.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+      when(csGetExisting.getObject(eqTo(4), eqTo(classOf[ResultSet]))).thenReturn(rsVerificationBatch)
+      when(csGetExisting.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsVerifications)
+      when(csGetExisting.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
+      when(csGetExisting.getObject(eqTo(7), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+
+      stubSubmissionRow(rsSubmission)
+      stubVerificationBatchRow(rsVerificationBatch)
+
+      when(rsVerifications.next()).thenReturn(true, true, false)
+      when(rsVerifications.getLong("verification_id")).thenReturn(1001L).thenReturn(1002L)
+      when(rsVerifications.getLong("verification_batch_id")).thenReturn(99L)
+      when(rsVerifications.getLong("scheme_id")).thenReturn(123L)
+      when(rsVerifications.getLong("subcontractor_id")).thenReturn(999L).thenReturn(888L)
+      when(rsVerifications.getLong("verification_resource_ref")).thenReturn(456L).thenReturn(789L)
+      when(rsVerifications.getString("action_indicator")).thenReturn("VERIFY")
+      when(rsVerifications.getString("proceed")).thenReturn("Y")
+      when(rsVerifications.getInt("version")).thenReturn(1)
+      when(rsVerifications.wasNull()).thenReturn(false)
+
+      when(rsSubcontractors.next()).thenReturn(true, true, false)
+      when(rsSubcontractors.getLong("subcontractor_id")).thenReturn(999L).thenReturn(888L)
+      when(rsSubcontractors.getLong("subbie_resource_ref")).thenReturn(456L).thenReturn(789L)
+      when(rsSubcontractors.wasNull()).thenReturn(false)
+
+      stubSchemeRow(rsScheme)
+
+      val repo = new CisFormpRepository(db)
+
+      val request = ProcessVerificationResponseFromChrisRequest(
+        instanceId = "abc-123",
+        verificationBatchResourceRef = 222L,
+        acceptedTime = "2026-06-15T10:05:00Z",
+        submissionStatus = "ACCEPTED",
+        irMarkReceived = Some("irmark"),
+        verificationResults = Seq(
+          VerificationResult(
+            resourceRef = 456L,
+            matched = Some("Y"),
+            verified = Some("Y"),
+            verificationNumber = Some("FIRST123456/222"),
+            taxTreatment = Some("NET"),
+            verifiedDate = Some(LocalDateTime.parse("2026-06-15T10:05:00"))
+          ),
+          VerificationResult(
+            resourceRef = 789L,
+            matched = Some("Y"),
+            verified = Some("Y"),
+            verificationNumber = Some("SECOND56789/333"),
+            taxTreatment = Some("NET"),
+            verifiedDate = Some(LocalDateTime.parse("2026-06-15T10:05:00"))
+          )
+        )
+      )
+
+      repo.processVerificationResponseFromChris(request).futureValue
+
+      verify(csUpdateBatch, times(1)).execute()
+      verify(csUpdateBatch).setString(7, "FIRST123456")
+    }
+
+    "sets verification batch verification number to null when first subcontractor in ChRIS response has a null verification number" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csGetExisting        = mock[CallableStatement]
+      val rsSubmission         = mock[ResultSet]
+      val rsVerificationBatch  = mock[ResultSet]
+      val rsVerifications      = mock[ResultSet]
+      val rsSubcontractors     = mock[ResultSet]
+      val rsScheme             = mock[ResultSet]
+      val csUpdateSub          = mock[CallableStatement]
+      val csUpdateBatch        = mock[CallableStatement]
+      val csUpdateVerification = mock[CallableStatement]
+      val csUpdateSubmission   = mock[CallableStatement]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetSubmissionWithVerificationBatch))).thenReturn(csGetExisting)
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateSubcontractor))).thenReturn(csUpdateSub)
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateVerificationBatch))).thenReturn(csUpdateBatch)
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateVerification))).thenReturn(csUpdateVerification)
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateSubmission))).thenReturn(csUpdateSubmission)
+
+      when(csGetExisting.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+      when(csGetExisting.getObject(eqTo(4), eqTo(classOf[ResultSet]))).thenReturn(rsVerificationBatch)
+      when(csGetExisting.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsVerifications)
+      when(csGetExisting.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
+      when(csGetExisting.getObject(eqTo(7), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+
+      stubSubmissionRow(rsSubmission)
+      stubVerificationBatchRow(rsVerificationBatch)
+      stubVerificationRow(rsVerifications)
+      stubSubcontractorRow(rsSubcontractors)
+      stubSchemeRow(rsScheme)
+
+      val repo = new CisFormpRepository(db)
+
+      val request = ProcessVerificationResponseFromChrisRequest(
+        instanceId = "abc-123",
+        verificationBatchResourceRef = 222L,
+        acceptedTime = "2026-06-15T10:05:00Z",
+        submissionStatus = "ACCEPTED",
+        irMarkReceived = Some("irmark"),
+        verificationResults = Seq(
+          VerificationResult(
+            resourceRef = 456L,
+            matched = None,
+            verified = None,
+            verificationNumber = None,
+            taxTreatment = None,
+            verifiedDate = None
+          )
+        )
+      )
+
+      repo.processVerificationResponseFromChris(request).futureValue
+
+      verify(csUpdateBatch, times(1)).execute()
+      verify(csUpdateBatch).setNull(7, Types.VARCHAR)
+      verify(csUpdateBatch, never()).setString(eqTo(7), anyArg[String])
+    }
+
     "throws when scheme is missing" in {
       val db   = mock[Database]
       val conn = mock[Connection]

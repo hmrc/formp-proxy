@@ -1765,22 +1765,15 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
             verification = verification,
             result = result
           )
-
-          if (subcontractor.verificationNumber != result.verificationNumber) {
-            logger.warn(
-              s"For subbieResourceRef: $subbieResourceRef, verification numbers in batch do not match. " +
-                s"Verification number in DB: ${subcontractor.verificationNumber}, " +
-                s"verification number from CHRIS: ${result.verificationNumber}"
-            )
-          }
-
-          callUpdateVerificationBatchFromChris(
-            conn = conn,
-            verificationBatch = verificationBatch,
-            submissionStatus = req.submissionStatus,
-            result = result.copy(verificationNumber = result.verificationNumber.map(_.take(11)))
-          )
         }
+
+        val firstResult = req.verificationResults.head
+        callUpdateVerificationBatchFromChris(
+          conn = conn,
+          verificationBatch = verificationBatch,
+          submissionStatus = req.submissionStatus,
+          result = firstResult.copy(verificationNumber = firstResult.verificationNumber.map(_.take(11)))
+        )
 
         callUpdateSubmissionFromChris(
           conn = conn,
