@@ -83,7 +83,7 @@ class MonthlyReturnController @Inject() (
             .getSubmittedMonthlyReturns(req.instanceId)
             .map(payload => Ok(Json.toJson(payload)))
             .recover { case NonFatal(e) =>
-              logger.error("[retrieveUnsubmittedMonthlyReturns] failed", e)
+              logger.error("[retrieveSubmittedMonthlyReturns] failed", e)
               InternalServerError(Json.obj("message" -> "Unexpected error"))
             }
         }
@@ -163,7 +163,7 @@ class MonthlyReturnController @Inject() (
             .getMonthlyReturnForEdit(req)
             .map(payload => Ok(Json.toJson(payload)))
             .recover { case NonFatal(e) =>
-              logger.error("[retrieveUnsubmittedMonthlyReturns] failed", e)
+              logger.error("[getMonthlyReturnForEdit] failed", e)
               InternalServerError(Json.obj("message" -> "Unexpected error"))
             }
         }

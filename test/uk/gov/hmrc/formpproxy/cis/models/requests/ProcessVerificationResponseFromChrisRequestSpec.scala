@@ -35,6 +35,7 @@ class ProcessVerificationResponseFromChrisRequestSpec extends SpecBase {
         verificationResults = Seq(
           VerificationResult(
             resourceRef = 456L,
+            matchedToRequest = true,
             matched = Some("Y"),
             verified = Some("Y"),
             verificationNumber = Some("V123456"),
@@ -55,6 +56,7 @@ class ProcessVerificationResponseFromChrisRequestSpec extends SpecBase {
           |  "verificationResults": [
           |    {
           |      "resourceRef": 456,
+          |      "matchedToRequest": true,
           |      "matched": "Y",
           |      "verified": "Y",
           |      "verificationNumber": "V123456",
@@ -79,6 +81,7 @@ class ProcessVerificationResponseFromChrisRequestSpec extends SpecBase {
           |  "verificationResults": [
           |    {
           |      "resourceRef": 456,
+          |      "matchedToRequest": true,
           |      "matched": "Y",
           |      "verified": "Y",
           |      "verificationNumber": "V123456",
@@ -99,6 +102,7 @@ class ProcessVerificationResponseFromChrisRequestSpec extends SpecBase {
         verificationResults = Seq(
           VerificationResult(
             resourceRef = 456L,
+            matchedToRequest = true,
             matched = Some("Y"),
             verified = Some("Y"),
             verificationNumber = Some("V123456"),
@@ -123,6 +127,7 @@ class ProcessVerificationResponseFromChrisRequestSpec extends SpecBase {
           |  "verificationResults": [
           |    {
           |      "resourceRef": 456,
+          |      "matchedToRequest": true,
           |      "verificationNumber": "V123456",
           |      "taxTreatment": "NET",
           |      "verifiedDate": "2026-06-15T10:05:00"
@@ -141,6 +146,7 @@ class ProcessVerificationResponseFromChrisRequestSpec extends SpecBase {
         verificationResults = Seq(
           VerificationResult(
             resourceRef = 456L,
+            matchedToRequest = true,
             matched = None,
             verified = None,
             verificationNumber = Some("V123456"),
@@ -165,6 +171,7 @@ class ProcessVerificationResponseFromChrisRequestSpec extends SpecBase {
           |  "verificationResults": [
           |    {
           |      "resourceRef": 456,
+          |      "matchedToRequest": true,
           |      "verificationNumber": "V123456",
           |      "taxTreatment": "NET",
           |      "verifiedDate": "2026-06-15T10:05:00Z"
@@ -177,6 +184,78 @@ class ProcessVerificationResponseFromChrisRequestSpec extends SpecBase {
       val result = json.validate[ProcessVerificationResponseFromChrisRequest]
       result.isSuccess mustBe true
       result.get.verificationResults.head.verifiedDate mustBe Some(LocalDateTime.parse("2026-06-15T10:05:00"))
+    }
+
+    "deserialize when matchedToRequest is false" in {
+      val json = Json.parse(
+        """
+          |{
+          |  "instanceId": "abc-123",
+          |  "verificationBatchResourceRef": 222,
+          |  "acceptedTime": "2026-06-15T10:05:00Z",
+          |  "submissionStatus": "SUBMITTED",
+          |  "irMarkReceived": "IR_MARK_RECEIVED",
+          |  "verificationResults": [
+          |    {
+          |      "resourceRef": 456,
+          |      "matchedToRequest": false,
+          |      "matched": null,
+          |      "verified": null,
+          |      "verificationNumber": null,
+          |      "taxTreatment": null,
+          |      "verifiedDate": null
+          |    }
+          |  ]
+          |}
+          |""".stripMargin
+      )
+
+      val expected = ProcessVerificationResponseFromChrisRequest(
+        instanceId = "abc-123",
+        verificationBatchResourceRef = 222L,
+        acceptedTime = "2026-06-15T10:05:00Z",
+        submissionStatus = "SUBMITTED",
+        irMarkReceived = Some("IR_MARK_RECEIVED"),
+        verificationResults = Seq(
+          VerificationResult(
+            resourceRef = 456L,
+            matchedToRequest = false,
+            matched = None,
+            verified = None,
+            verificationNumber = None,
+            taxTreatment = None,
+            verifiedDate = None
+          )
+        )
+      )
+
+      json.validate[ProcessVerificationResponseFromChrisRequest] mustBe JsSuccess(expected)
+    }
+
+    "fail to deserialize when matchedToRequest is missing" in {
+      val json = Json.parse(
+        """
+          |{
+          |  "instanceId": "abc-123",
+          |  "verificationBatchResourceRef": 222,
+          |  "acceptedTime": "2026-06-15T10:05:00Z",
+          |  "submissionStatus": "SUBMITTED",
+          |  "irMarkReceived": "IR_MARK_RECEIVED",
+          |  "verificationResults": [
+          |    {
+          |      "resourceRef": 456,
+          |      "matched": "Y",
+          |      "verified": "Y",
+          |      "verificationNumber": "V123456",
+          |      "taxTreatment": "NET",
+          |      "verifiedDate": "2026-06-15T10:05:00"
+          |    }
+          |  ]
+          |}
+          |""".stripMargin
+      )
+
+      json.validate[ProcessVerificationResponseFromChrisRequest].isError mustBe true
     }
 
     "fail to deserialize when required fields are missing" in {
