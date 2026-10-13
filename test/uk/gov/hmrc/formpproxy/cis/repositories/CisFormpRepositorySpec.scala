@@ -4395,19 +4395,19 @@ final class CisFormpRepositorySpec extends SpecBase {
     }
 
     "clears verification fields and preserves subcontractor fields when matchedToRequest is false" in {
-      val db = mock[Database]
+      val db   = mock[Database]
       val conn = mock[Connection]
 
-      val csGetExisting = mock[CallableStatement]
-      val rsSubmission = mock[ResultSet]
-      val rsVerificationBatch = mock[ResultSet]
-      val rsVerifications = mock[ResultSet]
-      val rsSubcontractors = mock[ResultSet]
-      val rsScheme = mock[ResultSet]
-      val csUpdateSub = mock[CallableStatement]
-      val csUpdateBatch = mock[CallableStatement]
+      val csGetExisting        = mock[CallableStatement]
+      val rsSubmission         = mock[ResultSet]
+      val rsVerificationBatch  = mock[ResultSet]
+      val rsVerifications      = mock[ResultSet]
+      val rsSubcontractors     = mock[ResultSet]
+      val rsScheme             = mock[ResultSet]
+      val csUpdateSub          = mock[CallableStatement]
+      val csUpdateBatch        = mock[CallableStatement]
       val csUpdateVerification = mock[CallableStatement]
-      val csUpdateSubmission = mock[CallableStatement]
+      val csUpdateSubmission   = mock[CallableStatement]
 
       when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
         inv.getArgument(0, classOf[Connection => Any]).apply(conn)
