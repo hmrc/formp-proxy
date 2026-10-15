@@ -1018,6 +1018,7 @@ class VerificationControllerSpec extends SpecBase {
         verificationResults = Seq(
           VerificationResult(
             resourceRef = 456L,
+            matchedToRequest = true,
             matched = Some("Y"),
             verified = Some("Y"),
             verificationNumber = Some("V123456"),
@@ -1078,6 +1079,7 @@ class VerificationControllerSpec extends SpecBase {
         verificationResults = Seq(
           VerificationResult(
             resourceRef = 456L,
+            matchedToRequest = true,
             matched = None,
             verified = None,
             verificationNumber = Some("V123456"),

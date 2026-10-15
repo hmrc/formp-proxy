@@ -1879,13 +1879,42 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setOptionalString(21, subcontractor.mobilePhoneNumber)
       cs.setOptionalString(22, subcontractor.worksReferenceNumber)
 
-      cs.setOptionalString(23, result.matched)
+      // Determine values according to subcontractor matching result.
+      val matched =
+        if (result.matchedToRequest) result.matched
+        else subcontractor.matched
+
+      val verified =
+        if (result.matchedToRequest) result.verified.orElse(subcontractor.verified)
+        else subcontractor.verified
+
+      val verificationNumber =
+        if (result.matchedToRequest) result.verificationNumber
+        else subcontractor.verificationNumber
+
+      val taxTreatment =
+        if (result.matchedToRequest) result.taxTreatment
+        else subcontractor.taxTreatment
+
+      val verificationDate =
+        if (result.matchedToRequest) result.verifiedDate
+        else None
+
+      cs.setOptionalString(23, matched)
       cs.setOptionalString(24, subcontractor.autoVerified)
-      cs.setOptionalString(25, result.verified)
-      cs.setOptionalString(26, result.verificationNumber)
-      cs.setOptionalString(27, result.taxTreatment)
+      cs.setOptionalString(25, verified)
+      cs.setOptionalString(26, verificationNumber)
+      cs.setOptionalString(27, taxTreatment)
       cs.setOptionalString(28, subcontractor.updatedTaxTreatment)
-      cs.setOptionalTimestamp(29, result.verifiedDate)
+
+      verificationDate match {
+        case Some(date) =>
+          cs.setTimestamp(29, Timestamp.valueOf(date))
+
+        case None =>
+          cs.setNull(29, Types.TIMESTAMP)
+      }
+
       cs.setOptionalInt(30, subcontractor.version)
       cs.registerOutParameter(30, Types.INTEGER)
 
@@ -1904,9 +1933,19 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
       cs.setLong(2, verificationBatchResourceRef)
       cs.setLong(3, result.resourceRef)
 
-      cs.setOptionalString(4, result.matched)
-      cs.setOptionalString(5, result.verificationNumber)
-      cs.setOptionalString(6, result.taxTreatment)
+      if (result.matchedToRequest) {
+        // Subcontractor successfully matched to original request.
+        // Apply the mapped CHRIS verification values.
+        cs.setOptionalString(4, result.matched)
+        cs.setOptionalString(5, result.verificationNumber)
+        cs.setOptionalString(6, result.taxTreatment)
+      } else {
+        // No subcontractor matched the original request.
+        // Explicitly clear all three verification fields.
+        cs.setNull(4, Types.VARCHAR)
+        cs.setNull(5, Types.VARCHAR)
+        cs.setNull(6, Types.VARCHAR)
+      }
 
       cs.setOptionalString(7, verification.actionIndicator)
       cs.setOptionalString(8, verification.proceed)

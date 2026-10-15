@@ -435,6 +435,7 @@ class VerificationServiceSpec extends SpecBase {
         verificationResults = Seq(
           VerificationResult(
             resourceRef = 111L,
+            matchedToRequest = true,
             matched = Some("Y"),
             verified = Some("Y"),
             verificationNumber = Some("V123456"),
@@ -466,6 +467,7 @@ class VerificationServiceSpec extends SpecBase {
         verificationResults = Seq(
           VerificationResult(
             resourceRef = 111L,
+            matchedToRequest = true,
             matched = Some("Y"),
             verified = Some("Y"),
             verificationNumber = Some("V123456"),
