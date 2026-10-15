@@ -1881,19 +1881,19 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
       // Determine values according to subcontractor matching result.
       val matched =
-        if (result.matchedToRequest) result.matched.orElse(subcontractor.matched)
+        if (result.matchedToRequest) result.matched
         else subcontractor.matched
 
       val verified =
-        if (result.matchedToRequest) result.verified.orElse(subcontractor.verified)
+        if (result.matchedToRequest) result.verified
         else subcontractor.verified
 
       val verificationNumber =
-        if (result.matchedToRequest) result.verificationNumber.orElse(subcontractor.verificationNumber)
+        if (result.matchedToRequest) result.verificationNumber
         else subcontractor.verificationNumber
 
       val taxTreatment =
-        if (result.matchedToRequest) result.taxTreatment.orElse(subcontractor.taxTreatment)
+        if (result.matchedToRequest) result.taxTreatment
         else subcontractor.taxTreatment
 
       val verificationDate =
