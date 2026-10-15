@@ -1885,7 +1885,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         else subcontractor.matched
 
       val verified =
-        if (result.matchedToRequest) result.verified
+        if (result.matchedToRequest) result.verified.orElse(subcontractor.verified)
         else subcontractor.verified
 
       val verificationNumber =
