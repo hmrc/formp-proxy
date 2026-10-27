@@ -86,7 +86,10 @@ class VerificationController @Inject() (
               .createVerificationBatchAndVerifications(req)
               .map(res => Ok(Json.toJson(res)))
               .recover { case t =>
-                logger.error("[createVerificationBatchAndVerifications] failed", t)
+                logger.error(
+                  s"[createVerificationBatchAndVerifications] failed (instanceId=${req.instanceId}, verifications=${req.verificationResourceReferences.size})",
+                  t
+                )
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )
@@ -104,7 +107,7 @@ class VerificationController @Inject() (
               .modifyVerifications(req)
               .map(_ => NoContent)
               .recover { case t =>
-                logger.error("[modifyVerifications] failed", t)
+                logger.error(s"[modifyVerifications] failed (instanceId=${req.instanceId})", t)
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )
@@ -122,7 +125,10 @@ class VerificationController @Inject() (
               .deleteVerification(req)
               .map(res => Ok(Json.toJson(res)))
               .recover { case t =>
-                logger.error("[deleteVerification] failed", t)
+                logger.error(
+                  s"[deleteVerification] failed (instanceId=${req.instanceId}, verificationResourceRef=${req.verificationResourceRef})",
+                  t
+                )
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )
@@ -140,7 +146,10 @@ class VerificationController @Inject() (
               .createSubmissionAndUpdateVerifications(req)
               .map(res => Ok(Json.toJson(res)))
               .recover { case t =>
-                logger.error("[createSubmissionForVerification] failed", t)
+                logger.error(
+                  s"[createSubmissionForVerification] failed (instanceId=${req.instanceId}, verificationBatchId=${req.verificationBatchId}, verificationBatchResourceRef=${req.verificationBatchResourceRef})",
+                  t
+                )
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )
@@ -158,7 +167,10 @@ class VerificationController @Inject() (
               .updateVerificationSubmission(req)
               .map(_ => NoContent)
               .recover { case t =>
-                logger.error("[updateVerificationSubmission] failed", t)
+                logger.error(
+                  s"[updateVerificationSubmission] failed (instanceId=${req.instanceId}, verificationBatchResourceRef=${req.verificationBatchResourceRef}, status=${req.submittableStatus})",
+                  t
+                )
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )
@@ -176,7 +188,10 @@ class VerificationController @Inject() (
               .processVerificationResponseFromChris(req)
               .map(_ => NoContent)
               .recover { case t =>
-                logger.error("[processVerificationResponseFromChris] failed", t)
+                logger.error(
+                  s"[processVerificationResponseFromChris] failed (instanceId=${req.instanceId}, verificationBatchResourceRef=${req.verificationBatchResourceRef}, submissionStatus=${req.submissionStatus})",
+                  t
+                )
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )
@@ -249,7 +264,7 @@ class VerificationController @Inject() (
               .getSubmittedVerifications(req)
               .map(res => Ok(Json.toJson(res)))
               .recover { case t =>
-                logger.error("[getSubmittedVerifications] failed", t)
+                logger.error(s"[getSubmittedVerifications] failed (instanceId=${req.instanceId})", t)
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )
@@ -267,7 +282,10 @@ class VerificationController @Inject() (
               .proceedVerification(req)
               .map(_ => NoContent)
               .recover { case t =>
-                logger.error("[proceedVerification] failed", t)
+                logger.error(
+                  s"[proceedVerification] failed (instanceId=${req.instanceId}, verificationBatchResourceRef=${req.verificationBatchResourceRef}, verificationResourceRef=${req.verificationResourceRef})",
+                  t
+                )
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )

@@ -3193,6 +3193,50 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(cs).execute()
       verify(cs).close()
     }
+
+    "treats ORA-20000 'already amended' as success" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+      when(cs.execute()).thenThrow(
+        new SQLException(
+          "ORA-20000: UPDATE MONTHLY_RETURN STATUS TO AMEND IN package MONTHLY_RETURN_PROCS failed",
+          "99999",
+          20000
+        )
+      )
+
+      val repo = new CisFormpRepository(db)
+
+      repo.createAmendedMonthlyReturn(CreateAmendedMonthlyReturnRequest("1", 2026, 4, 0)).futureValue mustBe ()
+
+      verify(cs).close()
+    }
+
+    "propagates any other database error" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+      when(conn.prepareCall(anyArg[String])).thenReturn(cs)
+      when(cs.execute()).thenThrow(new SQLException("ORA-20000: something else", "99999", 20000))
+
+      val repo = new CisFormpRepository(db)
+
+      repo
+        .createAmendedMonthlyReturn(CreateAmendedMonthlyReturnRequest("1", 2026, 4, 0))
+        .failed
+        .futureValue
+        .getMessage must include("something else")
+    }
   }
 
   "createVerificationBatchAndVerifications" - {
@@ -3718,6 +3762,87 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(rsVerificationBatch).close()
       verify(rsVerifications).close()
       verify(rsSubmission).close()
+    }
+
+    "treats ORA-20000 'No Verification record' as already deleted and still returns the counter" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+
+      val csGetScheme           = mock[CallableStatement]
+      val rsSchemeVersion       = mock[ResultSet]
+      val csDeleteVerification  = mock[CallableStatement]
+      val csUpdateSchemeVersion = mock[CallableStatement]
+      val csGetCurrentBatch     = mock[CallableStatement]
+      val rsScheme              = mock[ResultSet]
+      val rsSubcontractors      = mock[ResultSet]
+      val rsVerificationBatch   = mock[ResultSet]
+      val rsVerifications       = mock[ResultSet]
+      val rsSubmission          = mock[ResultSet]
+
+      when(db.withTransaction(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetScheme))).thenReturn(csGetScheme)
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallDeleteVerification))).thenReturn(csDeleteVerification)
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallUpdateSchemeVersion))).thenReturn(csUpdateSchemeVersion)
+      when(conn.prepareCall(eqTo(CisStoredProcedures.CallGetCurrentVerificationBatch))).thenReturn(csGetCurrentBatch)
+
+      when(csGetScheme.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsSchemeVersion)
+      when(rsSchemeVersion.next()).thenReturn(true, false)
+      when(rsSchemeVersion.getLong("scheme_id")).thenReturn(999L)
+      when(rsSchemeVersion.getInt("version")).thenReturn(4)
+      when(rsSchemeVersion.wasNull()).thenReturn(false)
+      when(rsSchemeVersion.getString("email_address")).thenReturn(null)
+
+      when(csUpdateSchemeVersion.getInt(2)).thenReturn(5)
+
+      when(csGetCurrentBatch.getObject(eqTo(2), eqTo(classOf[ResultSet]))).thenReturn(rsScheme)
+      when(csGetCurrentBatch.getObject(eqTo(3), eqTo(classOf[ResultSet]))).thenReturn(rsSubcontractors)
+      when(csGetCurrentBatch.getObject(eqTo(4), eqTo(classOf[ResultSet]))).thenReturn(rsVerificationBatch)
+      when(csGetCurrentBatch.getObject(eqTo(5), eqTo(classOf[ResultSet]))).thenReturn(rsVerifications)
+      when(csGetCurrentBatch.getObject(eqTo(6), eqTo(classOf[ResultSet]))).thenReturn(rsSubmission)
+
+      when(rsScheme.next()).thenReturn(false)
+      when(rsSubcontractors.next()).thenReturn(false)
+      when(rsVerifications.next()).thenReturn(false)
+      when(rsSubmission.next()).thenReturn(false)
+
+      when(rsVerificationBatch.next()).thenReturn(true, false)
+      when(rsVerificationBatch.getLong("verification_batch_id")).thenReturn(55L)
+      when(rsVerificationBatch.getLong("scheme_id")).thenReturn(999L)
+      when(rsVerificationBatch.getLong("verifications_counter")).thenReturn(2L)
+      when(rsVerificationBatch.wasNull()).thenReturn(false)
+      when(rsVerificationBatch.getLong("verif_batch_resource_ref")).thenReturn(101L)
+      when(rsVerificationBatch.getString("proceed_session")).thenReturn("Y")
+      when(rsVerificationBatch.getString("confirm_arrangement")).thenReturn("Y")
+      when(rsVerificationBatch.getString("confirm_correct")).thenReturn("Y")
+      when(rsVerificationBatch.getString("status")).thenReturn("STARTED")
+      when(rsVerificationBatch.getString("verification_number")).thenReturn("VB123")
+      when(rsVerificationBatch.getTimestamp("create_date")).thenReturn(Timestamp.valueOf("2026-04-01 10:00:00"))
+      when(rsVerificationBatch.getTimestamp("last_update")).thenReturn(Timestamp.valueOf("2026-04-02 11:00:00"))
+      when(rsVerificationBatch.getInt("version")).thenReturn(1)
+
+      when(csDeleteVerification.execute()).thenThrow(
+        new SQLException(
+          "ORA-20000: Failure at <> No Verification record for p_verification_resource_ref <111> Verification_batch_id <55>",
+          "99999",
+          20000
+        )
+      )
+
+      val repo = new CisFormpRepository(db)
+
+      val request = DeleteVerificationRequest(
+        instanceId = "abc-123",
+        verificationResourceRef = 111L
+      )
+
+      repo.deleteVerification(request).futureValue mustBe DeleteVerificationResponse(Some(2L))
+
+      verify(csDeleteVerification).execute()
+      verify(csDeleteVerification).close()
+      verify(csUpdateSchemeVersion).execute()
     }
 
     "propagates failure if Delete_Verification_2 fails" in {

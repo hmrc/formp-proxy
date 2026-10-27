@@ -426,11 +426,13 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     logger.info(
       s"[CIS] createAndUpdateSubcontractor(instanceId=${record.cisId})"
     )
-    db.withTransaction { conn =>
-      val scheme            = loadScheme(conn, record.cisId)
-      val subbieResourceRef = callCreateSubcontractor(conn, scheme.schemeId, record.subcontractorType)
-      callUpdateSchemeVersion(conn, record.cisId, scheme.version.getOrElse(0))
-      callUpdateSubcontractor(conn, scheme.schemeId, subbieResourceRef, record)
+    Future {
+      db.withTransaction { conn =>
+        val scheme            = loadScheme(conn, record.cisId)
+        val subbieResourceRef = callCreateSubcontractor(conn, scheme.schemeId, record.subcontractorType)
+        callUpdateSchemeVersion(conn, record.cisId, scheme.version.getOrElse(0))
+        callUpdateSubcontractor(conn, scheme.schemeId, subbieResourceRef, record)
+      }
     }
   }
 
@@ -721,12 +723,23 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     )
     Future {
       db.withConnection { conn =>
-        withCall(conn, CallCreateAmendedMonthlyReturn) { cs =>
-          cs.setString(1, request.instanceId)
-          cs.setInt(2, request.taxYear)
-          cs.setInt(3, request.taxMonth)
-          cs.setInt(4, request.version)
-          cs.execute()
+        try
+          withCall(conn, CallCreateAmendedMonthlyReturn) { cs =>
+            cs.setString(1, request.instanceId)
+            cs.setInt(2, request.taxYear)
+            cs.setInt(3, request.taxMonth)
+            cs.setInt(4, request.version)
+            cs.execute()
+          }
+        catch {
+          // The procedure raises this when the submitted return has already been superseded by an amendment
+          case e: SQLException
+              if e.getErrorCode == 20000 && Option(e.getMessage).exists(
+                _.contains("UPDATE MONTHLY_RETURN STATUS TO AMEND")
+              ) =>
+            logger.warn(
+              s"[CIS] createAmendedMonthlyReturn: return already amended (instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth}); treating as success"
+            )
         }
       }
     }
@@ -1117,52 +1130,51 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     schemeId: Long,
     subbieResourceRef: Int,
     record: CreateAndUpdateSubcontractorDatabaseRecord
-  ): Future[Unit] =
-    Future {
-      val cs = conn.prepareCall(CallUpdateSubcontractor)
-      try {
-        cs.setLong(1, schemeId)
+  ): Unit = {
+    val cs = conn.prepareCall(CallUpdateSubcontractor)
+    try {
+      cs.setLong(1, schemeId)
 
-        cs.setInt(2, subbieResourceRef)
-        cs.setOptionalString(3, record.utr)
-        cs.setOptionalInt(4, None)
-        cs.setOptionalString(5, record.partnerUtr)
-        cs.setOptionalString(6, record.crn)
+      cs.setInt(2, subbieResourceRef)
+      cs.setOptionalString(3, record.utr)
+      cs.setOptionalInt(4, None)
+      cs.setOptionalString(5, record.partnerUtr)
+      cs.setOptionalString(6, record.crn)
 
-        cs.setOptionalString(7, record.firstName)
-        cs.setOptionalString(8, record.nino)
-        cs.setOptionalString(9, record.secondName)
-        cs.setOptionalString(10, record.surname)
+      cs.setOptionalString(7, record.firstName)
+      cs.setOptionalString(8, record.nino)
+      cs.setOptionalString(9, record.secondName)
+      cs.setOptionalString(10, record.surname)
 
-        cs.setOptionalString(11, record.partnershipTradingName)
-        cs.setOptionalString(12, record.tradingName)
+      cs.setOptionalString(11, record.partnershipTradingName)
+      cs.setOptionalString(12, record.tradingName)
 
-        cs.setOptionalString(13, record.addressLine1)
-        cs.setOptionalString(14, record.addressLine2)
-        cs.setOptionalString(15, record.city)
-        cs.setOptionalString(16, record.county)
-        cs.setOptionalString(17, record.country)
-        cs.setOptionalString(18, record.postcode)
+      cs.setOptionalString(13, record.addressLine1)
+      cs.setOptionalString(14, record.addressLine2)
+      cs.setOptionalString(15, record.city)
+      cs.setOptionalString(16, record.county)
+      cs.setOptionalString(17, record.country)
+      cs.setOptionalString(18, record.postcode)
 
-        cs.setOptionalString(19, record.emailAddress)
-        cs.setOptionalString(20, record.phoneNumber)
-        cs.setOptionalString(21, record.mobilePhoneNumber)
-        cs.setOptionalString(22, record.worksReferenceNumber)
+      cs.setOptionalString(19, record.emailAddress)
+      cs.setOptionalString(20, record.phoneNumber)
+      cs.setOptionalString(21, record.mobilePhoneNumber)
+      cs.setOptionalString(22, record.worksReferenceNumber)
 
-        cs.setOptionalString(23, None)
-        cs.setOptionalString(24, None)
-        cs.setOptionalString(25, None)
-        cs.setOptionalString(26, None)
-        cs.setOptionalString(27, None)
-        cs.setOptionalString(28, None)
+      cs.setOptionalString(23, None)
+      cs.setOptionalString(24, None)
+      cs.setOptionalString(25, None)
+      cs.setOptionalString(26, None)
+      cs.setOptionalString(27, None)
+      cs.setOptionalString(28, None)
 
-        cs.setOptionalTimestamp(29, None)
-        cs.setOptionalInt(30, None)
-        cs.registerOutParameter(30, Types.INTEGER)
+      cs.setOptionalTimestamp(29, None)
+      cs.setOptionalInt(30, None)
+      cs.registerOutParameter(30, Types.INTEGER)
 
-        cs.execute()
-      } finally cs.close()
-    }
+      cs.execute()
+    } finally cs.close()
+  }
 
   override def getSubcontractorList(cisId: String): Future[GetSubcontractorListResponse] = Future {
     logger.info(s"[CIS] getSubcontractorList(cisId=$cisId)")
@@ -1533,10 +1545,19 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     instanceId: String,
     verificationResourceRef: Long
   ): Unit =
-    withCall(conn, CallDeleteVerification) { cs =>
-      cs.setString(1, instanceId)
-      cs.setLong(2, verificationResourceRef)
-      cs.execute()
+    try
+      withCall(conn, CallDeleteVerification) { cs =>
+        cs.setString(1, instanceId)
+        cs.setLong(2, verificationResourceRef)
+        cs.execute()
+      }
+    catch {
+      // Deleting a verification that is already gone (repeat request, stale page) is a no-op
+      case e: SQLException
+          if e.getErrorCode == 20000 && Option(e.getMessage).exists(_.contains("No Verification record")) =>
+        logger.warn(
+          s"[CIS] callDeleteVerifications: verificationResourceRef=$verificationResourceRef not found for instanceId=$instanceId; treating as already deleted"
+        )
     }
 
   override def modifyVerifications(req: ModifyVerificationsRequest): Future[Unit] = {

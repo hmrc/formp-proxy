@@ -46,7 +46,11 @@ class AmendMonthlyReturnController @Inject() (
         .createAmendedMonthlyReturn(request.body)
         .map(_ => Created)
         .recover { case NonFatal(t) =>
-          logger.error("[createAmendedMonthlyReturn] failed", t)
+          val r = request.body
+          logger.error(
+            s"[createAmendedMonthlyReturn] failed (instanceId=${r.instanceId}, taxYear=${r.taxYear}, taxMonth=${r.taxMonth}, version=${r.version})",
+            t
+          )
           InternalServerError(Json.obj("message" -> "Unexpected error"))
         }
     }
