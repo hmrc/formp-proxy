@@ -30,6 +30,7 @@ import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
+import uk.gov.hmrc.formpproxy.cis.repositories.SubcontractorNotFoundException
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 
 import scala.concurrent.Future
@@ -342,6 +343,27 @@ class SubcontractorControllerSpec extends SpecBase {
           eqTo(cisId),
           eqTo(subbieResourceRef)
         )
+    }
+
+    "must return NotFound when the subcontractor does not exist" in new Setup {
+
+      when(
+        mockService.getSubcontractorForDelete(
+          eqTo(cisId),
+          eqTo(subbieResourceRef)
+        )
+      ).thenReturn(Future.failed(SubcontractorNotFoundException("not found")))
+
+      val result =
+        controller.getSubcontractorForDelete(cisId, subbieResourceRef)(
+          FakeRequest(
+            GET,
+            s"/cis/subcontractor/$cisId/$subbieResourceRef/delete-status"
+          ).withHeaders(ACCEPT -> JSON, AUTHORIZATION -> "Token internal-auth")
+        )
+
+      status(result) mustBe NOT_FOUND
+      contentAsJson(result) mustBe Json.obj("message" -> "Subcontractor not found")
     }
 
     "must return InternalServerError when service fails" in new Setup {

@@ -24,6 +24,7 @@ import uk.gov.hmrc.formpproxy.actions.AuthOrInternalAuthAction
 import uk.gov.hmrc.formpproxy.cis.models.GetSubcontractorList
 import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateAndUpdateSubcontractorRequest, DeleteSubcontractorRequest, UpdateSubcontractorForEditRequest, UpdateSubcontractorRequest}
 import uk.gov.hmrc.formpproxy.cis.models.response.{GetSubcontractorResponse, UpdateSubcontractorResponse}
+import uk.gov.hmrc.formpproxy.cis.repositories.SubcontractorNotFoundException
 import uk.gov.hmrc.formpproxy.cis.services.SubcontractorService
 import uk.gov.hmrc.internalauth.client.{IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -83,12 +84,18 @@ class SubcontractorController @Inject() (
       service
         .getSubcontractorForDelete(cisId, subbieResourceRef)
         .map(res => Ok(Json.toJson(res)))
-        .recover { case t =>
-          logger.error(
-            s"[getSubcontractorForDelete] failed (cisId=$cisId, subbieResourceRef=$subbieResourceRef)",
-            t
-          )
-          InternalServerError(Json.obj("message" -> "Unexpected error"))
+        .recover {
+          case _: SubcontractorNotFoundException =>
+            logger.warn(
+              s"[getSubcontractorForDelete] subcontractor not found (cisId=$cisId, subbieResourceRef=$subbieResourceRef)"
+            )
+            NotFound(Json.obj("message" -> "Subcontractor not found"))
+          case t                                 =>
+            logger.error(
+              s"[getSubcontractorForDelete] failed (cisId=$cisId, subbieResourceRef=$subbieResourceRef)",
+              t
+            )
+            InternalServerError(Json.obj("message" -> "Unexpected error"))
         }
     }
 
@@ -100,12 +107,18 @@ class SubcontractorController @Inject() (
       service
         .getSubcontractor(cisId, subbieResourceRef)
         .map(response => Ok(Json.toJson(response)))
-        .recover { case t =>
-          logger.error(
-            s"[getSubcontractor] failed (cisId=$cisId, subbieResourceRef=$subbieResourceRef)",
-            t
-          )
-          InternalServerError(Json.obj("message" -> "Unexpected error"))
+        .recover {
+          case _: SubcontractorNotFoundException =>
+            logger.warn(
+              s"[getSubcontractor] subcontractor not found (cisId=$cisId, subbieResourceRef=$subbieResourceRef)"
+            )
+            NotFound(Json.obj("message" -> "Subcontractor not found"))
+          case t                                 =>
+            logger.error(
+              s"[getSubcontractor] failed (cisId=$cisId, subbieResourceRef=$subbieResourceRef)",
+              t
+            )
+            InternalServerError(Json.obj("message" -> "Unexpected error"))
         }
     }
 
