@@ -5081,7 +5081,7 @@ final class CisFormpRepositorySpec extends SpecBase {
       verifyStoredProcedureCalled()
     }
 
-    "throws IllegalStateException when no subcontractor is returned" in new Ctx {
+    "throws SubcontractorNotFoundException when no subcontractor is returned" in new Ctx {
 
       when(rs4.next()).thenReturn(false)
       when(cs.getString(6)).thenReturn("true")
@@ -5092,7 +5092,7 @@ final class CisFormpRepositorySpec extends SpecBase {
           .failed
           .futureValue
 
-      exception mustBe an[IllegalStateException]
+      exception mustBe a[SubcontractorNotFoundException]
 
       exception.getMessage must include(
         "No subcontractor found"

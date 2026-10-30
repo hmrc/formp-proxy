@@ -34,6 +34,8 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Using
 
+case class SubcontractorNotFoundException(message: String) extends RuntimeException(message)
+
 trait CisMonthlyReturnSource {
   def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns]
   def getUnsubmittedMonthlyReturns(instanceId: String): Future[UnsubmittedMonthlyReturns]
@@ -2089,7 +2091,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
                 subcontractor
 
               case Seq()    =>
-                throw new IllegalStateException(
+                throw SubcontractorNotFoundException(
                   s"No subcontractor found for cisId=$cisId and subbieResourceRef=$subbieResourceRef"
                 )
               case multiple =>
@@ -2356,7 +2358,7 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
 
       val subcontractor =
         withCursor(cs, 4)(collectSubcontractors).headOption.getOrElse(
-          throw new RuntimeException(
+          throw SubcontractorNotFoundException(
             s"No subcontractor found for cisId=$cisId and subbieResourceRef=$subbieResourceRef"
           )
         )
