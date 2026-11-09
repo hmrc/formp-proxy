@@ -32,6 +32,7 @@ import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.cis.services.MonthlyReturnService
+import uk.gov.hmrc.formpproxy.cis.repositories.MonthlyReturnAlreadyExistsException
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.internalauth.client.test.{BackendAuthComponentsStub, StubBehaviour}
 import uk.gov.hmrc.internalauth.client.*
@@ -455,6 +456,27 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
 
       verify(mockService).createMonthlyReturn(eqTo(request))
       verifyNoMoreInteractions(mockService)
+    }
+
+    "returns 409 Conflict when the monthly return already exists" in new Setup {
+      val request = CreateMonthlyReturnRequest(
+        instanceId = "abc-123",
+        taxYear = 2025,
+        taxMonth = 2
+      )
+
+      when(mockService.createMonthlyReturn(eqTo(request)))
+        .thenReturn(Future.failed(MonthlyReturnAlreadyExistsException("exists")))
+
+      val req: FakeRequest[CreateMonthlyReturnRequest] =
+        FakeRequest(POST, "/formp-proxy/monthly-return/create")
+          .withHeaders(AUTHORIZATION -> "Token internal-auth")
+          .withBody(request)
+
+      val res: Future[Result] = controller.createMonthlyReturn(req)
+
+      status(res) mustBe CONFLICT
+      (contentAsJson(res) \ "message").as[String] mustBe "Monthly return already exists"
     }
 
     "returns 500 with generic message on unexpected exception" in new Setup {

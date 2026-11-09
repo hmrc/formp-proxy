@@ -26,6 +26,7 @@ import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.formpproxy.actions.AuthOrInternalAuthAction
 import uk.gov.hmrc.formpproxy.base.SpecBase
 import uk.gov.hmrc.formpproxy.cis.models.requests._
+import uk.gov.hmrc.formpproxy.cis.repositories.MonthlyReturnNotFoundException
 import uk.gov.hmrc.formpproxy.cis.services.SubmissionService
 import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource, Retrieval}
 import uk.gov.hmrc.internalauth.client.test.{BackendAuthComponentsStub, StubBehaviour}
@@ -160,6 +161,33 @@ class SubmissionControllerSpec extends SpecBase {
       status(result) mustBe BAD_REQUEST
       (contentAsJson(result) \ "message").as[String] mustBe "Invalid payload"
       verify(service, never()).updateSubmission(any[UpdateSubmissionRequest])
+    }
+
+    "maps MonthlyReturnNotFoundException to 404" in {
+      val s = setup; import s.*
+
+      when(service.updateSubmission(any[UpdateSubmissionRequest]))
+        .thenReturn(Future.failed(MonthlyReturnNotFoundException("No MONTHLY_RETURN for instance_id=123")))
+
+      val json = Json.toJson(
+        UpdateSubmissionRequest(
+          instanceId = "123",
+          taxYear = 2024,
+          taxMonth = 4,
+          amendment = "N",
+          hmrcMarkGenerated = "Dj5TVJDyRYCn9zta5EdySeY4fyA=",
+          submittableStatus = "ACCEPTED"
+        )
+      )
+
+      val result = controller
+        .updateSubmission()
+        .apply(
+          postJson("/submissions/update", json).withHeaders(AUTHORIZATION -> "Token internal-auth")
+        )
+
+      status(result) mustBe NOT_FOUND
+      (contentAsJson(result) \ "message").as[String] mustBe "Monthly return not found"
     }
 
     "maps service failure to 500 (no body expected)" in {
