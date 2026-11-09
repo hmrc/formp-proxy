@@ -244,6 +244,14 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           )
         }
       }
+    }.recoverWith {
+      // ORA-01403: the SP found no monthly return for this instance/month/year/amendment
+      case e: SQLException if e.getErrorCode == 1403 =>
+        Future.failed(
+          MonthlyReturnNotFoundException(
+            s"No monthly return found for edit (instanceId=$instanceId, taxYear=$taxYear, taxMonth=$taxMonth, isAmendment=$isAmendment)"
+          )
+        )
     }
   }
 

@@ -32,7 +32,7 @@ import uk.gov.hmrc.formpproxy.cis.models.requests.*
 import uk.gov.hmrc.formpproxy.cis.models.response.*
 import uk.gov.hmrc.formpproxy.cis.models.*
 import uk.gov.hmrc.formpproxy.cis.services.MonthlyReturnService
-import uk.gov.hmrc.formpproxy.cis.repositories.MonthlyReturnAlreadyExistsException
+import uk.gov.hmrc.formpproxy.cis.repositories.{MonthlyReturnAlreadyExistsException, MonthlyReturnNotFoundException}
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.internalauth.client.test.{BackendAuthComponentsStub, StubBehaviour}
 import uk.gov.hmrc.internalauth.client.*
@@ -647,6 +647,19 @@ class MonthlyReturnControllerSpec extends AnyFreeSpec with Matchers with ScalaFu
       status(result) mustBe OK
       contentAsJson(result) mustBe Json.toJson(payload)
       verify(mockService).getMonthlyReturnForEdit(eqTo(requestBody))
+    }
+
+    "returns 404 when the monthly return does not exist" in new Setup {
+      val requestBody = GetMonthlyReturnForEditRequest("abc-123", 2025, 1)
+
+      when(mockService.getMonthlyReturnForEdit(eqTo(requestBody)))
+        .thenReturn(Future.failed(MonthlyReturnNotFoundException("no data")))
+
+      val request = makeJsonRequest(Json.toJson(requestBody))
+      val result  = controller.getMonthlyReturnForEdit(request)
+
+      status(result) mustBe NOT_FOUND
+      contentAsJson(result) mustBe Json.obj("message" -> "Monthly return not found")
     }
 
     "returns 500 with Unexpected error when service fails with NonFatal" in new Setup {

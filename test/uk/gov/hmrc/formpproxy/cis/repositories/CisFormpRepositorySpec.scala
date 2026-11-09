@@ -1268,6 +1268,54 @@ final class CisFormpRepositorySpec extends SpecBase {
   }
 
   "getMonthlyReturnForEdit" - {
+    "maps ORA-01403 no data found to MonthlyReturnNotFoundException" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+      when(
+        conn.prepareCall(
+          eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_For_Edit(?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+        )
+      ).thenReturn(cs)
+      when(cs.execute()).thenThrow(new SQLException("ORA-01403: no data found", "02000", 1403))
+
+      val repo = new CisFormpRepository(db)
+
+      repo
+        .getMonthlyReturnForEdit("abc-123", 2026, 11, isAmendment = false)
+        .failed
+        .futureValue mustBe a[MonthlyReturnNotFoundException]
+
+      verify(cs).close()
+    }
+
+    "propagates other SQL errors unchanged" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+      when(
+        conn.prepareCall(
+          eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_For_Edit(?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+        )
+      ).thenReturn(cs)
+      when(cs.execute()).thenThrow(new SQLException("ORA-01422: exact fetch", "42000", 1422))
+
+      val repo = new CisFormpRepository(db)
+
+      repo
+        .getMonthlyReturnForEdit("abc-123", 2026, 11, isAmendment = true)
+        .failed
+        .futureValue mustBe a[SQLException]
+    }
+
     Seq(true -> "Y", false -> "N").foreach { case isAmendment -> amendmentFlag =>
       s"calls SP and returns empty response when all cursors are empty and isAmendment = $isAmendment" in {
         val db   = mock[Database]
