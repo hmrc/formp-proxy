@@ -21,6 +21,7 @@ import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthOrInternalAuthAction
 import uk.gov.hmrc.formpproxy.cis.models.requests.{CreateSubmissionRequest, UpdateSubmissionRequest}
+import uk.gov.hmrc.formpproxy.cis.repositories.MonthlyReturnNotFoundException
 import uk.gov.hmrc.formpproxy.cis.services.SubmissionService
 import uk.gov.hmrc.internalauth.client.{IAAction, Predicate, Resource}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -68,9 +69,13 @@ class SubmissionController @Inject() (
             service
               .updateSubmission(body)
               .map(_ => NoContent)
-              .recover { case t =>
-                logger.error("[updateSubmission] failed", t)
-                InternalServerError
+              .recover {
+                case e: MonthlyReturnNotFoundException =>
+                  logger.warn(s"[updateSubmission] ${e.getMessage}")
+                  NotFound(Json.obj("message" -> "Monthly return not found"))
+                case t                                 =>
+                  logger.error("[updateSubmission] failed", t)
+                  InternalServerError
               }
         )
     }

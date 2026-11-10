@@ -1155,6 +1155,34 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(cs).execute()
       verify(cs).close()
     }
+
+    "maps ORA-00001 unique constraint violation to MonthlyReturnAlreadyExistsException" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[Connection => Any]); f(conn)
+      }
+      when(conn.prepareCall(eqTo("{ call MONTHLY_RETURN_PROCS_2016.Create_Monthly_Return(?, ?, ?, ?) }")))
+        .thenReturn(cs)
+      when(cs.execute()).thenThrow(
+        new java.sql.SQLIntegrityConstraintViolationException(
+          "ORA-00001: unique constraint (CIS_FILE_DATA.MN_SCIDTAX_MAAXYEAR_UN) violated",
+          "23000",
+          1
+        )
+      )
+
+      val repo = new CisFormpRepository(db)
+
+      repo
+        .createMonthlyReturn(CreateMonthlyReturnRequest("abc-123", 2025, 2))
+        .failed
+        .futureValue mustBe a[MonthlyReturnAlreadyExistsException]
+
+      verify(cs).close()
+    }
   }
 
   "getUnsubmittedMonthlyReturns" - {
@@ -1240,6 +1268,54 @@ final class CisFormpRepositorySpec extends SpecBase {
   }
 
   "getMonthlyReturnForEdit" - {
+    "maps ORA-01403 no data found to MonthlyReturnNotFoundException" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+      when(
+        conn.prepareCall(
+          eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_For_Edit(?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+        )
+      ).thenReturn(cs)
+      when(cs.execute()).thenThrow(new SQLException("ORA-01403: no data found", "02000", 1403))
+
+      val repo = new CisFormpRepository(db)
+
+      repo
+        .getMonthlyReturnForEdit("abc-123", 2026, 11, isAmendment = false)
+        .failed
+        .futureValue mustBe a[MonthlyReturnNotFoundException]
+
+      verify(cs).close()
+    }
+
+    "propagates other SQL errors unchanged" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[java.sql.Connection => Any])).thenAnswer { inv =>
+        val f = inv.getArgument(0, classOf[java.sql.Connection => Any]); f(conn)
+      }
+      when(
+        conn.prepareCall(
+          eqTo("{ call MONTHLY_RETURN_PROCS_2016.Get_Monthly_Return_For_Edit(?, ?, ?, ?, ?, ?, ?, ?, ?) }")
+        )
+      ).thenReturn(cs)
+      when(cs.execute()).thenThrow(new SQLException("ORA-01422: exact fetch", "42000", 1422))
+
+      val repo = new CisFormpRepository(db)
+
+      repo
+        .getMonthlyReturnForEdit("abc-123", 2026, 11, isAmendment = true)
+        .failed
+        .futureValue mustBe a[SQLException]
+    }
+
     Seq(true -> "Y", false -> "N").foreach { case isAmendment -> amendmentFlag =>
       s"calls SP and returns empty response when all cursors are empty and isAmendment = $isAmendment" in {
         val db   = mock[Database]
@@ -1629,6 +1705,55 @@ final class CisFormpRepositorySpec extends SpecBase {
       verify(cs).setLong(5, 98765L)
       verify(cs).execute()
       verify(cs).close()
+    }
+
+    "treats ORA-20000 'No Monthly Return Item record' as already deleted" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+      when(conn.prepareCall(eqTo("{ call MONTHLY_RETURN_PROCS_2016.Delete_Monthly_Return_Item(?, ?, ?, ?, ?) }")))
+        .thenReturn(cs)
+      when(cs.execute()).thenThrow(
+        new SQLException(
+          "ORA-20000: Failure at <> No Monthly Return Item record for p_item_resource_ref <26> monthly_return_id <588797141>",
+          "99999",
+          20000
+        )
+      )
+
+      val repo = new CisFormpRepository(db)
+
+      repo
+        .deleteMonthlyReturnItem(
+          DeleteMonthlyReturnItemRequest("abc-123", 2025, 1, "N", 26L)
+        )
+        .futureValue mustBe ()
+
+      verify(cs).close()
+    }
+
+    "propagates other SQL errors" in {
+      val db   = mock[Database]
+      val conn = mock[Connection]
+      val cs   = mock[CallableStatement]
+
+      when(db.withConnection(anyArg[Connection => Any])).thenAnswer { inv =>
+        inv.getArgument(0, classOf[Connection => Any]).apply(conn)
+      }
+      when(conn.prepareCall(eqTo("{ call MONTHLY_RETURN_PROCS_2016.Delete_Monthly_Return_Item(?, ?, ?, ?, ?) }")))
+        .thenReturn(cs)
+      when(cs.execute()).thenThrow(new SQLException("ORA-20000: something else", "99999", 20000))
+
+      val repo = new CisFormpRepository(db)
+
+      repo
+        .deleteMonthlyReturnItem(DeleteMonthlyReturnItemRequest("abc-123", 2025, 1, "N", 26L))
+        .failed
+        .futureValue mustBe a[SQLException]
     }
   }
 

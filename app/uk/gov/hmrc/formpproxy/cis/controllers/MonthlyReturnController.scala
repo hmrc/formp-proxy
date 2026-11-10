@@ -21,6 +21,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.formpproxy.actions.AuthOrInternalAuthAction
 import uk.gov.hmrc.formpproxy.cis.models.requests.*
+import uk.gov.hmrc.formpproxy.cis.repositories.{MonthlyReturnAlreadyExistsException, MonthlyReturnNotFoundException}
 import uk.gov.hmrc.formpproxy.cis.services.MonthlyReturnService
 import uk.gov.hmrc.formpproxy.cis.utils.JsResultUtils.*
 import uk.gov.hmrc.http.UpstreamErrorResponse
@@ -134,8 +135,11 @@ class MonthlyReturnController @Inject() (
         .createMonthlyReturn(request.body)
         .map(_ => Created)
         .recover {
-          case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
-          case NonFatal(t)              =>
+          case e: UpstreamErrorResponse               => Status(e.statusCode)(Json.obj("message" -> e.message))
+          case e: MonthlyReturnAlreadyExistsException =>
+            logger.warn(s"[createMonthlyReturn] ${e.getMessage}")
+            Conflict(Json.obj("message" -> "Monthly return already exists"))
+          case NonFatal(t)                            =>
             logger.error("[createMonthlyReturn] failed", t)
             InternalServerError(Json.obj("message" -> "Unexpected error"))
         }
@@ -162,9 +166,13 @@ class MonthlyReturnController @Inject() (
           service
             .getMonthlyReturnForEdit(req)
             .map(payload => Ok(Json.toJson(payload)))
-            .recover { case NonFatal(e) =>
-              logger.error("[getMonthlyReturnForEdit] failed", e)
-              InternalServerError(Json.obj("message" -> "Unexpected error"))
+            .recover {
+              case e: MonthlyReturnNotFoundException =>
+                logger.warn(s"[getMonthlyReturnForEdit] ${e.getMessage}")
+                NotFound(Json.obj("message" -> "Monthly return not found"))
+              case NonFatal(e)                       =>
+                logger.error("[getMonthlyReturnForEdit] failed", e)
+                InternalServerError(Json.obj("message" -> "Unexpected error"))
             }
         }
     }

@@ -35,6 +35,8 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Using
 
 case class SubcontractorNotFoundException(message: String) extends RuntimeException(message)
+case class MonthlyReturnNotFoundException(message: String) extends RuntimeException(message)
+case class MonthlyReturnAlreadyExistsException(message: String) extends RuntimeException(message)
 
 trait CisMonthlyReturnSource {
   def getAllMonthlyReturns(instanceId: String): Future[UserMonthlyReturns]
@@ -242,6 +244,14 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
           )
         }
       }
+    }.recoverWith {
+      // ORA-01403: the SP found no monthly return for this instance/month/year/amendment
+      case e: SQLException if e.getErrorCode == 1403 =>
+        Future.failed(
+          MonthlyReturnNotFoundException(
+            s"No monthly return found for edit (instanceId=$instanceId, taxYear=$taxYear, taxMonth=$taxMonth, isAmendment=$isAmendment)"
+          )
+        )
     }
   }
 
@@ -251,12 +261,20 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
     )
     Future {
       db.withConnection { conn =>
-        Using.resource(conn.prepareCall(CallCreateMonthlyReturn)) { cs =>
-          cs.setString(1, request.instanceId)
-          cs.setInt(2, request.taxYear)
-          cs.setInt(3, request.taxMonth)
-          cs.setString(4, "N")
-          cs.execute()
+        try
+          Using.resource(conn.prepareCall(CallCreateMonthlyReturn)) { cs =>
+            cs.setString(1, request.instanceId)
+            cs.setInt(2, request.taxYear)
+            cs.setInt(3, request.taxMonth)
+            cs.setString(4, "N")
+            cs.execute()
+          }
+        catch {
+          // ORA-00001: a monthly return for this instance/month/year already exists (repeat request, double submit)
+          case e: SQLException if e.getErrorCode == 1 =>
+            throw MonthlyReturnAlreadyExistsException(
+              s"Monthly return already exists (instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth})"
+            )
         }
       }
     }
@@ -285,14 +303,23 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         s"[CIS] deleteMonthlyReturnItem(instanceId=${request.instanceId}, taxYear=${request.taxYear}, taxMonth=${request.taxMonth}, resourceReference=${request.resourceReference})"
       )
       db.withConnection { conn =>
-        callDeleteMonthlyReturnItem(
-          conn,
-          request.instanceId,
-          request.taxYear,
-          request.taxMonth,
-          request.amendment,
-          request.resourceReference
-        )
+        try
+          callDeleteMonthlyReturnItem(
+            conn,
+            request.instanceId,
+            request.taxYear,
+            request.taxMonth,
+            request.amendment,
+            request.resourceReference
+          )
+        catch {
+          // Deleting an item that is already gone (repeat request, stale page) is a no-op
+          case e: SQLException
+              if e.getErrorCode == 20000 && Option(e.getMessage).exists(_.contains("No Monthly Return Item record")) =>
+            logger.warn(
+              s"[CIS] deleteMonthlyReturnItem: resourceReference=${request.resourceReference} not found for instanceId=${request.instanceId}; treating as already deleted"
+            )
+        }
       }
     }
 
@@ -1057,7 +1084,9 @@ class CisFormpRepository @Inject() (@NamedDatabase("cis") db: Database)(implicit
         }
 
         found.getOrElse(
-          throw new RuntimeException(s"No MONTHLY_RETURN for instance_id=$instanceId year=$taxYear month=$taxMonth")
+          throw MonthlyReturnNotFoundException(
+            s"No MONTHLY_RETURN for instance_id=$instanceId year=$taxYear month=$taxMonth"
+          )
         )
       }
     }
