@@ -52,7 +52,10 @@ class SubmissionController @Inject() (
               .createSubmission(body)
               .map(submissionId => Created(Json.obj("submissionId" -> submissionId)))
               .recover { case t =>
-                logger.error("[createSubmission] failed", t)
+                logger.error(
+                  s"[createSubmission] failed (instanceId=${body.instanceId}, taxYear=${body.taxYear}, taxMonth=${body.taxMonth}, amendment=${body.amendment})",
+                  t
+                )
                 InternalServerError(Json.obj("message" -> "Unexpected error"))
               }
         )

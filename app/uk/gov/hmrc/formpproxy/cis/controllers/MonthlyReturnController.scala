@@ -124,7 +124,11 @@ class MonthlyReturnController @Inject() (
         .recover {
           case e: UpstreamErrorResponse => Status(e.statusCode)(Json.obj("message" -> e.message))
           case t: Throwable             =>
-            logger.error("[updateMonthlyReturnItem] failed", t)
+            val r = request.body
+            logger.error(
+              s"[updateMonthlyReturnItem] failed (instanceId=${r.instanceId}, taxYear=${r.taxYear}, taxMonth=${r.taxMonth}, amendment=${r.amendment}, itemResourceReference=${r.itemResourceReference})",
+              t
+            )
             InternalServerError(Json.obj("message" -> "Unexpected error"))
         }
     }
